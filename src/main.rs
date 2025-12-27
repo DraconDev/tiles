@@ -18,7 +18,7 @@ mod license;
 
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use crate::app::{App, AppMode, CurrentView};
+use crate::app::{App, AppMode, CurrentView, CommandItem};
 use crate::modules::docker::DockerModule;
 use bollard::models::ContainerSummary;
 
