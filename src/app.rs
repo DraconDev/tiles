@@ -134,6 +134,7 @@ impl App {
         let mut file_state = FileState {
             current_path: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             selected_index: 0,
+            scroll_offset: 0,
             files: Vec::new(),
             show_hidden: false,
             git_status: HashMap::new(),
