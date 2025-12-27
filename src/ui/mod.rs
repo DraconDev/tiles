@@ -1,11 +1,11 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Clear, Gauge, List, ListItem, Paragraph},
+    widgets::{Block, Borders, Clear, Gauge, List, ListItem, Paragraph, Wrap},
     Frame,
 };
 
-use crate::app::{App, AppMode, TileType, LicenseStatus};
+use crate::app::{App, AppMode, CurrentView, LicenseStatus};
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
@@ -16,7 +16,19 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         ])
         .split(f.area());
 
-    draw_main(f, chunks[0], app);
+    let workspace = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(10), // Dock
+            Constraint::Percentage(20), // Sidebar
+            Constraint::Min(0), // Main Stage
+        ])
+        .split(chunks[0]);
+
+    draw_dock(f, workspace[0], app);
+    draw_sidebar(f, workspace[1], app);
+    draw_main_stage(f, workspace[2], app);
+    
     draw_footer(f, chunks[1], app);
 
     if matches!(app.mode, AppMode::CommandPalette) {
@@ -24,101 +36,87 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     }
 }
 
-fn draw_command_palette(f: &mut Frame, app: &App) {
-    let area = centered_rect(60, 20, f.area());
-    f.render_widget(Clear, area);
-
+fn draw_dock(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .title(" Command Palette ")
-        .border_style(Style::default().fg(Color::Magenta));
+        .border_style(if app.sidebar_focus { Style::default().fg(Color::Cyan) } else { Style::default() });
+    
+    f.render_widget(block, area);
+
+    let inner = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
+    
+    let items = vec![
+        ("Files", CurrentView::Files), 
+        ("Docker", CurrentView::Docker), 
+        ("System", CurrentView::System)
+    ];
+
+    let list_items: Vec<ListItem> = items.iter().map(|(label, view)| {
+        let style = if app.current_view == *view {
+            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default()
+        };
+        ListItem::new(format!("[{}]", label.chars().next().unwrap())).style(style)
+    }).collect();
+
+    let list = List::new(list_items);
+    f.render_widget(list, inner);
+}
+
+fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
+    let block = Block::default().borders(Borders::ALL).title(" Sidebar ");
+    f.render_widget(block, area);
+    
+    let inner = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
+
+    match app.current_view {
+        CurrentView::Files => {
+            let items = vec![
+                ListItem::new("Home"),
+                ListItem::new("Downloads"),
+                ListItem::new("Documents"),
+                ListItem::new("Pictures"),
+            ];
+            f.render_widget(List::new(items), inner);
+        },
+        CurrentView::Docker => {
+             let items = vec![
+                ListItem::new("All Containers"),
+                ListItem::new("Running"),
+                ListItem::new("Stopped"),
+                ListItem::new("Images"),
+            ];
+            f.render_widget(List::new(items), inner);
+        },
+        CurrentView::System => {
+             let items = vec![
+                ListItem::new("Hardware"),
+                ListItem::new("Network"),
+                ListItem::new("Disks"),
+            ];
+            f.render_widget(List::new(items), inner);
+        }
+    }
+}
+
+fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(format!(" {:?} ", app.current_view))
+        .border_style(if !app.sidebar_focus { Style::default().fg(Color::Cyan) } else { Style::default() });
     
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    let input = Paragraph::new(format!("> {}", app.input))
-        .style(Style::default().fg(Color::Yellow));
-    f.render_widget(input, inner);
-}
-
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
-        ])
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
-        ])
-        .split(popup_layout[1])[1]
-}
-
-fn draw_main(f: &mut Frame, area: Rect, app: &mut App) {
-    if matches!(app.mode, AppMode::Zoomed) {
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title(format!(" {:?} (Zoomed) ", app.active_tile))
-            .border_style(Style::default().fg(Color::Yellow));
-        
-        let inner_area = block.inner(area);
-        f.render_widget(block, area);
-        
-        match app.active_tile {
-            TileType::Files => draw_file_tile(f, inner_area, app),
-            TileType::System => draw_system_tile(f, inner_area, app),
-            TileType::Docker => draw_docker_tile(f, inner_area, app),
-            _ => {}
-        }
-        return;
+    match app.current_view {
+        CurrentView::Files => draw_file_view(f, inner, app),
+        CurrentView::System => draw_system_view(f, inner, app),
+        CurrentView::Docker => draw_docker_view(f, inner, app),
     }
-
-    let main_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(50),
-            Constraint::Percentage(50),
-        ])
-        .split(area);
-
-    let right_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage(50),
-            Constraint::Percentage(50),
-        ])
-        .split(main_chunks[1]);
-
-    // File Tile
-    draw_file_tile(f, main_chunks[0], app);
-    
-    // System Tile
-    draw_system_tile(f, right_chunks[0], app);
-
-    // Docker Tile
-    draw_docker_tile(f, right_chunks[1], app);
 }
 
-fn draw_file_tile(f: &mut Frame, area: Rect, app: &App) {
-    let is_active = app.active_tile == TileType::Files;
-    let border_color = if is_active {
-        Color::Cyan
-    } else {
-        Color::White
-    };
-
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(format!(" Files: {} ", app.file_state.current_path.display()))
-        .border_style(Style::default().fg(border_color));
-
+fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
     let items: Vec<ListItem> = app.file_state.files.iter().enumerate().map(|(i, path)| {
         let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
         let style = if path.is_dir() {
@@ -127,7 +125,7 @@ fn draw_file_tile(f: &mut Frame, area: Rect, app: &App) {
             Style::default()
         };
         
-        let prefix = if i == app.file_state.selected_index && is_active {
+        let prefix = if i == app.file_state.selected_index && !app.sidebar_focus {
             "> "
         } else {
             "  "
@@ -136,65 +134,53 @@ fn draw_file_tile(f: &mut Frame, area: Rect, app: &App) {
         ListItem::new(format!("{}{}", prefix, name)).style(style)
     }).collect();
 
-    let list = List::new(items).block(block);
+    let list = List::new(items);
     f.render_widget(list, area);
 }
 
-fn draw_system_tile(f: &mut Frame, area: Rect, app: &App) {
-    let is_active = app.active_tile == TileType::System;
-    let border_color = if is_active {
-        Color::Cyan
-    } else {
-        Color::White
-    };
+fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // CPU
+            Constraint::Length(3), // MEM
+            Constraint::Min(0),    // Disks
+        ])
+        .split(area);
 
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(" System ")
-        .border_style(Style::default().fg(border_color));
+    // CPU Gauge
+    let cpu_gauge = Gauge::default()
+        .block(Block::default().title(" CPU Usage ").borders(Borders::ALL))
+        .gauge_style(Style::default().fg(Color::Green))
+        .percent(app.system_state.cpu_usage as u16)
+        .label(format!("{:.1}% / 100%", app.system_state.cpu_usage));
+    f.render_widget(cpu_gauge, layout[0]);
 
-    let inner = block.inner(area);
-    f.render_widget(block, area);
-
+    // Memory Gauge
     if app.system_state.total_mem > 0.0 {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3), // CPU
-                Constraint::Length(3), // MEM
-            ])
-            .margin(1)
-            .split(inner);
-
-        let cpu_gauge = Gauge::default()
-            .block(Block::default().title(" CPU "))
-            .gauge_style(Style::default().fg(Color::Green))
-            .percent(app.system_state.cpu_usage as u16);
-        f.render_widget(cpu_gauge, chunks[0]);
-
         let mem_percent = (app.system_state.mem_usage / app.system_state.total_mem) * 100.0;
         let mem_gauge = Gauge::default()
-            .block(Block::default().title(" MEM "))
+            .block(Block::default().title(" Memory Usage ").borders(Borders::ALL))
             .gauge_style(Style::default().fg(Color::Yellow))
             .percent(mem_percent as u16)
-            .label(format!("{:.1} / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem));
-        f.render_widget(mem_gauge, chunks[1]);
+            .label(format!("{:.1} GB / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem));
+        f.render_widget(mem_gauge, layout[1]);
     }
+
+    // Disk Usage List
+    let disk_items: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
+        let percent = (disk.used_space / disk.total_space) * 100.0;
+        ListItem::new(format!(
+            "Disk {}: {:.1} GB / {:.1} GB ({:.1}%)", 
+            disk.name, disk.used_space, disk.total_space, percent
+        ))
+    }).collect();
+    
+    let disk_list = List::new(disk_items).block(Block::default().title(" Disk Usage ").borders(Borders::ALL));
+    f.render_widget(disk_list, layout[2]);
 }
 
-fn draw_docker_tile(f: &mut Frame, area: Rect, app: &App) {
-    let is_active = app.active_tile == TileType::Docker;
-    let border_color = if is_active {
-        Color::Cyan
-    } else {
-        Color::White
-    };
-
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(" Docker ")
-        .border_style(Style::default().fg(border_color));
-
+fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
     let items: Vec<ListItem> = app.docker_state.containers.iter()
         .filter(|name| {
             if let Some(filter) = &app.docker_state.filter {
@@ -204,7 +190,7 @@ fn draw_docker_tile(f: &mut Frame, area: Rect, app: &App) {
             }
         })
         .enumerate().map(|(i, name)| {
-        let prefix = if i == app.docker_state.selected_index && is_active {
+        let prefix = if i == app.docker_state.selected_index && !app.sidebar_focus {
             "> "
         } else {
             "  "
@@ -212,7 +198,7 @@ fn draw_docker_tile(f: &mut Frame, area: Rect, app: &App) {
         ListItem::new(format!("{}{}", prefix, name))
     }).collect();
 
-    let list = List::new(items).block(block);
+    let list = List::new(items);
     f.render_widget(list, area);
 }
 
