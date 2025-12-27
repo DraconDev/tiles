@@ -154,6 +154,16 @@ async fn run_app<B: Backend>(
                                 continue;
                             }
 
+                            // Mouse 4/5 logic (Back/Forward)
+                            if btn == MouseButton::Back {
+                                if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); }
+                                continue;
+                            }
+                            if btn == MouseButton::Forward {
+                                if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); }
+                                continue;
+                            }
+
                             if btn == MouseButton::Left {
                                 let mut is_double_click = false;
                                 if let Some((last_time, last_row, last_col)) = app.last_click {
@@ -180,6 +190,7 @@ async fn run_app<B: Backend>(
                                                 if let Some(p) = path {
                                                     if let Some(fs) = app.current_file_state_mut() {
                                                         fs.current_path = p.clone(); fs.selected_index = 0; fs.search_filter.clear();
+                                                        *fs.table_state.offset_mut() = 0;
                                                         push_history(fs, p); crate::modules::files::update_files(fs); app.sidebar_focus = false;
                                                     }
                                                 }
@@ -196,6 +207,7 @@ async fn run_app<B: Backend>(
                                                         if let Some(path) = fs.files.get(index).cloned() {
                                                             if path.is_dir() {
                                                                 fs.current_path = path.clone(); fs.selected_index = 0; fs.search_filter.clear();
+                                                                *fs.table_state.offset_mut() = 0;
                                                                 push_history(fs, path); crate::modules::files::update_files(fs);
                                                             }
                                                         }
@@ -218,7 +230,8 @@ async fn run_app<B: Backend>(
                         MouseEventKind::ScrollDown => {
                             if app.current_view == CurrentView::Files {
                                 if let Some(fs) = app.current_file_state_mut() {
-                                    let new_offset = fs.table_state.offset().saturating_add(3);
+                                    let max_files = fs.files.len();
+                                    let new_offset = (fs.table_state.offset() + 3).min(max_files.saturating_sub(1));
                                     *fs.table_state.offset_mut() = new_offset;
                                 }
                             } else { app.move_down(); update_docker_filter(app); }
@@ -376,8 +389,14 @@ async fn run_app<B: Backend>(
                             }
                             KeyCode::Down => { app.move_down(); update_docker_filter(app); }
                             KeyCode::Up => { app.move_up(); update_docker_filter(app); }
-                            KeyCode::Left => { if !app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { app.move_left(); } }
-                            KeyCode::Right => { if !app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { app.move_right(); } }
+                            KeyCode::Left => { 
+                                if !app.sidebar_focus { app.sidebar_focus = true; }
+                                else { if !app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { app.move_left(); } }
+                            }
+                            KeyCode::Right => {
+                                if app.sidebar_focus { app.sidebar_focus = false; }
+                                else { if !app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { app.move_right(); } }
+                            }
                             KeyCode::F(5) => { if let Some(fs) = app.current_file_state_mut() { crate::modules::files::update_files(fs); } }
                             KeyCode::F(2) => {
                                 let name_opt = app.current_file_state().and_then(|fs| fs.files.get(fs.selected_index).map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string()));
