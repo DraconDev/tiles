@@ -180,13 +180,15 @@ async fn run_app<B: Backend>(
                         KeyCode::Char('y') | KeyCode::Enter => {
                             match app.current_view {
                                 CurrentView::Files => {
-                                    if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
-                                        let _ = if path.is_dir() {
-                                            std::fs::remove_dir_all(path)
-                                        } else {
-                                            std::fs::remove_file(path)
-                                        };
-                                        crate::modules::files::update_files(&mut app.file_state);
+                                    if let Some(file_state) = app.current_file_state_mut() {
+                                        if let Some(path) = file_state.files.get(file_state.selected_index) {
+                                            let _ = if path.is_dir() {
+                                                std::fs::remove_dir_all(path)
+                                            } else {
+                                                std::fs::remove_file(path)
+                                            };
+                                            crate::modules::files::update_files(file_state);
+                                        }
                                     }
                                 }
                                 CurrentView::System => {
@@ -282,18 +284,23 @@ async fn run_app<B: Backend>(
                         }
                     }
                     KeyCode::Char('h') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
-                        app.file_state.show_hidden = !app.file_state.show_hidden;
-                        crate::modules::files::update_files(&mut app.file_state);
+                        if let Some(file_state) = app.current_file_state_mut() {
+                            file_state.show_hidden = !file_state.show_hidden;
+                            crate::modules::files::update_files(file_state);
+                        }
                     }
                     
                     // Star/Bookmark (Ctrl+B)
                     KeyCode::Char('b') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                         if app.current_view == CurrentView::Files {
-                            if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
-                                if app.file_state.starred.contains(path) {
-                                    app.file_state.starred.remove(path);
-                                } else {
-                                    app.file_state.starred.insert(path.clone());
+                            if let Some(file_state) = app.current_file_state_mut() {
+                                if let Some(path) = file_state.files.get(file_state.selected_index) {
+                                    if file_state.starred.contains(path) {
+                                        let p = path.clone();
+                                        file_state.starred.remove(&p);
+                                    } else {
+                                        file_state.starred.insert(path.clone());
+                                    }
                                 }
                             }
                         }
@@ -301,21 +308,46 @@ async fn run_app<B: Backend>(
 
                     // Window Management
                     KeyCode::Char('w') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
-                        app.running = false;
+                        if app.current_view == CurrentView::Files {
+                            if app.file_tabs.len() > 1 {
+                                app.file_tabs.remove(app.tab_index);
+                                if app.tab_index >= app.file_tabs.len() {
+                                    app.tab_index = app.file_tabs.len().saturating_sub(1);
+                                }
+                            } else {
+                                app.running = false;
+                            }
+                        } else {
+                            app.running = false;
+                        }
                     }
                     KeyCode::Char('t') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
-                        // Spawn new terminal instance in current directory
-                        // Try typical emulators. 
-                        let _ = std::process::Command::new("x-terminal-emulator")
-                            .arg("--working-directory")
-                            .arg(&app.file_state.current_path)
-                            .spawn()
-                            .or_else(|_| {
-                                std::process::Command::new("gnome-terminal")
-                                    .arg("--working-directory")
-                                    .arg(&app.file_state.current_path)
-                                    .spawn()
-                            });
+                        if app.current_view == CurrentView::Files {
+                            if let Some(current_state) = app.current_file_state() {
+                                let mut new_state = crate::app::FileState {
+                                    current_path: current_state.current_path.clone(),
+                                    selected_index: 0,
+                                    files: Vec::new(),
+                                    show_hidden: current_state.show_hidden,
+                                    git_status: std::collections::HashMap::new(),
+                                    clipboard: None,
+                                    search_filter: String::new(),
+                                    starred: current_state.starred.clone(),
+                                };
+                                crate::modules::files::update_files(&mut new_state);
+                                app.file_tabs.push(new_state);
+                                app.tab_index = app.file_tabs.len() - 1;
+                            }
+                        }
+                    }
+                    
+                    // Tab Switching
+                    KeyCode::Tab if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                        if app.current_view == CurrentView::Files {
+                            if app.file_tabs.len() > 1 {
+                                app.tab_index = (app.tab_index + 1) % app.file_tabs.len();
+                            }
+                        }
                     }
 
                     // View Switching Shortcuts
