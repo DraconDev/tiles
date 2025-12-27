@@ -1,0 +1,14 @@
+{
+    "folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../yazi"
+		},
+		{
+			"path": "../mc"
+		}
+	],
+    "settings": {}
+}
