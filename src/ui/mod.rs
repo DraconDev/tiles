@@ -297,6 +297,17 @@ fn draw_new_folder_modal(f: &mut Frame, app: &App) {
     f.render_widget(Paragraph::new(app.input.as_str()), inner);
 }
 
+fn draw_add_remote_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(50, 20, f.area()); f.render_widget(Clear, area);
+    let block = Block::default().title(" Add Remote Host ").borders(Borders::ALL).border_style(Style::default().fg(Color::Green));
+    let inner = block.inner(area); f.render_widget(block, area);
+    let text = format!("Enter connection string (user@host:port):
+> {}
+
+(Press Enter to add, Esc to cancel)", app.input);
+    f.render_widget(Paragraph::new(text), inner);
+}
+
 use chrono::{DateTime, Local};
 fn format_size(size: u64) -> String { if size >= 1073741824 { format!("{:.1} GB", size as f64 / 1073741824.0) } else if size >= 1048576 { format!("{:.1} MB", size as f64 / 1048576.0) } else if size >= 1024 { format!("{:.1} KB", size as f64 / 1024.0) } else { format!("{} B", size) } }
 fn format_time(time: SystemTime) -> String { let datetime: DateTime<Local> = time.into(); datetime.format("%Y-%m-%d %H:%M").to_string() }
