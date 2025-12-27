@@ -186,6 +186,7 @@ impl App {
             license,
             sidebar_focus: false,
             sidebar_index: 0,
+            remote_bookmarks: Vec::new(),
             filtered_commands: Vec::new(),
             command_index: 0,
             last_click: None,
