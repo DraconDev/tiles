@@ -281,9 +281,15 @@ async fn run_app<B: Backend>(
                     }
                     KeyCode::Char('l') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                          if app.current_view == CurrentView::Files {
-                            if let Some(file_state) = app.current_file_state_mut() {
+                            let path_str = if let Some(file_state) = app.current_file_state() {
+                                Some(file_state.current_path.to_string_lossy().to_string())
+                            } else {
+                                None
+                            };
+                            
+                            if let Some(p) = path_str {
                                 app.mode = AppMode::Location;
-                                app.input = file_state.current_path.to_string_lossy().to_string();
+                                app.input = p;
                             }
                         }
                     }
