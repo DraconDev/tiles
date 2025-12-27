@@ -143,8 +143,13 @@ fn draw_docker_tile(f: &mut Frame, area: Rect, app: &App) {
         .title(" Docker ")
         .border_style(Style::default().fg(border_color));
 
-    let items: Vec<ListItem> = app.docker_state.containers.iter().map(|name| {
-        ListItem::new(name.as_str())
+    let items: Vec<ListItem> = app.docker_state.containers.iter().enumerate().map(|(i, name)| {
+        let prefix = if i == app.docker_state.selected_index && is_active {
+            "> "
+        } else {
+            "  "
+        };
+        ListItem::new(format!("{}{}", prefix, name))
     }).collect();
 
     let list = List::new(items).block(block);
