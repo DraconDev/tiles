@@ -168,6 +168,26 @@ async fn run_app<B: Backend>(
                     continue;
                 }
 
+                if matches!(app.mode, AppMode::Delete) {
+                    match key.code {
+                        KeyCode::Char('y') | KeyCode::Enter => {
+                            if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+                                let _ = if path.is_dir() {
+                                    std::fs::remove_dir_all(path)
+                                } else {
+                                    std::fs::remove_file(path)
+                                };
+                                crate::modules::files::update_files(&mut app.file_state);
+                            }
+                            app.mode = AppMode::Normal;
+                        }
+                        _ => {
+                            app.mode = AppMode::Normal;
+                        }
+                    }
+                    continue;
+                }
+
                 if matches!(app.mode, AppMode::CommandPalette) {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,

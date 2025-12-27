@@ -46,6 +46,25 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::NewFolder) {
         draw_new_folder_modal(f, app);
     }
+
+    if matches!(app.mode, AppMode::Delete) {
+        draw_delete_modal(f, app);
+    }
+}
+
+fn draw_delete_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(40, 10, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default().title(" Delete? ").borders(Borders::ALL).border_style(Style::default().fg(Color::Red));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+    
+    let text = if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+        format!("Delete {}? (y/n)", path.file_name().unwrap_or_default().to_string_lossy())
+    } else {
+        "Delete? (y/n)".to_string()
+    };
+    f.render_widget(Paragraph::new(text), inner);
 }
 
 fn draw_new_folder_modal(f: &mut Frame, app: &App) {
