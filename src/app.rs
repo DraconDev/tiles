@@ -162,8 +162,6 @@ impl App {
             license,
             sidebar_focus: false,
             sidebar_index: 0,
-            filtered_commands: Vec::new(),
-            command_index: 0,
         }
     }
 
