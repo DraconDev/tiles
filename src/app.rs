@@ -61,12 +61,19 @@ pub enum CommandAction {
 
 use std::collections::HashMap;
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ClipboardOp {
+    Copy,
+    Cut,
+}
+
 pub struct FileState {
     pub current_path: PathBuf,
     pub selected_index: usize,
     pub files: Vec<PathBuf>,
     pub show_hidden: bool,
     pub git_status: HashMap<PathBuf, String>,
+    pub clipboard: Option<(PathBuf, ClipboardOp)>,
 }
 
 pub struct DockerState {
