@@ -128,6 +128,7 @@ impl App {
             git_status: HashMap::new(),
             clipboard: None,
             search_filter: String::new(),
+            starred: HashSet::new(),
         };
         update_files(&mut file_state);
 
