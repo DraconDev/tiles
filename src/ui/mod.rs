@@ -341,7 +341,7 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
             } else {
                 "  "
             };
-            ListItem::new(format!("{}{:<20} {:<10} {}"), prefix, name, state, status)).style(style)
+            ListItem::new(format!("{}{:<20} {:<10} {}", prefix, name, state, status)).style(style)
     }).collect();
 
     let list = List::new(items);
