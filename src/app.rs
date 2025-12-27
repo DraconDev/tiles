@@ -32,7 +32,8 @@ pub struct App {
     pub current_view: CurrentView,
     pub mode: AppMode,
     pub input: String,
-    pub file_state: FileState,
+    pub file_tabs: Vec<FileState>,
+    pub tab_index: usize,
     pub docker_state: DockerState,
     pub system_state: SystemState,
     pub license: LicenseStatus,
@@ -139,7 +140,8 @@ impl App {
             current_view: CurrentView::Files,
             mode: AppMode::Normal,
             input: String::new(),
-            file_state,
+            file_tabs: vec![file_state],
+            tab_index: 0,
             docker_state: DockerState {
                 containers: Vec::new(),
                 selected_index: 0,
@@ -153,6 +155,16 @@ impl App {
             filtered_commands: Vec::new(),
             command_index: 0,
         }
+    }
+
+    // Helper to get mutable reference to current file state
+    pub fn current_file_state_mut(&mut self) -> Option<&mut FileState> {
+        self.file_tabs.get_mut(self.tab_index)
+    }
+
+    // Helper to get reference to current file state
+    pub fn current_file_state(&self) -> Option<&FileState> {
+        self.file_tabs.get(self.tab_index)
     }
 
     pub fn switch_view(&mut self) {
