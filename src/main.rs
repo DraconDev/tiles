@@ -174,6 +174,37 @@ async fn run_app<B: Backend>(
                                 continue;
                             }
 
+                            if btn == MouseButton::Middle {
+                                if app.current_view == CurrentView::Files {
+                                    let mouse_row_offset = mouse.row.saturating_sub(7) as usize;
+                                    if let Some(fs) = app.current_file_state() {
+                                        let index = fs.table_state.offset() + mouse_row_offset;
+                                        if let Some(path) = fs.files.get(index).cloned() {
+                                            if path.is_dir() {
+                                                let mut new_fs = crate::app::FileState {
+                                                    current_path: path.clone(),
+                                                    selected_index: 0,
+                                                    table_state: ratatui::widgets::TableState::default(),
+                                                    files: Vec::new(),
+                                                    show_hidden: fs.show_hidden,
+                                                    git_status: std::collections::HashMap::new(),
+                                                    clipboard: None,
+                                                    search_filter: String::new(),
+                                                    starred: fs.starred.clone(),
+                                                    columns: fs.columns.clone(),
+                                                    history: vec![path],
+                                                    history_index: 0,
+                                                };
+                                                crate::modules::files::update_files(&mut new_fs);
+                                                app.file_tabs.push(new_fs);
+                                                app.tab_index = app.file_tabs.len() - 1;
+                                            }
+                                        }
+                                    }
+                                }
+                                continue;
+                            }
+
                             if btn == MouseButton::Left {
                                 // 3. Double Click Detection
                                 let mut is_double_click = false;
@@ -210,7 +241,8 @@ async fn run_app<B: Backend>(
                                                 };
                                                 if let Some(p) = path {
                                                     if let Some(fs) = app.current_file_state_mut() {
-                                                        fs.current_path = p; fs.selected_index = 0; fs.search_filter.clear();
+                                                        fs.current_path = p.clone(); fs.selected_index = 0; fs.search_filter.clear();
+                                                        push_history(fs, p);
                                                         crate::modules::files::update_files(fs); app.sidebar_focus = false;
                                                     }
                                                 }
@@ -229,7 +261,8 @@ async fn run_app<B: Backend>(
                                                     if is_double_click {
                                                         if let Some(path) = fs.files.get(index).cloned() {
                                                             if path.is_dir() {
-                                                                fs.current_path = path; fs.selected_index = 0; fs.search_filter.clear();
+                                                                fs.current_path = path.clone(); fs.selected_index = 0; fs.search_filter.clear();
+                                                                push_history(fs, path);
                                                                 crate::modules::files::update_files(fs);
                                                             }
                                                         }
