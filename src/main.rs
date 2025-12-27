@@ -98,6 +98,7 @@ async fn run_app<B: Backend>(
                         if app.active_tile == crate::app::TileType::Files {
                             if app.file_state.selected_index < app.file_state.files.len().saturating_sub(1) {
                                 app.file_state.selected_index += 1;
+                                update_docker_filter(app);
                             }
                         } else if app.active_tile == crate::app::TileType::Docker {
                             if app.docker_state.selected_index < app.docker_state.containers.len().saturating_sub(1) {
@@ -109,6 +110,7 @@ async fn run_app<B: Backend>(
                         if app.active_tile == crate::app::TileType::Files {
                             if app.file_state.selected_index > 0 {
                                 app.file_state.selected_index -= 1;
+                                update_docker_filter(app);
                             }
                         } else if app.active_tile == crate::app::TileType::Docker {
                             if app.docker_state.selected_index > 0 {
