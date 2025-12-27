@@ -122,9 +122,13 @@ async fn run_app<B: Backend>(
                                     app.sidebar_focus = false;
                                     match app.current_view {
                                         CurrentView::Files => {
-                                            let index = mouse.row.saturating_sub(7) as usize;
+                                            let mouse_row_offset = mouse.row.saturating_sub(7) as usize;
                                             if let Some(fs) = app.current_file_state_mut() {
-                                                if index < fs.files.len() { fs.selected_index = index; }
+                                                let index = fs.table_state.offset() + mouse_row_offset;
+                                                if index < fs.files.len() {
+                                                    fs.selected_index = index;
+                                                    fs.table_state.select(Some(index));
+                                                }
                                             }
                                         }
                                         CurrentView::System => {
