@@ -184,6 +184,11 @@ impl App {
                     self.docker_state.selected_index -= 1;
                 }
             }
+            CurrentView::System => {
+                if self.system_state.selected_process_index > 0 {
+                    self.system_state.selected_process_index -= 1;
+                }
+            }
             _ => {}
         }
     }
