@@ -283,6 +283,38 @@ async fn run_app<B: Backend>(
                         app.file_state.show_hidden = !app.file_state.show_hidden;
                         crate::modules::files::update_files(&mut app.file_state);
                     }
+                    
+                    // Star/Bookmark (Ctrl+B)
+                    KeyCode::Char('b') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                        if app.current_view == CurrentView::Files {
+                            if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+                                if app.file_state.starred.contains(path) {
+                                    app.file_state.starred.remove(path);
+                                } else {
+                                    app.file_state.starred.insert(path.clone());
+                                }
+                            }
+                        }
+                    }
+
+                    // Window Management
+                    KeyCode::Char('w') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                        app.running = false;
+                    }
+                    KeyCode::Char('t') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                        // Spawn new terminal instance in current directory
+                        // Try typical emulators. 
+                        let _ = std::process::Command::new("x-terminal-emulator")
+                            .arg("--working-directory")
+                            .arg(&app.file_state.current_path)
+                            .spawn()
+                            .or_else(|_| {
+                                std::process::Command::new("gnome-terminal")
+                                    .arg("--working-directory")
+                                    .arg(&app.file_state.current_path)
+                                    .spawn()
+                            });
+                    }
 
                     // View Switching Shortcuts
                     KeyCode::Char('f') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => app.current_view = CurrentView::Files,
