@@ -62,8 +62,8 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Re
             .checked_sub(last_tick.elapsed())
             .unwrap_or_else(|| Duration::from_secs(0));
 
-        if event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
+        if crossterm::event::poll(timeout)? {
+            if let Event::Key(key) = crossterm::event::read()? {
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
                     KeyCode::Tab => app.next_tile(),
