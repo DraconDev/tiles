@@ -5,7 +5,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::app::{App, AppMode, CurrentView, LicenseStatus};
+use crate::app::{App, AppMode, CurrentView};
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
@@ -17,10 +17,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         ])
         .split(f.area());
 
-    // Tabs at the top
     draw_tabs(f, chunks[0], app);
 
-    // Workspace (Sidebar + Main Stage)
     let workspace = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -32,13 +30,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_sidebar(f, workspace[0], app);
     draw_main_stage(f, workspace[1], app);
     
-    // Footer at the bottom
     draw_footer(f, chunks[2], app);
 
-    if matches!(app.mode, AppMode::CommandPalette) {
-        draw_command_palette(f, app);
-    }
-    
     // Modals
     if matches!(app.mode, AppMode::Rename) {
         draw_rename_modal(f, app);
@@ -60,8 +53,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     let mut spans = Vec::new();
     
-    // Main View Tabs
-    let views = vec![ 
+    let views = vec![
         ("^F Files", CurrentView::Files), 
         ("^P Proc", CurrentView::System), 
         ("^D Docker", CurrentView::Docker)
@@ -79,7 +71,6 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
 
     spans.push(ratatui::text::Span::raw(" | "));
 
-    // File Tabs (if in Files view)
     if app.current_view == CurrentView::Files {
         for (i, tab) in app.file_tabs.iter().enumerate() {
             let name = tab.current_path.file_name()
@@ -200,7 +191,6 @@ use crate::app::FileColumn;
 
 fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
     if let Some(file_state) = app.current_file_state() {
-        // Prepare header
         let header_cells = file_state.columns.iter().map(|c| {
             let name = match c {
                 FileColumn::Name => "Name",
@@ -214,7 +204,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
         });
         let header = Row::new(header_cells).height(1).bottom_margin(1);
 
-        // Prepare rows
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let metadata = std::fs::metadata(path).ok();
             
@@ -245,7 +234,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
                             style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD);
                         }
                         
-                        // Icons (Simple replacements for now)
                         let icon = if path.is_dir() { "📁 " } else { "📄 " };
                         Cell::from(format!("{}{}", icon, display_name)).style(style)
                     },
@@ -281,7 +269,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
             Row::new(cells).style(style)
         });
 
-        // Calculate constraints based on columns
         let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| {
             match c {
                 FileColumn::Name => Constraint::Percentage(50),
@@ -295,7 +282,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
 
         let table = Table::new(rows, constraints)
             .header(header)
-            .block(Block::default().borders(Borders::NONE)); // Clean look without borders inside the stage?
+            .block(Block::default().borders(Borders::NONE));
             
         f.render_widget(table, area);
     }
@@ -312,7 +299,6 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
         ])
         .split(area);
 
-    // CPU Gauge
     let cpu_gauge = Gauge::default()
         .block(Block::default().title(" CPU Usage ").borders(Borders::ALL))
         .gauge_style(Style::default().fg(Color::Green))
@@ -320,7 +306,6 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
         .label(format!("{:.1}%", app.system_state.cpu_usage));
     f.render_widget(cpu_gauge, layout[0]);
 
-    // Memory Gauge
     if app.system_state.total_mem > 0.0 {
         let mem_percent = (app.system_state.mem_usage / app.system_state.total_mem) * 100.0;
         let mem_gauge = Gauge::default()
@@ -331,10 +316,8 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
         f.render_widget(mem_gauge, layout[1]);
     }
 
-    // Disk Usage List
     let disk_items: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let percent = (disk.used_space / disk.total_space) * 100.0;
-        
         let bar_width: usize = 20;
         let filled = (percent / 100.0 * bar_width as f64) as usize;
         let empty = bar_width.saturating_sub(filled);
@@ -349,7 +332,6 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     let disk_list = List::new(disk_items).block(Block::default().title(" Disk Usage ").borders(Borders::ALL));
     f.render_widget(disk_list, layout[2]);
 
-    // Process List
     let process_items: Vec<ListItem> = app.system_state.processes.iter().enumerate().map(|(i, p)| {
         let style = if i == app.system_state.selected_process_index && !app.sidebar_focus {
             Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
@@ -404,14 +386,8 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let mut spans = Vec::new();
     
-    // Console Shortcut
-    let console_key_style = if matches!(app.mode, AppMode::CommandPalette) {
-        Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(Color::Yellow)
-    };
-    spans.push(ratatui::text::Span::styled("^.", console_key_style));
-    spans.push(ratatui::text::Span::raw(" Console | "));
+    spans.push(ratatui::text::Span::styled("^Q", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" Quit | "));
 
     spans.push(ratatui::text::Span::styled("^H", Style::default().fg(Color::Yellow)));
     spans.push(ratatui::text::Span::raw(" Hidden | "));
@@ -423,7 +399,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     spans.push(ratatui::text::Span::raw(" New Tab | "));
     
     spans.push(ratatui::text::Span::styled("^W", Style::default().fg(Color::Yellow)));
-    spans.push(ratatui::text::Span::raw(" Close | "));
+    spans.push(ratatui::text::Span::raw(" Close Tab | "));
     
     spans.push(ratatui::text::Span::styled("Del", Style::default().fg(Color::Yellow)));
     spans.push(ratatui::text::Span::raw(" Action "));
@@ -438,43 +414,6 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
 
     let footer = Paragraph::new(ratatui::text::Line::from(spans));
     f.render_widget(footer, area);
-}
-
-fn draw_command_palette(f: &mut Frame, app: &App) {
-    let area = centered_rect(60, 20, f.area());
-    f.render_widget(Clear, area);
-
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(" Command Palette ")
-        .border_style(Style::default().fg(Color::Magenta));
-    
-    let inner = block.inner(area);
-    f.render_widget(block, area);
-
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),
-            Constraint::Min(0),
-        ])
-        .split(inner);
-
-    let input = Paragraph::new(format!("> {}", app.input))
-        .style(Style::default().fg(Color::Yellow));
-    f.render_widget(input, chunks[0]);
-
-    let items: Vec<ListItem> = app.filtered_commands.iter().enumerate().map(|(i, cmd)| {
-        let style = if i == app.command_index {
-             Style::default().bg(Color::DarkGray).fg(Color::White)
-        } else {
-             Style::default()
-        };
-        ListItem::new(cmd.label.clone()).style(style)
-    }).collect();
-    
-    let list = List::new(items);
-    f.render_widget(list, chunks[1]);
 }
 
 fn draw_rename_modal(f: &mut Frame, app: &App) {
