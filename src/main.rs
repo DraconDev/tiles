@@ -111,40 +111,65 @@ async fn run_app<B: Backend>(
         if crossterm::event::poll(timeout)? {
             match crossterm::event::read()? {
                 Event::Mouse(mouse) => {
-                    if mouse.kind == MouseEventKind::Down(MouseButton::Left) {
-                        let (cols, rows) = terminal.size().map(|s| (s.width, s.height)).unwrap_or((0, 0));
-                        
-                        // Tab Bar (Top Row)
-                        if mouse.row == 0 {
-                            if mouse.column < 10 { app.current_view = CurrentView::Files; }
-                            else if mouse.column < 20 { app.current_view = CurrentView::System; }
-                            else if mouse.column < 30 { app.current_view = CurrentView::Docker; }
-                            else if mouse.column < 45 { 
-                                app.mode = AppMode::CommandPalette;
-                                app.input.clear();
-                                update_commands(app);
+                    match mouse.kind {
+                        MouseEventKind::Down(MouseButton::Left) => {
+                            let (cols, rows) = terminal.size().map(|s| (s.width, s.height)).unwrap_or((0, 0));
+                            
+                            // Tab Bar (Top Row - 0)
+                            if mouse.row == 0 {
+                                if mouse.column < 12 { app.current_view = CurrentView::Files; }
+                                else if mouse.column < 22 { app.current_view = CurrentView::System; }
+                                else if mouse.column < 35 { app.current_view = CurrentView::Docker; }
+                                else if mouse.column > 35 && mouse.column < 50 { 
+                                    app.mode = AppMode::CommandPalette;
+                                    app.input.clear();
+                                    update_commands(app);
+                                }
                             }
-                        }
-                        // Workspace Area
-                        else if mouse.row < rows - 1 {
-                            let sidebar_width = (cols as f32 * 0.2) as u16;
-                            if mouse.column < sidebar_width {
-                                app.sidebar_focus = true;
-                                let index = mouse.row.saturating_sub(1) as usize; // Sidebar items start right below tabs
-                                if index < 4 { app.sidebar_index = index; }
-                            } else {
-                                app.sidebar_focus = false;
-                                if app.current_view == CurrentView::Files {
-                                    // Offset: Tabs(1) + PathBar(3) + TableHeader(1) = 5
-                                    let index = mouse.row.saturating_sub(5) as usize;
-                                    if let Some(file_state) = app.current_file_state_mut() {
-                                        if index < file_state.files.len() {
-                                            file_state.selected_index = index;
+                            // Workspace Area (Exclude footer at rows - 1)
+                            else if mouse.row < rows.saturating_sub(1) {
+                                let sidebar_width = (cols as f32 * 0.2) as u16;
+                                
+                                if mouse.column < sidebar_width {
+                                    app.sidebar_focus = true;
+                                    // Sidebar items are inside a block with margin.
+                                    // Tabs(1) + Border(1) = items start at row 2.
+                                    let index = mouse.row.saturating_sub(2) as usize;
+                                    if index < 4 { app.sidebar_index = index; }
+                                } else {
+                                    app.sidebar_focus = false;
+                                    if app.current_view == CurrentView::Files {
+                                        // Tabs(1) + Border(1) + PathBar(3) + Header(1) + Margin(1) = items start at row 7
+                                        let index = mouse.row.saturating_sub(7) as usize;
+                                        if let Some(file_state) = app.current_file_state_mut() {
+                                            if index < file_state.files.len() {
+                                                file_state.selected_index = index;
+                                            }
+                                        }
+                                    } else if app.current_view == CurrentView::System {
+                                        // Tabs(1) + Border(1) + CPU(3) + MEM(3) + Disk(6) + Header(1) = row 15 roughly
+                                        let index = mouse.row.saturating_sub(15) as usize;
+                                        if index < app.system_state.processes.len() {
+                                            app.system_state.selected_process_index = index;
+                                        }
+                                    } else if app.current_view == CurrentView::Docker {
+                                        let index = mouse.row.saturating_sub(2) as usize;
+                                        if index < app.docker_state.containers.len() {
+                                            app.docker_state.selected_index = index;
                                         }
                                     }
                                 }
                             }
                         }
+                        MouseEventKind::ScrollUp => {
+                            app.move_up();
+                            update_docker_filter(app);
+                        }
+                        MouseEventKind::ScrollDown => {
+                            app.move_down();
+                            update_docker_filter(app);
+                        }
+                        _ => {}
                     }
                 }
                 Event::Key(key) => {
