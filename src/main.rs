@@ -464,14 +464,17 @@ fn update_commands(app: &mut App) {
     ];
     
     // Add dynamic commands (Docker containers)
-    for name in &app.docker_state.containers {
+    for container in &app.docker_state.containers {
+         let name = container.names.as_ref().map(|n| n.first().map(|s| s.as_str()).unwrap_or("")).unwrap_or("").trim_start_matches('/');
+         if name.is_empty() { continue; }
+         
          commands.push(CommandItem { 
              label: format!("Start Container: {}", name), 
-             action: CommandAction::StartContainer(name.clone()) 
+             action: CommandAction::StartContainer(name.to_string()) 
          });
          commands.push(CommandItem { 
              label: format!("Stop Container: {}", name), 
-             action: CommandAction::StopContainer(name.clone()) 
+             action: CommandAction::StopContainer(name.to_string()) 
          });
     }
 
