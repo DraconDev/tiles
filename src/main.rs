@@ -171,13 +171,37 @@ async fn run_app<B: Backend>(
                 if matches!(app.mode, AppMode::Delete) {
                     match key.code {
                         KeyCode::Char('y') | KeyCode::Enter => {
-                            if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
-                                let _ = if path.is_dir() {
-                                    std::fs::remove_dir_all(path)
-                                } else {
-                                    std::fs::remove_file(path)
-                                };
-                                crate::modules::files::update_files(&mut app.file_state);
+                            match app.current_view {
+                                CurrentView::Files => {
+                                    if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+                                        let _ = if path.is_dir() {
+                                            std::fs::remove_dir_all(path)
+                                        } else {
+                                            std::fs::remove_file(path)
+                                        };
+                                        crate::modules::files::update_files(&mut app.file_state);
+                                    }
+                                }
+                                CurrentView::System => {
+                                     // Kill process logic
+                                     if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) {
+                                         // In real app, we'd use kill(pid)
+                                         // For now, placeholder
+                                         // app.system_module.kill_process(p.pid);
+                                     }
+                                }
+                                CurrentView::Docker => {
+                                     if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
+                                         if let Some(docker) = &docker_module {
+                                             let docker = docker.clone();
+                                             let name = name.clone();
+                                             tokio::spawn(async move {
+                                                 // remove container with force=true?
+                                                 // docker.remove_container(&name, ...).await
+                                             });
+                                         }
+                                     }
+                                }
                             }
                             app.mode = AppMode::Normal;
                         }
