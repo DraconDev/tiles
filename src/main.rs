@@ -106,57 +106,114 @@ async fn run_app<B: Backend>(
             match crossterm::event::read()? {
                 Event::Mouse(mouse) => {
                     match mouse.kind {
-                        MouseEventKind::Down(MouseButton::Left) => {
+                        MouseEventKind::Down(btn) => {
                             let (cols, rows) = terminal.size().map(|s| (s.width, s.height)).unwrap_or((0, 0));
-                        // Tab Bar (Top Row - 0)
-                        if mouse.row == 0 {
-                            if mouse.column >= cols.saturating_sub(5) {
-                                app.running = false;
-                            } else if mouse.column < 11 { app.current_view = CurrentView::Files; }
-                            else if mouse.column < 22 { app.current_view = CurrentView::System; }
-                            else if mouse.column < 33 { app.current_view = CurrentView::Docker; }
-                        } else if mouse.row == rows.saturating_sub(1) {
-                                if mouse.column < 13 {
-                                    app.mode = AppMode::CommandPalette;
-                                    app.input.clear();
-                                    update_commands(app);
-                                }
-                            } else {
-                                let sidebar_width = (cols as f32 * 0.2) as u16;
-                                if mouse.column < sidebar_width {
-                                    app.sidebar_focus = true;
-                                    let index = mouse.row.saturating_sub(2) as usize;
-                                    if index < 4 { app.sidebar_index = index; }
+                            
+                            // 1. Context Menu Handling
+                            if let AppMode::ContextMenu(x, y) = app.mode {
+                                // Simple hit test for menu options (3 options: Rename, Star, Delete)
+                                if mouse.column >= x && mouse.column < x + 15 {
+                                    let option_idx = mouse.row.saturating_sub(y) as usize;
+                                    match option_idx {
+                                        0 => { // Rename
+                                            let name_opt = app.current_file_state().and_then(|fs| {
+                                                fs.files.get(fs.selected_index).map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string())
+                                            });
+                                            if let Some(name) = name_opt { app.mode = AppMode::Rename; app.input = name; }
+                                        }
+                                        1 => { // Star
+                                            if let Some(fs) = app.current_file_state_mut() {
+                                                if let Some(path) = fs.files.get(fs.selected_index).cloned() {
+                                                    if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); }
+                                                }
+                                            }
+                                            app.mode = AppMode::Normal;
+                                        }
+                                        2 => { // Delete
+                                            app.mode = AppMode::Delete;
+                                        }
+                                        _ => { app.mode = AppMode::Normal; }
+                                    }
                                 } else {
-                                    app.sidebar_focus = false;
-                                    match app.current_view {
-                                        CurrentView::Files => {
+                                    app.mode = AppMode::Normal;
+                                }
+                                continue;
+                            }
+
+                            // 2. Right Click -> Open Menu
+                            if btn == MouseButton::Right {
+                                app.mode = AppMode::ContextMenu(mouse.column, mouse.row);
+                                continue;
+                            }
+
+                            if btn == MouseButton::Left {
+                                // 3. Double Click Detection
+                                let mut is_double_click = false;
+                                if let Some((last_time, last_row, last_col)) = app.last_click {
+                                    if last_time.elapsed() < Duration::from_millis(500) && last_row == mouse.row && last_col == mouse.column {
+                                        is_double_click = true;
+                                    }
+                                }
+                                app.last_click = Some((Instant::now(), mouse.row, mouse.column));
+
+                                // Handle Clicks
+                                if mouse.row == 0 {
+                                    if mouse.column < 11 { app.current_view = CurrentView::Files; }
+                                    else if mouse.column < 22 { app.current_view = CurrentView::System; }
+                                    else if mouse.column < 33 { app.current_view = CurrentView::Docker; }
+                                } else if mouse.row == rows.saturating_sub(1) {
+                                    if mouse.column < 13 {
+                                        app.mode = AppMode::CommandPalette;
+                                        app.input.clear();
+                                        update_commands(app);
+                                    }
+                                } else {
+                                    let sidebar_width = (cols as f32 * 0.2) as u16;
+                                    if mouse.column < sidebar_width {
+                                        app.sidebar_focus = true;
+                                        let index = mouse.row.saturating_sub(2) as usize;
+                                        if index < 4 { 
+                                            app.sidebar_index = index; 
+                                            if is_double_click {
+                                                // Trigger the same logic as 'Enter' on sidebar
+                                                let path = match app.sidebar_index {
+                                                    0 => dirs::home_dir(), 1 => dirs::download_dir(),
+                                                    2 => dirs::document_dir(), 3 => dirs::picture_dir(), _ => None,
+                                                };
+                                                if let Some(p) = path {
+                                                    if let Some(fs) = app.current_file_state_mut() {
+                                                        fs.current_path = p; fs.selected_index = 0; fs.search_filter.clear();
+                                                        crate::modules::files::update_files(fs); app.sidebar_focus = false;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        app.sidebar_focus = false;
+                                        if app.current_view == CurrentView::Files {
                                             let mouse_row_offset = mouse.row.saturating_sub(7) as usize;
                                             if let Some(fs) = app.current_file_state_mut() {
                                                 let index = fs.table_state.offset() + mouse_row_offset;
                                                 if index < fs.files.len() {
                                                     fs.selected_index = index;
                                                     fs.table_state.select(Some(index));
+                                                    
+                                                    if is_double_click {
+                                                        if let Some(path) = fs.files.get(index).cloned() {
+                                                            if path.is_dir() {
+                                                                fs.current_path = path; fs.selected_index = 0; fs.search_filter.clear();
+                                                                crate::modules::files::update_files(fs);
+                                                            }
+                                                        }
+                                                    }
                                                 }
-                                            }
-                                        }
-                                        CurrentView::System => {
-                                            let index = mouse.row.saturating_sub(15) as usize;
-                                            if index < app.system_state.processes.len() {
-                                                app.system_state.selected_process_index = index;
-                                            }
-                                        }
-                                        CurrentView::Docker => {
-                                            let index = mouse.row.saturating_sub(2) as usize;
-                                            if index < app.docker_state.containers.len() {
-                                                app.docker_state.selected_index = index;
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                        MouseEventKind::ScrollUp => {
+                        MouseEventKind::ScrollUp => { // ... same logic ...
                             if app.current_view == CurrentView::Files {
                                 if let Some(fs) = app.current_file_state_mut() {
                                     let new_offset = fs.table_state.offset().saturating_sub(3);
