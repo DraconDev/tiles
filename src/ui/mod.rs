@@ -42,6 +42,19 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::Properties) {
         draw_properties_modal(f, app);
     }
+
+    if matches!(app.mode, AppMode::NewFolder) {
+        draw_new_folder_modal(f, app);
+    }
+}
+
+fn draw_new_folder_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(40, 10, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default().title(" New Folder ").borders(Borders::ALL).border_style(Style::default().fg(Color::Green));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+    f.render_widget(Paragraph::new(app.input.as_str()), inner);
 }
 
 fn draw_rename_modal(f: &mut Frame, app: &App) {
