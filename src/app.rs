@@ -10,6 +10,8 @@ pub enum AppMode {
     Zoomed,
     CommandPalette,
     Location, // Ctrl+L mode
+    Rename,   // F2 mode
+    Properties, // Alt+Enter mode
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
