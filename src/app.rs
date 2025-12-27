@@ -136,7 +136,7 @@ impl App {
         let mut file_state = FileState {
             current_path: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             selected_index: 0,
-            scroll_offset: 0,
+            table_state: TableState::default(),
             files: Vec::new(),
             show_hidden: false,
             git_status: HashMap::new(),
@@ -145,6 +145,7 @@ impl App {
             starred: HashSet::new(),
             columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
         };
+        file_state.table_state.select(Some(0));
         update_files(&mut file_state);
 
         let license = check_license();
