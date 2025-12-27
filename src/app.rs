@@ -14,6 +14,7 @@ pub enum AppMode {
     NewFolder,  // Ctrl+Shift+N mode
     Delete,     // Delete key mode
     ColumnSetup, // Column configuration mode
+    ContextMenu(u16, u16), // x, y coordinates
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -43,6 +44,7 @@ pub struct App {
     pub sidebar_index: usize,
     pub filtered_commands: Vec<CommandItem>,
     pub command_index: usize,
+    pub last_click: Option<(std::time::Instant, u16, u16)>, // time, row, col
 }
 
 #[derive(Clone, Debug)]
