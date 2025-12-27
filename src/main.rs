@@ -287,6 +287,13 @@ async fn run_app<B: Backend>(
                     KeyCode::F(5) => {
                          crate::modules::files::update_files(&mut app.file_state);
                     }
+                    KeyCode::Delete => {
+                        match app.current_view {
+                            CurrentView::Files | CurrentView::System | CurrentView::Docker => {
+                                app.mode = AppMode::Delete;
+                            }
+                        }
+                    }
                     KeyCode::F(2) => {
                         if app.current_view == CurrentView::Files {
                             if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
