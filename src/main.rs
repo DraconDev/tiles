@@ -284,29 +284,6 @@ async fn run_app<B: Backend>(
                         app.mode = AppMode::CommandPalette;
                         app.input.clear();
                         update_commands(app);
-                    }
-                        if app.current_view == CurrentView::Files {
-                            app.mode = AppMode::NewFolder;
-                            app.input = "New Folder".to_string();
-                        }
-                    }
-                    KeyCode::Char('l') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
-                        if app.current_view == CurrentView::Files {
-                            app.mode = AppMode::Location;
-                            app.input = app.file_state.current_path.to_string_lossy().to_string();
-                        }
-                    }
-                    KeyCode::Delete => {
-                        match app.current_view {
-                            CurrentView::Files | CurrentView::System | CurrentView::Docker => {
-                                app.mode = AppMode::Delete;
-                            }
-                        }
-                    }
-                    KeyCode::Char('h') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
-                        app.file_state.show_hidden = !app.file_state.show_hidden;
-                        crate::modules::files::update_files(&mut app.file_state);
-                    }
                     KeyCode::F(5) => {
                          crate::modules::files::update_files(&mut app.file_state);
                     }
