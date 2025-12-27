@@ -3,7 +3,7 @@ use crate::modules::system::SystemModule;
 use crate::modules::files::update_files;
 use crate::license::check_license;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum AppMode {
     Normal,
     Input,
@@ -12,11 +12,10 @@ pub enum AppMode {
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum TileType {
+pub enum CurrentView {
     Files,
     Docker,
     System,
-    Logs,
 }
 
 pub enum LicenseStatus {
@@ -26,7 +25,7 @@ pub enum LicenseStatus {
 
 pub struct App {
     pub running: bool,
-    pub active_tile: TileType,
+    pub current_view: CurrentView,
     pub mode: AppMode,
     pub input: String,
     pub file_state: FileState,
@@ -34,6 +33,7 @@ pub struct App {
     pub system_state: SystemState,
     pub license: LicenseStatus,
     pub system_module: SystemModule,
+    pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
 }
 
 pub struct FileState {
@@ -52,6 +52,13 @@ pub struct SystemState {
     pub cpu_usage: f32,
     pub mem_usage: f64,
     pub total_mem: f64,
+    pub disks: Vec<DiskInfo>,
+}
+
+pub struct DiskInfo {
+    pub name: String,
+    pub used_space: f64, // GB
+    pub total_space: f64, // GB
 }
 
 impl App {
@@ -61,6 +68,7 @@ impl App {
             cpu_usage: 0.0,
             mem_usage: 0.0,
             total_mem: 0.0,
+            disks: Vec::new(),
         };
         system_module.update(&mut system_state);
 
@@ -75,7 +83,7 @@ impl App {
 
         Self {
             running: true,
-            active_tile: TileType::Files,
+            current_view: CurrentView::Files,
             mode: AppMode::Normal,
             input: String::new(),
             file_state,
@@ -87,15 +95,15 @@ impl App {
             system_state,
             system_module,
             license,
+            sidebar_focus: false,
         }
     }
 
-    pub fn next_tile(&mut self) {
-        self.active_tile = match self.active_tile {
-            TileType::Files => TileType::System,
-            TileType::System => TileType::Docker,
-            TileType::Docker => TileType::Files,
-            _ => TileType::Files,
+    pub fn switch_view(&mut self) {
+        self.current_view = match self.current_view {
+            CurrentView::Files => CurrentView::System,
+            CurrentView::System => CurrentView::Docker,
+            CurrentView::Docker => CurrentView::Files,
         };
     }
 
@@ -107,35 +115,45 @@ impl App {
     }
 
     pub fn move_up(&mut self) {
-        match self.active_tile {
-            TileType::Files => {
+        if self.sidebar_focus {
+             // In Dock, moving up cycles views backwards
+             self.current_view = match self.current_view {
+                CurrentView::Files => CurrentView::Docker,
+                CurrentView::Docker => CurrentView::System,
+                CurrentView::System => CurrentView::Files,
+            };
+            return;
+        }
+
+        match self.current_view {
+            CurrentView::Files => {
                 if self.file_state.selected_index > 0 {
                     self.file_state.selected_index -= 1;
                 }
             }
-            TileType::Docker => {
+            CurrentView::Docker => {
                 if self.docker_state.selected_index > 0 {
                     self.docker_state.selected_index -= 1;
-                } else {
-                    self.active_tile = TileType::System;
                 }
             }
-            TileType::System => {}
             _ => {}
         }
     }
 
     pub fn move_down(&mut self) {
-        match self.active_tile {
-            TileType::Files => {
+        if self.sidebar_focus {
+            // In Dock, moving down cycles views
+            self.switch_view();
+            return;
+        }
+
+        match self.current_view {
+            CurrentView::Files => {
                 if self.file_state.selected_index < self.file_state.files.len().saturating_sub(1) {
                     self.file_state.selected_index += 1;
                 }
             }
-            TileType::System => {
-                self.active_tile = TileType::Docker;
-            }
-            TileType::Docker => {
+            CurrentView::Docker => {
                 if self.docker_state.selected_index < self.docker_state.containers.len().saturating_sub(1) {
                     self.docker_state.selected_index += 1;
                 }
@@ -145,20 +163,10 @@ impl App {
     }
 
     pub fn move_left(&mut self) {
-        match self.active_tile {
-            TileType::System | TileType::Docker => {
-                self.active_tile = TileType::Files;
-            }
-            _ => {}
-        }
+        self.sidebar_focus = true;
     }
 
     pub fn move_right(&mut self) {
-        match self.active_tile {
-            TileType::Files => {
-                self.active_tile = TileType::System;
-            }
-            _ => {}
-        }
+        self.sidebar_focus = false;
     }
 }
