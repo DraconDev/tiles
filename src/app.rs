@@ -70,12 +70,20 @@ pub struct SystemState {
     pub mem_usage: f64,
     pub total_mem: f64,
     pub disks: Vec<DiskInfo>,
+    pub processes: Vec<ProcessInfo>,
 }
 
 pub struct DiskInfo {
     pub name: String,
     pub used_space: f64, // GB
     pub total_space: f64, // GB
+}
+
+pub struct ProcessInfo {
+    pub pid: u32,
+    pub name: String,
+    pub cpu: f32,
+    pub mem: u64,
 }
 
 impl App {
@@ -86,6 +94,7 @@ impl App {
             mem_usage: 0.0,
             total_mem: 0.0,
             disks: Vec::new(),
+            processes: Vec::new(),
         };
         system_module.update(&mut system_state);
 
