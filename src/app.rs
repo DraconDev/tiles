@@ -20,6 +20,7 @@ pub enum LicenseStatus {
 }
 
 use crate::modules::system::SystemModule;
+use crate::modules::files::update_files;
 
 pub struct App {
     pub running: bool,
@@ -58,15 +59,18 @@ impl App {
         };
         system_module.update(&mut system_state);
 
+        let mut file_state = FileState {
+            current_path: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            selected_index: 0,
+            files: Vec::new(),
+        };
+        update_files(&mut file_state);
+
         Self {
             running: true,
             active_tile: TileType::Files,
             mode: AppMode::Normal,
-            file_state: FileState {
-                current_path: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
-                selected_index: 0,
-                files: Vec::new(),
-            },
+            file_state,
             docker_state: DockerState {
                 containers: Vec::new(),
             },
