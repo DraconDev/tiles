@@ -206,45 +206,104 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
     }
 }
 
+use std::os::unix::fs::PermissionsExt;
+use ratatui::widgets::{Table, Row, Cell};
+use crate::app::FileColumn;
+
 fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
     if let Some(file_state) = app.current_file_state() {
-        let items: Vec<ListItem> = file_state.files.iter().enumerate().map(|(i, path)| {
-            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
-            let mut display_name = name.to_string();
+        // Prepare header
+        let header_cells = file_state.columns.iter().map(|c| {
+            let name = match c {
+                FileColumn::Name => "Name",
+                FileColumn::Size => "Size",
+                FileColumn::Modified => "Modified",
+                FileColumn::Created => "Created",
+                FileColumn::Permissions => "Permissions",
+            };
+            Cell::from(name).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+        });
+        let header = Row::new(header_cells).height(1).bottom_margin(1);
 
-            let mut style = if path.is_dir() {
-                Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)
+        // Prepare rows
+        let rows = file_state.files.iter().enumerate().map(|(i, path)| {
+            let metadata = std::fs::metadata(path).ok();
+            
+            let cells = file_state.columns.iter().map(|c| {
+                match c {
+                    FileColumn::Name => {
+                        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
+                        let mut display_name = name.to_string();
+                        let mut style = if path.is_dir() {
+                            Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)
+                        } else {
+                            Style::default()
+                        };
+
+                        if let Some(status) = file_state.git_status.get(path) {
+                            display_name.push_str(&format!(" [{}]", status));
+                            match status.as_str() {
+                                "M" | "MM" => style = style.fg(Color::Yellow),
+                                "A" | "AM" => style = style.fg(Color::Green),
+                                "??" => style = style.fg(Color::DarkGray),
+                                "D" => style = style.fg(Color::Red),
+                                _ => {}
+                            }
+                        }
+
+                        if file_state.starred.contains(path) {
+                            display_name.push_str(" [*]");
+                            style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD);
+                        }
+                        
+                        // Icons (Simple replacements for now)
+                        let icon = if path.is_dir() { "📁 " } else { "📄 " };
+                        Cell::from(format!("{}{}", icon, display_name)).style(style)
+                    },
+                    FileColumn::Size => {
+                        let size = metadata.as_ref().map(|m| m.len()).unwrap_or(0);
+                        Cell::from(format_size(size))
+                    },
+                    FileColumn::Modified => {
+                        let time = metadata.as_ref().and_then(|m| m.modified().ok()).unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                        Cell::from(format_time(time))
+                    },
+                    FileColumn::Created => {
+                        let time = metadata.as_ref().and_then(|m| m.created().ok()).unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                        Cell::from(format_time(time))
+                    },
+                    FileColumn::Permissions => {
+                        let mode = metadata.as_ref().map(|m| m.permissions().mode()).unwrap_or(0);
+                        Cell::from(format_permissions(mode))
+                    },
+                }
+            });
+            
+            let style = if i == file_state.selected_index && !app.sidebar_focus {
+                Style::default().bg(Color::DarkGray)
             } else {
                 Style::default()
             };
             
-            if let Some(status) = file_state.git_status.get(path) {
-                display_name.push_str(&format!(" [{}]", status));
-                match status.as_str() {
-                    "M" | "MM" => style = style.fg(Color::Yellow),
-                    "A" | "AM" => style = style.fg(Color::Green),
-                    "??" => style = style.fg(Color::DarkGray),
-                    "D" => style = style.fg(Color::Red),
-                    _ => {}
-                }
-            }
+            Row::new(cells).style(style)
+        });
 
-            if file_state.starred.contains(path) {
-                display_name.push_str(" [*]");
-                style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD);
+        // Calculate constraints based on columns
+        let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| {
+            match c {
+                FileColumn::Name => Constraint::Percentage(50),
+                FileColumn::Size => Constraint::Length(10),
+                FileColumn::Modified => Constraint::Length(20),
+                FileColumn::Created => Constraint::Length(20),
+                FileColumn::Permissions => Constraint::Length(12),
             }
-            
-            let prefix = if i == file_state.selected_index && !app.sidebar_focus {
-                "> "
-            } else {
-                "  "
-            };
-
-            ListItem::new(format!("{}{}", prefix, display_name)).style(style)
         }).collect();
 
-        let list = List::new(items);
-        f.render_widget(list, area);
+        let table = Table::new(rows, constraints)
+            .header(header)
+            .block(Block::default().borders(Borders::NONE)); // Clean look without borders inside the stage?
+            
+        f.render_widget(table, area);
     }
 }
 
