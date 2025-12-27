@@ -113,34 +113,55 @@ async fn run_app<B: Backend>(
                     match mouse.kind {
                         MouseEventKind::Down(MouseButton::Left) => {
                             let (cols, rows) = terminal.size().map(|s| (s.width, s.height)).unwrap_or((0, 0));
-                            if mouse.row == 0 {
-                                if mouse.column < 12 { app.current_view = CurrentView::Files; }
-                                else if mouse.column < 22 { app.current_view = CurrentView::System; }
-                                else if mouse.column < 35 { app.current_view = CurrentView::Docker; }
-                            } else if mouse.row == rows.saturating_sub(1) {
-                                if mouse.column < 12 {
-                                    app.mode = AppMode::CommandPalette;
-                                    app.input.clear();
-                                    update_commands(app);
-                                }
+                        // Tab Bar (Top Row - 0)
+                        if mouse.row == 0 {
+                            if mouse.column < 11 { app.current_view = CurrentView::Files; }
+                            else if mouse.column < 22 { app.current_view = CurrentView::System; }
+                            else if mouse.column < 33 { app.current_view = CurrentView::Docker; }
+                        }
+                        // Footer Bar (Last Row)
+                        else if mouse.row == rows.saturating_sub(1) {
+                            // "^. Console | " is roughly 13 columns
+                            if mouse.column < 13 {
+                                app.mode = AppMode::CommandPalette;
+                                app.input.clear();
+                                update_commands(app);
+                            }
+                        }
+                        // Workspace Area
+                        else if mouse.row < rows.saturating_sub(1) {
+                            let sidebar_width = (cols as f32 * 0.2) as u16;
+                            
+                            if mouse.column < sidebar_width {
+                                app.sidebar_focus = true;
+                                // Content starts at row 2 (Tab 0, Border 1)
+                                let index = mouse.row.saturating_sub(2) as usize;
+                                if index < 4 { app.sidebar_index = index; }
                             } else {
-                                let sidebar_width = (cols as f32 * 0.2) as u16;
-                                if mouse.column < sidebar_width {
-                                    app.sidebar_focus = true;
-                                    let index = mouse.row.saturating_sub(1) as usize;
-                                    if index < 4 { app.sidebar_index = index; }
-                                } else {
-                                    app.sidebar_focus = false;
-                                    if app.current_view == CurrentView::Files {
-                                        let index = mouse.row.saturating_sub(5) as usize;
-                                        if let Some(file_state) = app.current_file_state_mut() {
-                                            if index < file_state.files.len() {
-                                                file_state.selected_index = index;
-                                            }
+                                app.sidebar_focus = false;
+                                if app.current_view == CurrentView::Files {
+                                    // Tabs(1) + Border(1) + PathBar(3) + Header(1) = items start at row 6
+                                    let index = mouse.row.saturating_sub(6) as usize;
+                                    if let Some(file_state) = app.current_file_state_mut() {
+                                        if index < file_state.files.len() {
+                                            file_state.selected_index = index;
                                         }
+                                    }
+                                } else if app.current_view == CurrentView::System {
+                                    // Tabs(1) + Border(1) + CPU(3) + MEM(3) + Disk(6) + Header(1) = row 15
+                                    let index = mouse.row.saturating_sub(15) as usize;
+                                    if index < app.system_state.processes.len() {
+                                        app.system_state.selected_process_index = index;
+                                    }
+                                } else if app.current_view == CurrentView::Docker {
+                                    // Tabs(1) + Border(1) = Row 2
+                                    let index = mouse.row.saturating_sub(2) as usize;
+                                    if index < app.docker_state.containers.len() {
+                                        app.docker_state.selected_index = index;
                                     }
                                 }
                             }
+                        }
                         }
                         MouseEventKind::ScrollUp => { app.move_up(); update_docker_filter(app); }
                         MouseEventKind::ScrollDown => { app.move_down(); update_docker_filter(app); }
