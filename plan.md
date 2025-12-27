@@ -113,6 +113,6 @@ be able to toggle split view
 
 commonly used key combos should be supported like ctrl + shift + n for new folder and ctrl + backspace for delete, no doubt many i am forgetting too
 
-we currently have vim keys added, we dont want this at all, strip it, we are entirely not vim based, i cometo realize that by supporting it we have to have stupid hotkeys like j and k
+we currently have vim keys added, we dont want this at all, strip it, we are entirely not vim based, i come to realize that by supporting it we have to have stupid hotkeys like j and k
 
 - i have a crazy idea, could drag exist in terminal? Technically we just need to send mouse events to the terminal, and it should work, 
