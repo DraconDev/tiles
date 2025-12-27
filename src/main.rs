@@ -146,7 +146,8 @@ async fn run_app<B: Backend>(
                         MouseEventKind::ScrollUp => { 
                             if app.current_view == CurrentView::Files {
                                 if let Some(file_state) = app.current_file_state_mut() {
-                                    file_state.scroll_offset = file_state.scroll_offset.saturating_sub(3);
+                                    let new_offset = file_state.table_state.offset().saturating_sub(3);
+                                    file_state.table_state.set_offset(new_offset);
                                 }
                             } else {
                                 app.move_up(); 
@@ -156,12 +157,8 @@ async fn run_app<B: Backend>(
                         MouseEventKind::ScrollDown => { 
                             if app.current_view == CurrentView::Files {
                                 if let Some(file_state) = app.current_file_state_mut() {
-                                    file_state.scroll_offset = file_state.scroll_offset.saturating_add(3);
-                                    // Clamp to total files (roughly)
-                                    let max_scroll = file_state.files.len().saturating_sub(1);
-                                    if file_state.scroll_offset > max_scroll {
-                                        file_state.scroll_offset = max_scroll;
-                                    }
+                                    let new_offset = file_state.table_state.offset().saturating_add(3);
+                                    file_state.table_state.set_offset(new_offset);
                                 }
                             } else {
                                 app.move_down(); 
