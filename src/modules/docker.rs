@@ -12,21 +12,16 @@ impl DockerModule {
         Ok(Self { docker })
     }
 
-    pub async fn get_containers(&self) -> color_eyre::Result<Vec<String>> {
+use bollard::models::ContainerSummary;
+
+    pub async fn get_containers(&self) -> color_eyre::Result<Vec<ContainerSummary>> {
         let options = Some(ListContainersOptions::<String> {
             all: true,
             ..Default::default()
         });
 
         let containers = self.docker.list_containers(options).await?;
-        let names = containers
-            .into_iter()
-            .filter_map(|c| c.names)
-            .filter_map(|n| n.first().cloned())
-            .map(|n| n.trim_start_matches('/').to_string())
-            .collect();
-
-        Ok(names)
+        Ok(containers)
     }
 
     pub async fn start_container(&self, name: &str) -> color_eyre::Result<()> {
