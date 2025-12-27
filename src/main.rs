@@ -220,6 +220,11 @@ async fn run_app<B: Backend>(
                             app.input = app.file_state.current_path.to_string_lossy().to_string();
                         }
                     }
+                    KeyCode::Delete => {
+                        if app.current_view == CurrentView::Files {
+                            app.mode = AppMode::Delete;
+                        }
+                    }
                     KeyCode::Char('h') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                         app.file_state.show_hidden = !app.file_state.show_hidden;
                         crate::modules::files::update_files(&mut app.file_state);
