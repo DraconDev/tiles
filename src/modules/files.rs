@@ -27,5 +27,29 @@ pub fn update_files(state: &mut FileState) {
                 a.file_name().cmp(&b.file_name())
             }
         });
+
+        // Git Integration
+        state.git_status.clear();
+        // Check if git exists and we are in a repo (simple check by running command)
+        if let Ok(output) = std::process::Command::new("git")
+            .args(&["status", "--porcelain"])
+            .current_dir(&state.current_path)
+            .output() 
+        {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                if line.len() < 4 { continue; }
+                let status = line[0..2].trim();
+                let relative_path = &line[3..];
+                
+                let path_buf = std::path::PathBuf::from(relative_path);
+                if let Some(std::path::Component::Normal(first_component)) = path_buf.components().next() {
+                     let full_path = state.current_path.join(first_component);
+                     // If not present or overwriting with a "more important" status? 
+                     // For now, just first win or overwrite is fine.
+                     state.git_status.insert(full_path, status.to_string());
+                }
+            }
+        }
     }
 }
