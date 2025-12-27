@@ -184,8 +184,17 @@ impl App {
 
     pub fn move_down(&mut self) {
         if self.sidebar_focus {
-            // In Dock, moving down cycles views
-            self.switch_view();
+            match self.current_view {
+                CurrentView::Files => {
+                    if self.sidebar_index < 3 { // Hardcoded for Home, Downloads, Documents, Pictures
+                        self.sidebar_index += 1;
+                    }
+                }
+                _ => {
+                    // In Dock, moving down cycles views
+                    self.switch_view();
+                }
+            }
             return;
         }
 
