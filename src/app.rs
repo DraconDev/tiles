@@ -93,6 +93,8 @@ pub struct FileState {
     pub search_filter: String,
     pub starred: HashSet<PathBuf>,
     pub columns: Vec<FileColumn>,
+    pub history: Vec<PathBuf>,
+    pub history_index: usize,
 }
 
 use bollard::models::ContainerSummary;
