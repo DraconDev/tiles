@@ -536,6 +536,46 @@ fn draw_new_folder_modal(f: &mut Frame, app: &App) {
     f.render_widget(Paragraph::new(app.input.as_str()), inner);
 }
 
+use std::time::SystemTime;
+use chrono::{DateTime, Local};
+
+fn format_size(size: u64) -> String {
+    const KB: u64 = 1024;
+    const MB: u64 = KB * 1024;
+    const GB: u64 = MB * 1024;
+
+    if size >= GB {
+        format!("{:.1} GB", size as f64 / GB as f64)
+    } else if size >= MB {
+        format!("{:.1} MB", size as f64 / MB as f64)
+    } else if size >= KB {
+        format!("{:.1} KB", size as f64 / KB as f64)
+    } else {
+        format!("{} B", size)
+    }
+}
+
+fn format_time(time: SystemTime) -> String {
+    let datetime: DateTime<Local> = time.into();
+    datetime.format("%Y-%m-%d %H:%M").to_string()
+}
+
+fn format_permissions(mode: u32) -> String {
+    let user = (mode >> 6) & 0o7;
+    let group = (mode >> 3) & 0o7;
+    let other = mode & 0o7;
+    format!("rwx{}{}{}", user, group, other) // Simplified representation or rwxr-xr-x style?
+    // Let's do octal style or standard rwx
+    // Actually, std::os::unix::fs::PermissionsExt is needed for mode.
+    // For cross-platform ease, let's just show octal for now or rwx-like if simple.
+    // Let's stick to standard `ls -l` style if possible, but that requires more bitwise.
+    // Simple rwx:
+    let r = |b| if b & 4 != 0 { "r" } else { "-" };
+    let w = |b| if b & 2 != 0 { "w" } else { "-" };
+    let x = |b| if b & 1 != 0 { "x" } else { "-" };
+    format!("{}{}{}{}{}{}{}{}{}", r(user), w(user), x(user), r(group), w(group), x(group), r(other), w(other), x(other))
+}
+
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
