@@ -55,15 +55,34 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 fn draw_delete_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
-    let block = Block::default().title(" Delete? ").borders(Borders::ALL).border_style(Style::default().fg(Color::Red));
+    let block = Block::default().title(" Confirm Action ").borders(Borders::ALL).border_style(Style::default().fg(Color::Red));
     let inner = block.inner(area);
     f.render_widget(block, area);
     
-    let text = if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
-        format!("Delete {}? (y/n)", path.file_name().unwrap_or_default().to_string_lossy())
-    } else {
-        "Delete? (y/n)".to_string()
+    let text = match app.current_view {
+        CurrentView::Files => {
+             if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+                format!("Delete {}? (y/n)", path.file_name().unwrap_or_default().to_string_lossy())
+            } else {
+                "Delete? (y/n)".to_string()
+            }
+        }
+        CurrentView::System => {
+             if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) {
+                format!("Kill process {} ({})? (y/n)", p.name, p.pid)
+             } else {
+                 "Kill process? (y/n)".to_string()
+             }
+        }
+        CurrentView::Docker => {
+             if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
+                format!("Remove container {}? (y/n)", name)
+             } else {
+                 "Remove container? (y/n)".to_string()
+             }
+        }
     };
+
     f.render_widget(Paragraph::new(text), inner);
 }
 
