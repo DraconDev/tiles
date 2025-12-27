@@ -203,7 +203,6 @@ impl App {
                     self.system_state.selected_process_index -= 1;
                 }
             }
-            _ => {}
         }
     }
 
@@ -239,7 +238,6 @@ impl App {
                     self.system_state.selected_process_index += 1;
                 }
             }
-            _ => {}
         }
     }
 
