@@ -93,4 +93,4 @@ src/
     └── system.rs     # Sysinfo diagnostics
 
 
-i 
+i wonder if we can style a bit and make the lef
