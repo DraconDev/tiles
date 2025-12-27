@@ -1,7 +1,7 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame,
 };
 
@@ -27,7 +27,13 @@ fn draw_main(f: &mut Frame, area: Rect, app: &mut App) {
             .title(format!(" {:?} (Zoomed) ", app.active_tile))
             .border_style(Style::default().fg(Color::Yellow));
         f.render_widget(block, area);
-        // TODO: Render zoomed tile content
+        
+        match app.active_tile {
+            TileType::Files => draw_file_tile(f, block.inner(area), app),
+            TileType::System => draw_system_tile(f, block.inner(area), app),
+            TileType::Docker => draw_docker_tile(f, block.inner(area), app),
+            _ => {}
+        }
         return;
     }
 
@@ -48,13 +54,47 @@ fn draw_main(f: &mut Frame, area: Rect, app: &mut App) {
         .split(main_chunks[1]);
 
     // File Tile
-    draw_tile(f, main_chunks[0], " Files ", app.active_tile == TileType::Files);
+    draw_file_tile(f, main_chunks[0], app);
     
     // System Tile
     draw_system_tile(f, right_chunks[0], app);
 
     // Docker Tile
-    draw_tile(f, right_chunks[1], " Docker ", app.active_tile == TileType::Docker);
+    draw_docker_tile(f, right_chunks[1], app);
+}
+
+fn draw_file_tile(f: &mut Frame, area: Rect, app: &App) {
+    let is_active = app.active_tile == TileType::Files;
+    let border_color = if is_active {
+        Color::Cyan
+    } else {
+        Color::White
+    };
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(format!(" Files: {} ", app.file_state.current_path.display()))
+        .border_style(Style::default().fg(border_color));
+
+    let items: Vec<ListItem> = app.file_state.files.iter().enumerate().map(|(i, path)| {
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
+        let style = if path.is_dir() {
+            Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default()
+        };
+        
+        let prefix = if i == app.file_state.selected_index && is_active {
+            "> "
+        } else {
+            "  "
+        };
+
+        ListItem::new(format!("{}{}", prefix, name)).style(style)
+    }).collect();
+
+    let list = List::new(items).block(block);
+    f.render_widget(list, area);
 }
 
 fn draw_system_tile(f: &mut Frame, area: Rect, app: &App) {
@@ -73,17 +113,35 @@ fn draw_system_tile(f: &mut Frame, area: Rect, app: &App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    let text = vec![
-        format!("CPU: {:>5.1}%", app.system_state.cpu_usage),
-        format!("MEM: {:>5.1} / {:.1} GB ({:.1}%)", 
-            app.system_state.mem_usage, 
-            app.system_state.total_mem,
-            (app.system_state.mem_usage / app.system_state.total_mem) * 100.0
-        ),
-    ];
+    if app.system_state.total_mem > 0.0 {
+        let text = vec![
+            format!("CPU: {:>5.1}%", app.system_state.cpu_usage),
+            format!("MEM: {:>5.1} / {:.1} GB ({:.1}%)", 
+                app.system_state.mem_usage, 
+                app.system_state.total_mem,
+                (app.system_state.mem_usage / app.system_state.total_mem) * 100.0
+            ),
+        ];
 
-    let paragraph = Paragraph::new(text.join("\n"));
-    f.render_widget(paragraph, inner);
+        let paragraph = Paragraph::new(text.join("\n"));
+        f.render_widget(paragraph, inner);
+    }
+}
+
+fn draw_docker_tile(f: &mut Frame, area: Rect, app: &App) {
+    let is_active = app.active_tile == TileType::Docker;
+    let border_color = if is_active {
+        Color::Cyan
+    } else {
+        Color::White
+    };
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(" Docker ")
+        .border_style(Style::default().fg(border_color));
+
+    f.render_widget(block, area);
 }
 
 fn draw_tile(f: &mut Frame, area: Rect, title: &str, is_active: bool) {
