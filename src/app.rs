@@ -174,6 +174,7 @@ impl App {
             sidebar_index: 0,
             filtered_commands: Vec::new(),
             command_index: 0,
+            last_click: None,
         }
     }
 
