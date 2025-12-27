@@ -104,7 +104,7 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
                 Style::default().fg(Color::Gray)
             };
             
-            spans.push(ratatui::text::Span::styled(format!("[{}]"), style));
+            spans.push(ratatui::text::Span::styled(format!("[{}]", name), style));
             spans.push(ratatui::text::Span::raw(" "));
         }
     }
