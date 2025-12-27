@@ -261,9 +261,11 @@ async fn run_app<B: Backend>(
                         }
                     }
                     KeyCode::Enter if key.modifiers.contains(crossterm::event::KeyModifiers::ALT) => {
-                        if app.current_view == CurrentView::Files {
-                            app.mode = AppMode::Properties;
-                        }
+                         match app.current_view {
+                             CurrentView::Files | CurrentView::System | CurrentView::Docker => {
+                                 app.mode = AppMode::Properties;
+                             }
+                         }
                     }
                     KeyCode::Up if key.modifiers.contains(crossterm::event::KeyModifiers::ALT) => {
                          if app.current_view == crate::app::CurrentView::Files {
