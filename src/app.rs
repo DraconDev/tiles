@@ -14,6 +14,7 @@ pub enum AppMode {
     NewFolder,  // Ctrl+Shift+N mode
     Delete,     // Delete key mode
     ColumnSetup, // Column configuration mode
+    AddRemote,   // Add new SSH remote host
     ContextMenu(u16, u16), // x, y coordinates
 }
 

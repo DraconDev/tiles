@@ -182,19 +182,33 @@ async fn run_app<B: Backend>(
                                     let sidebar_width = (cols as f32 * 0.2) as u16;
                                     if mouse.column < sidebar_width {
                                         app.sidebar_focus = true;
-                                        let index = mouse.row.saturating_sub(2) as usize;
-                                        if index < 4 { 
-                                            app.sidebar_index = index; 
-                                            if is_double_click {
-                                                let path = match app.sidebar_index { 0 => dirs::home_dir(), 1 => dirs::download_dir(), 2 => dirs::document_dir(), 3 => dirs::picture_dir(), _ => None };
-                                                if let Some(p) = path {
-                                                    if let Some(fs) = app.current_file_state_mut() {
-                                                        fs.current_path = p.clone(); fs.selected_index = 0; fs.search_filter.clear();
-                                                        *fs.table_state.offset_mut() = 0;
-                                                        push_history(fs, p); crate::modules::files::update_files(fs); app.sidebar_focus = false;
+                                        let sidebar_row = mouse.row.saturating_sub(2) as usize;
+                                        // Row 0 is "Local" header, 1-4 are items, 5 is gap, 6 is "Remote" header
+                                        match sidebar_row {
+                                            1..=4 => {
+                                                app.sidebar_index = sidebar_row - 1;
+                                                if is_double_click {
+                                                    let path = match app.sidebar_index { 0 => dirs::home_dir(), 1 => dirs::download_dir(), 2 => dirs::document_dir(), 3 => dirs::picture_dir(), _ => None };
+                                                    if let Some(p) = path {
+                                                        if let Some(fs) = app.current_file_state_mut() {
+                                                            fs.current_path = p.clone(); fs.selected_index = 0; fs.search_filter.clear();
+                                                            *fs.table_state.offset_mut() = 0;
+                                                            push_history(fs, p); crate::modules::files::update_files(fs); app.sidebar_focus = false;
+                                                        }
                                                     }
                                                 }
-                                            }
+                                            },
+                                            r if r >= 7 => {
+                                                let bookmark_idx = r - 7;
+                                                if bookmark_idx < app.remote_bookmarks.len() {
+                                                    app.sidebar_index = r - 1;
+                                                    if is_double_click {
+                                                        // SSH Connection Logic Placeholder
+                                                        // For now, just show a message or update state
+                                                    }
+                                                }
+                                            },
+                                            _ => {}
                                         }
                                     } else {
                                         app.sidebar_focus = false;
