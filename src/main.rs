@@ -278,6 +278,44 @@ async fn run_app<B: Backend>(
                         app.file_state.show_hidden = !app.file_state.show_hidden;
                         crate::modules::files::update_files(&mut app.file_state);
                     }
+                    
+                    // Clipboard Operations
+                    KeyCode::Char('c') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                         if app.current_view == CurrentView::Files {
+                             if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+                                 app.file_state.clipboard = Some((path.clone(), crate::app::ClipboardOp::Copy));
+                             }
+                         }
+                    }
+                    KeyCode::Char('x') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                         if app.current_view == CurrentView::Files {
+                             if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+                                 app.file_state.clipboard = Some((path.clone(), crate::app::ClipboardOp::Cut));
+                             }
+                         }
+                    }
+                    KeyCode::Char('v') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                         if app.current_view == CurrentView::Files {
+                             if let Some((src, op)) = &app.file_state.clipboard {
+                                 if let Some(name) = src.file_name() {
+                                     let dst = app.file_state.current_path.join(name);
+                                     if !dst.exists() { // Avoid accidental overwrite for now
+                                         let res = match op {
+                                             crate::app::ClipboardOp::Copy => crate::modules::files::copy_recursive(src, &dst),
+                                             crate::app::ClipboardOp::Cut => std::fs::rename(src, &dst),
+                                         };
+                                         
+                                         if res.is_ok() {
+                                             if *op == crate::app::ClipboardOp::Cut {
+                                                 app.file_state.clipboard = None;
+                                             }
+                                             crate::modules::files::update_files(&mut app.file_state);
+                                         }
+                                     }
+                                 }
+                             }
+                         }
+                    }
 
                     // View Switching Shortcuts
                     KeyCode::Char('f') => app.current_view = CurrentView::Files,
