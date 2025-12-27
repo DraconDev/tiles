@@ -11,6 +11,10 @@ use ratatui::{
 
 mod app;
 mod ui;
+mod modules;
+mod event;
+mod config;
+mod license;
 use crate::app::{App, AppMode};
 
 #[tokio::main]
