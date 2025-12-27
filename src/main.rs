@@ -115,20 +115,21 @@ async fn run_app<B: Backend>(
                         MouseEventKind::Down(MouseButton::Left) => {
                             let (cols, rows) = terminal.size().map(|s| (s.width, s.height)).unwrap_or((0, 0));
                             
-                            // Tab Bar (Top Row - 0)
-                            if mouse.row == 0 {
-                                if mouse.column < 12 { app.current_view = CurrentView::Files; }
-                                else if mouse.column < 22 { app.current_view = CurrentView::System; }
-                                else if mouse.column < 35 { app.current_view = CurrentView::Docker; }
-                                else if mouse.column > 35 && mouse.column < 50 { 
-                                    app.mode = AppMode::CommandPalette;
-                                    app.input.clear();
-                                    update_commands(app);
-                                }
-                            }
-                            // Workspace Area (Exclude footer at rows - 1)
-                            else if mouse.row < rows.saturating_sub(1) {
-                                let sidebar_width = (cols as f32 * 0.2) as u16;
+                                                    // Tab Bar (Top Row - 0)
+                                                    if mouse.row == 0 {
+                                                        if mouse.column < 12 { app.current_view = CurrentView::Files; }
+                                                        else if mouse.column < 22 { app.current_view = CurrentView::System; }
+                                                        else if mouse.column < 35 { app.current_view = CurrentView::Docker; }
+                                                    }
+                                                    // Footer Bar (Last Row)
+                                                    else if mouse.row == rows.saturating_sub(1) {
+                                                        if mouse.column < 12 {
+                                                            app.mode = AppMode::CommandPalette;
+                                                            app.input.clear();
+                                                            update_commands(app);
+                                                        }
+                                                    }
+                                                    // Workspace Area                                let sidebar_width = (cols as f32 * 0.2) as u16;
                                 
                                 if mouse.column < sidebar_width {
                                     app.sidebar_focus = true;
