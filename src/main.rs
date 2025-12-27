@@ -140,8 +140,8 @@ async fn run_app<B: Backend>(
                             } else {
                                 app.sidebar_focus = false;
                                 if app.current_view == CurrentView::Files {
-                                    // Tabs(1) + Border(1) + PathBar(3) + Header(1) = items start at row 6
-                                    let index = mouse.row.saturating_sub(6) as usize;
+                                    // Tabs(1) + Border(1) + PathBar(3) + Header(1) + Margin(1) = Row 7
+                                    let index = mouse.row.saturating_sub(7) as usize;
                                     if let Some(file_state) = app.current_file_state_mut() {
                                         if index < file_state.files.len() {
                                             file_state.selected_index = index;
