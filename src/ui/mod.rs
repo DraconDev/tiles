@@ -184,7 +184,7 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     }
     let disk_items: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let percent = (disk.used_space / disk.total_space) * 100.0;
-        let bar_width = 20; let filled = (percent / 100.0 * bar_width as f64) as usize;
+        let bar_width: usize = 20; let filled = (percent / 100.0 * bar_width as f64) as usize;
         let bar = format!("[{}{}]", "#".repeat(filled), "-".repeat(bar_width.saturating_sub(filled)));
         ListItem::new(format!("{:<10} {}  {:.1} / {:.1} GB ({:.1}%)", disk.name, bar, disk.used_space, disk.total_space, percent))
     }).collect();
