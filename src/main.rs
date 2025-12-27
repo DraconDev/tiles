@@ -241,8 +241,10 @@ async fn run_app<B: Backend>(
                         }
                     }
                     KeyCode::Delete => {
-                        if app.current_view == CurrentView::Files {
-                            app.mode = AppMode::Delete;
+                        match app.current_view {
+                            CurrentView::Files | CurrentView::System | CurrentView::Docker => {
+                                app.mode = AppMode::Delete;
+                            }
                         }
                     }
                     KeyCode::Char('h') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
