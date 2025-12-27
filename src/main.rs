@@ -16,7 +16,9 @@ mod event;
 mod config;
 mod license;
 
+use tokio::sync::mpsc;
 use crate::app::{App, AppMode};
+use crate::modules::docker::DockerModule;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
@@ -30,9 +32,24 @@ async fn main() -> color_eyre::Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // Create app state
-    let app = App::new();
+    let mut app = App::new();
 
-    let res = run_app(&mut terminal, app).await;
+    // Setup Docker channel
+    let (tx, mut rx) = mpsc::channel(10);
+    let docker_module = DockerModule::new().ok();
+
+    if let Some(docker) = docker_module {
+        tokio::spawn(async move {
+            loop {
+                if let Ok(containers) = docker.get_containers().await {
+                    let _ = tx.send(containers).await;
+                }
+                tokio::time::sleep(Duration::from_secs(2)).await;
+            }
+        });
+    }
+
+    let res = run_app(&mut terminal, &mut app, rx).await;
 
     // Restore terminal
     disable_raw_mode()?;
@@ -50,12 +67,21 @@ async fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+async fn run_app<B: Backend>(
+    terminal: &mut Terminal<B>, 
+    app: &mut App, 
+    mut rx: mpsc::Receiver<Vec<String>>
+) -> io::Result<()> {
     let tick_rate = Duration::from_millis(250);
     let mut last_tick = Instant::now();
 
     loop {
-        terminal.draw(|f| ui::draw(f, &mut app))?;
+        terminal.draw(|f| ui::draw(f, app))?;
+
+        // Handle async updates
+        while let Ok(containers) = rx.try_recv() {
+            app.docker_state.containers = containers;
+        }
 
         let timeout = tick_rate
             .checked_sub(last_tick.elapsed())
