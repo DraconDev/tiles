@@ -16,7 +16,6 @@ mod event;
 mod config;
 mod license;
 
-use event as tiles_event;
 use crate::app::{App, AppMode};
 
 #[tokio::main]
@@ -31,7 +30,7 @@ async fn main() -> color_eyre::Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     // Create app state
-    let mut app = App::new();
+    let app = App::new();
 
     let res = run_app(&mut terminal, app).await;
 
