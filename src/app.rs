@@ -78,6 +78,7 @@ pub struct SystemState {
     pub total_mem: f64,
     pub disks: Vec<DiskInfo>,
     pub processes: Vec<ProcessInfo>,
+    pub selected_process_index: usize,
 }
 
 pub struct DiskInfo {
@@ -102,6 +103,7 @@ impl App {
             total_mem: 0.0,
             disks: Vec::new(),
             processes: Vec::new(),
+            selected_process_index: 0,
         };
         system_module.update(&mut system_state);
 
