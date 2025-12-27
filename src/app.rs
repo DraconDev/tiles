@@ -241,8 +241,10 @@ impl App {
 
         match self.current_view {
             CurrentView::Files => {
-                if self.file_state.selected_index < self.file_state.files.len().saturating_sub(1) {
-                    self.file_state.selected_index += 1;
+                if let Some(file_state) = self.current_file_state_mut() {
+                    if file_state.selected_index < file_state.files.len().saturating_sub(1) {
+                        file_state.selected_index += 1;
+                    }
                 }
             }
             CurrentView::Docker => {
