@@ -144,9 +144,12 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| { match c { FileColumn::Name => Constraint::Percentage(50), FileColumn::Size => Constraint::Length(10), FileColumn::Modified => Constraint::Length(20), FileColumn::Created => Constraint::Length(20), FileColumn::Permissions => Constraint::Length(12), FileColumn::Extension => Constraint::Length(6) } }).collect();
         f.render_stateful_widget(Table::new(rows, constraints).header(header).block(Block::default().borders(Borders::NONE)), area, &mut file_state.table_state);
         
-        let scrollbar = Scrollbar::default().orientation(ScrollbarOrientation::VerticalRight).begin_symbol(Some("↑")).end_symbol(Some("↓"));
-        let mut scrollbar_state = ScrollbarState::new(file_state.files.len()).position(file_state.table_state.offset());
-        f.render_stateful_widget(scrollbar, area, &mut scrollbar_state);
+        // Only show scrollbar if content exceeds viewport height (accounting for header + margin)
+        if file_state.files.len() > area.height.saturating_sub(2) as usize {
+            let scrollbar = Scrollbar::default().orientation(ScrollbarOrientation::VerticalRight).begin_symbol(Some("↑")).end_symbol(Some("↓"));
+            let mut scrollbar_state = ScrollbarState::new(file_state.files.len()).position(file_state.table_state.offset());
+            f.render_stateful_widget(scrollbar, area, &mut scrollbar_state);
+        }
     }
 }
 
