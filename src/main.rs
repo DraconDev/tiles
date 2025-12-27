@@ -346,11 +346,12 @@ async fn run_app<B: Backend>(
                         // System Keys
                         KeyCode::F(5) => { if let Some(fs) = app.current_file_state_mut() { crate::modules::files::update_files(fs); } }
                         KeyCode::F(2) => {
-                            if let Some(fs) = app.current_file_state() {
-                                if let Some(path) = fs.files.get(fs.selected_index) {
-                                    app.mode = AppMode::Rename;
-                                    app.input = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-                                }
+                            let name_opt = app.current_file_state().and_then(|fs| {
+                                fs.files.get(fs.selected_index).map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string())
+                            });
+                            if let Some(name) = name_opt {
+                                app.mode = AppMode::Rename;
+                                app.input = name;
                             }
                         }
                         KeyCode::Delete => { app.mode = AppMode::Delete; }
