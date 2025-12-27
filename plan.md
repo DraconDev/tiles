@@ -117,4 +117,4 @@ commonly used key combos should be supported like ctrl + shift + n for new folde
 
 we currently have vim keys added, we dont want this at all, strip it, we are entirely keyboard based, no vim keys
 
-consosole ^. button should be 
+consosole ^. button should be put on the footer tab
