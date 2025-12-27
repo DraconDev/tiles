@@ -67,6 +67,15 @@ pub enum ClipboardOp {
     Cut,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum FileColumn {
+    Name,
+    Size,
+    Modified,
+    Created,
+    Permissions,
+}
+
 pub struct FileState {
     pub current_path: PathBuf,
     pub selected_index: usize,
@@ -76,6 +85,7 @@ pub struct FileState {
     pub clipboard: Option<(PathBuf, ClipboardOp)>,
     pub search_filter: String,
     pub starred: HashSet<PathBuf>,
+    pub columns: Vec<FileColumn>,
 }
 
 use bollard::models::ContainerSummary;
