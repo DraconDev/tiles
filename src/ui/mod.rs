@@ -185,12 +185,12 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
     }
 }
 
-use std::{os::unix::fs::PermissionsExt, time::SystemTime};
-use ratatui::widgets::{Table, Row, Cell};
+use ratatui::widgets::{Table, Row, Cell, TableState};
 use crate::app::FileColumn;
 
 fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
     if let Some(file_state) = app.current_file_state() {
+        // Prepare header
         let header_cells = file_state.columns.iter().map(|c| {
             let name = match c {
                 FileColumn::Name => "Name",
@@ -204,6 +204,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
         });
         let header = Row::new(header_cells).height(1).bottom_margin(1);
 
+        // Prepare rows
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let metadata = std::fs::metadata(path).ok();
             
@@ -280,11 +281,15 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
             }
         }).collect();
 
+        let mut state = TableState::default();
+        state.select(Some(file_state.selected_index));
+        state.set_offset(file_state.scroll_offset);
+
         let table = Table::new(rows, constraints)
             .header(header)
             .block(Block::default().borders(Borders::NONE));
             
-        f.render_widget(table, area);
+        f.render_stateful_widget(table, area, &mut state);
     }
 }
 
