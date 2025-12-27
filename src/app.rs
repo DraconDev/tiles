@@ -220,8 +220,8 @@ impl App {
         if self.sidebar_focus {
             if self.sidebar_index > 0 {
                 self.sidebar_index -= 1;
-            } else {
-                // Wrap to bottom or switch view logic if needed
+                // Skip the gap at index 4
+                if self.sidebar_index == 5 { self.sidebar_index -= 2; }
             }
             return;
         }
