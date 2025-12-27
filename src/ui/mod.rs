@@ -72,11 +72,34 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     let inner = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
     match app.current_view {
         CurrentView::Files => {
-            let sidebar_items = vec!["Home", "Downloads", "Documents", "Pictures"];
-            let items: Vec<ListItem> = sidebar_items.iter().enumerate().map(|(i, name)| {
-                let style = if i == app.sidebar_index && app.sidebar_focus { Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD) } else { Style::default() };
-                ListItem::new(*name).style(style)
+            let mut sidebar_items = vec![
+                ListItem::new(" 📂 Local").style(Style::default().add_modifier(Modifier::UNDERLINED)),
+                ListItem::new("   Home"),
+                ListItem::new("   Downloads"),
+                ListItem::new("   Documents"),
+                ListItem::new("   Pictures"),
+                ListItem::new(""),
+                ListItem::new(" ☁  Remote").style(Style::default().add_modifier(Modifier::UNDERLINED)),
+            ];
+
+            for bookmark in &app.remote_bookmarks {
+                sidebar_items.push(ListItem::new(format!("   {}", bookmark.name)));
+            }
+
+            if app.remote_bookmarks.is_empty() {
+                sidebar_items.push(ListItem::new("   (No remotes)").style(Style::default().fg(Color::DarkGray)));
+            }
+
+            let items: Vec<ListItem> = sidebar_items.into_iter().enumerate().map(|(i, item)| {
+                // Adjust index for selection (skipping the "Local" header)
+                let style = if i == app.sidebar_index + 1 && app.sidebar_focus { 
+                    Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD) 
+                } else { 
+                    item.style()
+                };
+                item.style(style)
             }).collect();
+            
             f.render_widget(List::new(items), inner);
         },
         _ => {}
