@@ -220,6 +220,11 @@ impl App {
                     self.docker_state.selected_index += 1;
                 }
             }
+            CurrentView::System => {
+                if self.system_state.selected_process_index < self.system_state.processes.len().saturating_sub(1) {
+                    self.system_state.selected_process_index += 1;
+                }
+            }
             _ => {}
         }
     }
