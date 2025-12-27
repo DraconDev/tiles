@@ -84,10 +84,12 @@ fn update_docker_filter(app: &mut App) {
     app.docker_state.filter = None;
 }
 
+use bollard::models::ContainerSummary;
+
 async fn run_app<B: Backend>(
     terminal: &mut Terminal<B>, 
     app: &mut App, 
-    mut rx: mpsc::Receiver<Vec<String>>,
+    mut rx: mpsc::Receiver<Vec<ContainerSummary>>,
     docker_module: Option<Arc<DockerModule>>,
 ) -> io::Result<()> {
     let tick_rate = Duration::from_millis(250);
