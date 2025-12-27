@@ -79,6 +79,7 @@ impl App {
             docker_state: DockerState {
                 containers: Vec::new(),
                 selected_index: 0,
+                filter: None,
             },
             system_state,
             system_module,
