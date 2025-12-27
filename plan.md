@@ -112,3 +112,5 @@ is there a way to use it with ssh in a way we dont have to install on the target
 can we add mouse support to the file manager? Not intense but it would be nice
 
 be able to toggle split view 
+
+commonly used 
