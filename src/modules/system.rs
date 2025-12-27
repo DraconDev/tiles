@@ -1,5 +1,5 @@
-use sysinfo::{System, Disks};
-use crate::app::{SystemState, DiskInfo};
+use sysinfo::{System, Disks, ProcessesToUpdate};
+use crate::app::{SystemState, DiskInfo, ProcessInfo};
 
 pub struct SystemModule {
     sys: System,
@@ -18,6 +18,7 @@ impl SystemModule {
         self.sys.refresh_cpu_usage();
         self.sys.refresh_memory();
         self.disks.refresh_list();
+        self.sys.refresh_processes(ProcessesToUpdate::All, true);
 
         state.cpu_usage = self.sys.global_cpu_usage();
         state.mem_usage = self.sys.used_memory() as f64 / 1024.0 / 1024.0 / 1024.0; // GB
@@ -29,6 +30,16 @@ impl SystemModule {
                 used_space: (disk.total_space() - disk.available_space()) as f64 / 1024.0 / 1024.0 / 1024.0, // GB
                 total_space: disk.total_space() as f64 / 1024.0 / 1024.0 / 1024.0, // GB
             }
+        }).collect();
+
+        let mut processes: Vec<_> = self.sys.processes().values().collect();
+        processes.sort_by(|a, b| b.cpu_usage().partial_cmp(&a.cpu_usage()).unwrap_or(std::cmp::Ordering::Equal));
+        
+        state.processes = processes.into_iter().take(10).map(|p| ProcessInfo {
+            pid: p.pid().as_u32(),
+            name: p.name().to_string_lossy().to_string(),
+            cpu: p.cpu_usage(),
+            mem: p.memory(),
         }).collect();
     }
 }
