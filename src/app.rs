@@ -1,6 +1,27 @@
+use std::path::PathBuf;
 use crate::modules::system::SystemModule;
 use crate::modules::files::update_files;
 use crate::license::check_license;
+
+#[derive(Debug)]
+pub enum AppMode {
+    Normal,
+    Input,
+    Zoomed,
+}
+
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum TileType {
+    Files,
+    Docker,
+    System,
+    Logs,
+}
+
+pub enum LicenseStatus {
+    FreeMode,
+    Commercial(String),
+}
 
 pub struct App {
     pub running: bool,
@@ -11,6 +32,22 @@ pub struct App {
     pub system_state: SystemState,
     pub license: LicenseStatus,
     pub system_module: SystemModule,
+}
+
+pub struct FileState {
+    pub current_path: PathBuf,
+    pub selected_index: usize,
+    pub files: Vec<PathBuf>,
+}
+
+pub struct DockerState {
+    pub containers: Vec<String>,
+}
+
+pub struct SystemState {
+    pub cpu_usage: f32,
+    pub mem_usage: f64,
+    pub total_mem: f64,
 }
 
 impl App {
