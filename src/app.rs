@@ -70,6 +70,7 @@ pub enum CommandAction {
     SwitchView(CurrentView),
     StartContainer(String),
     StopContainer(String),
+    AddRemote,
 }
 
 use std::collections::{HashMap, HashSet};
