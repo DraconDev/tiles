@@ -76,8 +76,10 @@ pub struct FileState {
     pub clipboard: Option<(PathBuf, ClipboardOp)>,
 }
 
+use bollard::models::ContainerSummary;
+
 pub struct DockerState {
-    pub containers: Vec<String>,
+    pub containers: Vec<ContainerSummary>,
     pub selected_index: usize,
     pub filter: Option<String>,
 }
