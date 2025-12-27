@@ -126,6 +126,7 @@ impl App {
             show_hidden: false,
             git_status: HashMap::new(),
             clipboard: None,
+            search_filter: String::new(),
         };
         update_files(&mut file_state);
 
