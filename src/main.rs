@@ -69,15 +69,17 @@ async fn main() -> color_eyre::Result<()> {
 }
 
 fn update_docker_filter(app: &mut App) {
-    if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
-        if path.is_dir() {
-            let has_dockerfile = path.join("Dockerfile").exists();
-            let has_compose = path.join("docker-compose.yml").exists() || path.join("docker-compose.yaml").exists();
-            
-            if has_dockerfile || has_compose {
-                let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-                app.docker_state.filter = Some(name.to_string());
-                return;
+    if let Some(file_state) = app.current_file_state() {
+        if let Some(path) = file_state.files.get(file_state.selected_index) {
+            if path.is_dir() {
+                let has_dockerfile = path.join("Dockerfile").exists();
+                let has_compose = path.join("docker-compose.yml").exists() || path.join("docker-compose.yaml").exists();
+                
+                if has_dockerfile || has_compose {
+                    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                    app.docker_state.filter = Some(name.to_string());
+                    return;
+                }
             }
         }
     }
