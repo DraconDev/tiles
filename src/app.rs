@@ -218,19 +218,10 @@ impl App {
 
     pub fn move_up(&mut self) {
         if self.sidebar_focus {
-            match self.current_view {
-                CurrentView::Files => {
-                    if self.sidebar_index > 0 {
-                        self.sidebar_index -= 1;
-                    }
-                }
-                _ => {
-                    self.current_view = match self.current_view {
-                        CurrentView::Files => CurrentView::Docker,
-                        CurrentView::Docker => CurrentView::System,
-                        CurrentView::System => CurrentView::Files,
-                    };
-                }
+            if self.sidebar_index > 0 {
+                self.sidebar_index -= 1;
+            } else {
+                // Wrap to bottom or switch view logic if needed
             }
             return;
         }
@@ -259,15 +250,9 @@ impl App {
 
     pub fn move_down(&mut self) {
         if self.sidebar_focus {
-            match self.current_view {
-                CurrentView::Files => {
-                    if self.sidebar_index < 3 {
-                        self.sidebar_index += 1;
-                    }
-                }
-                _ => {
-                    self.switch_view();
-                }
+            let max_index = 3 + self.remote_bookmarks.len();
+            if self.sidebar_index < max_index {
+                self.sidebar_index += 1;
             }
             return;
         }
