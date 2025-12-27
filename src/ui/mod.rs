@@ -193,7 +193,13 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     spans.push(ratatui::text::Span::styled("^T", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" New Tab | "));
     spans.push(ratatui::text::Span::styled("^W", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Close Tab | "));
     spans.push(ratatui::text::Span::styled("Del", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Action "));
-    if let Some(disk) = app.system_state.disks.first() { spans.push(ratatui::text::Span::raw(" | Storage: ")); spans.push(ratatui::text::Span::styled(format!("{:.1}/{:.1} GB", disk.total_space - disk.used_space, disk.total_space), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))); }
+    if let Some(disk) = app.system_state.disks.first() {
+        spans.push(ratatui::text::Span::raw(" | Storage: "));
+        spans.push(ratatui::text::Span::styled(
+            format!("{:.1}/{:.1} GB", disk.total_space - disk.used_space, disk.total_space),
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+        ));
+    }
     f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
 }
 
