@@ -442,6 +442,15 @@ Memory: {:.2} MB", p.pid, p.name, p.cpu, p.mem as f64 / 1024.0 / 1024.0)
     f.render_widget(Paragraph::new(info), inner);
 }
 
+fn draw_new_folder_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(40, 10, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default().title(" New Folder ").borders(Borders::ALL).border_style(Style::default().fg(Color::Green));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+    f.render_widget(Paragraph::new(app.input.as_str()), inner);
+}
+
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
