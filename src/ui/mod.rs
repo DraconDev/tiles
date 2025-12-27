@@ -76,7 +76,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::default()
         .borders(Borders::ALL)
         .title(" Sidebar ")
-        .border_style(Style::default()); // Sidebar static for now, focus logic can be added later
+        .border_style(if app.sidebar_focus && app.current_view == CurrentView::Files { Style::default().fg(Color::Cyan) } else { Style::default() });
     
     f.render_widget(block, area);
     
@@ -84,15 +84,15 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 
     match app.current_view {
         CurrentView::Files => {
-            let items = vec![
-                ListItem::new("Home").style(Style::default().fg(Color::Blue)),
-                ListItem::new("Downloads"),
-                ListItem::new("Documents"),
-                ListItem::new("Pictures"),
-                ListItem::new(""),
-                ListItem::new("Network").style(Style::default().fg(Color::Gray)),
-                ListItem::new("Trash"),
-            ];
+            let sidebar_items = vec!["Home", "Downloads", "Documents", "Pictures"];
+            let items: Vec<ListItem> = sidebar_items.iter().enumerate().map(|(i, name)| {
+                let style = if i == app.sidebar_index && app.sidebar_focus {
+                    Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default()
+                };
+                ListItem::new(*name).style(style)
+            }).collect();
             f.render_widget(List::new(items), inner);
         },
         CurrentView::Docker => {
