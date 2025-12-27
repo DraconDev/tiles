@@ -68,6 +68,19 @@ async fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
+fn update_docker_filter(app: &mut App) {
+    if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+        if path.is_dir() {
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            app.docker_state.filter = Some(name.to_string());
+        } else {
+            app.docker_state.filter = None;
+        }
+    } else {
+        app.docker_state.filter = None;
+    }
+}
+
 async fn run_app<B: Backend>(
     terminal: &mut Terminal<B>, 
     app: &mut App, 
