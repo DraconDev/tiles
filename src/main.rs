@@ -137,10 +137,11 @@ async fn run_app<B: Backend>(
                         KeyCode::Char(c) => app.input.push(c),
                         KeyCode::Backspace => { app.input.pop(); }
                         KeyCode::Enter => {
+                            let new_name = app.input.clone();
                             if let Some(file_state) = app.current_file_state_mut() {
                                 if let Some(old_path) = file_state.files.get(file_state.selected_index) {
                                     let mut new_path = old_path.clone();
-                                    new_path.set_file_name(&app.input);
+                                    new_path.set_file_name(&new_name);
                                     if let Ok(_) = std::fs::rename(old_path, new_path) {
                                         crate::modules::files::update_files(file_state);
                                     }
