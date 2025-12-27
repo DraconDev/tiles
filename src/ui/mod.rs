@@ -192,7 +192,7 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
         let percent = (disk.used_space / disk.total_space) * 100.0;
         
         // Create a visual bar for the disk
-        let bar_width = 20;
+        let bar_width: usize = 20;
         let filled = (percent / 100.0 * bar_width as f64) as usize;
         let empty = bar_width.saturating_sub(filled);
         let bar = format!("[{}{}]", "#".repeat(filled), "-".repeat(empty));
