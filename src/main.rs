@@ -123,6 +123,33 @@ async fn run_app<B: Backend>(
                     continue;
                 }
 
+                if matches!(app.mode, AppMode::Rename) {
+                    match key.code {
+                        KeyCode::Esc => app.mode = AppMode::Normal,
+                        KeyCode::Char(c) => app.input.push(c),
+                        KeyCode::Backspace => { app.input.pop(); }
+                        KeyCode::Enter => {
+                            if let Some(old_path) = app.file_state.files.get(app.file_state.selected_index) {
+                                let mut new_path = old_path.clone();
+                                new_path.set_file_name(&app.input);
+                                if let Ok(_) = std::fs::rename(old_path, new_path) {
+                                    crate::modules::files::update_files(&mut app.file_state);
+                                }
+                            }
+                            app.mode = AppMode::Normal;
+                        }
+                        _ => {}
+                    }
+                    continue;
+                }
+
+                if matches!(app.mode, AppMode::Properties) {
+                    if key.code == KeyCode::Esc || key.code == KeyCode::Enter {
+                        app.mode = AppMode::Normal;
+                    }
+                    continue;
+                }
+
                 if matches!(app.mode, AppMode::CommandPalette) {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
