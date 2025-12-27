@@ -352,6 +352,12 @@ async fn run_app<B: Backend>(
                         }
                     }
                     
+                    KeyCode::Char('C') if key.modifiers.contains(crossterm::event::KeyModifiers::ALT) => {
+                        if app.current_view == CurrentView::Files {
+                            app.mode = AppMode::ColumnSetup;
+                        }
+                    }
+                    
                     // Tab Switching
                     KeyCode::Tab if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                         if app.current_view == CurrentView::Files {
