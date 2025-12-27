@@ -100,3 +100,5 @@ src/
     └── system.rs     # Sysinfo polling
 
 we want icons too, bake it into the ui if that is best
+
+also show more information about the files in the file manager
