@@ -284,6 +284,7 @@ async fn run_app<B: Backend>(
                         app.mode = AppMode::CommandPalette;
                         app.input.clear();
                         update_commands(app);
+                    }
                     KeyCode::F(5) => {
                          crate::modules::files::update_files(&mut app.file_state);
                     }
