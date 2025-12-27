@@ -398,7 +398,7 @@ fn draw_command_palette(f: &mut Frame, app: &App) {
         ])
         .split(inner);
 
-    let input = Paragraph::new(format!("> {}"), app.input)
+    let input = Paragraph::new(format!("> {}", app.input))
         .style(Style::default().fg(Color::Yellow));
     f.render_widget(input, chunks[0]);
 
