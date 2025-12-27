@@ -192,19 +192,39 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
             Style::default()
         };
         
-        if let Some(status) = app.file_state.git_status.get(path) {
-            display_name.push_str(&format!(" [{}]
-", status));
-            match status.as_str() {
-                "M" | "MM" => style = style.fg(Color::Yellow),
-                "A" | "AM" => style = style.fg(Color::Green),
-                "??" => style = style.fg(Color::DarkGray),
-                "D" => style = style.fg(Color::Red),
-                _ => {}
-            }
-        }
+                if let Some(status) = app.file_state.git_status.get(path) {
         
-        let prefix = if i == app.file_state.selected_index && !app.sidebar_focus {
+                    display_name.push_str(&format!(" [{}]", status));
+        
+                    match status.as_str() {
+        
+                        "M" | "MM" => style = style.fg(Color::Yellow),
+        
+                        "A" | "AM" => style = style.fg(Color::Green),
+        
+                        "??" => style = style.fg(Color::DarkGray),
+        
+                        "D" => style = style.fg(Color::Red),
+        
+                        _ => {}
+        
+                    }
+        
+                }
+        
+        
+        
+                if app.file_state.starred.contains(path) {
+        
+                    display_name.push_str(" [*]");
+        
+                    style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD);
+        
+                }
+        
+                
+        
+                let prefix = if i == app.file_state.selected_index && !app.sidebar_focus {
             "> "
         } else {
             "  "
