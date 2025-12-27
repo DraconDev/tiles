@@ -44,6 +44,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::NewFolder) { draw_new_folder_modal(f, app); }
     if matches!(app.mode, AppMode::ColumnSetup) { draw_column_setup_modal(f, app); }
     if matches!(app.mode, AppMode::CommandPalette) { draw_command_palette(f, app); }
+    if matches!(app.mode, AppMode::AddRemote) { draw_add_remote_modal(f, app); }
 }
 
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
