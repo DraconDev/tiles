@@ -1,7 +1,7 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Clear, Gauge, List, ListItem, Paragraph, Table, Row, Cell},
+    widgets::{Block, Borders, Clear, Gauge, List, ListItem, Paragraph, Table, Row, Cell, Scrollbar, ScrollbarOrientation, ScrollbarState},
     Frame,
 };
 
@@ -32,65 +32,38 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     
     draw_footer(f, chunks[2], app);
 
+    // Context Menu
+    if let AppMode::ContextMenu(x, y) = app.mode {
+        draw_context_menu(f, x, y);
+    }
+
     // Modals
-    if matches!(app.mode, AppMode::Rename) {
-        draw_rename_modal(f, app);
-    }
-    if matches!(app.mode, AppMode::Delete) {
-        draw_delete_modal(f, app);
-    }
-    if matches!(app.mode, AppMode::Properties) {
-        draw_properties_modal(f, app);
-    }
-    if matches!(app.mode, AppMode::NewFolder) {
-        draw_new_folder_modal(f, app);
-    }
-    if matches!(app.mode, AppMode::ColumnSetup) {
-        draw_column_setup_modal(f, app);
-    }
-    if matches!(app.mode, AppMode::CommandPalette) {
-        draw_command_palette(f, app);
-    }
+    if matches!(app.mode, AppMode::Rename) { draw_rename_modal(f, app); }
+    if matches!(app.mode, AppMode::Delete) { draw_delete_modal(f, app); }
+    if matches!(app.mode, AppMode::Properties) { draw_properties_modal(f, app); }
+    if matches!(app.mode, AppMode::NewFolder) { draw_new_folder_modal(f, app); }
+    if matches!(app.mode, AppMode::ColumnSetup) { draw_column_setup_modal(f, app); }
+    if matches!(app.mode, AppMode::CommandPalette) { draw_command_palette(f, app); }
 }
 
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Min(0),
-            Constraint::Length(5), // " [X] "
-        ])
-        .split(area);
-
+    let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Min(0), Constraint::Length(5)]).split(area);
     let mut spans = Vec::new();
-    let views = vec![
-        ("^F Files", CurrentView::Files), 
-        ("^P Proc", CurrentView::System), 
-        ("^D Docker", CurrentView::Docker)
-    ];
+    let views = vec![("^F Files", CurrentView::Files), ("^P Proc", CurrentView::System), ("^D Docker", CurrentView::Docker)];
     for (label, view) in views {
-        let style = if app.current_view == view {
-            Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(Color::DarkGray)
-        };
-        spans.push(ratatui::text::Span::styled(format!(" {} ", label), style));
-        spans.push(ratatui::text::Span::raw(" "));
+        let style = if app.current_view == view { Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::DarkGray) };
+        spans.push(ratatui::text::Span::styled(format!(" {} ", label), style)); spans.push(ratatui::text::Span::raw(" "));
     }
     spans.push(ratatui::text::Span::raw(" | "));
     if app.current_view == CurrentView::Files {
         for (i, tab) in app.file_tabs.iter().enumerate() {
             let name = tab.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string());
             let style = if i == app.tab_index { Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED) } else { Style::default().fg(Color::Gray) };
-            spans.push(ratatui::text::Span::styled(format!("[{}]", name), style));
-            spans.push(ratatui::text::Span::raw(" "));
+            spans.push(ratatui::text::Span::styled(format!("[{}]", name), style)); spans.push(ratatui::text::Span::raw(" "));
         }
     }
     f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), chunks[0]);
-
-    let close_btn = Paragraph::new(" [X] ")
-        .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD));
-    f.render_widget(close_btn, chunks[1]);
+    f.render_widget(Paragraph::new(" [X] ").style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), chunks[1]);
 }
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
@@ -106,28 +79,19 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             }).collect();
             f.render_widget(List::new(items), inner);
         },
-        CurrentView::Docker => {
-             let items = vec![ ListItem::new("Containers").style(Style::default().add_modifier(Modifier::BOLD)), ListItem::new("  All"), ListItem::new("  Running").style(Style::default().fg(Color::Green)), ListItem::new("  Stopped").style(Style::default().fg(Color::Red))];
-             f.render_widget(List::new(items), inner);
-        },
-        CurrentView::System => {
-             let items = vec![ ListItem::new("Overview").style(Style::default().add_modifier(Modifier::BOLD)), ListItem::new("Processes"), ListItem::new("Disks")];
-             f.render_widget(List::new(items), inner);
-        }
+        _ => {}
     }
 }
 
 fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
     let block = Block::default().borders(Borders::ALL).title(format!(" {:?} ", app.current_view)).border_style(if !app.sidebar_focus { Style::default().fg(Color::Cyan) } else { Style::default() });
-    let inner = block.inner(area);
-    f.render_widget(block, area);
+    let inner = block.inner(area); f.render_widget(block, area);
     if app.current_view == CurrentView::Files {
         let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Min(0)]).split(inner);
         let path_text = if matches!(app.mode, AppMode::Location) { format!("Location: {}", app.input) } 
             else if let Some(fs) = app.current_file_state() { if !fs.search_filter.is_empty() { format!("Search: {} (Esc to clear)", fs.search_filter) } else { format!("Path: {}", fs.current_path.display()) } } 
             else { String::new() };
-        let path_bar = Paragraph::new(path_text).block(Block::default().borders(Borders::ALL).border_style(if matches!(app.mode, AppMode::Location) { Style::default().fg(Color::Yellow) } else if app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { Style::default().fg(Color::Magenta) } else { Style::default() }));
-        f.render_widget(path_bar, chunks[0]);
+        f.render_widget(Paragraph::new(path_text).block(Block::default().borders(Borders::ALL).border_style(if matches!(app.mode, AppMode::Location) { Style::default().fg(Color::Yellow) } else if app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { Style::default().fg(Color::Magenta) } else { Style::default() })), chunks[0]);
         draw_file_view(f, chunks[1], app);
     } else {
         match app.current_view {
@@ -138,7 +102,7 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
-use std::{time::SystemTime};
+use std::time::SystemTime;
 
 fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
     let sidebar_focus = app.sidebar_focus;
@@ -167,36 +131,32 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                     FileColumn::Size => Cell::from(format_size(metadata.as_ref().map(|m| m.len()).unwrap_or(0))),
                     FileColumn::Modified => Cell::from(format_time(metadata.as_ref().and_then(|m| m.modified().ok()).unwrap_or(SystemTime::UNIX_EPOCH))),
                     FileColumn::Created => Cell::from(format_time(metadata.as_ref().and_then(|m| m.created().ok()).unwrap_or(SystemTime::UNIX_EPOCH))),
-                    FileColumn::Permissions => Cell::from(format_permissions(metadata.as_ref().map(|m| { #[cfg(unix)] { use std::os::unix::fs::PermissionsExt; m.permissions().mode() } #[cfg(not(unix))] { 0 } }).unwrap_or(0))),
+                    FileColumn::Permissions => {
+                        #[cfg(unix)] { use std::os::unix::fs::PermissionsExt; Cell::from(format_permissions(metadata.as_ref().map(|m| m.permissions().mode()).unwrap_or(0))) }
+                        #[cfg(not(unix))] { Cell::from("---") }
+                    },
                     FileColumn::Extension => Cell::from(path.extension().and_then(|e| e.to_str()).unwrap_or("")),
                 }
             });
             let style = if i == file_state.selected_index && !sidebar_focus { Style::default().bg(Color::DarkGray) } else { Style::default() };
             Row::new(cells).style(style)
         });
-        let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| {
-            match c {
-                FileColumn::Name => Constraint::Percentage(50),
-                FileColumn::Size => Constraint::Length(10),
-                FileColumn::Modified => Constraint::Length(20),
-                FileColumn::Created => Constraint::Length(20),
-                FileColumn::Permissions => Constraint::Length(12),
-                FileColumn::Extension => Constraint::Length(6)
-            }
-        }).collect();
+        let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| { match c { FileColumn::Name => Constraint::Percentage(50), FileColumn::Size => Constraint::Length(10), FileColumn::Modified => Constraint::Length(20), FileColumn::Created => Constraint::Length(20), FileColumn::Permissions => Constraint::Length(12), FileColumn::Extension => Constraint::Length(6) } }).collect();
         f.render_stateful_widget(Table::new(rows, constraints).header(header).block(Block::default().borders(Borders::NONE)), area, &mut file_state.table_state);
+        
+        let scrollbar = Scrollbar::default().orientation(ScrollbarOrientation::VerticalRight).begin_symbol(Some("↑")).end_symbol(Some("↓"));
+        let mut scrollbar_state = ScrollbarState::new(file_state.files.len()).position(file_state.table_state.offset());
+        f.render_stateful_widget(scrollbar, area, &mut scrollbar_state);
     }
 }
 
 fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     let layout = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Length(3), Constraint::Length(6), Constraint::Min(0)]).split(area);
     f.render_widget(Gauge::default().block(Block::default().title(" CPU Usage ").borders(Borders::ALL)).gauge_style(Style::default().fg(Color::Green)).percent(app.system_state.cpu_usage as u16).label(format!("{:.1}%", app.system_state.cpu_usage)), layout[0]);
-    if app.system_state.total_mem > 0.0 {
-        f.render_widget(Gauge::default().block(Block::default().title(" Memory Usage ").borders(Borders::ALL)).gauge_style(Style::default().fg(Color::Yellow)).percent((app.system_state.mem_usage / app.system_state.total_mem * 100.0) as u16).label(format!("{:.1} / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem)), layout[1]);
-    }
+    if app.system_state.total_mem > 0.0 { f.render_widget(Gauge::default().block(Block::default().title(" Memory Usage ").borders(Borders::ALL)).gauge_style(Style::default().fg(Color::Yellow)).percent((app.system_state.mem_usage / app.system_state.total_mem * 100.0) as u16).label(format!("{:.1} / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem)), layout[1]); }
     let disk_items: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let percent = (disk.used_space / disk.total_space) * 100.0;
-        let bar_width: usize = 20; let filled = (percent / 100.0 * bar_width as f64) as usize;
+        let bar_width = 20; let filled = (percent / 100.0 * bar_width as f64) as usize;
         let bar = format!("[{}{}]", "#".repeat(filled), "-".repeat(bar_width.saturating_sub(filled)));
         ListItem::new(format!("{:<10} {}  {:.1} / {:.1} GB ({:.1}%)", disk.name, bar, disk.used_space, disk.total_space, percent))
     }).collect();
@@ -214,11 +174,7 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
         if let Some(filter) = &app.docker_state.filter { if !name.contains(filter) { return None; } }
         Some((name, c.state.as_deref().unwrap_or(""), c.status.as_deref().unwrap_or("")))
     }).enumerate().map(|(i, (name, state, status))| {
-        let style = match state {
-            "running" => Style::default().fg(Color::Green),
-            "exited" => Style::default().fg(Color::Red),
-            _ => Style::default()
-        };
+        let style = match state { "running" => Style::default().fg(Color::Green), "exited" => Style::default().fg(Color::Red), _ => Style::default() };
         ListItem::new(format!("{}{:<20} {:<10} {}", if i == app.docker_state.selected_index && !app.sidebar_focus { "> " } else { "  " }, name, state, status)).style(style)
     }).collect();
     f.render_widget(List::new(items), area);
@@ -226,45 +182,24 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let mut spans = Vec::new();
-    
-    // Quit Shortcut
-    spans.push(ratatui::text::Span::styled("^Q", Style::default().fg(Color::Yellow)));
-    spans.push(ratatui::text::Span::raw(" Quit | "));
+    spans.push(ratatui::text::Span::styled("^Q", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Quit | "));
+    let console_style = if matches!(app.mode, AppMode::CommandPalette) { Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::Yellow) };
+    spans.push(ratatui::text::Span::styled("^.", console_style)); spans.push(ratatui::text::Span::raw(" Console | "));
+    spans.push(ratatui::text::Span::styled("^H", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Hidden | "));
+    spans.push(ratatui::text::Span::styled("^B", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Star | "));
+    spans.push(ratatui::text::Span::styled("^T", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" New Tab | "));
+    spans.push(ratatui::text::Span::styled("^W", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Close Tab | "));
+    spans.push(ratatui::text::Span::styled("Del", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Action "));
+    if let Some(disk) = app.system_state.disks.first() { spans.push(ratatui::text::Span::raw(" | Storage: ")); spans.push(ratatui::text::Span::styled(format!("{:.1}/{:.1} GB", disk.total_space - disk.used_space, disk.total_space), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))); }
+    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
+}
 
-    // Console Shortcut
-    let console_key_style = if matches!(app.mode, AppMode::CommandPalette) {
-        Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(Color::Yellow)
-    };
-    spans.push(ratatui::text::Span::styled("^.", console_key_style));
-    spans.push(ratatui::text::Span::raw(" Console | "));
-
-    spans.push(ratatui::text::Span::styled("^H", Style::default().fg(Color::Yellow)));
-    spans.push(ratatui::text::Span::raw(" Hidden | "));
-    
-    spans.push(ratatui::text::Span::styled("^B", Style::default().fg(Color::Yellow)));
-    spans.push(ratatui::text::Span::raw(" Star | "));
-    
-    spans.push(ratatui::text::Span::styled("^T", Style::default().fg(Color::Yellow)));
-    spans.push(ratatui::text::Span::raw(" New Tab | "));
-    
-    spans.push(ratatui::text::Span::styled("^W", Style::default().fg(Color::Yellow)));
-    spans.push(ratatui::text::Span::raw(" Close Tab | "));
-    
-    spans.push(ratatui::text::Span::styled("Del", Style::default().fg(Color::Yellow)));
-    spans.push(ratatui::text::Span::raw(" Action "));
-
-    if let Some(disk) = app.system_state.disks.first() {
-        spans.push(ratatui::text::Span::raw(" | Storage: "));
-        spans.push(ratatui::text::Span::styled(
-            format!("{:.1}/{:.1} GB", disk.total_space - disk.used_space, disk.total_space),
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
-        ));
-    }
-
-    let footer = Paragraph::new(ratatui::text::Line::from(spans));
-    f.render_widget(footer, area);
+fn draw_context_menu(f: &mut Frame, x: u16, y: u16) {
+    let area = Rect::new(x, y, 15, 5); f.render_widget(Clear, area);
+    let block = Block::default().borders(Borders::ALL).border_style(Style::default().fg(Color::Yellow)).title(" Menu ");
+    let inner = block.inner(area); f.render_widget(block, area);
+    let items = vec![ListItem::new(" Rename"), ListItem::new(" Star"), ListItem::new(" Delete")];
+    f.render_widget(List::new(items), inner);
 }
 
 fn draw_command_palette(f: &mut Frame, app: &App) {
@@ -293,8 +228,7 @@ fn draw_delete_modal(f: &mut Frame, app: &App) {
     let inner = block.inner(area); f.render_widget(block, area);
     let text = match app.current_view {
         CurrentView::Files => if let Some(fs) = app.current_file_state() { if let Some(p) = fs.files.get(fs.selected_index) { format!("Delete {}? (y/n)", p.file_name().unwrap_or_default().to_string_lossy()) } else { "Delete? (y/n)".to_string() } } else { "Delete? (y/n)".to_string() },
-        CurrentView::System => if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) { format!("Kill process {} ({})? (y/n)", p.name, p.pid) } else { "Kill process? (y/n)".to_string() },
-        CurrentView::Docker => if let Some(c) = app.docker_state.containers.get(app.docker_state.selected_index) { let name = c.names.as_ref().and_then(|n| n.first()).map(|s| s.as_str()).unwrap_or("").trim_start_matches('/'); format!("Remove container {}? (y/n)", name) } else { "Remove container? (y/n)".to_string() }
+        _ => "Delete? (y/n)".to_string()
     };
     f.render_widget(Paragraph::new(text), inner);
 }
@@ -307,21 +241,14 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
         CurrentView::Files => if let Some(fs) = app.current_file_state() { if let Some(p) = fs.files.get(fs.selected_index) { let metadata = std::fs::metadata(p); let mut s = format!("Name: {}
 ", p.file_name().unwrap_or_default().to_string_lossy()); s.push_str(&format!("Type: {}
 ", if p.is_dir() { "Directory" } else { "File" })); if let Ok(m) = metadata { s.push_str(&format!("Size: {} bytes\n", m.len())); if let Ok(modi) = m.modified() { s.push_str(&format!("Modified: {:?}\n", modi)); } } s } else { "No file selected".to_string() } } else { "No file selected".to_string() },
-        CurrentView::System => if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) { format!("PID: {}
-Name: {}
-CPU: {:.2}%\nMemory: {:.2} MB", p.pid, p.name, p.cpu, p.mem as f64 / 1024.0 / 1024.0) } else { "No process selected".to_string() },
-        CurrentView::Docker => if let Some(c) = app.docker_state.containers.get(app.docker_state.selected_index) { let name = c.names.as_ref().and_then(|n| n.first()).map(|s| s.as_str()).unwrap_or("").trim_start_matches('/'); let id = c.id.as_deref().unwrap_or("?"); let image = c.image.as_deref().unwrap_or("?"); let state = c.state.as_deref().unwrap_or(""); let status = c.status.as_deref().unwrap_or(""); format!("Name: {}
-ID: {}
-Image: {}
-State: {}
-Status: {}", name, id, image, state, status) } else { "No container selected".to_string() }
+        _ => "No info available".to_string()
     };
     f.render_widget(Paragraph::new(info), inner);
 }
 
 fn draw_column_setup_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 40, f.area()); f.render_widget(Clear, area);
-    let block = Block::default().title(" Column Setup (Alt+C to close) ").borders(Borders::ALL).border_style(Style::default().fg(Color::Cyan));
+    let block = Block::default().title(" Column Setup ").borders(Borders::ALL).border_style(Style::default().fg(Color::Cyan));
     let inner = block.inner(area); f.render_widget(block, area);
     if let Some(fs) = app.current_file_state() {
         let options = vec![(FileColumn::Name, "Name (n)"), (FileColumn::Size, "Size (s)"), (FileColumn::Modified, "Modified (m)"), (FileColumn::Created, "Created (c)"), (FileColumn::Permissions, "Permissions (p)"), (FileColumn::Extension, "Extension (e)")];
@@ -341,30 +268,10 @@ use chrono::{DateTime, Local};
 fn format_size(size: u64) -> String { if size >= 1073741824 { format!("{:.1} GB", size as f64 / 1073741824.0) } else if size >= 1048576 { format!("{:.1} MB", size as f64 / 1048576.0) } else if size >= 1024 { format!("{:.1} KB", size as f64 / 1024.0) } else { format!("{} B", size) } }
 fn format_time(time: SystemTime) -> String { let datetime: DateTime<Local> = time.into(); datetime.format("%Y-%m-%d %H:%M").to_string() }
 fn format_permissions(mode: u32) -> String {
-    let user = (mode >> 6) & 0o7; let group = (mode >> 3) & 0o7; let other = mode & 0o7;
     let r = |b| if b & 4 != 0 { "r" } else { "-" }; let w = |b| if b & 2 != 0 { "w" } else { "-" }; let x = |b| if b & 1 != 0 { "x" } else { "-" };
-    format!("{}{}{}{}{}{}{}{}{}", 
-        r(user), w(user), x(user), 
-        r(group), w(group), x(group), 
-        r(other), w(other), x(other)
-    )
+    format!("{}{}{}{}{}{}{}{}{}", r((mode >> 6) & 0o7), w((mode >> 6) & 0o7), x((mode >> 6) & 0o7), r((mode >> 3) & 0o7), w((mode >> 3) & 0o7), x((mode >> 3) & 0o7), r(mode & 0o7), w(mode & 0o7), x(mode & 0o7))
 }
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
-        ])
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
-        ])
-        .split(popup_layout[1])[1]
+    let popup_layout = Layout::default().direction(Direction::Vertical).constraints([Constraint::Percentage((100 - percent_y) / 2), Constraint::Percentage(percent_y), Constraint::Percentage((100 - percent_y) / 2)]).split(r);
+    Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage((100 - percent_x) / 2), Constraint::Percentage(percent_x), Constraint::Percentage((100 - percent_x) / 2)]).split(popup_layout[1])[1]
 }
