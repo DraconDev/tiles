@@ -3,11 +3,12 @@ use crate::modules::system::SystemModule;
 use crate::modules::files::update_files;
 use crate::license::check_license;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AppMode {
     Normal,
     Input,
     Zoomed,
+    CommandPalette,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -27,6 +28,7 @@ pub struct App {
     pub running: bool,
     pub active_tile: TileType,
     pub mode: AppMode,
+    pub input: String,
     pub file_state: FileState,
     pub docker_state: DockerState,
     pub system_state: SystemState,
