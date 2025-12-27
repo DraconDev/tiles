@@ -303,14 +303,22 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(disk_list, layout[2]);
 
     // Process List
-    let process_items: Vec<ListItem> = app.system_state.processes.iter().map(|p| {
+    let process_items: Vec<ListItem> = app.system_state.processes.iter().enumerate().map(|(i, p)| {
+        let style = if i == app.system_state.selected_process_index && !app.sidebar_focus {
+            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default()
+        };
+        let prefix = if i == app.system_state.selected_process_index && !app.sidebar_focus { "> " } else { "  " };
+        
         ListItem::new(format!(
-            "{:<6} {:<20} {:.1}%  {:.1} MB", 
+            "{}{:<6} {:<20} {:.1}%  {:.1} MB", 
+            prefix,
             p.pid, 
             p.name.chars().take(20).collect::<String>(), 
             p.cpu, 
             p.mem as f64 / 1024.0 / 1024.0
-        ))
+        )).style(style)
     }).collect();
     
     let process_list = List::new(process_items)
