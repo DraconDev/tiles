@@ -506,6 +506,7 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_modu
         crate::app::CommandAction::SwitchView(view) => app.current_view = view,
         crate::app::CommandAction::StartContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.start_container(&name).await; }); } },
         crate::app::CommandAction::StopContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.stop_container(&name).await; }); } },
+        crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); }
     }
 }
 
