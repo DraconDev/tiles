@@ -82,6 +82,34 @@ fn update_docker_filter(app: &mut App) {
     app.docker_state.filter = None;
 }
 
+fn push_history(fs: &mut crate::app::FileState, path: std::path::PathBuf) {
+    if fs.current_path == path { return; }
+    // Truncate forward history
+    fs.history.truncate(fs.history_index + 1);
+    fs.history.push(path);
+    fs.history_index = fs.history.len() - 1;
+}
+
+fn navigate_back(fs: &mut crate::app::FileState) {
+    if fs.history_index > 0 {
+        fs.history_index -= 1;
+        fs.current_path = fs.history[fs.history_index].clone();
+        fs.selected_index = 0;
+        fs.search_filter.clear();
+        crate::modules::files::update_files(fs);
+    }
+}
+
+fn navigate_forward(fs: &mut crate::app::FileState) {
+    if fs.history_index + 1 < fs.history.len() {
+        fs.history_index += 1;
+        fs.current_path = fs.history[fs.history_index].clone();
+        fs.selected_index = 0;
+        fs.search_filter.clear();
+        crate::modules::files::update_files(fs);
+    }
+}
+
 async fn run_app<B: Backend>(
     terminal: &mut Terminal<B>, 
     app: &mut App, 
