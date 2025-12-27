@@ -1,136 +1,138 @@
 🏗️ MASTER PLAN: PROJECT TILES
-Version: 1.0 (Architecture Draft)
+Version: 1.1 (Nautilus-Like Re-Architecture)
 Legal: Dracon License v1.0 (Proprietary / Source Available)
 Stack: Rust, Ratatui, Tokio, Bollard, Sysinfo.
+
 1. 🌍 The High-Level Vision
-Tiles is a "Terminal Workspace Environment." It is not just a monitoring tool; it is an interactive operating system for the terminal. It solves the context-switching problem by unifying Files, Containers, and System Resources into a single, tiling pane interface that supports cross-module context (e.g., selecting a directory filters the Docker view).
-Business Goal: To capture the 5+ employee company market with a fixed-tier license model by offering a tool that replaces lazydocker, ranger, and btop combined.
+Tiles is a "Terminal Workspace Environment" that brings the familiarity of GUI file managers (like GNOME Files/Nautilus) to the terminal, while integrating powerful developer tools. It abandons the traditional complex tiling approach for a clean, tabbed interface where "Files", "Processes", and "Docker" are first-class views, accessible via single keystrokes.
+Business Goal: To capture the 5+ employee company market with a fixed-tier license model by offering a tool that replaces lazydocker, ranger, and btop combined, with an interface familiar to Linux desktop users.
+
 2. 🏛️ Technical Architecture (Rust)
 A. The Core Event Loop (main.rs)
-The application must run on a Dual-Threaded Async Architecture:
-Main Thread (UI): Synchronous. Handles drawing to the terminal via Ratatui and capturing user keyboard input via Crossterm.
+The application runs on a Dual-Threaded Async Architecture:
+Main Thread (UI): Synchronous. Handles drawing via Ratatui and capturing keyboard input via Crossterm.
 Background Runtime (Tokio): Asynchronous. Handles heavy lifting (Docker API calls, File I/O, System polling) to ensure the UI never freezes.
-Communication: Use tokio::sync::mpsc channels to pass messages from Background -> UI (e.g., DockerContainerUpdated(Vec<ContainerSummary>)).
+Communication: Use tokio::sync::mpsc channels to pass messages from Background -> UI.
+
 B. State Management (app.rs)
-The Global State must be centralized. Do not scatter state across widgets.
-code
-Rust
-￼
-download
-￼
-content_copy
-￼
-expand_less
+Centralized Global State:
+```rust
 pub struct App {
     pub running: bool,
-    pub active_tile: TileType, // Enum: Files, Docker, System, Logs
-    pub mode: AppMode,         // Enum: Normal, Input, Zoomed
+    pub current_view: CurrentView, // Enum: Files, Docker, System
+    pub mode: AppMode,             // Enum: Normal, Input, CommandPalette, Location, Rename, Delete, Properties, NewFolder
     
     // The Data Stores
     pub file_state: FileState,
     pub docker_state: DockerState,
     pub system_state: SystemState,
     
+    // UI State
+    pub sidebar_focus: bool,
+    pub sidebar_index: usize,
+    
     // Commercial / Config
-    pub config: Config, // Loaded from tiles.toml
-    pub license: LicenseStatus, // Enum: Free, Commercial(Key)
+    pub config: Config,
+    pub license: LicenseStatus, 
 }
+```
 
-pub enum LicenseStatus {
-    FreeMode,           // Show "Support Tiles" footer
-    Commercial(String), // Hide footer, show Company Name
-}
-3. 🧩 The Modules (The "Tiles")
-Tile 1: The File Manager (modules/files.rs)
-Library: std::fs, walkdir.
-Visuals: Tree view or List view.
+3. 🧩 The Modules (The "Views")
+View 1: The File Manager (Files)
+Hotkeys: `f` to switch to.
 Features:
-Vim navigation (j/k).
-Git Integration: Show [+], [-], [M] next to files using libgit2 or CLI parsing.
-Context Trigger: When a user hovers a folder containing a Dockerfile or docker-compose.yml, emit a ContextEvent::ProjectSelected(path) signal.
-Tile 2: The Docker Manager (modules/docker.rs)
-Library: bollard (Async).
-Visuals: Table view (Containers) + Sparklines (Stats).
+- Sidebar: Quick access to Home, Downloads, Documents, Pictures.
+- Navigation: Vim (j/k) or Arrow keys.
+- Nautilus-style Actions: 
+    - `Alt+Up`: Parent directory.
+    - `Ctrl+L`: Location bar input.
+    - `Ctrl+H`: Toggle hidden files.
+    - `Ctrl+Shift+N`: New folder.
+    - `F2`: Rename.
+    - `Delete`: Delete file/folder (with confirmation).
+    - `Alt+Enter`: Properties modal.
+
+View 2: The System Monitor (Processes)
+Hotkeys: `p` to switch to.
 Features:
-Listing: ID, Image, Status, Ports, CPU%.
-Actions: s (start), x (stop), r (restart), l (logs), e (exec shell).
-Reactive Filtering: If ContextEvent is received, filter the list to only show containers related to the current file path (project).
-Tile 3: The System Monitor (modules/system.rs)
-Library: sysinfo.
-Visuals: Gauges (Ratatui) and Sparklines for history.
+- Gauges: CPU, Memory, Disk usage.
+- Interactive Process List: Scrollable list of top processes.
+- Unified Actions:
+    - `Delete`: Kill selected process (with confirmation).
+    - `Alt+Enter`: Process details.
+
+View 3: The Docker Manager (Docker)
+Hotkeys: `d` to switch to.
 Features:
-Global CPU/RAM usage.
-Process List: List top 10 processes.
-Port Watcher: List active listening ports (TCP).
-Tile 4: The Command Center (The "Glue")
-Visuals: A popup modal (like VS Code Command Palette).
-Trigger: Ctrl+P or :.
-Function: Fuzzy search across Files, Container Names, and App Commands (e.g., "Kill Container", "Git Commit").
+- List: Containers with status.
+- Unified Actions:
+    - `Delete`: Remove container (with confirmation).
+    - `Alt+Enter`: Inspect container.
+    - `s`: Start.
+    - `x`: Stop.
+
 4. 🎨 UX & Interaction Design
 The Layout System
-Default View: 3-Pane Split.
-Left (50%): File Explorer.
-Top Right (25%): System Resources.
-Bottom Right (25%): Docker Containers.
-The "Zoom" Mechanic:
-Pressing Enter on a focused tile expands it to 100% width/height.
-Pressing Esc returns to the split view.
-Keybindings (Vim Standard)
-Tab: Cycle focus between tiles.
-h/j/k/l: Navigation within a list.
-?: Toggle Help Modal.
-Ctrl+c: Quit.
+Vertical Split: Sidebar (20%) | Main Content (80%).
+Bottom Bar: Tabs + Footer.
+    - Tabs: `[F]iles [C]onsole [P]rocesses [D]ocker` (Active tab highlighted).
+    - Footer: Context-sensitive shortcuts hints.
+
+Global Hotkeys
+- `f`: View Files.
+- `p`: View Processes.
+- `d`: View Docker.
+- `c` / `Ctrl+P`: Command Palette (Fuzzy search actions).
+- `q`: Quit.
+
+The "Unified Action" Philosophy
+The `Delete` key and `Alt+Enter` (Properties) hotkeys adapt to the current view (Files, Processes, or Docker), creating a consistent mental model.
+
 5. 💼 Commercial Logic Implementation
 Strategy: "Soft Lock" / Honor System.
 The License Check (utils/license.rs)
 On Startup: Check for ~/.config/tiles/license.key.
 Verification:
-If file exists: Verify cryptographic signature (using ed25519 public key embedded in binary).
+If file exists: Verify cryptographic signature.
 If valid: Set App.license to Commercial(CompanyName).
 If missing/invalid: Set App.license to FreeMode.
 The UI Consequence
 Footer Rendering:
-If FreeMode: Render a text span at the bottom right: Style::default().fg(DarkGray).content("Tiles Free Edition (<5 employees). Support us at dracon.uk").
-If Commercial: Render Style::default().fg(Gold).content("Licensed to Acme Corp").
-Features: All features are accessible in Free Mode (we rely on corporate compliance for revenue, not feature gating).
+If FreeMode: Render "Tiles Free Edition (<5 employees)..."
+If Commercial: Render "Licensed to Acme Corp".
+
 6. 🚀 Development Roadmap
-Phase 1: The Skeleton (MVP)
-Set up Rust project with ratatui + crossterm.
-Build the App struct and the Layout logic.
-Implement basic keyboard handling (Quit, Switch focus).
-Phase 2: The Data
-Implement System tile (easiest data source).
-Implement Files tile (directory walking).
-Implement Docker tile (connecting to socket).
-Phase 3: The Interactivity
-Add the "Zoom" function.
-Add Docker controls (Start/Stop).
-Implement the license.rs checker.
-Phase 4: The "Glue" (Context)
-Make the File selection filter the Docker view.
-Add the Command Palette (Ctrl+P).
-7. File Structure Proposal
-code
-Code
-￼
-download
-￼
-content_copy
-￼
-expand_less
+Phase 1: The Skeleton & Files (Completed)
+- [x] Basic Ratatui setup.
+- [x] File Manager with Nautilus shortcuts (Ctrl+L, F2, etc.).
+- [x] Sidebar navigation.
+
+Phase 2: The Views & Unification (Completed)
+- [x] Tabbed Layout (Bottom bar).
+- [x] View Switching (f, p, d).
+- [x] System Monitor with interactive process list.
+- [x] Docker Module with basic start/stop.
+- [x] Unified Actions (Delete/Properties work everywhere).
+
+Phase 3: Refinement & Context (Next)
+- [ ] Context Trigger: Selecting a project folder in Files filters Docker/System views.
+- [ ] Git Integration: Status indicators in File view.
+- [ ] Advanced Docker: Inspect modal (currently placeholder), Logs view.
+- [ ] Advanced System: Kill process implementation (currently placeholder).
+- [ ] File Operations: Copy/Paste support.
+
+7. File Structure
 src/
-├── main.rs           # Entry point, event loop
-├── app.rs            # State holding
-├── event.rs          # Keyboard/Tick event handling
-├── config.rs         # TOML parsing
-├── license.rs        # Key validation logic
+├── main.rs           # Entry point, event loop, input handling
+├── app.rs            # State definitions (App, AppMode, States)
+├── event.rs          # (Deprecated/Merged into main)
+├── config.rs         # Configuration logic
+├── license.rs        # License verification
 ├── ui/
-│   ├── mod.rs        # Main UI rendering
-│   ├── layout.rs     # Tiling logic
-│   └── theme.rs      # Colors (Dracon branding)
+│   ├── mod.rs        # Main drawing logic (Tabs, Sidebar, Modals)
+│   ├── layout.rs     # (Deprecated/Merged)
+│   └── theme.rs      # Color definitions
 └── modules/
-    ├── files.rs      # File Manager logic
-    ├── docker.rs     # Bollard integration
-    └── system.rs     # Sysinfo logic
-🤖 Prompt for the AI:
-"Take this Master Plan. I want to start with Phase 1. Generate the cargo.toml dependencies and the main.rs and app.rs boilerplate that sets up the Ratatui loop, the 3-pane layout, and the App struct with placeholders for the three modules."
+    ├── files.rs      # File system operations
+    ├── docker.rs     # Docker API operations
+    └── system.rs     # System/Process polling
