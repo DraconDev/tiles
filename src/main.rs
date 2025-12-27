@@ -112,7 +112,13 @@ async fn run_app<B: Backend>(
                                 if mouse.column < 11 { app.current_view = CurrentView::Files; }
                                 else if mouse.column < 22 { app.current_view = CurrentView::System; }
                                 else if mouse.column < 33 { app.current_view = CurrentView::Docker; }
-                            } else if mouse.row < rows.saturating_sub(1) {
+                            } else if mouse.row == rows.saturating_sub(1) {
+                                if mouse.column < 13 {
+                                    app.mode = AppMode::CommandPalette;
+                                    app.input.clear();
+                                    update_commands(app);
+                                }
+                            } else {
                                 let sidebar_width = (cols as f32 * 0.2) as u16;
                                 if mouse.column < sidebar_width {
                                     app.sidebar_focus = true;
@@ -147,27 +153,21 @@ async fn run_app<B: Backend>(
                                 }
                             }
                         }
-                        MouseEventKind::ScrollUp => { 
+                        MouseEventKind::ScrollUp => {
                             if app.current_view == CurrentView::Files {
-                                if let Some(file_state) = app.current_file_state_mut() {
-                                    let new_offset = file_state.table_state.offset().saturating_sub(3);
-                                    file_state.table_state.set_offset(new_offset);
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    let new_offset = fs.table_state.offset().saturating_sub(3);
+                                    *fs.table_state.offset_mut() = new_offset;
                                 }
-                            } else {
-                                app.move_up(); 
-                                update_docker_filter(app); 
-                            }
+                            } else { app.move_up(); update_docker_filter(app); }
                         }
-                        MouseEventKind::ScrollDown => { 
+                        MouseEventKind::ScrollDown => {
                             if app.current_view == CurrentView::Files {
-                                if let Some(file_state) = app.current_file_state_mut() {
-                                    let new_offset = file_state.table_state.offset().saturating_add(3);
-                                    file_state.table_state.set_offset(new_offset);
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    let new_offset = fs.table_state.offset().saturating_add(3);
+                                    *fs.table_state.offset_mut() = new_offset;
                                 }
-                            } else {
-                                app.move_down(); 
-                                update_docker_filter(app); 
-                            }
+                            } else { app.move_down(); update_docker_filter(app); }
                         }
                         _ => {}
                     }
@@ -254,6 +254,22 @@ async fn run_app<B: Backend>(
                             }
                         }
                         app.mode = AppMode::Normal;
+                    } else if matches!(app.mode, AppMode::CommandPalette) {
+                        match key.code {
+                            KeyCode::Esc => app.mode = AppMode::Normal,
+                            KeyCode::Char(c) => { app.input.push(c); update_commands(app); }
+                            KeyCode::Backspace => { app.input.pop(); update_commands(app); }
+                            KeyCode::Up => { if app.command_index > 0 { app.command_index -= 1; } }
+                            KeyCode::Down => { if app.command_index < app.filtered_commands.len().saturating_sub(1) { app.command_index += 1; } }
+                            KeyCode::Enter => {
+                                if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() {
+                                    execute_command(cmd.action, app, &docker_module);
+                                }
+                                app.mode = AppMode::Normal;
+                                app.input.clear();
+                            }
+                            _ => {}
+                        }
                     } else {
                         match key.code {
                             KeyCode::Char('q') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => app.running = false,
@@ -277,10 +293,11 @@ async fn run_app<B: Backend>(
                             KeyCode::Char('t') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                                 if let Some(curr) = app.current_file_state() {
                                     let mut new_fs = crate::app::FileState {
-                                                                                                                current_path: curr.current_path.clone(),
-                                                                                                                selected_index: 0,
-                                                                                                                table_state: ratatui::widgets::TableState::default(),
-                                                                                                                files: Vec::new(),                                        show_hidden: curr.show_hidden,
+                                        current_path: curr.current_path.clone(),
+                                        selected_index: 0,
+                                        table_state: ratatui::widgets::TableState::default(),
+                                        files: Vec::new(),
+                                        show_hidden: curr.show_hidden,
                                         git_status: std::collections::HashMap::new(),
                                         clipboard: None,
                                         search_filter: String::new(),
@@ -392,6 +409,24 @@ async fn run_app<B: Backend>(
         }
     }
     Ok(())
+}
+
+fn update_commands(app: &mut App) {
+    let mut commands = vec![
+        CommandItem { label: "Quit".to_string(), action: crate::app::CommandAction::Quit },
+        CommandItem { label: "Toggle Zoom".to_string(), action: crate::app::CommandAction::ToggleZoom },
+        CommandItem { label: "View: Files".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Files) },
+        CommandItem { label: "View: Docker".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Docker) },
+        CommandItem { label: "View: System".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::System) },
+    ];
+    for container in &app.docker_state.containers {
+         let name = container.names.as_ref().map(|n| n.first().map(|s| s.as_str()).unwrap_or("")).unwrap_or("").trim_start_matches('/');
+         if name.is_empty() { continue; }
+         commands.push(CommandItem { label: format!("Start Container: {}", name), action: crate::app::CommandAction::StartContainer(name.to_string()) });
+         commands.push(CommandItem { label: format!("Stop Container: {}", name), action: crate::app::CommandAction::StopContainer(name.to_string()) });
+    }
+    app.filtered_commands = commands.into_iter().filter(|cmd| cmd.label.to_lowercase().contains(&app.input.to_lowercase())).collect();
+    app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
 }
 
 fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_module: &Option<Arc<DockerModule>>) {
