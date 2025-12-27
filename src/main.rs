@@ -182,6 +182,26 @@ async fn run_app<B: Backend>(
                     continue;
                 }
 
+                if matches!(app.mode, AppMode::ColumnSetup) {
+                    if key.code == KeyCode::Esc || key.code == KeyCode::Enter {
+                        app.mode = AppMode::Normal;
+                        continue;
+                    }
+                    
+                    if let Some(file_state) = app.current_file_state_mut() {
+                        match key.code {
+                            KeyCode::Char('n') => toggle_column(file_state, crate::app::FileColumn::Name),
+                            KeyCode::Char('s') => toggle_column(file_state, crate::app::FileColumn::Size),
+                            KeyCode::Char('m') => toggle_column(file_state, crate::app::FileColumn::Modified),
+                            KeyCode::Char('c') => toggle_column(file_state, crate::app::FileColumn::Created),
+                            KeyCode::Char('p') => toggle_column(file_state, crate::app::FileColumn::Permissions),
+                            KeyCode::Char('e') => toggle_column(file_state, crate::app::FileColumn::Extension),
+                            _ => {}
+                        }
+                    }
+                    continue;
+                }
+
                 if matches!(app.mode, AppMode::Delete) {
                     match key.code {
                         KeyCode::Char('y') | KeyCode::Enter => {
