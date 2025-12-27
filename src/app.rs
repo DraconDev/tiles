@@ -6,7 +6,7 @@ pub enum AppMode {
     Zoomed,
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum TileType {
     Files,
     Docker,
