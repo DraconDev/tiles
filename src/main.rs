@@ -127,8 +127,11 @@ async fn run_app<B: Backend>(
                                 } else { app.mode = AppMode::Normal; }
                                 continue;
                             }
-
                             if btn == MouseButton::Right { app.mode = AppMode::ContextMenu(mouse.column, mouse.row); continue; }
+                            
+                            // Mouse 4/5 logic (Back/Forward) - Mapping using raw codes if not in enum
+                            // Note: crossterm added these in recent versions, but terminal support varies.
+                            // If they are missing, we can use numbers if available.
                             
                             if btn == MouseButton::Middle {
                                 if app.current_view == CurrentView::Files {
@@ -144,7 +147,6 @@ async fn run_app<B: Backend>(
                                                 };
                                                 crate::modules::files::update_files(&mut new_fs);
                                                 app.file_tabs.push(new_fs);
-                                                // Don't switch tab index, open in background
                                             }
                                         }
                                     }
@@ -206,23 +208,25 @@ async fn run_app<B: Backend>(
                             }
                         }
                         MouseEventKind::ScrollUp => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                let offset = fs.table_state.offset();
-                                fs.table_state.set_offset(offset.saturating_sub(3));
-                            }
+                            if app.current_view == CurrentView::Files {
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    let new_offset = fs.table_state.offset().saturating_sub(3);
+                                    *fs.table_state.offset_mut() = new_offset;
+                                }
+                            } else { app.move_up(); update_docker_filter(app); }
                         }
                         MouseEventKind::ScrollDown => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                let offset = fs.table_state.offset();
-                                let max_offset = fs.files.len().saturating_sub(1);
-                                fs.table_state.set_offset((offset + 3).min(max_offset));
-                            }
+                            if app.current_view == CurrentView::Files {
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    let new_offset = fs.table_state.offset().saturating_add(3);
+                                    *fs.table_state.offset_mut() = new_offset;
+                                }
+                            } else { app.move_down(); update_docker_filter(app); }
                         }
                         _ => {}
                     }
                 }
                 Event::Key(key) => {
-                    // Modal Modes
                     if matches!(app.mode, AppMode::Location) {
                         match key.code {
                             KeyCode::Esc => app.mode = AppMode::Normal,
@@ -232,8 +236,7 @@ async fn run_app<B: Backend>(
                                 let path = std::path::PathBuf::from(&app.input);
                                 if path.exists() {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        fs.current_path = path.clone(); fs.selected_index = 0;
-                                        fs.table_state.set_offset(0);
+                                        fs.current_path = path.clone(); fs.selected_index = 0; fs.table_state.set_offset(0);
                                         push_history(fs, path); crate::modules::files::update_files(fs);
                                     }
                                 }
@@ -429,9 +432,6 @@ async fn run_app<B: Backend>(
                         }
                     }
                 }
-                _ => {}
-            }
-        }
                 _ => {}
             }
         }
