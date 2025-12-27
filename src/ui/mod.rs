@@ -129,10 +129,34 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    match app.current_view {
-        CurrentView::Files => draw_file_view(f, inner, app),
-        CurrentView::System => draw_system_view(f, inner, app),
-        CurrentView::Docker => draw_docker_view(f, inner, app),
+    if app.current_view == CurrentView::Files {
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3), // Path Bar
+                Constraint::Min(0),    // File List
+            ])
+            .split(inner);
+
+        let path_text = if matches!(app.mode, AppMode::Location) {
+            format!("Location: {}", app.input)
+        } else {
+            format!("Path: {}", app.file_state.current_path.display())
+        };
+
+        let path_bar = Paragraph::new(path_text)
+            .block(Block::default().borders(Borders::ALL).border_style(
+                if matches!(app.mode, AppMode::Location) { Style::default().fg(Color::Yellow) } else { Style::default() }
+            ));
+        f.render_widget(path_bar, chunks[0]);
+
+        draw_file_view(f, chunks[1], app);
+    } else {
+        match app.current_view {
+            CurrentView::System => draw_system_view(f, inner, app),
+            CurrentView::Docker => draw_docker_view(f, inner, app),
+            _ => {}
+        }
     }
 }
 
