@@ -16,6 +16,7 @@ mod event;
 mod config;
 mod license;
 
+use std::sync::Arc;
 use tokio::sync::mpsc;
 use crate::app::{App, AppMode};
 use crate::modules::docker::DockerModule;
@@ -36,9 +37,9 @@ async fn main() -> color_eyre::Result<()> {
 
     // Setup Docker channel
     let (tx, rx) = mpsc::channel(10);
-    let docker_module = DockerModule::new().ok();
+    let docker_module = DockerModule::new().ok().map(Arc::new);
 
-    if let Some(docker) = docker_module {
+    if let Some(docker) = docker_module.clone() {
         tokio::spawn(async move {
             loop {
                 if let Ok(containers) = docker.get_containers().await {
@@ -49,7 +50,7 @@ async fn main() -> color_eyre::Result<()> {
         });
     }
 
-    let res = run_app(&mut terminal, &mut app, rx).await;
+    let res = run_app(&mut terminal, &mut app, rx, docker_module).await;
 
     // Restore terminal
     disable_raw_mode()?;
