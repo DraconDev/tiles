@@ -404,14 +404,14 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let mut spans = Vec::new();
     
-    // Console Button
-    let console_style = if matches!(app.mode, AppMode::CommandPalette) {
-        Style::default().fg(Color::Black).bg(Color::Magenta).add_modifier(Modifier::BOLD)
+    // Console Shortcut
+    let console_key_style = if matches!(app.mode, AppMode::CommandPalette) {
+        Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)
     } else {
-        Style::default().fg(Color::Black).bg(Color::DarkGray)
+        Style::default().fg(Color::Yellow)
     };
-    spans.push(ratatui::text::Span::styled(" ^. Console ", console_style));
-    spans.push(ratatui::text::Span::raw(" "));
+    spans.push(ratatui::text::Span::styled("^.", console_key_style));
+    spans.push(ratatui::text::Span::raw(" Console | "));
 
     spans.push(ratatui::text::Span::styled("^H", Style::default().fg(Color::Yellow)));
     spans.push(ratatui::text::Span::raw(" Hidden | "));
