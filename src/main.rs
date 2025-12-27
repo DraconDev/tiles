@@ -247,17 +247,9 @@ async fn run_app<B: Backend>(
 
                 match key.code {
                     KeyCode::Char('q') => app.running = false,
-                    // View Switching Shortcuts
-                    KeyCode::Char('f') => app.current_view = CurrentView::Files,
-                    KeyCode::Char('p') => app.current_view = CurrentView::System,
-                    KeyCode::Char('d') => app.current_view = CurrentView::Docker,
-                    KeyCode::Char('c') => {
-                        app.mode = AppMode::CommandPalette;
-                        app.input.clear();
-                        update_commands(app);
-                    }
                     
-                    KeyCode::Char('P') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => { // Shift+p or just Ctrl+p (usually captures lowercase)
+                    // Ctrl+Key Modifiers (Must come before single chars)
+                    KeyCode::Char('P') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                         app.mode = AppMode::CommandPalette;
                         app.input.clear();
                         update_commands(app);
@@ -268,6 +260,31 @@ async fn run_app<B: Backend>(
                         update_commands(app);
                     }
                     KeyCode::Char('N') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                        if app.current_view == CurrentView::Files {
+                            app.mode = AppMode::NewFolder;
+                            app.input = "New Folder".to_string();
+                        }
+                    }
+                    KeyCode::Char('l') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                         if app.current_view == CurrentView::Files {
+                            app.mode = AppMode::Location;
+                            app.input = app.file_state.current_path.to_string_lossy().to_string();
+                        }
+                    }
+                    KeyCode::Char('h') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                        app.file_state.show_hidden = !app.file_state.show_hidden;
+                        crate::modules::files::update_files(&mut app.file_state);
+                    }
+
+                    // View Switching Shortcuts
+                    KeyCode::Char('f') => app.current_view = CurrentView::Files,
+                    KeyCode::Char('p') => app.current_view = CurrentView::System,
+                    KeyCode::Char('d') => app.current_view = CurrentView::Docker,
+                    KeyCode::Char('c') => {
+                        app.mode = AppMode::CommandPalette;
+                        app.input.clear();
+                        update_commands(app);
+                    }
                         if app.current_view == CurrentView::Files {
                             app.mode = AppMode::NewFolder;
                             app.input = "New Folder".to_string();
