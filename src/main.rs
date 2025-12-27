@@ -348,10 +348,10 @@ use crossterm::event::MouseEventKind;
                         }
                         _ => {}
                     }
-                    continue;
                 }
-
-                match key.code {
+                _ => {}
+            }
+        }
                     KeyCode::Char('q') => app.running = false,
                     
                     // Ctrl+Key Modifiers (Must come before single chars)
