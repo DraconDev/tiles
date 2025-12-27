@@ -108,3 +108,5 @@ is there a way to use it with ssh in a way we dont have to install on the target
  interesting your solution for new tab, albeit files keeps it top, maybe we should too? also we are missing descriptions for columns,
   icons, and we want to see the default columbs in files, like size, permissions, modifilied and created, least afaik those are default but
   we should be able to customize too
+
+can we add mouse support to the file manager? Not intense but it would be nice
