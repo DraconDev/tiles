@@ -93,4 +93,4 @@ src/
     └── system.rs     # Sysinfo diagnostics
 
 
-i wonder if we can style a bit and make the lef
+i wonder if we can style a bit and make the left sidebar look a little lighter
