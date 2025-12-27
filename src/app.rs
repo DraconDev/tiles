@@ -42,6 +42,7 @@ pub struct FileState {
 
 pub struct DockerState {
     pub containers: Vec<String>,
+    pub selected_index: usize,
 }
 
 pub struct SystemState {
@@ -76,6 +77,7 @@ impl App {
             file_state,
             docker_state: DockerState {
                 containers: Vec::new(),
+                selected_index: 0,
             },
             system_state,
             system_module,
