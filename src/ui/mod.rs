@@ -176,11 +176,24 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
 fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
     let items: Vec<ListItem> = app.file_state.files.iter().enumerate().map(|(i, path)| {
         let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
-        let style = if path.is_dir() {
+        let mut display_name = name.to_string();
+
+        let mut style = if path.is_dir() {
             Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)
         } else {
             Style::default()
         };
+        
+        if let Some(status) = app.file_state.git_status.get(path) {
+            display_name.push_str(&format!(" [{}]", status));
+            match status.as_str() {
+                "M" | "MM" => style = style.fg(Color::Yellow),
+                "A" | "AM" => style = style.fg(Color::Green),
+                "??" => style = style.fg(Color::DarkGray),
+                "D" => style = style.fg(Color::Red),
+                _ => {}
+            }
+        }
         
         let prefix = if i == app.file_state.selected_index && !app.sidebar_focus {
             "> "
@@ -188,7 +201,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
             "  "
         };
 
-        ListItem::new(format!("{}{}", prefix, name)).style(style)
+        ListItem::new(format!("{}{}", prefix, display_name)).style(style)
     }).collect();
 
     let list = List::new(items);
