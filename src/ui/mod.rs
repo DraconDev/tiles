@@ -281,9 +281,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
             }
         }).collect();
 
-        let mut state = TableState::default();
-        state.select(Some(file_state.selected_index));
-        state.set_offset(file_state.scroll_offset);
+        let mut state = file_state.table_state.clone();
 
         let table = Table::new(rows, constraints)
             .header(header)
