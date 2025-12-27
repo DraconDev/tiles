@@ -189,21 +189,22 @@ async fn run_app<B: Backend>(
                                 }
                                 CurrentView::System => {
                                      // Kill process logic
-                                     if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) {
+                                     if let Some(_p) = app.system_state.processes.get(app.system_state.selected_process_index) {
                                          // In real app, we'd use kill(pid)
                                          // For now, placeholder
-                                         // app.system_module.kill_process(p.pid);
+                                         // app.system_module.kill_process(_p.pid);
                                      }
                                 }
                                 CurrentView::Docker => {
                                      if let Some(container) = app.docker_state.containers.get(app.docker_state.selected_index) {
                                          let name = container.names.as_ref().map(|n| n.first().map(|s| s.as_str()).unwrap_or("")).unwrap_or("").trim_start_matches('/').to_string();
                                          if !name.is_empty() {
-                                             if let Some(docker) = &docker_module {
-                                                 let docker = docker.clone();
+                                             if let Some(_docker) = &docker_module {
+                                                 let _docker = _docker.clone();
+                                                 // let _name = name.clone();
                                                  tokio::spawn(async move {
                                                      // remove container with force=true?
-                                                     // docker.remove_container(&name, ...).await
+                                                     // _docker.remove_container(&_name, ...).await
                                                  });
                                              }
                                          }
