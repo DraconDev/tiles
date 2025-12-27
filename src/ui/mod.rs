@@ -51,10 +51,39 @@ fn draw_main(f: &mut Frame, area: Rect, app: &mut App) {
     draw_tile(f, main_chunks[0], " Files ", app.active_tile == TileType::Files);
     
     // System Tile
-    draw_tile(f, right_chunks[0], " System ", app.active_tile == TileType::System);
+    draw_system_tile(f, right_chunks[0], app);
 
     // Docker Tile
     draw_tile(f, right_chunks[1], " Docker ", app.active_tile == TileType::Docker);
+}
+
+fn draw_system_tile(f: &mut Frame, area: Rect, app: &App) {
+    let is_active = app.active_tile == TileType::System;
+    let border_color = if is_active {
+        Color::Cyan
+    } else {
+        Color::White
+    };
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(" System ")
+        .border_style(Style::default().fg(border_color));
+
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let text = vec![
+        format!("CPU: {:>5.1}%", app.system_state.cpu_usage),
+        format!("MEM: {:>5.1} / {:.1} GB ({:.1}%)", 
+            app.system_state.mem_usage, 
+            app.system_state.total_mem,
+            (app.system_state.mem_usage / app.system_state.total_mem) * 100.0
+        ),
+    ];
+
+    let paragraph = Paragraph::new(text.join("\n"));
+    f.render_widget(paragraph, inner);
 }
 
 fn draw_tile(f: &mut Frame, area: Rect, title: &str, is_active: bool) {
