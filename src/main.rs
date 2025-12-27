@@ -143,7 +143,7 @@ async fn run_app<B: Backend>(
                         update_docker_filter(app);
                     }
                     KeyCode::Char('s') => {
-                        if app.active_tile == crate::app::TileType::Docker {
+                        if app.current_view == crate::app::CurrentView::Docker {
                             if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
                                 if let Some(docker) = &docker_module {
                                     let docker = docker.clone();
