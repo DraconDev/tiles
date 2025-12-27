@@ -150,6 +150,24 @@ async fn run_app<B: Backend>(
                     continue;
                 }
 
+                if matches!(app.mode, AppMode::NewFolder) {
+                    match key.code {
+                        KeyCode::Esc => app.mode = AppMode::Normal,
+                        KeyCode::Char(c) => app.input.push(c),
+                        KeyCode::Backspace => { app.input.pop(); }
+                        KeyCode::Enter => {
+                            let mut path = app.file_state.current_path.clone();
+                            path.push(&app.input);
+                            if let Ok(_) = std::fs::create_dir_all(path) {
+                                crate::modules::files::update_files(&mut app.file_state);
+                            }
+                            app.mode = AppMode::Normal;
+                        }
+                        _ => {}
+                    }
+                    continue;
+                }
+
                 if matches!(app.mode, AppMode::CommandPalette) {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
