@@ -15,6 +15,16 @@ pub fn update_files(state: &mut FileState) {
                         .unwrap_or(false)
                 }
             })
+            .filter(|path| {
+                if state.search_filter.is_empty() {
+                    true
+                } else {
+                    path.file_name()
+                        .and_then(|n| n.to_str())
+                        .map(|s| s.to_lowercase().contains(&state.search_filter.to_lowercase()))
+                        .unwrap_or(false)
+                }
+            })
             .collect();
         state.files.sort_by(|a, b| {
             let a_is_dir = a.is_dir();
