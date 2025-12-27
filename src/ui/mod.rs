@@ -75,7 +75,7 @@ fn draw_tile(f: &mut Frame, area: Rect, title: &str, is_active: bool) {
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let text = match &app.license {
         LicenseStatus::FreeMode => {
-            " Tiles Free Edition (<5 employees). Support us at dracon.uk "
+            " Tiles Free Edition (<5 employees). Support us at dracon.uk ".to_string()
         }
         LicenseStatus::Commercial(company) => {
             format!(" Licensed to {} ", company)
