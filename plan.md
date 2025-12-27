@@ -1,102 +1,79 @@
 🏗️ MASTER PLAN: PROJECT TILES
-Version: 1.3 (Nautilus-Perfect: Pure Arrow & Mouse Architecture)
+Version: 2.0 (The Universal OS Command Center - Max Ambition)
 Legal: Dracon License v1.0 (Proprietary / Source Available)
 Stack: Rust, Ratatui, Tokio, Bollard, Sysinfo, Chrono.
 
 1. 🌍 The High-Level Vision
-Tiles is a "Terminal Workspace Environment" providing a 1-1 terminal recreation of Ubuntu's "Files" (Nautilus). It integrates Docker and System monitoring as native views. It eschews Vim-style complexity for a user-friendly, mouse-aware interface driven by standard Linux shortcuts and arrow-key navigation.
-Business Goal: To offer a professional, unified dev-environment that eliminates context switching between terminal and GUI tools.
+Tiles is the "VLC of Terminal Tools"—a single, agentless binary that unifies File Management, System Operations, and Container Orchestration into a high-density, mouse-driven cockpit. It replaces the fragmented CLI experience with a professional, interactive environment that works locally and over SSH with zero installation on the target.
+
+Business Goal: Standardize team workflows and provide secure, agentless remote management for enterprises (5+ employees).
 
 2. 🏛️ Technical Architecture (Rust)
 A. The Core Event Loop (main.rs)
-- Dual-Threaded Async: Ratatui UI + Tokio background runtime.
-- Input Priority: Modifier-based shortcuts (Ctrl+X) are processed before single-character inputs to support "Type-to-Search" without conflict.
-- No Vim Keys: Standalone navigation is strictly handled by Arrow Keys to keep the character space open for instant searching.
-- Mouse Integration: Direct hit-testing for Tabs, Sidebar, and Lists.
+- Dual-Threaded Async: Synchronous Ratatui UI thread + Asynchronous Tokio background runtime.
+- Input Philosophy: "Just Type" search (Space is a search character). Modifier-based shortcuts (Ctrl/Alt) for global actions.
+- Spatial Navigation: Left/Right arrows jump between "Logical Zones" (Sidebar ↔ Main Pane ↔ Split Pane).
+- Mouse-First: SGR 1006 protocol support for Double-click activation, Right-click context menus, and Drag-and-Drop.
 
 B. State Management (app.rs)
-- Tabbed Files: `file_tabs: Vec<FileState>` allows multiple concurrent directory views.
-- Unified Modes: `AppMode` handles modal states like Rename, New Folder, and Column Setup.
+- Relational Engine: Links between Files, Processes, and Containers (e.g., jump from Process -> Docker Container -> Source File).
+- Persona Toggles: "Focus Mode" (Files only) vs "Ops Mode" (Full Dashboard) toggleable via config or UI.
 
-3. 🧩 The Modules (The "Views")
-View 1: The File Manager (Files) [^F]
-- Layout: Top-aligned tabs, Left sidebar (Places), Main table content.
-- Table Columns: Customizable visibility (Name, Size, Modified, Created, Permissions, Ext).
-- Features: 
-    - Type-to-Search: Filters list instantly as you type.
-    - Icons: `📁` / `📄` markers.
-    - Stars: `Ctrl + B` to bookmark/star items.
-    - Git: Porcelain status indicators ([M], [A], [??]).
-    - Clipboard: `Ctrl + C/X/V` (Copy/Cut/Paste) with recursive support.
+3. 🧩 The Three Pillars (The Trinity)
+Pillar I: The Virtual File Workspace (Files)
+- 1:1 Nautilus Replacement: High-density tables, icons, and safe deletions (Global Trash Bin).
+- Agentless SFTP: Remote servers appear as sidebar bookmarks; drag-and-drop file transfers via SSH.
+- Smart Create: `n` shortcut creates full paths and pre-fills templates (e.g., `#!/bin/bash` for `.sh`).
 
-View 2: The System Monitor (Processes) [^P]
-- Visuals: Live Gauges for CPU/RAM/Disk.
-- Interaction: Scrollable/Selectable Top 10 Processes list.
-- Action: `Delete` key prompts to kill selected process.
+Pillar II: The System Cockpit (Processes)
+- Actionable Observer: Stable process tree. Click/Right-click to Kill, Inspect Ports, or see Open Files.
+- 15-Minute Buffer: Time-traveling resource graphs to scrub back and see historical spikes.
+- Network Mapping: App-to-IP mapping with human-readable geolocation instead of raw scrolling text.
 
-View 3: The Docker Manager (Docker) [^D]
-- Visuals: Detailed container table (ID, Image, State, Status).
-- Controls: `s` to Start, `x` to Stop.
-- Action: `Delete` key prompts to remove container.
+Pillar III: The Container Orchestrator (Docker)
+- Visual Topology: Dependency maps based on Compose projects and Traefik/Nginx routing labels.
+- Magic Tunnels: One-click port forwarding from remote containers to `localhost`.
+- Log Streamer: JSON-aware, searchable log tailing with auto-formatting.
 
-4. 🎨 UX & Interaction Design
-The Layout System
-- Header: Tab Bar showing main views and open file tabs.
-- Main: Sidebar (20%) | Content (80%).
-- Footer: Console Shortcut (`^.`) and standard action hints + Live Storage metrics.
+4. 🛡️ Safety & Operations
+- Production "Red Zone": Pulsing red UI for production connections; destructive actions require typed confirmation.
+- Safe Edit: Press `e` on remote/container files to edit locally in VS Code/Vim with auto-sync back to target.
+- Archive VFS: Browse `.zip` and `.tar.gz` as virtual folders without manual extraction.
 
-Shortcut Suite (Pure Nautilus)
-- `Ctrl + T`: New File Tab.
-- `Ctrl + W`: Close current Tab/App.
-- `Ctrl + Tab`: Next Tab.
-- `Ctrl + L`: Location/Path entry.
-- `Ctrl + H`: Toggle Hidden Files.
-- `Ctrl + Shift + N`: New Folder.
-- `Alt + Enter`: Properties Modal.
-- `Alt + C`: Column Setup Modal.
-- `Alt + Up`: Navigate to Parent.
-- `Delete`: Delete/Kill/Remove action.
-- `Esc`: Clear search / Exit modal.
+5. 💼 Commercial Logic (Dracon License v1.0)
+- Model: Free for Individuals; Paid for Teams (5+ employees).
+- Trigger: Companies pay for standardized team configs and agentless security compliance.
+- Enforcement: "Hero Badge" UI indicator; cryptographic key verification via Ed25519.
 
-5. 💼 Commercial Logic Implementation
-- License Key: `~/.config/tiles/license.key` verification.
-- UI: Unobtrusive footer branding based on status.
-
-6. 🚀 Development Roadmap
+6. 🚀 Development Roadmap (Updated)
 Phase 1: Nautilus Foundations (Completed)
-- [x] Ratatui setup with Top-Tab layout.
-- [x] Full Nautilus hotkey suite.
-- [x] Type-to-Search & Icons.
-- [x] Multi-tab file management.
+- [x] Ratatui loop with Tab/Sidebar layout.
+- [x] Standard file management (Sort, Icons, Clipboard).
+- [x] Pure Arrow & Mouse navigation.
 
-Phase 2: View Unification & Mouse (Completed)
-- [x] Interactive Mouse support (Click tabs/sidebar/lists + Scroll).
-- [x] Unified "Delete" and "Properties" modals.
-- [x] Customizable Column setup.
-- [x] Git & Star indicators.
+Phase 2: The Agentless Leap (Next)
+- [ ] SSH Connection Manager: Sidebar bookmarks for remote hosts.
+- [ ] Agentless SFTP: Local/Remote split view with drag-drop.
+- [ ] Docker SSH Tunneling: Managing remote containers via standard I/O streams.
 
-Phase 3: Remote & Advanced Ops (Next)
-- [ ] SSH Integration: Mount remote systems as virtual folders in the Files view.
-- [ ] Drag & Drop: Exploring terminal mouse-drag events for file moving.
-- [ ] Split View: Toggle vertical split for dual-pane file management.
-- [ ] Docker Logs: Dedicated log stream view.
+Phase 3: The Relational Engine
+- [ ] Atomic Combos: Linking Process -> Container -> File.
+- [ ] The 15-Minute History Buffer for system metrics.
+- [ ] Network Tab: App-to-IP mapping.
+
+Phase 4: Safety & Polish
+- [ ] Production "Red Zone" Mode.
+- [ ] Global Trash Bin with Undo.
+- [ ] "Just Type" Search integration across all modules.
 
 7. File Structure
 src/
-├── main.rs           # Event loop, Input priority, Mouse hit-testing
-├── app.rs            # State (Tabs, Modes, Columns)
+├── main.rs           # Dual-threaded loop, Spatial Input, SGR Mouse
+├── app.rs            # Relational State, Personas, License Status
 ├── ui/
-│   └── mod.rs        # Tabular rendering & Modal logic
+│   ├── mod.rs        # Layout, Modals, Breadcrumbs
+│   └── theme.rs      # High-density, high-contrast engineering styles
 └── modules/
-    ├── files.rs      # FS ops, Git, Recursive copy
-    ├── docker.rs     # Bollard connectivity
-    └── system.rs     # Sysinfo diagnostics
-
-
-i wonder if we can style a bit and make the left sidebar look a little lighter
-
-new file option with right click on empty space in files view
-
-we can even have a git view
-
-ctrl shift f search everywhere
+    ├── files.rs      # Local/Remote VFS, SFTP
+    ├── docker.rs     # Bollard + SSH tunneling
+    └── system.rs     # Sysinfo + SSH text parsing
