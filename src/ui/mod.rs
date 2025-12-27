@@ -135,7 +135,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     }
 }
 
-fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
+fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
     let block = Block::default()
         .borders(Borders::ALL)
         .title(format!(" {:?} ", app.current_view))
@@ -145,37 +145,39 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(block, area);
 
     if app.current_view == CurrentView::Files {
-        if let Some(file_state) = app.current_file_state() {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(3), // Path Bar
-                    Constraint::Min(0),    // File List
-                ])
-                .split(inner);
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3), // Path Bar
+                Constraint::Min(0),    // File List
+            ])
+            .split(inner);
 
-            let path_text = if matches!(app.mode, AppMode::Location) {
-                format!("Location: {}", app.input)
-            } else if !file_state.search_filter.is_empty() {
-                format!("Search: {} (Esc to clear)", file_state.search_filter)
+        let path_text = if matches!(app.mode, AppMode::Location) {
+            format!("Location: {}", app.input)
+        } else if let Some(fs) = app.current_file_state() {
+            if !fs.search_filter.is_empty() {
+                format!("Search: {} (Esc to clear)", fs.search_filter)
             } else {
-                format!("Path: {}", file_state.current_path.display())
-            };
+                format!("Path: {}", fs.current_path.display())
+            }
+        } else {
+            String::new()
+        };
 
-            let path_bar = Paragraph::new(path_text)
-                .block(Block::default().borders(Borders::ALL).border_style(
-                    if matches!(app.mode, AppMode::Location) { 
-                        Style::default().fg(Color::Yellow) 
-                    } else if !file_state.search_filter.is_empty() {
-                        Style::default().fg(Color::Magenta)
-                    } else { 
-                        Style::default() 
-                    }
-                ));
-            f.render_widget(path_bar, chunks[0]);
+        let path_bar = Paragraph::new(path_text)
+            .block(Block::default().borders(Borders::ALL).border_style(
+                if matches!(app.mode, AppMode::Location) { 
+                    Style::default().fg(Color::Yellow) 
+                } else if app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) {
+                    Style::default().fg(Color::Magenta)
+                } else { 
+                    Style::default() 
+                }
+            ));
+        f.render_widget(path_bar, chunks[0]);
 
-            draw_file_view(f, chunks[1], app);
-        }
+        draw_file_view(f, chunks[1], app);
     } else {
         match app.current_view {
             CurrentView::System => draw_system_view(f, inner, app),
@@ -185,12 +187,12 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
     }
 }
 
+use std::{os::unix::fs::PermissionsExt, time::SystemTime};
 use ratatui::widgets::{Table, Row, Cell, TableState};
 use crate::app::FileColumn;
 
-fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
-    if let Some(file_state) = app.current_file_state() {
-        // Prepare header
+fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
+    if let Some(file_state) = app.current_file_state_mut() {
         let header_cells = file_state.columns.iter().map(|c| {
             let name = match c {
                 FileColumn::Name => "Name",
@@ -204,7 +206,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
         });
         let header = Row::new(header_cells).height(1).bottom_margin(1);
 
-        // Prepare rows
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let metadata = std::fs::metadata(path).ok();
             
@@ -243,11 +244,11 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
                         Cell::from(format_size(size))
                     },
                     FileColumn::Modified => {
-                        let time = metadata.as_ref().and_then(|m| m.modified().ok()).unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                        let time = metadata.as_ref().and_then(|m| m.modified().ok()).unwrap_or(SystemTime::UNIX_EPOCH);
                         Cell::from(format_time(time))
                     },
                     FileColumn::Created => {
-                        let time = metadata.as_ref().and_then(|m| m.created().ok()).unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                        let time = metadata.as_ref().and_then(|m| m.created().ok()).unwrap_or(SystemTime::UNIX_EPOCH);
                         Cell::from(format_time(time))
                     },
                     FileColumn::Permissions => {
@@ -281,13 +282,11 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
             }
         }).collect();
 
-        let mut state = file_state.table_state.clone();
-
         let table = Table::new(rows, constraints)
             .header(header)
             .block(Block::default().borders(Borders::NONE));
             
-        f.render_stateful_widget(table, area, &mut state);
+        f.render_stateful_widget(table, area, &mut file_state.table_state);
     }
 }
 
@@ -389,8 +388,14 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let mut spans = Vec::new();
     
-    spans.push(ratatui::text::Span::styled("^Q", Style::default().fg(Color::Yellow)));
-    spans.push(ratatui::text::Span::raw(" Quit | "));
+    // Console Shortcut
+    let console_key_style = if matches!(app.mode, AppMode::CommandPalette) {
+        Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::Yellow)
+    };
+    spans.push(ratatui::text::Span::styled("^.", console_key_style));
+    spans.push(ratatui::text::Span::raw(" Console | "));
 
     spans.push(ratatui::text::Span::styled("^H", Style::default().fg(Color::Yellow)));
     spans.push(ratatui::text::Span::raw(" Hidden | "));
@@ -410,13 +415,50 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     if let Some(disk) = app.system_state.disks.first() {
         spans.push(ratatui::text::Span::raw(" | Storage: "));
         spans.push(ratatui::text::Span::styled(
-            format!("{:.1}/{:.1} GB", disk.total_space - disk.used_space, disk.total_space),
+            format!("{:.1}/{:.1} GB", disk.total_space - disk.available_space(), disk.total_space),
             Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
         ));
     }
 
     let footer = Paragraph::new(ratatui::text::Line::from(spans));
     f.render_widget(footer, area);
+}
+
+fn draw_command_palette(f: &mut Frame, app: &App) {
+    let area = centered_rect(60, 20, f.area());
+    f.render_widget(Clear, area);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(" Command Palette ")
+        .border_style(Style::default().fg(Color::Magenta));
+    
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Min(0),
+        ])
+        .split(inner);
+
+    let input = Paragraph::new(format!("> {}", app.input))
+        .style(Style::default().fg(Color::Yellow));
+    f.render_widget(input, chunks[0]);
+
+    let items: Vec<ListItem> = app.filtered_commands.iter().enumerate().map(|(i, cmd)| {
+        let style = if i == app.command_index {
+             Style::default().bg(Color::DarkGray).fg(Color::White)
+        } else {
+             Style::default()
+        };
+        ListItem::new(cmd.label.clone()).style(style)
+    }).collect();
+    
+    let list = List::new(items);
+    f.render_widget(list, chunks[1]);
 }
 
 fn draw_rename_modal(f: &mut Frame, app: &App) {
