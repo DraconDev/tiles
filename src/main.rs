@@ -90,7 +90,7 @@ async fn run_app<B: Backend>(
     let tick_rate = Duration::from_millis(250);
     let mut last_tick = Instant::now();
 
-    loop {
+    while app.running {
         terminal.draw(|f| ui::draw(f, app))?;
 
         // Handle async updates
@@ -230,7 +230,21 @@ async fn run_app<B: Backend>(
                         }
                     }
                     KeyCode::Enter => {
-                        if app.current_view == crate::app::CurrentView::Files {
+                        if app.sidebar_focus && app.current_view == CurrentView::Files {
+                            let path = match app.sidebar_index {
+                                0 => dirs::home_dir(),
+                                1 => dirs::download_dir(),
+                                2 => dirs::document_dir(),
+                                3 => dirs::picture_dir(),
+                                _ => None,
+                            };
+                            if let Some(p) = path {
+                                app.file_state.current_path = p;
+                                app.file_state.selected_index = 0;
+                                crate::modules::files::update_files(&mut app.file_state);
+                                app.sidebar_focus = false; // Jump to file list
+                            }
+                        } else if app.current_view == CurrentView::Files {
                             if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
                                 if path.is_dir() {
                                     app.file_state.current_path = path.clone();
