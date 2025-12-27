@@ -283,20 +283,26 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
 
 fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
     let items: Vec<ListItem> = app.docker_state.containers.iter()
-        .filter(|name| {
+        .filter_map(|c| {
+            let name = c.names.as_ref().and_then(|n| n.first()).map(|s| s.as_str()).unwrap_or("").trim_start_matches('/');
             if let Some(filter) = &app.docker_state.filter {
-                name.contains(filter)
-            } else {
-                true
+                if !name.contains(filter) { return None; }
             }
+            Some((name, c.state.as_deref().unwrap_or(""), c.status.as_deref().unwrap_or("")))
         })
-        .enumerate().map(|(i, name)| {
-        let prefix = if i == app.docker_state.selected_index && !app.sidebar_focus {
-            "> "
-        } else {
-            "  "
-        };
-        ListItem::new(format!("{}{}", prefix, name))
+        .enumerate().map(|(i, (name, state, status))| {
+            let style = match state {
+                "running" => Style::default().fg(Color::Green),
+                "exited" => Style::default().fg(Color::Red),
+                _ => Style::default(),
+            };
+            
+            let prefix = if i == app.docker_state.selected_index && !app.sidebar_focus {
+                "> "
+            } else {
+                "  "
+            };
+            ListItem::new(format!("{}{:<20} {:<10} {}", prefix, name, state, status)).style(style)
     }).collect();
 
     let list = List::new(items);
