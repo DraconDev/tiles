@@ -116,23 +116,11 @@ async fn run_app<B: Backend>(
                     let (cols, rows) = terminal.size().map(|s| (s.width, s.height)).unwrap_or((0, 0));
                     match mouse.kind {
                         MouseEventKind::Down(btn) => {
-                            // 1. Context Menu Handling
                             if let AppMode::ContextMenu(x, y) = app.mode {
                                 if mouse.column >= x && mouse.column < x + 15 {
                                     match mouse.row.saturating_sub(y) as usize {
-                                        0 => { // Rename
-                                            if let Some(name) = app.current_file_state().and_then(|fs| fs.files.get(fs.selected_index).map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string())) {
-                                                app.mode = AppMode::Rename; app.input = name;
-                                            }
-                                        }
-                                        1 => { // Star
-                                            if let Some(fs) = app.current_file_state_mut() {
-                                                if let Some(path) = fs.files.get(fs.selected_index).cloned() {
-                                                    if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); }
-                                                }
-                                            }
-                                            app.mode = AppMode::Normal;
-                                        }
+                                        0 => { if let Some(name) = app.current_file_state().and_then(|fs| fs.files.get(fs.selected_index).map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string())) { app.mode = AppMode::Rename; app.input = name; } }
+                                        1 => { if let Some(fs) = app.current_file_state_mut() { if let Some(path) = fs.files.get(fs.selected_index).cloned() { if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); } } } app.mode = AppMode::Normal; }
                                         2 => { app.mode = AppMode::Delete; }
                                         _ => { app.mode = AppMode::Normal; }
                                     }
@@ -142,16 +130,6 @@ async fn run_app<B: Backend>(
 
                             if btn == MouseButton::Right { app.mode = AppMode::ContextMenu(mouse.column, mouse.row); continue; }
                             
-                            // Back / Forward Buttons
-                            if btn == MouseButton::Back {
-                                if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); }
-                                continue;
-                            }
-                            if btn == MouseButton::Forward {
-                                if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); }
-                                continue;
-                            }
-
                             if btn == MouseButton::Middle {
                                 if app.current_view == CurrentView::Files {
                                     let index = fs_mouse_index(mouse.row, app);
@@ -166,7 +144,7 @@ async fn run_app<B: Backend>(
                                                 };
                                                 crate::modules::files::update_files(&mut new_fs);
                                                 app.file_tabs.push(new_fs);
-                                                // Nautilus usually stays on current tab
+                                                // Don't switch tab index, open in background
                                             }
                                         }
                                     }
