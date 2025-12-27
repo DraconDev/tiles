@@ -143,8 +143,31 @@ async fn run_app<B: Backend>(
                                 }
                             }
                         }
-                        MouseEventKind::ScrollUp => { app.move_up(); update_docker_filter(app); }
-                        MouseEventKind::ScrollDown => { app.move_down(); update_docker_filter(app); }
+                        MouseEventKind::ScrollUp => { 
+                            if app.current_view == CurrentView::Files {
+                                if let Some(file_state) = app.current_file_state_mut() {
+                                    file_state.scroll_offset = file_state.scroll_offset.saturating_sub(3);
+                                }
+                            } else {
+                                app.move_up(); 
+                                update_docker_filter(app); 
+                            }
+                        }
+                        MouseEventKind::ScrollDown => { 
+                            if app.current_view == CurrentView::Files {
+                                if let Some(file_state) = app.current_file_state_mut() {
+                                    file_state.scroll_offset = file_state.scroll_offset.saturating_add(3);
+                                    // Clamp to total files (roughly)
+                                    let max_scroll = file_state.files.len().saturating_sub(1);
+                                    if file_state.scroll_offset > max_scroll {
+                                        file_state.scroll_offset = max_scroll;
+                                    }
+                                }
+                            } else {
+                                app.move_down(); 
+                                update_docker_filter(app); 
+                            }
+                        }
                         _ => {}
                     }
                 }
