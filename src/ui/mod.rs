@@ -623,16 +623,16 @@ fn format_permissions(mode: u32) -> String {
     let user = (mode >> 6) & 0o7;
     let group = (mode >> 3) & 0o7;
     let other = mode & 0o7;
-    format!("rwx{}{}{}", user, group, other) // Simplified representation or rwxr-xr-x style?
-    // Let's do octal style or standard rwx
-    // Actually, std::os::unix::fs::PermissionsExt is needed for mode.
-    // For cross-platform ease, let's just show octal for now or rwx-like if simple.
-    // Let's stick to standard `ls -l` style if possible, but that requires more bitwise.
-    // Simple rwx:
+    
     let r = |b| if b & 4 != 0 { "r" } else { "-" };
     let w = |b| if b & 2 != 0 { "w" } else { "-" };
     let x = |b| if b & 1 != 0 { "x" } else { "-" };
-    format!("{}{}{}{}{}{}{}{}{}", r(user), w(user), x(user), r(group), w(group), x(group), r(other), w(other), x(other))
+    
+    format!("{}{}{}{}{}{}{}{}{}", 
+        r(user), w(user), x(user), 
+        r(group), w(group), x(group), 
+        r(other), w(other), x(other)
+    )
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
