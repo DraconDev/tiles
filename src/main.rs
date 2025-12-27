@@ -486,6 +486,7 @@ fn update_commands(app: &mut App) {
         CommandItem { label: "View: Files".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Files) },
         CommandItem { label: "View: Docker".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Docker) },
         CommandItem { label: "View: System".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::System) },
+        CommandItem { label: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
     ];
     for container in &app.docker_state.containers {
          let name = container.names.as_ref().map(|n| n.first().map(|s| s.as_str()).unwrap_or("")).unwrap_or("").trim_start_matches('/');
