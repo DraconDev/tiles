@@ -151,21 +151,6 @@ fn draw_docker_tile(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(list, area);
 }
 
-fn draw_tile(f: &mut Frame, area: Rect, title: &str, is_active: bool) {
-    let border_color = if is_active {
-        Color::Cyan
-    } else {
-        Color::White
-    };
-
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(title)
-        .border_style(Style::default().fg(border_color));
-    
-    f.render_widget(block, area);
-}
-
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let text = match &app.license {
         LicenseStatus::FreeMode => {
