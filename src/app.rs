@@ -6,7 +6,6 @@ use crate::license::check_license;
 #[derive(Debug)]
 pub enum AppMode {
     Normal,
-    Input,
     Zoomed,
     CommandPalette,
     Location, // Ctrl+L mode
