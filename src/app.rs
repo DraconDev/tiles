@@ -123,6 +123,7 @@ impl App {
             files: Vec::new(),
             show_hidden: false,
             git_status: HashMap::new(),
+            clipboard: None,
         };
         update_files(&mut file_state);
 
