@@ -40,8 +40,9 @@ pub struct DockerState {
 }
 
 pub struct SystemState {
-    pub cpu_usage: Vec<f32>,
-    pub mem_usage: f32,
+    pub cpu_usage: f32,
+    pub mem_usage: f64,
+    pub total_mem: f64,
 }
 
 impl App {
@@ -59,8 +60,9 @@ impl App {
                 containers: Vec::new(),
             },
             system_state: SystemState {
-                cpu_usage: Vec::new(),
+                cpu_usage: 0.0,
                 mem_usage: 0.0,
+                total_mem: 0.0,
             },
             license: LicenseStatus::FreeMode,
         }
