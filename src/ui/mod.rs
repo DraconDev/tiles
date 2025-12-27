@@ -77,13 +77,6 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
         spans.push(ratatui::text::Span::raw(" "));
     }
 
-    // Console Tab
-    let console_style = if matches!(app.mode, AppMode::CommandPalette) {
-        Style::default().fg(Color::Black).bg(Color::Magenta).add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(Color::DarkGray)
-    };
-    spans.push(ratatui::text::Span::styled(" ^. Console ", console_style));
     spans.push(ratatui::text::Span::raw(" | "));
 
     // File Tabs (if in Files view)

@@ -109,8 +109,6 @@ is there a way to use it with ssh in a way we dont have to install on the target
   icons, and we want to see the default columbs in files, like size, permissions, modifilied and created, least afaik those are default but
   we should be able to customize too
 
-can we add mouse support to the file manager? Not intense but it would be nice
-
 be able to toggle split view 
 
 commonly used key combos should be supported like ctrl + shift + n for new folder and ctrl + backspace for delete, no doubt many i am forgetting too
