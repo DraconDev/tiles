@@ -78,6 +78,7 @@ pub enum FileColumn {
 pub struct FileState {
     pub current_path: PathBuf,
     pub selected_index: usize,
+    pub scroll_offset: usize,
     pub files: Vec<PathBuf>,
     pub show_hidden: bool,
     pub git_status: HashMap<PathBuf, String>,
