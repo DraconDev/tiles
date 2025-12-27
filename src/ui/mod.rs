@@ -219,7 +219,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
             };
             
             if let Some(status) = file_state.git_status.get(path) {
-                display_name.push_str(&format!(" [{}]"), status));
+                display_name.push_str(&format!(" [{}]", status));
                 match status.as_str() {
                     "M" | "MM" => style = style.fg(Color::Yellow),
                     "A" | "AM" => style = style.fg(Color::Green),
