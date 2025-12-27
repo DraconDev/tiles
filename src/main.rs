@@ -66,6 +66,20 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Re
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
                     KeyCode::Tab => app.next_tile(),
+                    KeyCode::Char('j') | KeyCode::Down => {
+                        if app.active_tile == crate::app::TileType::Files {
+                            if app.file_state.selected_index < app.file_state.files.len().saturating_sub(1) {
+                                app.file_state.selected_index += 1;
+                            }
+                        }
+                    }
+                    KeyCode::Char('k') | KeyCode::Up => {
+                        if app.active_tile == crate::app::TileType::Files {
+                            if app.file_state.selected_index > 0 {
+                                app.file_state.selected_index -= 1;
+                            }
+                        }
+                    }
                     KeyCode::Enter => app.toggle_zoom(),
                     KeyCode::Esc => {
                         if matches!(app.mode, AppMode::Zoomed) {
