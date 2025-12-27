@@ -98,3 +98,5 @@ src/
     ├── files.rs      # FS ops + Git + Search filtering
     ├── docker.rs     # Bollard integration
     └── system.rs     # Sysinfo polling
+
+we want icons too, 
