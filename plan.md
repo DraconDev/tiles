@@ -99,4 +99,4 @@ src/
     ├── docker.rs     # Bollard integration
     └── system.rs     # Sysinfo polling
 
-we want icons too, bake it into the ui if we 
+we want icons too, bake it into the ui if that is best
