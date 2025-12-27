@@ -71,7 +71,8 @@ async fn main() -> color_eyre::Result<()> {
 async fn run_app<B: Backend>(
     terminal: &mut Terminal<B>, 
     app: &mut App, 
-    mut rx: mpsc::Receiver<Vec<String>>
+    mut rx: mpsc::Receiver<Vec<String>>,
+    docker_module: Option<Arc<DockerModule>>,
 ) -> io::Result<()> {
     let tick_rate = Duration::from_millis(250);
     let mut last_tick = Instant::now();
@@ -98,12 +99,46 @@ async fn run_app<B: Backend>(
                             if app.file_state.selected_index < app.file_state.files.len().saturating_sub(1) {
                                 app.file_state.selected_index += 1;
                             }
+                        } else if app.active_tile == crate::app::TileType::Docker {
+                            if app.docker_state.selected_index < app.docker_state.containers.len().saturating_sub(1) {
+                                app.docker_state.selected_index += 1;
+                            }
                         }
                     }
                     KeyCode::Char('k') | KeyCode::Up => {
                         if app.active_tile == crate::app::TileType::Files {
                             if app.file_state.selected_index > 0 {
                                 app.file_state.selected_index -= 1;
+                            }
+                        } else if app.active_tile == crate::app::TileType::Docker {
+                            if app.docker_state.selected_index > 0 {
+                                app.docker_state.selected_index -= 1;
+                            }
+                        }
+                    }
+                    KeyCode::Char('s') => {
+                        if app.active_tile == crate::app::TileType::Docker {
+                            if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
+                                if let Some(docker) = &docker_module {
+                                    let docker = docker.clone();
+                                    let name = name.clone();
+                                    tokio::spawn(async move {
+                                        let _ = docker.start_container(&name).await;
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    KeyCode::Char('x') => {
+                        if app.active_tile == crate::app::TileType::Docker {
+                            if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
+                                if let Some(docker) = &docker_module {
+                                    let docker = docker.clone();
+                                    let name = name.clone();
+                                    tokio::spawn(async move {
+                                        let _ = docker.stop_container(&name).await;
+                                    });
+                                }
                             }
                         }
                     }
