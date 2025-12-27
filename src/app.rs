@@ -133,10 +133,6 @@ impl App {
         };
         system_module.update(&mut system_state);
 
-use crate::app::FileColumn;
-
-// ...
-
         let mut file_state = FileState {
             current_path: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             selected_index: 0,

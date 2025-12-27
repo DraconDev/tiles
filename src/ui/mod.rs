@@ -201,7 +201,7 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
     }
 }
 
-use std::os::unix::fs::PermissionsExt;
+use std::{os::unix::fs::PermissionsExt, time::SystemTime};
 use ratatui::widgets::{Table, Row, Cell};
 use crate::app::FileColumn;
 
@@ -215,6 +215,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
                 FileColumn::Modified => "Modified",
                 FileColumn::Created => "Created",
                 FileColumn::Permissions => "Permissions",
+                FileColumn::Extension => "Ext",
             };
             Cell::from(name).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
         });
@@ -271,6 +272,10 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
                         let mode = metadata.as_ref().map(|m| m.permissions().mode()).unwrap_or(0);
                         Cell::from(format_permissions(mode))
                     },
+                    FileColumn::Extension => {
+                        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                        Cell::from(ext)
+                    },
                 }
             });
             
@@ -291,6 +296,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
                 FileColumn::Modified => Constraint::Length(20),
                 FileColumn::Created => Constraint::Length(20),
                 FileColumn::Permissions => Constraint::Length(12),
+                FileColumn::Extension => Constraint::Length(6),
             }
         }).collect();
 
@@ -581,6 +587,33 @@ Status: {}", name, id, image, state, status)
     f.render_widget(Paragraph::new(info), inner);
 }
 
+fn draw_column_setup_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(40, 40, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default().title(" Column Setup (Alt+C to close) ").borders(Borders::ALL).border_style(Style::default().fg(Color::Cyan));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    if let Some(file_state) = app.current_file_state() {
+        let options = vec![
+            (FileColumn::Name, "Name (n)"),
+            (FileColumn::Size, "Size (s)"),
+            (FileColumn::Modified, "Modified (m)"),
+            (FileColumn::Created, "Created (c)"),
+            (FileColumn::Permissions, "Permissions (p)"),
+            (FileColumn::Extension, "Extension (e)"),
+        ];
+
+        let items: Vec<ListItem> = options.iter().map(|(col, label)| {
+            let prefix = if file_state.columns.contains(col) { "[x] " } else { "[ ] " };
+            ListItem::new(format!("{}{}", prefix, label))
+        }).collect();
+
+        let list = List::new(items);
+        f.render_widget(list, inner);
+    }
+}
+
 fn draw_new_folder_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
@@ -590,7 +623,6 @@ fn draw_new_folder_modal(f: &mut Frame, app: &App) {
     f.render_widget(Paragraph::new(app.input.as_str()), inner);
 }
 
-use std::time::SystemTime;
 use chrono::{DateTime, Local};
 
 fn format_size(size: u64) -> String {
