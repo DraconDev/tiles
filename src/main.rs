@@ -125,7 +125,7 @@ async fn run_app<B: Backend>(
                         app.mode = AppMode::CommandPalette;
                         app.input.clear();
                     }
-                    KeyCode::Tab => app.next_tile(),
+                    KeyCode::Tab => app.switch_view(),
                     KeyCode::Down | KeyCode::Char('j') => {
                         app.move_down();
                         update_docker_filter(app);
