@@ -190,6 +190,12 @@ async fn run_app<B: Backend>(
                         app.input.clear();
                         update_commands(app);
                     }
+                    KeyCode::Char('N') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                        if app.current_view == CurrentView::Files {
+                            app.mode = AppMode::NewFolder;
+                            app.input = "New Folder".to_string();
+                        }
+                    }
                     KeyCode::Char('l') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                         if app.current_view == CurrentView::Files {
                             app.mode = AppMode::Location;
