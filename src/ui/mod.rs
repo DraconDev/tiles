@@ -92,19 +92,40 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
-        let metadata = std::fs::metadata(path);
-        let mut info = format!("Name: {}\n", path.file_name().unwrap_or_default().to_string_lossy());
-        info.push_str(&format!("Type: {}\n", if path.is_dir() { "Directory" } else { "File" }));
-        
-        if let Ok(m) = metadata {
-            info.push_str(&format!("Size: {} bytes\n", m.len()));
-            if let Ok(modified) = m.modified() {
-                info.push_str(&format!("Modified: {:?}\n", modified));
+    let info = match app.current_view {
+        CurrentView::Files => {
+            if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+                let metadata = std::fs::metadata(path);
+                let mut s = format!("Name: {}\n", path.file_name().unwrap_or_default().to_string_lossy());
+                s.push_str(&format!("Type: {}\n", if path.is_dir() { "Directory" } else { "File" }));
+                if let Ok(m) = metadata {
+                    s.push_str(&format!("Size: {} bytes\n", m.len()));
+                    if let Ok(modified) = m.modified() {
+                        s.push_str(&format!("Modified: {:?}\n", modified));
+                    }
+                }
+                s
+            } else {
+                "No file selected".to_string()
             }
         }
-        f.render_widget(Paragraph::new(info), inner);
-    }
+        CurrentView::System => {
+            if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) {
+                format!("PID: {}\nName: {}\nCPU: {:.2}%\nMemory: {:.2} MB", p.pid, p.name, p.cpu, p.mem as f64 / 1024.0 / 1024.0)
+            } else {
+                "No process selected".to_string()
+            }
+        }
+        CurrentView::Docker => {
+             if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
+                 format!("Container: {}\n\n(Press 'Enter' to inspect details... coming soon)", name)
+             } else {
+                 "No container selected".to_string()
+             }
+        }
+    };
+    
+    f.render_widget(Paragraph::new(info), inner);
 }
 
 fn draw_dock(f: &mut Frame, area: Rect, app: &App) {
