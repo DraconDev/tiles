@@ -20,6 +20,7 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use crate::app::{App, AppMode, CommandItem, CommandAction, CurrentView};
 use crate::modules::docker::DockerModule;
+use bollard::models::ContainerSummary;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
@@ -86,8 +87,6 @@ fn update_docker_filter(app: &mut App) {
     app.docker_state.filter = None;
 }
 
-use bollard::models::ContainerSummary;
-
 async fn run_app<B: Backend>(
     terminal: &mut Terminal<B>, 
     app: &mut App, 
@@ -119,9 +118,11 @@ async fn run_app<B: Backend>(
                         KeyCode::Enter => {
                             let path = std::path::PathBuf::from(&app.input);
                             if path.exists() {
-                                app.file_state.current_path = path;
-                                app.file_state.selected_index = 0;
-                                crate::modules::files::update_files(&mut app.file_state);
+                                if let Some(file_state) = app.current_file_state_mut() {
+                                    file_state.current_path = path;
+                                    file_state.selected_index = 0;
+                                    crate::modules::files::update_files(file_state);
+                                }
                             }
                             app.mode = AppMode::Normal;
                         }
@@ -136,11 +137,13 @@ async fn run_app<B: Backend>(
                         KeyCode::Char(c) => app.input.push(c),
                         KeyCode::Backspace => { app.input.pop(); }
                         KeyCode::Enter => {
-                            if let Some(old_path) = app.file_state.files.get(app.file_state.selected_index) {
-                                let mut new_path = old_path.clone();
-                                new_path.set_file_name(&app.input);
-                                if let Ok(_) = std::fs::rename(old_path, new_path) {
-                                    crate::modules::files::update_files(&mut app.file_state);
+                            if let Some(file_state) = app.current_file_state_mut() {
+                                if let Some(old_path) = file_state.files.get(file_state.selected_index) {
+                                    let mut new_path = old_path.clone();
+                                    new_path.set_file_name(&app.input);
+                                    if let Ok(_) = std::fs::rename(old_path, new_path) {
+                                        crate::modules::files::update_files(file_state);
+                                    }
                                 }
                             }
                             app.mode = AppMode::Normal;
@@ -163,10 +166,12 @@ async fn run_app<B: Backend>(
                         KeyCode::Char(c) => app.input.push(c),
                         KeyCode::Backspace => { app.input.pop(); }
                         KeyCode::Enter => {
-                            let mut path = app.file_state.current_path.clone();
-                            path.push(&app.input);
-                            if let Ok(_) = std::fs::create_dir_all(path) {
-                                crate::modules::files::update_files(&mut app.file_state);
+                            if let Some(file_state) = app.current_file_state_mut() {
+                                let mut path = file_state.current_path.clone();
+                                path.push(&app.input);
+                                if let Ok(_) = std::fs::create_dir_all(path) {
+                                    crate::modules::files::update_files(file_state);
+                                }
                             }
                             app.mode = AppMode::Normal;
                         }
@@ -205,10 +210,9 @@ async fn run_app<B: Backend>(
                                          if !name.is_empty() {
                                              if let Some(_docker) = &docker_module {
                                                  let _docker = _docker.clone();
-                                                 // let _name = name.clone();
                                                  tokio::spawn(async move {
                                                      // remove container with force=true?
-                                                     // _docker.remove_container(&_name, ...).await
+                                                     // _docker.remove_container(&name, ...).await
                                                  });
                                              }
                                          }
@@ -262,14 +266,10 @@ async fn run_app<B: Backend>(
                     
                     // Ctrl+Key Modifiers (Must come before single chars)
                     KeyCode::Char('P') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
-                        app.mode = AppMode::CommandPalette;
-                        app.input.clear();
-                        update_commands(app);
+                        app.current_view = CurrentView::System;
                     }
                     KeyCode::Char('p') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
-                        app.mode = AppMode::CommandPalette;
-                        app.input.clear();
-                        update_commands(app);
+                        app.current_view = CurrentView::System;
                     }
                     KeyCode::Char('N') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                         if app.current_view == CurrentView::Files {
@@ -279,8 +279,10 @@ async fn run_app<B: Backend>(
                     }
                     KeyCode::Char('l') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                          if app.current_view == CurrentView::Files {
-                            app.mode = AppMode::Location;
-                            app.input = app.file_state.current_path.to_string_lossy().to_string();
+                            if let Some(file_state) = app.current_file_state_mut() {
+                                app.mode = AppMode::Location;
+                                app.input = file_state.current_path.to_string_lossy().to_string();
+                            }
                         }
                     }
                     KeyCode::Char('h') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
@@ -352,7 +354,6 @@ async fn run_app<B: Backend>(
 
                     // View Switching Shortcuts
                     KeyCode::Char('f') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => app.current_view = CurrentView::Files,
-                    KeyCode::Char('p') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => app.current_view = CurrentView::System,
                     KeyCode::Char('d') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => app.current_view = CurrentView::Docker,
                     
                     // Console / Command Palette
@@ -393,10 +394,12 @@ async fn run_app<B: Backend>(
                     }
                     KeyCode::Up if key.modifiers.contains(crossterm::event::KeyModifiers::ALT) => {
                          if app.current_view == crate::app::CurrentView::Files {
-                            if let Some(parent) = app.file_state.current_path.parent() {
-                                app.file_state.current_path = parent.to_path_buf();
-                                app.file_state.selected_index = 0;
-                                crate::modules::files::update_files(&mut app.file_state);
+                            if let Some(file_state) = app.current_file_state_mut() {
+                                if let Some(parent) = file_state.current_path.parent() {
+                                    file_state.current_path = parent.to_path_buf();
+                                    file_state.selected_index = 0;
+                                    crate::modules::files::update_files(file_state);
+                                }
                             }
                         }
                     }
@@ -410,22 +413,20 @@ async fn run_app<B: Backend>(
                         update_docker_filter(app);
                     }
                     KeyCode::Left | KeyCode::Char('h') => {
-                        if app.file_state.search_filter.is_empty() {
+                        let search_active = app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false);
+                        if !search_active {
                             app.move_left();
                             update_docker_filter(app);
                         }
                     }
                     KeyCode::Right | KeyCode::Char('l') => {
-                        if app.file_state.search_filter.is_empty() {
+                        let search_active = app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false);
+                        if !search_active {
                             app.move_right();
                             update_docker_filter(app);
                         }
                     }
                     KeyCode::Char('s') => {
-                        // Conflict with Search? 's' is common.
-                        // Only trigger Docker start if NOT in Files view or if we decide shortcuts override search.
-                        // But user wants type-to-search.
-                        // So 's' in Files view should search.
                         if app.current_view == crate::app::CurrentView::Docker {
                             if let Some(container) = app.docker_state.containers.get(app.docker_state.selected_index) {
                                 let name = container.names.as_ref().map(|n| n.first().map(|s| s.as_str()).unwrap_or("")).unwrap_or("").trim_start_matches('/').to_string();
@@ -439,9 +440,11 @@ async fn run_app<B: Backend>(
                                 }
                             }
                         } else if app.current_view == CurrentView::Files {
-                             app.file_state.search_filter.push('s');
-                             app.file_state.selected_index = 0;
-                             crate::modules::files::update_files(&mut app.file_state);
+                             if let Some(file_state) = app.current_file_state_mut() {
+                                 file_state.search_filter.push('s');
+                                 file_state.selected_index = 0;
+                                 crate::modules::files::update_files(file_state);
+                             }
                         }
                     }
                     KeyCode::Char('x') => {
@@ -458,25 +461,33 @@ async fn run_app<B: Backend>(
                                 }
                             }
                         } else if app.current_view == CurrentView::Files {
-                             app.file_state.search_filter.push('x');
-                             app.file_state.selected_index = 0;
-                             crate::modules::files::update_files(&mut app.file_state);
+                             if let Some(file_state) = app.current_file_state_mut() {
+                                 file_state.search_filter.push('x');
+                                 file_state.selected_index = 0;
+                                 crate::modules::files::update_files(file_state);
+                             }
                         }
                     }
                     
                     // Generic Character Input for Search
                     KeyCode::Char(c) => {
                         if app.current_view == CurrentView::Files {
-                            app.file_state.search_filter.push(c);
-                            app.file_state.selected_index = 0;
-                            crate::modules::files::update_files(&mut app.file_state);
+                            if let Some(file_state) = app.current_file_state_mut() {
+                                file_state.search_filter.push(c);
+                                file_state.selected_index = 0;
+                                crate::modules::files::update_files(file_state);
+                            }
                         }
                     }
 
                     KeyCode::Esc => {
-                        if app.current_view == CurrentView::Files && !app.file_state.search_filter.is_empty() {
-                            app.file_state.search_filter.clear();
-                            crate::modules::files::update_files(&mut app.file_state);
+                        if app.current_view == CurrentView::Files {
+                            if let Some(file_state) = app.current_file_state_mut() {
+                                if !file_state.search_filter.is_empty() {
+                                    file_state.search_filter.clear();
+                                    crate::modules::files::update_files(file_state);
+                                }
+                            }
                         }
                     }
 
@@ -490,19 +501,23 @@ async fn run_app<B: Backend>(
                                 _ => None,
                             };
                             if let Some(p) = path {
-                                app.file_state.current_path = p;
-                                app.file_state.selected_index = 0;
-                                app.file_state.search_filter.clear(); // Clear search on jump
-                                crate::modules::files::update_files(&mut app.file_state);
-                                app.sidebar_focus = false; // Jump to file list
+                                if let Some(file_state) = app.current_file_state_mut() {
+                                    file_state.current_path = p;
+                                    file_state.selected_index = 0;
+                                    file_state.search_filter.clear();
+                                    crate::modules::files::update_files(file_state);
+                                    app.sidebar_focus = false;
+                                }
                             }
                         } else if app.current_view == CurrentView::Files {
-                            if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
-                                if path.is_dir() {
-                                    app.file_state.current_path = path.clone();
-                                    app.file_state.selected_index = 0;
-                                    app.file_state.search_filter.clear(); // Clear search on nav
-                                    crate::modules::files::update_files(&mut app.file_state);
+                            if let Some(file_state) = app.current_file_state_mut() {
+                                if let Some(path) = file_state.files.get(file_state.selected_index).cloned() {
+                                    if path.is_dir() {
+                                        file_state.current_path = path;
+                                        file_state.selected_index = 0;
+                                        file_state.search_filter.clear();
+                                        crate::modules::files::update_files(file_state);
+                                    }
                                 }
                             }
                         } else {
@@ -510,15 +525,17 @@ async fn run_app<B: Backend>(
                         }
                     }
                     KeyCode::Backspace => {
-                        if app.current_view == crate::app::CurrentView::Files {
-                            if !app.file_state.search_filter.is_empty() {
-                                app.file_state.search_filter.pop();
-                                crate::modules::files::update_files(&mut app.file_state);
-                            } else {
-                                if let Some(parent) = app.file_state.current_path.parent() {
-                                    app.file_state.current_path = parent.to_path_buf();
-                                    app.file_state.selected_index = 0;
-                                    crate::modules::files::update_files(&mut app.file_state);
+                        if app.current_view == CurrentView::Files {
+                            if let Some(file_state) = app.current_file_state_mut() {
+                                if !file_state.search_filter.is_empty() {
+                                    file_state.search_filter.pop();
+                                    crate::modules::files::update_files(file_state);
+                                } else {
+                                    if let Some(parent) = file_state.current_path.parent() {
+                                        file_state.current_path = parent.to_path_buf();
+                                        file_state.selected_index = 0;
+                                        crate::modules::files::update_files(file_state);
+                                    }
                                 }
                             }
                         }
