@@ -58,7 +58,7 @@ pub enum CommandAction {
     StopContainer(String),
 }
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ClipboardOp {
@@ -74,6 +74,7 @@ pub struct FileState {
     pub git_status: HashMap<PathBuf, String>,
     pub clipboard: Option<(PathBuf, ClipboardOp)>,
     pub search_filter: String,
+    pub starred: HashSet<PathBuf>,
 }
 
 use bollard::models::ContainerSummary;

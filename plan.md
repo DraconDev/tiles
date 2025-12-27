@@ -101,4 +101,4 @@ src/
 
 we want icons too, bake it into the ui if that is best
 
-also show more information about the files in the file manager, and allow us to customise 
+also show more information about the files in the file manager, and allow us to customise it 
