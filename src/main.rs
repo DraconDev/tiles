@@ -90,7 +90,7 @@ async fn run_app<B: Backend>(
     let tick_rate = Duration::from_millis(250);
     let mut last_tick = Instant::now();
 
-    while app.running {
+    loop {
         terminal.draw(|f| ui::draw(f, app))?;
 
         // Handle async updates
@@ -104,6 +104,25 @@ async fn run_app<B: Backend>(
 
         if crossterm::event::poll(timeout)? {
             if let Event::Key(key) = crossterm::event::read()? {
+                if matches!(app.mode, AppMode::Location) {
+                    match key.code {
+                        KeyCode::Esc => app.mode = AppMode::Normal,
+                        KeyCode::Char(c) => app.input.push(c),
+                        KeyCode::Backspace => { app.input.pop(); }
+                        KeyCode::Enter => {
+                            let path = std::path::PathBuf::from(&app.input);
+                            if path.exists() {
+                                app.file_state.current_path = path;
+                                app.file_state.selected_index = 0;
+                                crate::modules::files::update_files(&mut app.file_state);
+                            }
+                            app.mode = AppMode::Normal;
+                        }
+                        _ => {}
+                    }
+                    continue;
+                }
+
                 if matches!(app.mode, AppMode::CommandPalette) {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
@@ -143,6 +162,12 @@ async fn run_app<B: Backend>(
                         app.mode = AppMode::CommandPalette;
                         app.input.clear();
                         update_commands(app);
+                    }
+                    KeyCode::Char('l') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                        if app.current_view == CurrentView::Files {
+                            app.mode = AppMode::Location;
+                            app.input = app.file_state.current_path.to_string_lossy().to_string();
+                        }
                     }
                     KeyCode::Char('h') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                         app.file_state.show_hidden = !app.file_state.show_hidden;
