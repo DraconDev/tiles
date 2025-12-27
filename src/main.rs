@@ -363,7 +363,9 @@ async fn run_app<B: Backend>(
                     }
 
                     KeyCode::F(5) => {
-                         crate::modules::files::update_files(&mut app.file_state);
+                         if let Some(file_state) = app.current_file_state_mut() {
+                             crate::modules::files::update_files(file_state);
+                         }
                     }
                     KeyCode::Delete => {
                         match app.current_view {
