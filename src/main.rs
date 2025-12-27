@@ -106,10 +106,26 @@ async fn run_app<B: Backend>(
                             }
                         }
                     }
-                    KeyCode::Enter => app.toggle_zoom(),
-                    KeyCode::Esc => {
-                        if matches!(app.mode, AppMode::Zoomed) {
-                            app.mode = AppMode::Normal;
+                    KeyCode::Enter => {
+                        if app.active_tile == crate::app::TileType::Files {
+                            if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+                                if path.is_dir() {
+                                    app.file_state.current_path = path.clone();
+                                    app.file_state.selected_index = 0;
+                                    crate::modules::files::update_files(&mut app.file_state);
+                                }
+                            }
+                        } else {
+                            app.toggle_zoom();
+                        }
+                    }
+                    KeyCode::Backspace => {
+                        if app.active_tile == crate::app::TileType::Files {
+                            if let Some(parent) = app.file_state.current_path.parent() {
+                                app.file_state.current_path = parent.to_path_buf();
+                                app.file_state.selected_index = 0;
+                                crate::modules::files::update_files(&mut app.file_state);
+                            }
                         }
                     }
                     _ => {}
