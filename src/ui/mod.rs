@@ -63,16 +63,16 @@ fn draw_bottom_bar(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
-    let tabs = vec![" [F]iles ", " [C]onsole ", " [P]rocesses ", " [D]ocker "];
+    let tabs = vec![" [^F]iles ", " [^P]rocesses ", " [^D]ocker "];
     let mode_str = match app.current_view {
-        CurrentView::Files => " [F]iles ",
-        CurrentView::System => " [P]rocesses ",
-        CurrentView::Docker => " [D]ocker ",
+        CurrentView::Files => " [^F]iles ",
+        CurrentView::System => " [^P]rocesses ",
+        CurrentView::Docker => " [^D]ocker ",
     };
     
     let mut spans = Vec::new();
     for tab in tabs {
-        let style = if tab == mode_str || (tab == " [C]onsole " && matches!(app.mode, AppMode::CommandPalette)) {
+        let style = if tab == mode_str {
             Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(Color::DarkGray)
