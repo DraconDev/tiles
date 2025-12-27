@@ -341,10 +341,19 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let text = match &app.license {
         LicenseStatus::FreeMode => {
-            " Ctrl+L: Go to | Ctrl+H: Hidden | F2: Rename | Del: Delete | Tiles Free Edition ".to_string()
+            let mut s = " Ctrl+.: Console | Ctrl+H: Hidden | Ctrl+B: Star | Ctrl+T: New Win | Del: Delete | Tiles Free ".to_string();
+            // Add disk usage info if available
+            if let Some(disk) = app.system_state.disks.first() {
+                 s.push_str(&format!("| Disk: {:.1}/{:.1} GB ", disk.used_space, disk.total_space));
+            }
+            s
         }
         LicenseStatus::Commercial(company) => {
-            format!(" Ctrl+L: Go to | Ctrl+H: Hidden | F2: Rename | Del: Delete | Licensed to {} ", company)
+            let mut s = format!(" Ctrl+.: Console | Ctrl+H: Hidden | Ctrl+B: Star | Ctrl+T: New Win | Del: Delete | Licensed to {} ", company);
+             if let Some(disk) = app.system_state.disks.first() {
+                 s.push_str(&format!("| Disk: {:.1}/{:.1} GB ", disk.used_space, disk.total_space));
+            }
+            s
         }
     };
 
