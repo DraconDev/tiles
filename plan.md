@@ -91,3 +91,6 @@ src/
     ├── files.rs      # FS ops, Git, Recursive copy
     ├── docker.rs     # Bollard connectivity
     └── system.rs     # Sysinfo diagnostics
+
+
+i 
