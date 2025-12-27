@@ -236,7 +236,7 @@ async fn run_app<B: Backend>(
                                 let path = std::path::PathBuf::from(&app.input);
                                 if path.exists() {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        fs.current_path = path.clone(); fs.selected_index = 0; fs.table_state.set_offset(0);
+                                        fs.current_path = path.clone(); fs.selected_index = 0; *fs.table_state.offset_mut() = 0;
                                         push_history(fs, path); crate::modules::files::update_files(fs);
                                     }
                                 }
@@ -369,7 +369,7 @@ async fn run_app<B: Backend>(
                                 if let Some(fs) = app.current_file_state_mut() {
                                     if let Some(p) = fs.current_path.parent() {
                                         let path = p.to_path_buf(); fs.current_path = path.clone(); fs.selected_index = 0;
-                                        fs.table_state.set_offset(0);
+                                        *fs.table_state.offset_mut() = 0;
                                         push_history(fs, path); crate::modules::files::update_files(fs);
                                     }
                                 }
@@ -391,7 +391,7 @@ async fn run_app<B: Backend>(
                                     if let Some(p) = path {
                                         if let Some(fs) = app.current_file_state_mut() {
                                             fs.current_path = p.clone(); fs.selected_index = 0; fs.search_filter.clear();
-                                            fs.table_state.set_offset(0);
+                                            *fs.table_state.offset_mut() = 0;
                                             push_history(fs, p); crate::modules::files::update_files(fs); app.sidebar_focus = false;
                                         }
                                     }
@@ -399,7 +399,7 @@ async fn run_app<B: Backend>(
                                     if let Some(path) = fs.files.get(fs.selected_index).cloned() {
                                         if path.is_dir() {
                                             fs.current_path = path.clone(); fs.selected_index = 0; fs.search_filter.clear();
-                                            fs.table_state.set_offset(0);
+                                            *fs.table_state.offset_mut() = 0;
                                             push_history(fs, path); crate::modules::files::update_files(fs);
                                         }
                                     }
@@ -410,7 +410,7 @@ async fn run_app<B: Backend>(
                                     if !fs.search_filter.is_empty() { fs.search_filter.pop(); crate::modules::files::update_files(fs); }
                                     else if let Some(p) = fs.current_path.parent() {
                                         let path = p.to_path_buf(); fs.current_path = path.clone(); fs.selected_index = 0;
-                                        fs.table_state.set_offset(0);
+                                        *fs.table_state.offset_mut() = 0;
                                         push_history(fs, path); crate::modules::files::update_files(fs);
                                     }
                                 }
