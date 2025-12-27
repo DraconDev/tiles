@@ -11,23 +11,29 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(0),
-            Constraint::Length(3), // Tabs + Footer
+            Constraint::Length(1), // Tabs (Top)
+            Constraint::Min(0),    // Main Workspace
+            Constraint::Length(1), // Footer (Bottom)
         ])
         .split(f.area());
 
+    // Tabs at the top
+    draw_tabs(f, chunks[0], app);
+
+    // Workspace (Sidebar + Main Stage)
     let workspace = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Percentage(20), // Sidebar
             Constraint::Min(0), // Main Stage
         ])
-        .split(chunks[0]);
+        .split(chunks[1]);
 
     draw_sidebar(f, workspace[0], app);
     draw_main_stage(f, workspace[1], app);
     
-    draw_bottom_bar(f, chunks[1], app);
+    // Footer at the bottom
+    draw_footer(f, chunks[2], app);
 
     if matches!(app.mode, AppMode::CommandPalette) {
         draw_command_palette(f, app);
@@ -46,20 +52,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::NewFolder) {
         draw_new_folder_modal(f, app);
     }
-}
-
-fn draw_bottom_bar(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // Tabs
-            Constraint::Length(1), // Footer/Hints
-            Constraint::Length(1), // Empty
-        ])
-        .split(area);
-        
-    draw_tabs(f, chunks[0], app);
-    draw_footer(f, chunks[1], app);
+    if matches!(app.mode, AppMode::ColumnSetup) {
+        draw_column_setup_modal(f, app);
+    }
 }
 
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
