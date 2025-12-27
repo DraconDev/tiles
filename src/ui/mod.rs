@@ -226,7 +226,13 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let mut spans = Vec::new();
-    let console_style = if matches!(app.mode, AppMode::CommandPalette) { Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::Yellow) };
+    
+    // Quit Shortcut
+    spans.push(ratatui::text::Span::styled("^Q", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" Quit | "));
+
+    // Console Shortcut
+    let console_key_style = if matches!(app.mode, AppMode::CommandPalette) {
     spans.push(ratatui::text::Span::styled("^.", console_style)); spans.push(ratatui::text::Span::raw(" Console | "));
     spans.push(ratatui::text::Span::styled("^H", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Hidden | "));
     spans.push(ratatui::text::Span::styled("^B", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Star | "));
