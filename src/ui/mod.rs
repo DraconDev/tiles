@@ -141,7 +141,12 @@ fn draw_docker_tile(f: &mut Frame, area: Rect, app: &App) {
         .title(" Docker ")
         .border_style(Style::default().fg(border_color));
 
-    f.render_widget(block, area);
+    let items: Vec<ListItem> = app.docker_state.containers.iter().map(|name| {
+        ListItem::new(name.as_str())
+    }).collect();
+
+    let list = List::new(items).block(block);
+    f.render_widget(list, area);
 }
 
 fn draw_tile(f: &mut Frame, area: Rect, title: &str, is_active: bool) {
