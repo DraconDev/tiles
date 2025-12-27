@@ -117,4 +117,4 @@ we currently have vim keys added, we dont want this at all, strip it, we are ent
 
 consosole ^. button should be put on the footer tab
 
-- i have a crazy idea, could drag exist in terminal? Technically we just 
+- i have a crazy idea, could drag exist in terminal? Technically we just need to send mouse events to the terminal, and it should work, we 
