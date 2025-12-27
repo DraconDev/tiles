@@ -77,6 +77,7 @@ impl App {
             running: true,
             active_tile: TileType::Files,
             mode: AppMode::Normal,
+            input: String::new(),
             file_state,
             docker_state: DockerState {
                 containers: Vec::new(),
