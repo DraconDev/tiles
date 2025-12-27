@@ -164,7 +164,8 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
         .constraints([
             Constraint::Length(3), // CPU
             Constraint::Length(3), // MEM
-            Constraint::Min(0),    // Disks
+            Constraint::Length(6), // Disks
+            Constraint::Min(0),    // Processes
         ])
         .split(area);
 
@@ -205,6 +206,21 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     
     let disk_list = List::new(disk_items).block(Block::default().title(" Disk Usage ").borders(Borders::ALL));
     f.render_widget(disk_list, layout[2]);
+
+    // Process List
+    let process_items: Vec<ListItem> = app.system_state.processes.iter().map(|p| {
+        ListItem::new(format!(
+            "{:<6} {:<20} {:.1}%  {:.1} MB", 
+            p.pid, 
+            p.name.chars().take(20).collect::<String>(), 
+            p.cpu, 
+            p.mem as f64 / 1024.0 / 1024.0
+        ))
+    }).collect();
+    
+    let process_list = List::new(process_items)
+        .block(Block::default().title(" Top Processes ").borders(Borders::ALL));
+    f.render_widget(process_list, layout[3]);
 }
 
 fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
