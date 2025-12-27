@@ -167,9 +167,10 @@ async fn run_app<B: Backend>(
                         KeyCode::Char(c) => app.input.push(c),
                         KeyCode::Backspace => { app.input.pop(); }
                         KeyCode::Enter => {
+                            let new_folder_name = app.input.clone();
                             if let Some(file_state) = app.current_file_state_mut() {
                                 let mut path = file_state.current_path.clone();
-                                path.push(&app.input);
+                                path.push(&new_folder_name);
                                 if let Ok(_) = std::fs::create_dir_all(path) {
                                     crate::modules::files::update_files(file_state);
                                 }
