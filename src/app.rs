@@ -74,6 +74,7 @@ pub enum FileColumn {
     Modified,
     Created,
     Permissions,
+    Extension,
 }
 
 pub struct FileState {
