@@ -156,7 +156,7 @@ async fn run_app<B: Backend>(
                         }
                     }
                     KeyCode::Char('x') => {
-                        if app.active_tile == crate::app::TileType::Docker {
+                        if app.current_view == crate::app::CurrentView::Docker {
                             if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
                                 if let Some(docker) = &docker_module {
                                     let docker = docker.clone();
@@ -169,7 +169,7 @@ async fn run_app<B: Backend>(
                         }
                     }
                     KeyCode::Enter => {
-                        if app.active_tile == crate::app::TileType::Files {
+                        if app.current_view == crate::app::CurrentView::Files {
                             if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
                                 if path.is_dir() {
                                     app.file_state.current_path = path.clone();
@@ -182,7 +182,7 @@ async fn run_app<B: Backend>(
                         }
                     }
                     KeyCode::Backspace => {
-                        if app.active_tile == crate::app::TileType::Files {
+                        if app.current_view == crate::app::CurrentView::Files {
                             if let Some(parent) = app.file_state.current_path.parent() {
                                 app.file_state.current_path = parent.to_path_buf();
                                 app.file_state.selected_index = 0;
