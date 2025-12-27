@@ -98,3 +98,5 @@ i wonder if we can style a bit and make the left sidebar look a little lighter
 new file option with right click on empty space in files view
 
 we can even have a git view
+
+ctrl 
