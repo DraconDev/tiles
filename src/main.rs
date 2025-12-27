@@ -343,6 +343,7 @@ async fn run_app<B: Backend>(
                                     clipboard: None,
                                     search_filter: String::new(),
                                     starred: current_state.starred.clone(),
+                                    columns: current_state.columns.clone(),
                                 };
                                 crate::modules::files::update_files(&mut new_state);
                                 app.file_tabs.push(new_state);
