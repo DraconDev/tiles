@@ -328,16 +328,17 @@ async fn run_app<B: Backend>(
                             KeyCode::Char('C') if key.modifiers.contains(crossterm::event::KeyModifiers::ALT) => {
                                 if app.current_view == CurrentView::Files { app.mode = AppMode::ColumnSetup; }
                             }
-                            KeyCode::Down | KeyCode::Char('j') => { app.move_down(); update_docker_filter(app); }
-                            KeyCode::Up | KeyCode::Char('k') => { app.move_up(); update_docker_filter(app); }
-                            KeyCode::Left | KeyCode::Char('h') => { 
-                                let searching = app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false);
-                                if !searching { app.move_left(); }
-                            }
-                            KeyCode::Right | KeyCode::Char('l') => {
-                                let searching = app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false);
-                                if !searching { app.move_right(); }
-                            }
+                        // Navigation
+                        KeyCode::Down => { app.move_down(); update_docker_filter(app); }
+                        KeyCode::Up => { app.move_up(); update_docker_filter(app); }
+                        KeyCode::Left => { 
+                            let searching = app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false);
+                            if !searching { app.move_left(); }
+                        }
+                        KeyCode::Right => {
+                            let searching = app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false);
+                            if !searching { app.move_right(); }
+                        }
                             KeyCode::F(5) => { if let Some(fs) = app.current_file_state_mut() { crate::modules::files::update_files(fs); } }
                             KeyCode::F(2) => {
                                 let name_opt = app.current_file_state().and_then(|fs| {
