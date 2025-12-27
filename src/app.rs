@@ -149,12 +149,21 @@ impl App {
 
     pub fn move_up(&mut self) {
         if self.sidebar_focus {
-             // In Dock, moving up cycles views backwards
-             self.current_view = match self.current_view {
-                CurrentView::Files => CurrentView::Docker,
-                CurrentView::Docker => CurrentView::System,
-                CurrentView::System => CurrentView::Files,
-            };
+            match self.current_view {
+                CurrentView::Files => {
+                    if self.sidebar_index > 0 {
+                        self.sidebar_index -= 1;
+                    }
+                }
+                _ => {
+                    // In Dock, moving up cycles views backwards
+                    self.current_view = match self.current_view {
+                        CurrentView::Files => CurrentView::Docker,
+                        CurrentView::Docker => CurrentView::System,
+                        CurrentView::System => CurrentView::Files,
+                    };
+                }
+            }
             return;
         }
 
