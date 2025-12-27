@@ -5,6 +5,16 @@ pub fn update_files(state: &mut FileState) {
         state.files = entries
             .filter_map(|entry| entry.ok())
             .map(|entry| entry.path())
+            .filter(|path| {
+                if state.show_hidden {
+                    true
+                } else {
+                    !path.file_name()
+                        .and_then(|n| n.to_str())
+                        .map(|s| s.starts_with('.'))
+                        .unwrap_or(false)
+                }
+            })
             .collect();
         state.files.sort_by(|a, b| {
             let a_is_dir = a.is_dir();

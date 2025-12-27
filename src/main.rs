@@ -144,6 +144,23 @@ async fn run_app<B: Backend>(
                         app.input.clear();
                         update_commands(app);
                     }
+                    KeyCode::Char('h') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                        app.file_state.show_hidden = !app.file_state.show_hidden;
+                        crate::modules::files::update_files(&mut app.file_state);
+                    }
+                    KeyCode::F(5) => {
+                         crate::modules::files::update_files(&mut app.file_state);
+                         // Refresh system as well? It happens on tick, but maybe force update.
+                    }
+                    KeyCode::Up if key.modifiers.contains(crossterm::event::KeyModifiers::ALT) => {
+                         if app.current_view == crate::app::CurrentView::Files {
+                            if let Some(parent) = app.file_state.current_path.parent() {
+                                app.file_state.current_path = parent.to_path_buf();
+                                app.file_state.selected_index = 0;
+                                crate::modules::files::update_files(&mut app.file_state);
+                            }
+                        }
+                    }
                     KeyCode::Tab => app.switch_view(),
                     KeyCode::Down | KeyCode::Char('j') => {
                         app.move_down();

@@ -57,6 +57,7 @@ pub struct FileState {
     pub current_path: PathBuf,
     pub selected_index: usize,
     pub files: Vec<PathBuf>,
+    pub show_hidden: bool,
 }
 
 pub struct DockerState {
@@ -102,6 +103,7 @@ impl App {
             current_path: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             selected_index: 0,
             files: Vec::new(),
+            show_hidden: false,
         };
         update_files(&mut file_state);
 
