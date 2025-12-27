@@ -95,4 +95,4 @@ src/
 
 i wonder if we can style a bit and make the left sidebar look a little lighter
 
-new file option wiht right click
+new file option with right click on empty space in files view
