@@ -175,7 +175,19 @@ async fn run_app<B: Backend>(
                     }
                     KeyCode::F(5) => {
                          crate::modules::files::update_files(&mut app.file_state);
-                         // Refresh system as well? It happens on tick, but maybe force update.
+                    }
+                    KeyCode::F(2) => {
+                        if app.current_view == CurrentView::Files {
+                            if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+                                app.mode = AppMode::Rename;
+                                app.input = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+                            }
+                        }
+                    }
+                    KeyCode::Enter if key.modifiers.contains(crossterm::event::KeyModifiers::ALT) => {
+                        if app.current_view == CurrentView::Files {
+                            app.mode = AppMode::Properties;
+                        }
                     }
                     KeyCode::Up if key.modifiers.contains(crossterm::event::KeyModifiers::ALT) => {
                          if app.current_view == crate::app::CurrentView::Files {
