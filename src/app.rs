@@ -34,6 +34,23 @@ pub struct App {
     pub license: LicenseStatus,
     pub system_module: SystemModule,
     pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
+    pub filtered_commands: Vec<CommandItem>,
+    pub command_index: usize,
+}
+
+#[derive(Clone, Debug)]
+pub struct CommandItem {
+    pub label: String,
+    pub action: CommandAction,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum CommandAction {
+    Quit,
+    ToggleZoom,
+    SwitchView(CurrentView),
+    StartContainer(String),
+    StopContainer(String),
 }
 
 pub struct FileState {
@@ -96,6 +113,8 @@ impl App {
             system_module,
             license,
             sidebar_focus: false,
+            filtered_commands: Vec::new(),
+            command_index: 0,
         }
     }
 
