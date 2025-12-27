@@ -343,10 +343,10 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let text = match &app.license {
         LicenseStatus::FreeMode => {
-            " Arrows: Move | Enter: Open | Tiles Free Edition (<5 employees). Support us at dracon.uk ".to_string()
+            " Ctrl+L: Go to | Ctrl+H: Hidden | F2: Rename | Del: Delete | Tiles Free Edition ".to_string()
         }
         LicenseStatus::Commercial(company) => {
-            format!(" Arrows: Move | Enter: Open | Licensed to {} ", company)
+            format!(" Ctrl+L: Go to | Ctrl+H: Hidden | F2: Rename | Del: Delete | Licensed to {} ", company)
         }
     };
 
