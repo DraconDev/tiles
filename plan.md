@@ -105,3 +105,6 @@ also show more information about the files in the file manager, and allow us to 
 
 is there a way to use it with ssh in a way we dont have to install on the target system, and we can just use it as a remote file manager? , not sure this might have to be a new tab or just build it into the files section, its probably best, so we can open other system like they were mere folders 
 
+ interesting your solution for new tab, albeit files keeps it top, maybe we should too? also we are missing descriptions for columns,
+  icons, and we want to see the default columbs in files, like size, permissions, modifilied and created, least afaik those are default but
+  we should be able to customize too
