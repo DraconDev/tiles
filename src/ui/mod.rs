@@ -1,7 +1,7 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Clear, Gauge, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, Gauge, List, ListItem, Paragraph},
     Frame,
 };
 
@@ -19,7 +19,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     let workspace = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Length(10), // Dock
+            Constraint::Length(12), // Dock
             Constraint::Percentage(20), // Sidebar
             Constraint::Min(0), // Main Stage
         ])
@@ -39,6 +39,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 fn draw_dock(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::default()
         .borders(Borders::ALL)
+        .title(" Dock ")
         .border_style(if app.sidebar_focus { Style::default().fg(Color::Cyan) } else { Style::default() });
     
     f.render_widget(block, area);
@@ -57,7 +58,14 @@ fn draw_dock(f: &mut Frame, area: Rect, app: &App) {
         } else {
             Style::default()
         };
-        ListItem::new(format!("[{}]", label.chars().next().unwrap())).style(style)
+        
+        let prefix = if app.current_view == *view && app.sidebar_focus {
+            "> "
+        } else {
+            "  "
+        };
+
+        ListItem::new(format!("{}{}", prefix, label)).style(style)
     }).collect();
 
     let list = List::new(list_items);
@@ -65,7 +73,11 @@ fn draw_dock(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
-    let block = Block::default().borders(Borders::ALL).title(" Sidebar ");
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(" Sidebar ")
+        .border_style(Style::default()); // Sidebar static for now, focus logic can be added later
+    
     f.render_widget(block, area);
     
     let inner = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
@@ -73,27 +85,35 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     match app.current_view {
         CurrentView::Files => {
             let items = vec![
-                ListItem::new("Home"),
+                ListItem::new("Home").style(Style::default().fg(Color::Blue)),
                 ListItem::new("Downloads"),
                 ListItem::new("Documents"),
                 ListItem::new("Pictures"),
+                ListItem::new(""),
+                ListItem::new("Network").style(Style::default().fg(Color::Gray)),
+                ListItem::new("Trash"),
             ];
             f.render_widget(List::new(items), inner);
         },
         CurrentView::Docker => {
              let items = vec![
-                ListItem::new("All Containers"),
-                ListItem::new("Running"),
-                ListItem::new("Stopped"),
+                ListItem::new("Containers").style(Style::default().add_modifier(Modifier::BOLD)),
+                ListItem::new("  All"),
+                ListItem::new("  Running").style(Style::default().fg(Color::Green)),
+                ListItem::new("  Stopped").style(Style::default().fg(Color::Red)),
+                ListItem::new(""),
                 ListItem::new("Images"),
+                ListItem::new("Volumes"),
+                ListItem::new("Networks"),
             ];
             f.render_widget(List::new(items), inner);
         },
         CurrentView::System => {
              let items = vec![
-                ListItem::new("Hardware"),
-                ListItem::new("Network"),
+                ListItem::new("Overview").style(Style::default().add_modifier(Modifier::BOLD)),
+                ListItem::new("Processes"),
                 ListItem::new("Disks"),
+                ListItem::new("Network"),
             ];
             f.render_widget(List::new(items), inner);
         }
@@ -153,7 +173,7 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
         .block(Block::default().title(" CPU Usage ").borders(Borders::ALL))
         .gauge_style(Style::default().fg(Color::Green))
         .percent(app.system_state.cpu_usage as u16)
-        .label(format!("{:.1}% / 100%", app.system_state.cpu_usage));
+        .label(format!("{:.1}%", app.system_state.cpu_usage));
     f.render_widget(cpu_gauge, layout[0]);
 
     // Memory Gauge
@@ -163,16 +183,23 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
             .block(Block::default().title(" Memory Usage ").borders(Borders::ALL))
             .gauge_style(Style::default().fg(Color::Yellow))
             .percent(mem_percent as u16)
-            .label(format!("{:.1} GB / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem));
+            .label(format!("{:.1} / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem));
         f.render_widget(mem_gauge, layout[1]);
     }
 
     // Disk Usage List
     let disk_items: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let percent = (disk.used_space / disk.total_space) * 100.0;
+        
+        // Create a visual bar for the disk
+        let bar_width = 20;
+        let filled = (percent / 100.0 * bar_width as f64) as usize;
+        let empty = bar_width.saturating_sub(filled);
+        let bar = format!("[{}{}]", "#".repeat(filled), "-".repeat(empty));
+
         ListItem::new(format!(
-            "Disk {}: {:.1} GB / {:.1} GB ({:.1}%)", 
-            disk.name, disk.used_space, disk.total_space, percent
+            "{:<10} {}  {:.1} / {:.1} GB ({:.1}%)", 
+            disk.name, bar, disk.used_space, disk.total_space, percent
         ))
     }).collect();
     
@@ -220,4 +247,41 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
 
     let footer = Paragraph::new(text).style(style);
     f.render_widget(footer, area);
+}
+
+fn draw_command_palette(f: &mut Frame, app: &App) {
+    let area = centered_rect(60, 20, f.area());
+    f.render_widget(Clear, area);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(" Command Palette ")
+        .border_style(Style::default().fg(Color::Magenta));
+    
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let input = Paragraph::new(format!("> {}", app.input))
+        .style(Style::default().fg(Color::Yellow));
+    f.render_widget(input, inner);
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1])[1]
 }
