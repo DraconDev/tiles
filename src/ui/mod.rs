@@ -185,4 +185,5 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
         };
         
         if let Some(status) = app.file_state.git_status.get(path) {
-            display_name.push_str(&format!(" [{}]",
+            display_name.push_str(&format!(" [{}]", status));
+            match status.as_str() {
