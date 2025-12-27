@@ -78,7 +78,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Re
         }
 
         if last_tick.elapsed() >= tick_rate {
-            // Update app state here
+            app.system_module.update(&mut app.system_state);
             last_tick = Instant::now();
         }
     }

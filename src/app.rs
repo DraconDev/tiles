@@ -19,6 +19,8 @@ pub enum LicenseStatus {
     Commercial(String),
 }
 
+use crate::modules::system::SystemModule;
+
 pub struct App {
     pub running: bool,
     pub active_tile: TileType,
@@ -27,6 +29,7 @@ pub struct App {
     pub docker_state: DockerState,
     pub system_state: SystemState,
     pub license: LicenseStatus,
+    pub system_module: SystemModule,
 }
 
 pub struct FileState {
@@ -47,6 +50,14 @@ pub struct SystemState {
 
 impl App {
     pub fn new() -> Self {
+        let mut system_module = SystemModule::new();
+        let mut system_state = SystemState {
+            cpu_usage: 0.0,
+            mem_usage: 0.0,
+            total_mem: 0.0,
+        };
+        system_module.update(&mut system_state);
+
         Self {
             running: true,
             active_tile: TileType::Files,
@@ -59,11 +70,8 @@ impl App {
             docker_state: DockerState {
                 containers: Vec::new(),
             },
-            system_state: SystemState {
-                cpu_usage: 0.0,
-                mem_usage: 0.0,
-                total_mem: 0.0,
-            },
+            system_state,
+            system_module,
             license: LicenseStatus::FreeMode,
         }
     }
