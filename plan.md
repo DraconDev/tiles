@@ -99,4 +99,4 @@ new file option with right click on empty space in files view
 
 we can even have a git view
 
-ctrl 
+ctrl shift 
