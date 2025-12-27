@@ -9,6 +9,7 @@ pub enum AppMode {
     Input,
     Zoomed,
     CommandPalette,
+    Location, // Ctrl+L mode
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -34,6 +35,7 @@ pub struct App {
     pub license: LicenseStatus,
     pub system_module: SystemModule,
     pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
+    pub sidebar_index: usize,
     pub filtered_commands: Vec<CommandItem>,
     pub command_index: usize,
 }
