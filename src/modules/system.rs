@@ -1,4 +1,4 @@
-use sysinfo::{CpuRefreshKind, System};
+use sysinfo::System;
 use crate::app::SystemState;
 
 pub struct SystemModule {

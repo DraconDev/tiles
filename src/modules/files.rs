@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use crate::app::FileState;
 
 pub fn update_files(state: &mut FileState) {
