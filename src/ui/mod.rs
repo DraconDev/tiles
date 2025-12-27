@@ -1,7 +1,7 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph},
+    widgets::{Block, Borders, Clear, Gauge, List, ListItem, Paragraph},
     Frame,
 };
 
@@ -157,17 +157,28 @@ fn draw_system_tile(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(block, area);
 
     if app.system_state.total_mem > 0.0 {
-        let text = vec![
-            format!("CPU: {:>5.1}%", app.system_state.cpu_usage),
-            format!("MEM: {:>5.1} / {:.1} GB ({:.1}%)", 
-                app.system_state.mem_usage, 
-                app.system_state.total_mem,
-                (app.system_state.mem_usage / app.system_state.total_mem) * 100.0
-            ),
-        ];
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3), // CPU
+                Constraint::Length(3), // MEM
+            ])
+            .margin(1)
+            .split(inner);
 
-        let paragraph = Paragraph::new(text.join("\n"));
-        f.render_widget(paragraph, inner);
+        let cpu_gauge = Gauge::default()
+            .block(Block::default().title(" CPU "))
+            .gauge_style(Style::default().fg(Color::Green))
+            .percent(app.system_state.cpu_usage as u16);
+        f.render_widget(cpu_gauge, chunks[0]);
+
+        let mem_percent = (app.system_state.mem_usage / app.system_state.total_mem) * 100.0;
+        let mem_gauge = Gauge::default()
+            .block(Block::default().title(" MEM "))
+            .gauge_style(Style::default().fg(Color::Yellow))
+            .percent(mem_percent as u16)
+            .label(format!("{:.1} / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem));
+        f.render_widget(mem_gauge, chunks[1]);
     }
 }
 
