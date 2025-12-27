@@ -131,6 +131,10 @@ impl App {
         };
         system_module.update(&mut system_state);
 
+use crate::app::FileColumn;
+
+// ...
+
         let mut file_state = FileState {
             current_path: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             selected_index: 0,
@@ -140,6 +144,7 @@ impl App {
             clipboard: None,
             search_filter: String::new(),
             starred: HashSet::new(),
+            columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
         };
         update_files(&mut file_state);
 
