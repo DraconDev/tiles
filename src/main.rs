@@ -247,6 +247,21 @@ async fn run_app<B: Backend>(
 
                 match key.code {
                     KeyCode::Char('q') => app.running = false,
+                    // View Switching Shortcuts
+                    KeyCode::Char('f') => app.current_view = CurrentView::Files,
+                    KeyCode::Char('p') => app.current_view = CurrentView::System,
+                    KeyCode::Char('d') => app.current_view = CurrentView::Docker,
+                    KeyCode::Char('c') => {
+                        app.mode = AppMode::CommandPalette;
+                        app.input.clear();
+                        update_commands(app);
+                    }
+                    
+                    KeyCode::Char('P') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => { // Shift+p or just Ctrl+p (usually captures lowercase)
+                        app.mode = AppMode::CommandPalette;
+                        app.input.clear();
+                        update_commands(app);
+                    }
                     KeyCode::Char('p') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                         app.mode = AppMode::CommandPalette;
                         app.input.clear();
