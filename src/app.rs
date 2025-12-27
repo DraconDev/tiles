@@ -140,8 +140,9 @@ impl App {
         };
         system_module.update(&mut system_state);
 
+        let initial_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let mut file_state = FileState {
-            current_path: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            current_path: initial_path.clone(),
             selected_index: 0,
             table_state: TableState::default(),
             files: Vec::new(),
@@ -151,6 +152,8 @@ impl App {
             search_filter: String::new(),
             starred: HashSet::new(),
             columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
+            history: vec![initial_path],
+            history_index: 0,
         };
         file_state.table_state.select(Some(0));
         update_files(&mut file_state);
