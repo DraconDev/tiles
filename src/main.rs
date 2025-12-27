@@ -396,13 +396,15 @@ async fn run_app<B: Backend>(
                     }
                     KeyCode::Char('x') => {
                         if app.current_view == crate::app::CurrentView::Docker {
-                            if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
-                                if let Some(docker) = &docker_module {
-                                    let docker = docker.clone();
-                                    let name = name.clone();
-                                    tokio::spawn(async move {
-                                        let _ = docker.stop_container(&name).await;
-                                    });
+                            if let Some(container) = app.docker_state.containers.get(app.docker_state.selected_index) {
+                                let name = container.names.as_ref().map(|n| n.first().map(|s| s.as_str()).unwrap_or("")).unwrap_or("").trim_start_matches('/').to_string();
+                                if !name.is_empty() {
+                                    if let Some(docker) = &docker_module {
+                                        let docker = docker.clone();
+                                        tokio::spawn(async move {
+                                            let _ = docker.stop_container(&name).await;
+                                        });
+                                    }
                                 }
                             }
                         }
