@@ -43,6 +43,7 @@ pub struct FileState {
 pub struct DockerState {
     pub containers: Vec<String>,
     pub selected_index: usize,
+    pub filter: Option<String>,
 }
 
 pub struct SystemState {
