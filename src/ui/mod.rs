@@ -261,9 +261,29 @@ fn draw_command_palette(f: &mut Frame, app: &App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Min(0),
+        ])
+        .split(inner);
+
     let input = Paragraph::new(format!("> {}", app.input))
         .style(Style::default().fg(Color::Yellow));
-    f.render_widget(input, inner);
+    f.render_widget(input, chunks[0]);
+
+    let items: Vec<ListItem> = app.filtered_commands.iter().enumerate().map(|(i, cmd)| {
+        let style = if i == app.command_index {
+             Style::default().bg(Color::DarkGray).fg(Color::White)
+        } else {
+             Style::default()
+        };
+        ListItem::new(cmd.label.clone()).style(style)
+    }).collect();
+    
+    let list = List::new(items);
+    f.render_widget(list, chunks[1]);
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
