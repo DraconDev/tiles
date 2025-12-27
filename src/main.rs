@@ -385,11 +385,16 @@ async fn run_app<B: Backend>(
                     }
                     KeyCode::F(2) => {
                         if app.current_view == CurrentView::Files {
-                            if let Some(file_state) = app.current_file_state_mut() {
-                                if let Some(path) = file_state.files.get(file_state.selected_index) {
-                                    app.mode = AppMode::Rename;
-                                    app.input = path.file_name().unwrap_or_default().to_string_lossy().to_string();
-                                }
+                            let name = if let Some(file_state) = app.current_file_state() {
+                                file_state.files.get(file_state.selected_index)
+                                    .map(|path| path.file_name().unwrap_or_default().to_string_lossy().to_string())
+                            } else {
+                                None
+                            };
+                            
+                            if let Some(n) = name {
+                                app.mode = AppMode::Rename;
+                                app.input = n;
                             }
                         }
                     }
