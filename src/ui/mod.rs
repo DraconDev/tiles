@@ -153,13 +153,21 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
 
         let path_text = if matches!(app.mode, AppMode::Location) {
             format!("Location: {}", app.input)
+        } else if !app.file_state.search_filter.is_empty() {
+            format!("Search: {} (Esc to clear)", app.file_state.search_filter)
         } else {
             format!("Path: {}", app.file_state.current_path.display())
         };
 
         let path_bar = Paragraph::new(path_text)
             .block(Block::default().borders(Borders::ALL).border_style(
-                if matches!(app.mode, AppMode::Location) { Style::default().fg(Color::Yellow) } else { Style::default() }
+                if matches!(app.mode, AppMode::Location) { 
+                    Style::default().fg(Color::Yellow) 
+                } else if !app.file_state.search_filter.is_empty() {
+                    Style::default().fg(Color::Magenta)
+                } else { 
+                    Style::default() 
+                }
             ));
         f.render_widget(path_bar, chunks[0]);
 
