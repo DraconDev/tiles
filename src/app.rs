@@ -29,6 +29,14 @@ pub enum LicenseStatus {
     Commercial(String),
 }
 
+pub struct RemoteBookmark {
+    pub name: String,
+    pub host: String,
+    pub user: String,
+    pub port: u16,
+    pub last_path: PathBuf,
+}
+
 pub struct App {
     pub running: bool,
     pub current_view: CurrentView,
@@ -42,6 +50,7 @@ pub struct App {
     pub system_module: SystemModule,
     pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
     pub sidebar_index: usize,
+    pub remote_bookmarks: Vec<RemoteBookmark>,
     pub filtered_commands: Vec<CommandItem>,
     pub command_index: usize,
     pub last_click: Option<(std::time::Instant, u16, u16)>, // time, row, col
