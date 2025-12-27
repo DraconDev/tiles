@@ -12,175 +12,77 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(0),
-            Constraint::Length(1), // Footer
+            Constraint::Length(3), // Tabs + Footer
         ])
         .split(f.area());
 
     let workspace = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Length(12), // Dock
             Constraint::Percentage(20), // Sidebar
             Constraint::Min(0), // Main Stage
         ])
         .split(chunks[0]);
 
-    draw_dock(f, workspace[0], app);
-    draw_sidebar(f, workspace[1], app);
-    draw_main_stage(f, workspace[2], app);
+    draw_sidebar(f, workspace[0], app);
+    draw_main_stage(f, workspace[1], app);
     
-    draw_footer(f, chunks[1], app);
+    draw_bottom_bar(f, chunks[1], app);
 
     if matches!(app.mode, AppMode::CommandPalette) {
         draw_command_palette(f, app);
     }
-
+    
+    // Modals
     if matches!(app.mode, AppMode::Rename) {
         draw_rename_modal(f, app);
     }
-
-    if matches!(app.mode, AppMode::Properties) {
-        draw_properties_modal(f, app);
-    }
-
-    if matches!(app.mode, AppMode::NewFolder) {
-        draw_new_folder_modal(f, app);
-    }
-
     if matches!(app.mode, AppMode::Delete) {
         draw_delete_modal(f, app);
     }
+    if matches!(app.mode, AppMode::Properties) {
+        draw_properties_modal(f, app);
+    }
+    if matches!(app.mode, AppMode::NewFolder) {
+        draw_new_folder_modal(f, app);
+    }
 }
 
-fn draw_delete_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 10, f.area());
-    f.render_widget(Clear, area);
-    let block = Block::default().title(" Confirm Action ").borders(Borders::ALL).border_style(Style::default().fg(Color::Red));
-    let inner = block.inner(area);
-    f.render_widget(block, area);
-    
-    let text = match app.current_view {
-        CurrentView::Files => {
-             if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
-                format!("Delete {}? (y/n)", path.file_name().unwrap_or_default().to_string_lossy())
-            } else {
-                "Delete? (y/n)".to_string()
-            }
-        }
-        CurrentView::System => {
-             if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) {
-                format!("Kill process {} ({})? (y/n)", p.name, p.pid)
-             } else {
-                 "Kill process? (y/n)".to_string()
-             }
-        }
-        CurrentView::Docker => {
-             if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
-                format!("Remove container {}? (y/n)", name)
-             } else {
-                 "Remove container? (y/n)".to_string()
-             }
-        }
-    };
-
-    f.render_widget(Paragraph::new(text), inner);
-}
-
-fn draw_new_folder_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 10, f.area());
-    f.render_widget(Clear, area);
-    let block = Block::default().title(" New Folder ").borders(Borders::ALL).border_style(Style::default().fg(Color::Green));
-    let inner = block.inner(area);
-    f.render_widget(block, area);
-    f.render_widget(Paragraph::new(app.input.as_str()), inner);
-}
-
-fn draw_rename_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 10, f.area());
-    f.render_widget(Clear, area);
-    let block = Block::default().title(" Rename ").borders(Borders::ALL).border_style(Style::default().fg(Color::Yellow));
-    let inner = block.inner(area);
-    f.render_widget(block, area);
-    f.render_widget(Paragraph::new(app.input.as_str()), inner);
-}
-
-fn draw_properties_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(50, 30, f.area());
-    f.render_widget(Clear, area);
-    let block = Block::default().title(" Properties ").borders(Borders::ALL).border_style(Style::default().fg(Color::Cyan));
-    let inner = block.inner(area);
-    f.render_widget(block, area);
-
-    let info = match app.current_view {
-        CurrentView::Files => {
-            if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
-                let metadata = std::fs::metadata(path);
-                let mut s = format!("Name: {}\n", path.file_name().unwrap_or_default().to_string_lossy());
-                s.push_str(&format!("Type: {}\n", if path.is_dir() { "Directory" } else { "File" }));
-                if let Ok(m) = metadata {
-                    s.push_str(&format!("Size: {} bytes\n", m.len()));
-                    if let Ok(modified) = m.modified() {
-                        s.push_str(&format!("Modified: {:?}\n", modified));
-                    }
-                }
-                s
-            } else {
-                "No file selected".to_string()
-            }
-        }
-        CurrentView::System => {
-            if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) {
-                format!("PID: {}\nName: {}\nCPU: {:.2}%\nMemory: {:.2} MB", p.pid, p.name, p.cpu, p.mem as f64 / 1024.0 / 1024.0)
-            } else {
-                "No process selected".to_string()
-            }
-        }
-        CurrentView::Docker => {
-             if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
-                 format!("Container: {}\n\n(Press 'Enter' to inspect details... coming soon)", name)
-             } else {
-                 "No container selected".to_string()
-             }
-        }
-    };
-    
-    f.render_widget(Paragraph::new(info), inner);
-}
-
-fn draw_dock(f: &mut Frame, area: Rect, app: &App) {
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(" Dock ")
-        .border_style(if app.sidebar_focus { Style::default().fg(Color::Cyan) } else { Style::default() });
-    
-    f.render_widget(block, area);
-
-    let inner = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
-    
-    let items = vec![
-        ("Files", CurrentView::Files), 
-        ("Docker", CurrentView::Docker), 
-        ("System", CurrentView::System)
-    ];
-
-    let list_items: Vec<ListItem> = items.iter().map(|(label, view)| {
-        let style = if app.current_view == *view {
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
-        } else {
-            Style::default()
-        };
+fn draw_bottom_bar(f: &mut Frame, area: Rect, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1), // Tabs
+            Constraint::Length(1), // Hints
+            Constraint::Length(1), // Spacing/Border
+        ])
+        .split(area);
         
-        let prefix = if app.current_view == *view && app.sidebar_focus {
-            "> "
+    draw_tabs(f, chunks[0], app);
+    draw_footer(f, chunks[1], app);
+}
+
+fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
+    let tabs = vec![" [F]iles ", " [C]onsole ", " [P]rocesses ", " [D]ocker "];
+    let mode_str = match app.current_view {
+        CurrentView::Files => " [F]iles ",
+        CurrentView::System => " [P]rocesses ",
+        CurrentView::Docker => " [D]ocker ",
+    };
+    
+    let mut spans = Vec::new();
+    for tab in tabs {
+        let style = if tab == mode_str || (tab == " [C]onsole " && matches!(app.mode, AppMode::CommandPalette)) {
+            Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD)
         } else {
-            "  "
+            Style::default().fg(Color::DarkGray)
         };
-
-        ListItem::new(format!("{}{}", prefix, label)).style(style)
-    }).collect();
-
-    let list = List::new(list_items);
-    f.render_widget(list, inner);
+        spans.push(ratatui::text::Span::styled(tab, style));
+        spans.push(ratatui::text::Span::raw(" "));
+    }
+    
+    let p = Paragraph::new(ratatui::text::Line::from(spans));
+    f.render_widget(p, area);
 }
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
@@ -352,7 +254,7 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
         let prefix = if i == app.system_state.selected_process_index && !app.sidebar_focus { "> " } else { "  " };
         
         ListItem::new(format!(
-            "{}{:<6} {:<20} {:.1}%  {:.1} MB", 
+            "{}{} {:<20} {:.1}%  {:.1} MB", 
             prefix,
             p.pid, 
             p.name.chars().take(20).collect::<String>(), 
@@ -443,6 +345,101 @@ fn draw_command_palette(f: &mut Frame, app: &App) {
     
     let list = List::new(items);
     f.render_widget(list, chunks[1]);
+}
+
+fn draw_rename_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(40, 10, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default().title(" Rename ").borders(Borders::ALL).border_style(Style::default().fg(Color::Yellow));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+    f.render_widget(Paragraph::new(app.input.as_str()), inner);
+}
+
+fn draw_delete_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(40, 10, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default().title(" Confirm Action ").borders(Borders::ALL).border_style(Style::default().fg(Color::Red));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+    
+    let text = match app.current_view {
+        CurrentView::Files => {
+             if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+                format!("Delete {}? (y/n)", path.file_name().unwrap_or_default().to_string_lossy())
+            } else {
+                "Delete? (y/n)".to_string()
+            }
+        }
+        CurrentView::System => {
+             if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) {
+                format!("Kill process {} ({})? (y/n)", p.name, p.pid)
+             } else {
+                 "Kill process? (y/n)".to_string()
+             }
+        }
+        CurrentView::Docker => {
+             if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
+                format!("Remove container {}? (y/n)", name)
+             } else {
+                 "Remove container? (y/n)".to_string()
+             }
+        }
+    };
+
+    f.render_widget(Paragraph::new(text), inner);
+}
+
+fn draw_properties_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(50, 30, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default().title(" Properties ").borders(Borders::ALL).border_style(Style::default().fg(Color::Cyan));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let info = match app.current_view {
+        CurrentView::Files => {
+            if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+                let metadata = std::fs::metadata(path);
+                let mut s = format!("Name: {}
+", path.file_name().unwrap_or_default().to_string_lossy());
+                s.push_str(&format!("Type: {}
+", if path.is_dir() { "Directory" } else { "File" }));
+                if let Ok(m) = metadata {
+                    s.push_str(&format!("Size: {} bytes
+", m.len()));
+                    if let Ok(modified) = m.modified() {
+                        s.push_str(&format!("Modified: {:?}
+", modified));
+                    }
+                }
+                s
+            } else {
+                "No file selected".to_string()
+            }
+        }
+        CurrentView::System => {
+            if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) {
+                format!("PID: {}
+Name: {}
+CPU: {:.2}%
+Memory: {:.2} MB", p.pid, p.name, p.cpu, p.mem as f64 / 1024.0 / 1024.0)
+            } else {
+                "No process selected".to_string()
+            }
+        }
+        CurrentView::Docker => {
+             if let Some(name) = app.docker_state.containers.get(app.docker_state.selected_index) {
+                 format!("Container: {}
+
+(Press 'Enter' to inspect details... coming soon)", name)
+             } else {
+                 "No container selected".to_string()
+             }
+        }
+    };
+    
+    f.render_widget(Paragraph::new(info), inner);
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
