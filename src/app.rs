@@ -115,6 +115,7 @@ impl App {
             selected_index: 0,
             files: Vec::new(),
             show_hidden: false,
+            git_status: HashMap::new(),
         };
         update_files(&mut file_state);
 
