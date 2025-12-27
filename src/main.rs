@@ -142,6 +142,16 @@ async fn run_app<B: Backend>(
 
                             if btn == MouseButton::Right { app.mode = AppMode::ContextMenu(mouse.column, mouse.row); continue; }
                             
+                            // Back / Forward Buttons
+                            if btn == MouseButton::Back {
+                                if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); }
+                                continue;
+                            }
+                            if btn == MouseButton::Forward {
+                                if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); }
+                                continue;
+                            }
+
                             if btn == MouseButton::Middle {
                                 if app.current_view == CurrentView::Files {
                                     let index = fs_mouse_index(mouse.row, app);
@@ -155,7 +165,8 @@ async fn run_app<B: Backend>(
                                                     columns: fs.columns.clone(), history: vec![path], history_index: 0,
                                                 };
                                                 crate::modules::files::update_files(&mut new_fs);
-                                                app.file_tabs.push(new_fs); app.tab_index = app.file_tabs.len() - 1;
+                                                app.file_tabs.push(new_fs);
+                                                // Nautilus usually stays on current tab
                                             }
                                         }
                                     }
@@ -219,16 +230,16 @@ async fn run_app<B: Backend>(
                         MouseEventKind::ScrollUp => {
                             if app.current_view == CurrentView::Files {
                                 if let Some(fs) = app.current_file_state_mut() {
-                                    let new_offset = fs.table_state.offset().saturating_sub(3);
-                                    *fs.table_state.offset_mut() = new_offset;
+                                    for _ in 0..3 { if fs.selected_index > 0 { fs.selected_index -= 1; } }
+                                    fs.table_state.select(Some(fs.selected_index));
                                 }
                             } else { app.move_up(); update_docker_filter(app); }
                         }
                         MouseEventKind::ScrollDown => {
                             if app.current_view == CurrentView::Files {
                                 if let Some(fs) = app.current_file_state_mut() {
-                                    let new_offset = fs.table_state.offset().saturating_add(3);
-                                    *fs.table_state.offset_mut() = new_offset;
+                                    for _ in 0..3 { if fs.selected_index < fs.files.len().saturating_sub(1) { fs.selected_index += 1; } }
+                                    fs.table_state.select(Some(fs.selected_index));
                                 }
                             } else { app.move_down(); update_docker_filter(app); }
                         }
