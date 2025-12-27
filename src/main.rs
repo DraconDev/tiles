@@ -281,9 +281,10 @@ async fn run_app<B: Backend>(
 
                         // Nautilus Actions
                         KeyCode::Char('l') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
-                            if let Some(file_state) = app.current_file_state() {
+                            let path_opt = app.current_file_state().map(|fs| fs.current_path.to_string_lossy().to_string());
+                            if let Some(path_str) = path_opt {
                                 app.mode = AppMode::Location;
-                                app.input = file_state.current_path.to_string_lossy().to_string();
+                                app.input = path_str;
                             }
                         }
                         KeyCode::Char('h') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
