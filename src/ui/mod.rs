@@ -34,6 +34,45 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::CommandPalette) {
         draw_command_palette(f, app);
     }
+
+    if matches!(app.mode, AppMode::Rename) {
+        draw_rename_modal(f, app);
+    }
+
+    if matches!(app.mode, AppMode::Properties) {
+        draw_properties_modal(f, app);
+    }
+}
+
+fn draw_rename_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(40, 10, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default().title(" Rename ").borders(Borders::ALL).border_style(Style::default().fg(Color::Yellow));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+    f.render_widget(Paragraph::new(app.input.as_str()), inner);
+}
+
+fn draw_properties_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(50, 30, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default().title(" Properties ").borders(Borders::ALL).border_style(Style::default().fg(Color::Cyan));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
+        let metadata = std::fs::metadata(path);
+        let mut info = format!("Name: {}\n", path.file_name().unwrap_or_default().to_string_lossy());
+        info.push_str(&format!("Type: {}\n", if path.is_dir() { "Directory" } else { "File" }));
+        
+        if let Ok(m) = metadata {
+            info.push_str(&format!("Size: {} bytes\n", m.len()));
+            if let Ok(modified) = m.modified() {
+                info.push_str(&format!("Modified: {:?}\n", modified));
+            }
+        }
+        f.render_widget(Paragraph::new(info), inner);
+    }
 }
 
 fn draw_dock(f: &mut Frame, area: Rect, app: &App) {

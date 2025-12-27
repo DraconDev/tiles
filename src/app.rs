@@ -12,6 +12,7 @@ pub enum AppMode {
     Location, // Ctrl+L mode
     Rename,   // F2 mode
     Properties, // Alt+Enter mode
+    NewFolder,  // Ctrl+Shift+N mode
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
