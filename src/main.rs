@@ -35,7 +35,7 @@ async fn main() -> color_eyre::Result<()> {
     let mut app = App::new();
 
     // Setup Docker channel
-    let (tx, mut rx) = mpsc::channel(10);
+    let (tx, rx) = mpsc::channel(10);
     let docker_module = DockerModule::new().ok();
 
     if let Some(docker) = docker_module {

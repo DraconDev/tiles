@@ -26,12 +26,14 @@ fn draw_main(f: &mut Frame, area: Rect, app: &mut App) {
             .borders(Borders::ALL)
             .title(format!(" {:?} (Zoomed) ", app.active_tile))
             .border_style(Style::default().fg(Color::Yellow));
+        
+        let inner_area = block.inner(area);
         f.render_widget(block, area);
         
         match app.active_tile {
-            TileType::Files => draw_file_tile(f, block.inner(area), app),
-            TileType::System => draw_system_tile(f, block.inner(area), app),
-            TileType::Docker => draw_docker_tile(f, block.inner(area), app),
+            TileType::Files => draw_file_tile(f, inner_area, app),
+            TileType::System => draw_system_tile(f, inner_area, app),
+            TileType::Docker => draw_docker_tile(f, inner_area, app),
             _ => {}
         }
         return;
