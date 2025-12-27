@@ -73,6 +73,7 @@ pub struct FileState {
     pub show_hidden: bool,
     pub git_status: HashMap<PathBuf, String>,
     pub clipboard: Option<(PathBuf, ClipboardOp)>,
+    pub search_filter: String,
 }
 
 use bollard::models::ContainerSummary;
