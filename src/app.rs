@@ -217,6 +217,7 @@ impl App {
                 if let Some(file_state) = self.current_file_state_mut() {
                     if file_state.selected_index > 0 {
                         file_state.selected_index -= 1;
+                        file_state.table_state.select(Some(file_state.selected_index));
                     }
                 }
             }
