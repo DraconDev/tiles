@@ -108,9 +108,77 @@ async fn run_app<B: Backend>(
             .checked_sub(last_tick.elapsed())
             .unwrap_or_else(|| Duration::from_secs(0));
 
+use crossterm::event::MouseEventKind;
+
+// ...
+
         if crossterm::event::poll(timeout)? {
-            if let Event::Key(key) = crossterm::event::read()? {
-                if matches!(app.mode, AppMode::Location) {
+            match crossterm::event::read()? {
+                Event::Mouse(mouse) => {
+                    if mouse.kind == MouseEventKind::Down(crossterm::event::MouseButton::Left) {
+                        // Basic hit testing based on layout assumptions (fragile but functional for MVP)
+                        let (cols, rows) = terminal.size().map(|s| (s.width, s.height)).unwrap_or((0, 0));
+                        
+                        // Tab Bar (Top Row)
+                        if mouse.row == 0 {
+                            // Rough hit testing for tabs
+                            if mouse.column < 10 { app.current_view = CurrentView::Files; }
+                            else if mouse.column < 20 { app.current_view = CurrentView::System; }
+                            else if mouse.column < 30 { app.current_view = CurrentView::Docker; }
+                            else if mouse.column < 45 { 
+                                app.mode = AppMode::CommandPalette;
+                                app.input.clear();
+                                update_commands(app);
+                            }
+                        }
+                        // Sidebar vs Main Stage
+                        else if mouse.row < rows - 1 { // Exclude footer
+                            let sidebar_width = (cols as f32 * 0.2) as u16;
+                            
+                            if mouse.column < sidebar_width {
+                                // Sidebar click
+                                app.sidebar_focus = true;
+                                // Calculate index based on row (offset by 1 for tab bar + 1 for border)
+                                let index = mouse.row.saturating_sub(2) as usize;
+                                // Simple clamp for MVP
+                                if index < 4 { 
+                                    app.sidebar_index = index;
+                                    // Trigger navigation if double click? Or just select.
+                                    // For now just focus and select.
+                                }
+                            } else {
+                                // Main Stage click
+                                app.sidebar_focus = false;
+                                // Calculate list index
+                                // Offset: Tab(1) + PathBar(3) + Header(1) = 5 roughly
+                                // This depends heavily on view.
+                                if app.current_view == CurrentView::Files {
+                                    let list_start_row = if app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) || matches!(app.mode, AppMode::Location) { 
+                                        5 // With Path Bar
+                                    } else {
+                                        5 // Still 5? Tab(1) + Border(1) + PathBar(3)? 
+                                        // Layout in ui/mod.rs: 
+                                        // Tabs(1)
+                                        //   Sidebar | Main
+                                        //     Main: PathBar(3) + List
+                                        // List starts at row 4? (0-based: 0=Tabs, 1=PathBar, 2=PathBar, 3=PathBar, 4=ListHeader, 5=ListItems)
+                                        // Let's assume list items start at row 6.
+                                        6
+                                    };
+                                    
+                                    let index = mouse.row.saturating_sub(list_start_row) as usize;
+                                    if let Some(file_state) = app.current_file_state_mut() {
+                                        if index < file_state.files.len() {
+                                            file_state.selected_index = index;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Event::Key(key) => {
+                    if matches!(app.mode, AppMode::Location) {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
                         KeyCode::Char(c) => app.input.push(c),
