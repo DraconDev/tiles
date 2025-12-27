@@ -213,7 +213,7 @@ async fn run_app<B: Backend>(
                                 }
                             }
                         }
-                        MouseEventKind::ScrollUp => { // ... same logic ...
+                        MouseEventKind::ScrollUp => {
                             if app.current_view == CurrentView::Files {
                                 if let Some(fs) = app.current_file_state_mut() {
                                     let new_offset = fs.table_state.offset().saturating_sub(3);
