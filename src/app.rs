@@ -3,11 +3,10 @@ use crate::modules::system::SystemModule;
 use crate::modules::files::update_files;
 use crate::license::check_license;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum AppMode {
     Normal,
     Zoomed,
-    CommandPalette,
     Location, // Ctrl+L mode
     Rename,   // F2 mode
     Properties, // Alt+Enter mode
@@ -41,8 +40,6 @@ pub struct App {
     pub system_module: SystemModule,
     pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
     pub sidebar_index: usize,
-    pub filtered_commands: Vec<CommandItem>,
-    pub command_index: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -165,17 +162,13 @@ impl App {
             license,
             sidebar_focus: false,
             sidebar_index: 0,
-            filtered_commands: Vec::new(),
-            command_index: 0,
         }
     }
 
-    // Helper to get mutable reference to current file state
     pub fn current_file_state_mut(&mut self) -> Option<&mut FileState> {
         self.file_tabs.get_mut(self.tab_index)
     }
 
-    // Helper to get reference to current file state
     pub fn current_file_state(&self) -> Option<&FileState> {
         self.file_tabs.get(self.tab_index)
     }
@@ -204,7 +197,6 @@ impl App {
                     }
                 }
                 _ => {
-                    // In Dock, moving up cycles views backwards
                     self.current_view = match self.current_view {
                         CurrentView::Files => CurrentView::Docker,
                         CurrentView::Docker => CurrentView::System,
@@ -240,12 +232,11 @@ impl App {
         if self.sidebar_focus {
             match self.current_view {
                 CurrentView::Files => {
-                    if self.sidebar_index < 3 { // Hardcoded for Home, Downloads, Documents, Pictures
+                    if self.sidebar_index < 3 {
                         self.sidebar_index += 1;
                     }
                 }
                 _ => {
-                    // In Dock, moving down cycles views
                     self.switch_view();
                 }
             }
