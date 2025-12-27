@@ -1,5 +1,6 @@
 use bollard::Docker;
 use bollard::container::ListContainersOptions;
+use bollard::models::ContainerSummary;
 use std::default::Default;
 
 pub struct DockerModule {
@@ -11,8 +12,6 @@ impl DockerModule {
         let docker = Docker::connect_with_local_defaults()?;
         Ok(Self { docker })
     }
-
-use bollard::models::ContainerSummary;
 
     pub async fn get_containers(&self) -> color_eyre::Result<Vec<ContainerSummary>> {
         let options = Some(ListContainersOptions::<String> {
