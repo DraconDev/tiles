@@ -103,4 +103,4 @@ we want icons too, bake it into the ui if that is best
 
 also show more information about the files in the file manager, and allow us to customise it 
 
-is there a way to use it with ssh in a way we dont have to install on the target system, and we can just use it as a remote file manager? , not sure this might have to be a new tab or just build it into the files section, its probably best
+is there a way to use it with ssh in a way we dont have to install on the target system, and we can just use it as a remote file manager? , not sure this might have to be a new tab or just build it into the files section, its probably best, so we can open other system like 
