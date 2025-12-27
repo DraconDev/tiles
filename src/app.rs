@@ -105,4 +105,60 @@ impl App {
             _ => AppMode::Zoomed,
         };
     }
+
+    pub fn move_up(&mut self) {
+        match self.active_tile {
+            TileType::Files => {
+                if self.file_state.selected_index > 0 {
+                    self.file_state.selected_index -= 1;
+                }
+            }
+            TileType::Docker => {
+                if self.docker_state.selected_index > 0 {
+                    self.docker_state.selected_index -= 1;
+                } else {
+                    self.active_tile = TileType::System;
+                }
+            }
+            TileType::System => {}
+            _ => {}
+        }
+    }
+
+    pub fn move_down(&mut self) {
+        match self.active_tile {
+            TileType::Files => {
+                if self.file_state.selected_index < self.file_state.files.len().saturating_sub(1) {
+                    self.file_state.selected_index += 1;
+                }
+            }
+            TileType::System => {
+                self.active_tile = TileType::Docker;
+            }
+            TileType::Docker => {
+                if self.docker_state.selected_index < self.docker_state.containers.len().saturating_sub(1) {
+                    self.docker_state.selected_index += 1;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    pub fn move_left(&mut self) {
+        match self.active_tile {
+            TileType::System | TileType::Docker => {
+                self.active_tile = TileType::Files;
+            }
+            _ => {}
+        }
+    }
+
+    pub fn move_right(&mut self) {
+        match self.active_tile {
+            TileType::Files => {
+                self.active_tile = TileType::System;
+            }
+            _ => {}
+        }
+    }
 }
