@@ -59,11 +59,14 @@ pub enum CommandAction {
     StopContainer(String),
 }
 
+use std::collections::HashMap;
+
 pub struct FileState {
     pub current_path: PathBuf,
     pub selected_index: usize,
     pub files: Vec<PathBuf>,
     pub show_hidden: bool,
+    pub git_status: HashMap<PathBuf, String>,
 }
 
 pub struct DockerState {
