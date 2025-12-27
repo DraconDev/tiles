@@ -53,8 +53,8 @@ fn draw_bottom_bar(f: &mut Frame, area: Rect, app: &App) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(1), // Tabs
-            Constraint::Length(1), // Hints
-            Constraint::Length(1), // Spacing/Border
+            Constraint::Length(1), // Footer/Hints
+            Constraint::Length(1), // Empty
         ])
         .split(area);
         
@@ -63,22 +63,50 @@ fn draw_bottom_bar(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
-    let tabs = vec![" [^F]iles ", " [^P]rocesses ", " [^D]ocker "];
-    let mode_str = match app.current_view {
-        CurrentView::Files => " [^F]iles ",
-        CurrentView::System => " [^P]rocesses ",
-        CurrentView::Docker => " [^D]ocker ",
-    };
-    
     let mut spans = Vec::new();
-    for tab in tabs {
-        let style = if tab == mode_str {
+    
+    // Main View Tabs
+    let views = vec![ 
+        ("^F Files", CurrentView::Files), 
+        ("^P Proc", CurrentView::System), 
+        ("^D Docker", CurrentView::Docker)
+    ];
+    
+    for (label, view) in views {
+        let style = if app.current_view == view {
             Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(Color::DarkGray)
         };
-        spans.push(ratatui::text::Span::styled(tab, style));
+        spans.push(ratatui::text::Span::styled(format!(" {} ", label), style));
         spans.push(ratatui::text::Span::raw(" "));
+    }
+
+    // Console Tab
+    let console_style = if matches!(app.mode, AppMode::CommandPalette) {
+        Style::default().fg(Color::Black).bg(Color::Magenta).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::DarkGray)
+    };
+    spans.push(ratatui::text::Span::styled(" ^. Console ", console_style));
+    spans.push(ratatui::text::Span::raw(" | "));
+
+    // File Tabs (if in Files view)
+    if app.current_view == CurrentView::Files {
+        for (i, tab) in app.file_tabs.iter().enumerate() {
+            let name = tab.current_path.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "/".to_string());
+            
+            let style = if i == app.tab_index {
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED)
+            } else {
+                Style::default().fg(Color::Gray)
+            };
+            
+            spans.push(ratatui::text::Span::styled(format!("[{}]"), style));
+            spans.push(ratatui::text::Span::raw(" "));
+        }
     }
     
     let p = Paragraph::new(ratatui::text::Line::from(spans));
@@ -114,10 +142,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                 ListItem::new("  All"),
                 ListItem::new("  Running").style(Style::default().fg(Color::Green)),
                 ListItem::new("  Stopped").style(Style::default().fg(Color::Red)),
-                ListItem::new(""),
-                ListItem::new("Images"),
-                ListItem::new("Volumes"),
-                ListItem::new("Networks"),
             ];
             f.render_widget(List::new(items), inner);
         },
@@ -126,7 +150,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                 ListItem::new("Overview").style(Style::default().add_modifier(Modifier::BOLD)),
                 ListItem::new("Processes"),
                 ListItem::new("Disks"),
-                ListItem::new("Network"),
             ];
             f.render_widget(List::new(items), inner);
         }
@@ -143,35 +166,37 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(block, area);
 
     if app.current_view == CurrentView::Files {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3), // Path Bar
-                Constraint::Min(0),    // File List
-            ])
-            .split(inner);
+        if let Some(file_state) = app.current_file_state() {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3), // Path Bar
+                    Constraint::Min(0),    // File List
+                ])
+                .split(inner);
 
-        let path_text = if matches!(app.mode, AppMode::Location) {
-            format!("Location: {}", app.input)
-        } else if !app.file_state.search_filter.is_empty() {
-            format!("Search: {} (Esc to clear)", app.file_state.search_filter)
-        } else {
-            format!("Path: {}", app.file_state.current_path.display())
-        };
+            let path_text = if matches!(app.mode, AppMode::Location) {
+                format!("Location: {}", app.input)
+            } else if !file_state.search_filter.is_empty() {
+                format!("Search: {} (Esc to clear)", file_state.search_filter)
+            } else {
+                format!("Path: {}", file_state.current_path.display())
+            };
 
-        let path_bar = Paragraph::new(path_text)
-            .block(Block::default().borders(Borders::ALL).border_style(
-                if matches!(app.mode, AppMode::Location) { 
-                    Style::default().fg(Color::Yellow) 
-                } else if !app.file_state.search_filter.is_empty() {
-                    Style::default().fg(Color::Magenta)
-                } else { 
-                    Style::default() 
-                }
-            ));
-        f.render_widget(path_bar, chunks[0]);
+            let path_bar = Paragraph::new(path_text)
+                .block(Block::default().borders(Borders::ALL).border_style(
+                    if matches!(app.mode, AppMode::Location) { 
+                        Style::default().fg(Color::Yellow) 
+                    } else if !file_state.search_filter.is_empty() {
+                        Style::default().fg(Color::Magenta)
+                    } else { 
+                        Style::default() 
+                    }
+                ));
+            f.render_widget(path_bar, chunks[0]);
 
-        draw_file_view(f, chunks[1], app);
+            draw_file_view(f, chunks[1], app);
+        }
     } else {
         match app.current_view {
             CurrentView::System => draw_system_view(f, inner, app),
@@ -182,59 +207,45 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_file_view(f: &mut Frame, area: Rect, app: &App) {
-    let items: Vec<ListItem> = app.file_state.files.iter().enumerate().map(|(i, path)| {
-        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
-        let mut display_name = name.to_string();
+    if let Some(file_state) = app.current_file_state() {
+        let items: Vec<ListItem> = file_state.files.iter().enumerate().map(|(i, path)| {
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
+            let mut display_name = name.to_string();
 
-        let mut style = if path.is_dir() {
-            Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)
-        } else {
-            Style::default()
-        };
-        
-                if let Some(status) = app.file_state.git_status.get(path) {
-        
-                    display_name.push_str(&format!(" [{}]", status));
-        
-                    match status.as_str() {
-        
-                        "M" | "MM" => style = style.fg(Color::Yellow),
-        
-                        "A" | "AM" => style = style.fg(Color::Green),
-        
-                        "??" => style = style.fg(Color::DarkGray),
-        
-                        "D" => style = style.fg(Color::Red),
-        
-                        _ => {}
-        
-                    }
-        
+            let mut style = if path.is_dir() {
+                Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
+            
+            if let Some(status) = file_state.git_status.get(path) {
+                display_name.push_str(&format!(" [{}]"), status));
+                match status.as_str() {
+                    "M" | "MM" => style = style.fg(Color::Yellow),
+                    "A" | "AM" => style = style.fg(Color::Green),
+                    "??" => style = style.fg(Color::DarkGray),
+                    "D" => style = style.fg(Color::Red),
+                    _ => {}
                 }
-        
-        
-        
-                if app.file_state.starred.contains(path) {
-        
-                    display_name.push_str(" [*]");
-        
-                    style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD);
-        
-                }
-        
-                
-        
-                let prefix = if i == app.file_state.selected_index && !app.sidebar_focus {
-            "> "
-        } else {
-            "  "
-        };
+            }
 
-        ListItem::new(format!("{}{}", prefix, display_name)).style(style)
-    }).collect();
+            if file_state.starred.contains(path) {
+                display_name.push_str(" [*]");
+                style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD);
+            }
+            
+            let prefix = if i == file_state.selected_index && !app.sidebar_focus {
+                "> "
+            } else {
+                "  "
+            };
 
-    let list = List::new(items);
-    f.render_widget(list, area);
+            ListItem::new(format!("{}{}", prefix, display_name)).style(style)
+        }).collect();
+
+        let list = List::new(items);
+        f.render_widget(list, area);
+    }
 }
 
 fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
@@ -271,7 +282,6 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     let disk_items: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let percent = (disk.used_space / disk.total_space) * 100.0;
         
-        // Create a visual bar for the disk
         let bar_width: usize = 20;
         let filled = (percent / 100.0 * bar_width as f64) as usize;
         let empty = bar_width.saturating_sub(filled);
@@ -300,7 +310,7 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
             prefix,
             p.pid, 
             p.name.chars().take(20).collect::<String>(), 
-            p.cpu, 
+            p.cpu,
             p.mem as f64 / 1024.0 / 1024.0
         )).style(style)
     }).collect();
@@ -331,7 +341,7 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
             } else {
                 "  "
             };
-            ListItem::new(format!("{}{:<20} {:<10} {}", prefix, name, state, status)).style(style)
+            ListItem::new(format!("{}{:<20} {:<10} {}"), prefix, name, state, status)).style(style)
     }).collect();
 
     let list = List::new(items);
@@ -339,31 +349,32 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
-    let text = match &app.license {
-        LicenseStatus::FreeMode => {
-            let mut s = " Ctrl+.: Console | Ctrl+H: Hidden | Ctrl+B: Star | Ctrl+T: New Win | Del: Delete | Tiles Free ".to_string();
-            // Add disk usage info if available
-            if let Some(disk) = app.system_state.disks.first() {
-                 s.push_str(&format!("| Disk: {:.1}/{:.1} GB ", disk.used_space, disk.total_space));
-            }
-            s
-        }
-        LicenseStatus::Commercial(company) => {
-            let mut s = format!(" Ctrl+.: Console | Ctrl+H: Hidden | Ctrl+B: Star | Ctrl+T: New Win | Del: Delete | Licensed to {} ", company);
-             if let Some(disk) = app.system_state.disks.first() {
-                 s.push_str(&format!("| Disk: {:.1}/{:.1} GB ", disk.used_space, disk.total_space));
-            }
-            s
-        }
-    };
+    let mut spans = Vec::new();
+    
+    spans.push(ratatui::text::Span::styled("^H", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" Hidden | "));
+    
+    spans.push(ratatui::text::Span::styled("^B", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" Star | "));
+    
+    spans.push(ratatui::text::Span::styled("^T", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" New Tab | "));
+    
+    spans.push(ratatui::text::Span::styled("^W", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" Close | "));
+    
+    spans.push(ratatui::text::Span::styled("Del", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" Action "));
 
-    let style = if matches!(app.license, LicenseStatus::FreeMode) {
-        Style::default().fg(Color::DarkGray)
-    } else {
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
-    };
+    if let Some(disk) = app.system_state.disks.first() {
+        spans.push(ratatui::text::Span::raw(" | Storage: "));
+        spans.push(ratatui::text::Span::styled(
+            format!("{:.1}/{:.1} GB", disk.total_space - disk.used_space, disk.total_space),
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+        ));
+    }
 
-    let footer = Paragraph::new(text).style(style);
+    let footer = Paragraph::new(ratatui::text::Line::from(spans));
     f.render_widget(footer, area);
 }
 
@@ -387,7 +398,7 @@ fn draw_command_palette(f: &mut Frame, app: &App) {
         ])
         .split(inner);
 
-    let input = Paragraph::new(format!("> {}", app.input))
+    let input = Paragraph::new(format!("> {}"), app.input)
         .style(Style::default().fg(Color::Yellow));
     f.render_widget(input, chunks[0]);
 
@@ -422,11 +433,15 @@ fn draw_delete_modal(f: &mut Frame, app: &App) {
     
     let text = match app.current_view {
         CurrentView::Files => {
-             if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
-                format!("Delete {}? (y/n)", path.file_name().unwrap_or_default().to_string_lossy())
-            } else {
-                "Delete? (y/n)".to_string()
-            }
+             if let Some(file_state) = app.current_file_state() {
+                 if let Some(path) = file_state.files.get(file_state.selected_index) {
+                    format!("Delete {}? (y/n)", path.file_name().unwrap_or_default().to_string_lossy())
+                } else {
+                    "Delete? (y/n)".to_string()
+                }
+             } else {
+                 "Delete? (y/n)".to_string()
+             }
         }
         CurrentView::System => {
              if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) {
@@ -457,21 +472,25 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
 
     let info = match app.current_view {
         CurrentView::Files => {
-            if let Some(path) = app.file_state.files.get(app.file_state.selected_index) {
-                let metadata = std::fs::metadata(path);
-                let mut s = format!("Name: {}
+            if let Some(file_state) = app.current_file_state() {
+                if let Some(path) = file_state.files.get(file_state.selected_index) {
+                    let metadata = std::fs::metadata(path);
+                    let mut s = format!("Name: {}
 ", path.file_name().unwrap_or_default().to_string_lossy());
-                s.push_str(&format!("Type: {}
+                    s.push_str(&format!("Type: {}
 ", if path.is_dir() { "Directory" } else { "File" }));
-                if let Ok(m) = metadata {
-                    s.push_str(&format!("Size: {} bytes
+                    if let Ok(m) = metadata {
+                        s.push_str(&format!("Size: {} bytes
 ", m.len()));
-                    if let Ok(modified) = m.modified() {
-                        s.push_str(&format!("Modified: {:?}
+                        if let Ok(modified) = m.modified() {
+                            s.push_str(&format!("Modified: {:?}
 ", modified));
+                        }
                     }
+                    s
+                } else {
+                    "No file selected".to_string()
                 }
-                s
             } else {
                 "No file selected".to_string()
             }
