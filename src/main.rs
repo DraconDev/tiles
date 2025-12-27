@@ -104,8 +104,27 @@ async fn run_app<B: Backend>(
 
         if crossterm::event::poll(timeout)? {
             if let Event::Key(key) = crossterm::event::read()? {
+                if matches!(app.mode, AppMode::CommandPalette) {
+                    match key.code {
+                        KeyCode::Esc => app.mode = AppMode::Normal,
+                        KeyCode::Char(c) => app.input.push(c),
+                        KeyCode::Backspace => { app.input.pop(); }
+                        KeyCode::Enter => {
+                            // TODO: Execute command
+                            app.mode = AppMode::Normal;
+                            app.input.clear();
+                        }
+                        _ => {}
+                    }
+                    continue;
+                }
+
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
+                    KeyCode::Char('p') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
+                        app.mode = AppMode::CommandPalette;
+                        app.input.clear();
+                    }
                     KeyCode::Tab => app.next_tile(),
                     KeyCode::Char('j') | KeyCode::Down => {
                         if app.active_tile == crate::app::TileType::Files {
