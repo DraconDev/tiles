@@ -233,14 +233,38 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
 
     // Console Shortcut
     let console_key_style = if matches!(app.mode, AppMode::CommandPalette) {
-    spans.push(ratatui::text::Span::styled("^.", console_style)); spans.push(ratatui::text::Span::raw(" Console | "));
-    spans.push(ratatui::text::Span::styled("^H", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Hidden | "));
-    spans.push(ratatui::text::Span::styled("^B", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Star | "));
-    spans.push(ratatui::text::Span::styled("^T", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" New Tab | "));
-    spans.push(ratatui::text::Span::styled("^W", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Close Tab | "));
-    spans.push(ratatui::text::Span::styled("Del", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Action "));
-    if let Some(disk) = app.system_state.disks.first() { spans.push(ratatui::text::Span::raw(" | Storage: ")); spans.push(ratatui::text::Span::styled(format!("{:.1}/{:.1} GB", disk.total_space - disk.used_space, disk.total_space), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))); }
-    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
+        Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::Yellow)
+    };
+    spans.push(ratatui::text::Span::styled("^.", console_key_style));
+    spans.push(ratatui::text::Span::raw(" Console | "));
+
+    spans.push(ratatui::text::Span::styled("^H", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" Hidden | "));
+    
+    spans.push(ratatui::text::Span::styled("^B", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" Star | "));
+    
+    spans.push(ratatui::text::Span::styled("^T", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" New Tab | "));
+    
+    spans.push(ratatui::text::Span::styled("^W", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" Close Tab | "));
+    
+    spans.push(ratatui::text::Span::styled("Del", Style::default().fg(Color::Yellow)));
+    spans.push(ratatui::text::Span::raw(" Action "));
+
+    if let Some(disk) = app.system_state.disks.first() {
+        spans.push(ratatui::text::Span::raw(" | Storage: "));
+        spans.push(ratatui::text::Span::styled(
+            format!("{:.1}/{:.1} GB", disk.total_space - disk.used_space, disk.total_space),
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+        ));
+    }
+
+    let footer = Paragraph::new(ratatui::text::Line::from(spans));
+    f.render_widget(footer, area);
 }
 
 fn draw_command_palette(f: &mut Frame, app: &App) {
@@ -282,14 +306,11 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
     let info = match app.current_view {
         CurrentView::Files => if let Some(fs) = app.current_file_state() { if let Some(p) = fs.files.get(fs.selected_index) { let metadata = std::fs::metadata(p); let mut s = format!("Name: {}
 ", p.file_name().unwrap_or_default().to_string_lossy()); s.push_str(&format!("Type: {}
-", if p.is_dir() { "Directory" } else { "File" })); if let Ok(m) = metadata { s.push_str(&format!("Size: {} bytes
-", m.len())); if let Ok(modi) = m.modified() { s.push_str(&format!("Modified: {:?}
-", modi)); } } s } else { "No file selected".to_string() } } else { "No file selected".to_string() },
+", if p.is_dir() { "Directory" } else { "File" })); if let Ok(m) = metadata { s.push_str(&format!("Size: {} bytes\n", m.len())); if let Ok(modi) = m.modified() { s.push_str(&format!("Modified: {:?}\n", modi)); } } s } else { "No file selected".to_string() } } else { "No file selected".to_string() },
         CurrentView::System => if let Some(p) = app.system_state.processes.get(app.system_state.selected_process_index) { format!("PID: {}
 Name: {}
-CPU: {:.2}%
-Memory: {:.2} MB", p.pid, p.name, p.cpu, p.mem as f64 / 1024.0 / 1024.0) } else { "No process selected".to_string() },
-        CurrentView::Docker => if let Some(c) = app.docker_state.containers.get(app.docker_state.selected_index) { let name = c.names.as_ref().and_then(|n| n.first()).map(|s| s.as_str()).unwrap_or("").trim_start_matches('/'); let id = c.id.as_deref().unwrap_or("?"); let image = c.image.as_deref().unwrap_or("?"); let state = c.state.as_deref().unwrap_or("?"); let status = c.status.as_deref().unwrap_or("?"); format!("Name: {}
+CPU: {:.2}%\nMemory: {:.2} MB", p.pid, p.name, p.cpu, p.mem as f64 / 1024.0 / 1024.0) } else { "No process selected".to_string() },
+        CurrentView::Docker => if let Some(c) = app.docker_state.containers.get(app.docker_state.selected_index) { let name = c.names.as_ref().and_then(|n| n.first()).map(|s| s.as_str()).unwrap_or("").trim_start_matches('/'); let id = c.id.as_deref().unwrap_or("?"); let image = c.image.as_deref().unwrap_or("?"); let state = c.state.as_deref().unwrap_or(""); let status = c.status.as_deref().unwrap_or(""); format!("Name: {}
 ID: {}
 Image: {}
 State: {}
