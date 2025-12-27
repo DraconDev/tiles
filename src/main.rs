@@ -126,29 +126,21 @@ async fn run_app<B: Backend>(
                         app.input.clear();
                     }
                     KeyCode::Tab => app.next_tile(),
-                    KeyCode::Char('j') | KeyCode::Down => {
-                        if app.active_tile == crate::app::TileType::Files {
-                            if app.file_state.selected_index < app.file_state.files.len().saturating_sub(1) {
-                                app.file_state.selected_index += 1;
-                                update_docker_filter(app);
-                            }
-                        } else if app.active_tile == crate::app::TileType::Docker {
-                            if app.docker_state.selected_index < app.docker_state.containers.len().saturating_sub(1) {
-                                app.docker_state.selected_index += 1;
-                            }
-                        }
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        app.move_down();
+                        update_docker_filter(app);
                     }
-                    KeyCode::Char('k') | KeyCode::Up => {
-                        if app.active_tile == crate::app::TileType::Files {
-                            if app.file_state.selected_index > 0 {
-                                app.file_state.selected_index -= 1;
-                                update_docker_filter(app);
-                            }
-                        } else if app.active_tile == crate::app::TileType::Docker {
-                            if app.docker_state.selected_index > 0 {
-                                app.docker_state.selected_index -= 1;
-                            }
-                        }
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        app.move_up();
+                        update_docker_filter(app);
+                    }
+                    KeyCode::Left | KeyCode::Char('h') => {
+                        app.move_left();
+                        update_docker_filter(app);
+                    }
+                    KeyCode::Right | KeyCode::Char('l') => {
+                        app.move_right();
+                        update_docker_filter(app);
                     }
                     KeyCode::Char('s') => {
                         if app.active_tile == crate::app::TileType::Docker {

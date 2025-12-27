@@ -219,10 +219,10 @@ fn draw_docker_tile(f: &mut Frame, area: Rect, app: &App) {
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let text = match &app.license {
         LicenseStatus::FreeMode => {
-            " Tiles Free Edition (<5 employees). Support us at dracon.uk ".to_string()
+            " Arrows: Move | Enter: Open | Tiles Free Edition (<5 employees). Support us at dracon.uk ".to_string()
         }
         LicenseStatus::Commercial(company) => {
-            format!(" Licensed to {} ", company)
+            format!(" Arrows: Move | Enter: Open | Licensed to {} ", company)
         }
     };
 
