@@ -113,6 +113,6 @@ be able to toggle split view
 
 commonly used key combos should be supported like ctrl + shift + n for new folder and ctrl + backspace for delete, no doubt many i am forgetting too
 
-we currently have vim keys added, we dont want this at all, strip it, we are entirely not vim based, 
+we currently have vim keys added, we dont want this at all, strip it, we are entirely not vim based, i cometo realize that by supporting it w
 
 consosole ^. button should be put on the footer tab
