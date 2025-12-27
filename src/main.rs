@@ -15,7 +15,8 @@ mod modules;
 mod event;
 mod config;
 mod license;
-use crate::app::{App, AppMode};
+
+use event as tiles_event;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
