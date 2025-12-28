@@ -548,20 +548,21 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_modu
         crate::app::CommandAction::StartContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.start_container(&name).await; }); } },
         crate::app::CommandAction::StopContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.stop_container(&name).await; }); } },
         crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); },
-        crate::app::CommandAction::ConnectToRemote(idx) => {
-            if let Some(bookmark) = app.remote_bookmarks.get(idx) {
-                let host = bookmark.host.clone();
-                let port = bookmark.port;
-                let user = bookmark.user.clone();
-                let key = format!("{}:{}", host, port);
+        crate::app::CommandAction::ConnectToRemote(idx) \u003d\u003e {
+            if let Some(bookmark) \u003d app.remote_bookmarks.get(idx).cloned() {
+                let host \u003d bookmark.host.clone();
+                let port \u003d bookmark.port;
+                let user \u003d bookmark.user.clone();
+                let name \u003d bookmark.name.clone();
+                let key \u003d format!(\"{}:{}\", host, port);
                 
-                if !app.active_sessions.contains_key(&key) {
-                    let addr = format!("{}:{}", host, port);
-                    if let Ok(tcp) = std::net::TcpStream::connect(&addr) {
-                        if let Ok(mut sess) = ssh2::Session::new() {
+                if !app.active_sessions.contains_key(\u0026key) {
+                    let addr \u003d format!(\"{}:{}\", host, port);
+                    if let Ok(tcp) \u003d std::net::TcpStream::connect(\u0026addr) {
+                        if let Ok(mut sess) \u003d ssh2::Session::new() {
                             sess.set_tcp_stream(tcp);
                             if sess.handshake().is_ok() {
-                                if sess.userauth_agent(&user).is_ok() {
+                                if sess.userauth_agent(\u0026user).is_ok() {
                                     app.active_sessions.insert(key.clone(), Arc::new(sess));
                                 }
                             }
@@ -569,14 +570,14 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_modu
                     }
                 }
 
-                if app.active_sessions.contains_key(&key) {
-                    if let Some(fs) = app.current_file_state_mut() {
-                        fs.remote_session = Some(crate::app::RemoteSession {
-                            name: bookmark.name.clone(),
-                            host: host.clone(),
-                            user: user.clone(),
+                if app.active_sessions.contains_key(\u0026key) {
+                    if let Some(fs) \u003d app.current_file_state_mut() {
+                        fs.remote_session \u003d Some(crate::app::RemoteSession {
+                            name,
+                            host,
+                            user,
                         });
-                        fs.current_path = std::path::PathBuf::from("/");
+                        fs.current_path \u003d std::path::PathBuf::from(\"/\");
                         app.update_files_for_state(app.tab_index);
                     }
                 }

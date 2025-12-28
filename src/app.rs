@@ -31,6 +31,7 @@ pub enum LicenseStatus {
     Commercial(String),
 }
 
+#[derive(Clone)]
 pub struct RemoteBookmark {
     pub name: String,
     pub host: String,
