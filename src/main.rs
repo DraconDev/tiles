@@ -168,8 +168,7 @@ async fn run_app<B: Backend>(
                                 app.last_click = Some((Instant::now(), mouse.row, mouse.column));
 
                                 if mouse.row == 0 {
-                                    if mouse.column >= cols.saturating_sub(5) { app.running = false; }
-                                    else if mouse.column < 11 { app.current_view = CurrentView::Files; }
+                                    if mouse.column < 11 { app.current_view = CurrentView::Files; }
                                     else if mouse.column < 22 { app.current_view = CurrentView::System; }
                                     else if mouse.column < 33 { app.current_view = CurrentView::Docker; }
                                 } else if mouse.row == rows.saturating_sub(1) {

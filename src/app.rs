@@ -93,8 +93,15 @@ pub enum FileColumn {
 
 use ratatui::widgets::TableState;
 
+pub struct RemoteSession {
+    pub name: String,
+    pub host: String,
+    pub user: String,
+}
+
 pub struct FileState {
     pub current_path: PathBuf,
+    pub remote_session: Option<RemoteSession>, // None = Local, Some = SSH
     pub selected_index: usize,
     pub table_state: TableState,
     pub files: Vec<PathBuf>,
