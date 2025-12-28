@@ -415,14 +415,14 @@ mod tests {
         
         assert_eq!(max_offset, 99);
 
-        // Scroll Down 1 (offset 0 -> 3)
-        let new_offset = (fs.table_state.offset() + 3).min(max_offset);
+        // Scroll Down 1 (offset 0 -> 1)
+        let new_offset = (fs.table_state.offset() + 1).min(max_offset);
         *fs.table_state.offset_mut() = new_offset;
-        assert_eq!(fs.table_state.offset(), 3);
+        assert_eq!(fs.table_state.offset(), 1);
 
         // Scroll Down many times
-        for _ in 0..40 {
-            let n = (fs.table_state.offset() + 3).min(max_offset);
+        for _ in 0..120 {
+            let n = (fs.table_state.offset() + 1).min(max_offset);
             *fs.table_state.offset_mut() = n;
         }
         
@@ -430,9 +430,9 @@ mod tests {
         assert_eq!(fs.table_state.offset(), 99);
         
         // Scroll Up
-        let n_up = fs.table_state.offset().saturating_sub(3);
+        let n_up = fs.table_state.offset().saturating_sub(1);
         *fs.table_state.offset_mut() = n_up;
-        assert_eq!(fs.table_state.offset(), 96);
+        assert_eq!(fs.table_state.offset(), 98);
     }
 
     #[test]
@@ -461,8 +461,8 @@ mod tests {
         assert_eq!(max_offset, 9);
 
         // Scroll Down
-        let new_offset = (fs.table_state.offset() + 3).min(max_offset);
+        let new_offset = (fs.table_state.offset() + 1).min(max_offset);
         *fs.table_state.offset_mut() = new_offset;
-        assert_eq!(fs.table_state.offset(), 3); 
+        assert_eq!(fs.table_state.offset(), 1); 
     }
 }

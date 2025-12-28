@@ -326,7 +326,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                                     if let Some(fs) = app.current_file_state_mut() {
                                         fs.selected_index = None;
                                         fs.table_state.select(None);
-                                        let new_offset = fs.table_state.offset().saturating_sub(3);
+                                        let new_offset = fs.table_state.offset().saturating_sub(1);
                                         *fs.table_state.offset_mut() = new_offset;
                                     }
                                 } else { app.move_up(); update_docker_filter(app); }
@@ -340,7 +340,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                                         
                                         fs.selected_index = None;
                                         fs.table_state.select(None);
-                                        let new_offset = (fs.table_state.offset() + 3).min(max_offset);
+                                        let new_offset = (fs.table_state.offset() + 1).min(max_offset);
                                         *fs.table_state.offset_mut() = new_offset;
                                     }
                                 } else { app.move_down(); update_docker_filter(app); }
