@@ -158,7 +158,8 @@ async fn run_app<B: Backend>(
             res = tokio::task::spawn_blocking(|| crossterm::event::poll(Duration::from_millis(10))) => {
                 if let Ok(Ok(true)) = res {
                     if let Ok(evt) = crossterm::event::read() {
-                        handle_event(evt, app, &docker_module, event_tx.clone(), terminal.size().unwrap_or_default()).await;
+                        let size = terminal.size().unwrap_or_default();
+                        handle_event(evt, app, &docker_module, event_tx.clone(), (size.width, size.height)).await;
                     }
                 }
             }
@@ -167,8 +168,8 @@ async fn run_app<B: Backend>(
     Ok(())
 }
 
-async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>, size: ratatui::layout::Rect) {
-    let (cols, rows) = (size.width, size.height);
+async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>, size: (u16, u16)) {
+    let (cols, rows) = size;
     match evt {
         Event::Mouse(mouse) => {
             match mouse.kind {
