@@ -324,7 +324,7 @@ impl App {
 
     pub fn move_down(&mut self) {
         if self.sidebar_focus {
-            let max_index = 4 + self.remote_bookmarks.len(); // 4 local items + gap + remote items
+            let max_index: usize = 4 + self.remote_bookmarks.len(); // 4 local items + gap + remote items
             if self.sidebar_index < max_index.saturating_sub(1) {
                 self.sidebar_index += 1;
                 // Skip the gap at index 4
