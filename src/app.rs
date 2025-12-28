@@ -71,6 +71,7 @@ pub enum CommandAction {
     StartContainer(String),
     StopContainer(String),
     AddRemote,
+    ConnectToRemote(usize), // index into remote_bookmarks
 }
 
 use std::collections::{HashMap, HashSet};
@@ -161,6 +162,7 @@ impl App {
         let initial_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let mut file_state = FileState {
             current_path: initial_path.clone(),
+            remote_session: None,
             selected_index: 0,
             table_state: TableState::default(),
             files: Vec::new(),
