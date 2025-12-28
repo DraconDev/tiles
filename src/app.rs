@@ -107,7 +107,7 @@ pub struct RemoteSession {
 pub struct FileState {
     pub current_path: PathBuf,
     pub remote_session: Option<RemoteSession>, // None = Local, Some = SSH
-    pub selected_index: usize,
+    pub selected_index: Option<usize>,
     pub table_state: TableState,
     pub files: Vec<PathBuf>,
     pub show_hidden: bool,
