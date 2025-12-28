@@ -79,7 +79,6 @@ fn navigate_forward(fs: &mut crate::app::FileState) {
         fs.current_path = fs.history[fs.history_index].clone();
         fs.selected_index = 0;
         fs.search_filter.clear();
-        crate::modules::files::update_files(fs);
     }
 }
 
