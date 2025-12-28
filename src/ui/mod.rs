@@ -133,27 +133,27 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         });
         let header = Row::new(header_cells).height(1).bottom_margin(1);
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
-            let metadata = std::fs::metadata(path).ok();
+            let metadata = file_state.metadata.get(path);
             let cells = file_state.columns.iter().map(|c| {
                 match c {
                     FileColumn::Name => {
                         let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
                         let mut display_name = name.to_string();
-                        let mut style = if path.is_dir() { Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD) } else { Style::default() };
+                        let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
+                        let mut style = if is_dir { Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD) } else { Style::default() };
                         if let Some(status) = file_state.git_status.get(path) {
                             display_name.push_str(&format!(" [{}]", status));
                             match status.as_str() { "M" | "MM" => style = style.fg(Color::Yellow), "A" | "AM" => style = style.fg(Color::Green), "??" => style = style.fg(Color::DarkGray), "D" => style = style.fg(Color::Red), _ => {} }
                         }
                         if file_state.starred.contains(path) { display_name.push_str(" [*]"); style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD); }
-                        let icon = if path.is_dir() { "📁 " } else { "📄 " };
+                        let icon = if is_dir { "📁 " } else { "📄 " };
                         Cell::from(format!("{}{}", icon, display_name)).style(style)
                     },
-                    FileColumn::Size => Cell::from(format_size(metadata.as_ref().map(|m| m.len()).unwrap_or(0))),
-                    FileColumn::Modified => Cell::from(format_time(metadata.as_ref().and_then(|m| m.modified().ok()).unwrap_or(SystemTime::UNIX_EPOCH))),
-                    FileColumn::Created => Cell::from(format_time(metadata.as_ref().and_then(|m| m.created().ok()).unwrap_or(SystemTime::UNIX_EPOCH))),
+                    FileColumn::Size => Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))),
+                    FileColumn::Modified => Cell::from(format_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH))),
+                    FileColumn::Created => Cell::from(format_time(metadata.map(|m| m.created).unwrap_or(SystemTime::UNIX_EPOCH))),
                     FileColumn::Permissions => {
-                        #[cfg(unix)] { use std::os::unix::fs::PermissionsExt; Cell::from(format_permissions(metadata.as_ref().map(|m| m.permissions().mode()).unwrap_or(0))) }
-                        #[cfg(not(unix))] { Cell::from("---") }
+                        Cell::from(format_permissions(metadata.map(|m| m.permissions).unwrap_or(0)))
                     },
                     FileColumn::Extension => Cell::from(path.extension().and_then(|e| e.to_str()).unwrap_or("")),
                 }
