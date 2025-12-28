@@ -16,7 +16,7 @@ mod event;
 mod config;
 mod license;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use crate::app::{App, AppMode, CurrentView, CommandItem};
 use crate::modules::docker::DockerModule;
@@ -66,7 +66,7 @@ fn navigate_back(fs: &mut crate::app::FileState) {
     if fs.history_index > 0 {
         fs.history_index -= 1;
         fs.current_path = fs.history[fs.history_index].clone();
-        fs.selected_index = 0;
+        fs.selected_index = Some(0);
         fs.search_filter.clear();
     }
 }
@@ -75,18 +75,20 @@ fn navigate_forward(fs: &mut crate::app::FileState) {
     if fs.history_index + 1 < fs.history.len() {
         fs.history_index += 1;
         fs.current_path = fs.history[fs.history_index].clone();
-        fs.selected_index = 0;
+        fs.selected_index = Some(0);
         fs.search_filter.clear();
     }
 }
 
 fn update_docker_filter(app: &mut App) {
     if let Some(fs) = app.current_file_state() {
-        if let Some(path) = fs.files.get(fs.selected_index) {
-            if path.is_dir() {
-                if path.join("Dockerfile").exists() || path.join("docker-compose.yml").exists() || path.join("docker-compose.yaml").exists() {
-                    app.docker_state.filter = Some(path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_string());
-                    return;
+        if let Some(idx) = fs.selected_index {
+            if let Some(path) = fs.files.get(idx) {
+                if path.is_dir() {
+                    if path.join("Dockerfile").exists() || path.join("docker-compose.yml").exists() || path.join("docker-compose.yaml").exists() {
+                        app.docker_state.filter = Some(path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_string());
+                        return;
+                    }
                 }
             }
         }
@@ -117,10 +119,10 @@ async fn run_app<B: Backend>(
                             if let AppMode::ContextMenu(x, y) = app.mode {
                                 if mouse.column >= x && mouse.column < x + 15 {
                                     match mouse.row.saturating_sub(y) as usize {
-                                        0 => { if let Some(name) = app.current_file_state().and_then(|fs| fs.files.get(fs.selected_index).map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string())) { app.mode = AppMode::Rename; app.input = name; } } 
-                                        1 => { if let Some(fs) = app.current_file_state_mut() { if let Some(path) = fs.files.get(fs.selected_index).cloned() { if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); } } } app.mode = AppMode::Normal; } 
-                                        2 => { app.mode = AppMode::Delete; } 
-                                        _ => { app.mode = AppMode::Normal; } 
+                                        0 => { if let Some(name) = app.current_file_state().and_then(|fs| fs.selected_index.and_then(|idx| fs.files.get(idx)).map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string())) { app.mode = AppMode::Rename; app.input = name; } }
+                                        1 => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); } } } } app.mode = AppMode::Normal; }
+                                        2 => { app.mode = AppMode::Delete; }
+                                        _ => { app.mode = AppMode::Normal; }
                                     }
                                 } else { app.mode = AppMode::Normal; }
                                 continue;
@@ -135,7 +137,7 @@ async fn run_app<B: Backend>(
                                             if path.is_dir() {
                                                 let new_fs = crate::app::FileState {
                                                     current_path: path.clone(), remote_session: fs.remote_session.clone(), 
-                                                    selected_index: 0, table_state: ratatui::widgets::TableState::default(),
+                                                    selected_index: Some(0), table_state: ratatui::widgets::TableState::default(),
                                                     files: Vec::new(), show_hidden: fs.show_hidden, git_status: std::collections::HashMap::new(),
                                                     clipboard: None, search_filter: String::new(), starred: fs.starred.clone(),
                                                     columns: fs.columns.clone(), history: vec![path], history_index: 0,
@@ -184,7 +186,7 @@ async fn run_app<B: Backend>(
                                                     let path = match app.sidebar_index { 0 => dirs::home_dir(), 1 => dirs::download_dir(), 2 => dirs::document_dir(), 3 => dirs::picture_dir(), _ => None };
                                                     if let Some(p) = path {
                                                         if let Some(fs) = app.current_file_state_mut() {
-                                                            fs.current_path = p.clone(); fs.selected_index = 0; fs.search_filter.clear();
+                                                            fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear();
                                                             *fs.table_state.offset_mut() = 0;
                                                             push_history(fs, p);
                                                         }
@@ -202,7 +204,7 @@ async fn run_app<B: Backend>(
                                                     }
                                                 }
                                             },
-                                            _ => {} 
+                                            _ => {}
                                         }
                                     } else {
                                         app.sidebar_focus = false;
@@ -210,11 +212,11 @@ async fn run_app<B: Backend>(
                                             let index = fs_mouse_index(mouse.row, app);
                                             if let Some(fs) = app.current_file_state_mut() {
                                                 if index < fs.files.len() {
-                                                    fs.selected_index = index; fs.table_state.select(Some(index));
+                                                    fs.selected_index = Some(index); fs.table_state.select(Some(index));
                                                     if is_double_click {
                                                         if let Some(path) = fs.files.get(index).cloned() {
                                                             if path.is_dir() {
-                                                                fs.current_path = path.clone(); fs.selected_index = 0; fs.search_filter.clear();
+                                                                fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear();
                                                                 *fs.table_state.offset_mut() = 0;
                                                                 push_history(fs, path);
                                                             }
@@ -231,6 +233,7 @@ async fn run_app<B: Backend>(
                         MouseEventKind::ScrollUp => {
                             if app.current_view == CurrentView::Files {
                                 if let Some(fs) = app.current_file_state_mut() {
+                                    fs.selected_index = None; // Independent scrolling
                                     let new_offset = fs.table_state.offset().saturating_sub(3);
                                     *fs.table_state.offset_mut() = new_offset;
                                 }
@@ -239,13 +242,14 @@ async fn run_app<B: Backend>(
                         MouseEventKind::ScrollDown => {
                             if app.current_view == CurrentView::Files {
                                 if let Some(fs) = app.current_file_state_mut() {
+                                    fs.selected_index = None; // Independent scrolling
                                     let max_files = fs.files.len();
                                     let new_offset = (fs.table_state.offset() + 3).min(max_files.saturating_sub(1));
                                     *fs.table_state.offset_mut() = new_offset;
                                 }
                             } else { app.move_down(); update_docker_filter(app); }
                         }
-                        _ => {} 
+                        _ => {}
                     }
                 }
                 Event::Key(key) => {
@@ -259,14 +263,14 @@ async fn run_app<B: Backend>(
                                     let path = std::path::PathBuf::from(&app.input);
                                     if path.exists() {
                                         if let Some(fs) = app.current_file_state_mut() {
-                                            fs.current_path = path.clone(); fs.selected_index = 0; *fs.table_state.offset_mut() = 0;
+                                            fs.current_path = path.clone(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0;
                                             push_history(fs, path); 
                                         }
                                         app.update_files_for_state(app.tab_index);
                                     }
                                     app.mode = AppMode::Normal;
                                 }
-                                _ => {} 
+                                _ => {}
                             }
                         }
                         AppMode::Rename => {
@@ -277,16 +281,18 @@ async fn run_app<B: Backend>(
                                 KeyCode::Enter => {
                                     let new_name = app.input.clone();
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        if let Some(old_path) = fs.files.get(fs.selected_index) {
-                                            let mut new_path = old_path.clone();
-                                            new_path.set_file_name(&new_name);
-                                            let _ = std::fs::rename(old_path, new_path);
+                                        if let Some(idx) = fs.selected_index {
+                                            if let Some(old_path) = fs.files.get(idx) {
+                                                let mut new_path = old_path.clone();
+                                                new_path.set_file_name(&new_name);
+                                                let _ = std::fs::rename(old_path, new_path);
+                                            }
                                         }
                                     }
                                     app.update_files_for_state(app.tab_index);
                                     app.mode = AppMode::Normal;
                                 }
-                                _ => {} 
+                                _ => {}
                             }
                         }
                         AppMode::NewFolder => {
@@ -303,7 +309,7 @@ async fn run_app<B: Backend>(
                                     app.update_files_for_state(app.tab_index);
                                     app.mode = AppMode::Normal;
                                 }
-                                _ => {} 
+                                _ => {}
                             }
                         }
                         AppMode::AddRemote => {
@@ -325,7 +331,7 @@ async fn run_app<B: Backend>(
                                     }
                                     app.mode = AppMode::Normal;
                                 }
-                                _ => {} 
+                                _ => {}
                             }
                         }
                         AppMode::ColumnSetup => {
@@ -338,15 +344,17 @@ async fn run_app<B: Backend>(
                                     KeyCode::Char('c') => toggle_column(fs, crate::app::FileColumn::Created),
                                     KeyCode::Char('p') => toggle_column(fs, crate::app::FileColumn::Permissions),
                                     KeyCode::Char('e') => toggle_column(fs, crate::app::FileColumn::Extension),
-                                    _ => {} 
+                                    _ => {}
                                 }
                             }
                         }
                         AppMode::Delete => {
                             if key.code == KeyCode::Char('y') || key.code == KeyCode::Enter {
                                 if let Some(fs) = app.current_file_state_mut() {
-                                    if let Some(path) = fs.files.get(fs.selected_index) {
-                                        let _ = if path.is_dir() { std::fs::remove_dir_all(path) } else { std::fs::remove_file(path) };
+                                    if let Some(idx) = fs.selected_index {
+                                        if let Some(path) = fs.files.get(idx) {
+                                            let _ = if path.is_dir() { std::fs::remove_dir_all(path) } else { std::fs::remove_file(path) };
+                                        }
                                     }
                                 }
                                 app.update_files_for_state(app.tab_index);
@@ -366,10 +374,10 @@ async fn run_app<B: Backend>(
                                     }
                                     app.mode = AppMode::Normal; app.input.clear();
                                 }
-                                _ => {} 
+                                _ => {}
                             }
                         }
-                        _ => { 
+                        _ => {
                             match key.code {
                                 KeyCode::Char('q') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => app.running = false,
                                 KeyCode::Char('f') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => app.current_view = CurrentView::Files,
@@ -385,8 +393,10 @@ async fn run_app<B: Backend>(
                                 }
                                 KeyCode::Char('b') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        if let Some(path) = fs.files.get(fs.selected_index).cloned() {
-                                            if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); }
+                                        if let Some(idx) = fs.selected_index {
+                                            if let Some(path) = fs.files.get(idx).cloned() {
+                                                if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); }
+                                            }
                                         }
                                     }
                                 }
@@ -394,7 +404,7 @@ async fn run_app<B: Backend>(
                                     if let Some(curr) = app.current_file_state() {
                                         let new_fs = crate::app::FileState {
                                             current_path: curr.current_path.clone(), remote_session: curr.remote_session.clone(), 
-                                            selected_index: 0, table_state: ratatui::widgets::TableState::default(),
+                                            selected_index: Some(0), table_state: ratatui::widgets::TableState::default(),
                                             files: Vec::new(), show_hidden: curr.show_hidden, git_status: std::collections::HashMap::new(),
                                             clipboard: None, search_filter: String::new(), starred: curr.starred.clone(),
                                             columns: curr.columns.clone(), history: vec![curr.current_path.clone()], history_index: 0,
@@ -422,7 +432,7 @@ async fn run_app<B: Backend>(
                                 KeyCode::Up if key.modifiers.contains(crossterm::event::KeyModifiers::ALT) => {
                                     if let Some(fs) = app.current_file_state_mut() {
                                         if let Some(p) = fs.current_path.parent() {
-                                            let path = p.to_path_buf(); fs.current_path = path.clone(); fs.selected_index = 0;
+                                            let path = p.to_path_buf(); fs.current_path = path.clone(); fs.selected_index = Some(0);
                                             *fs.table_state.offset_mut() = 0;
                                             push_history(fs, path);
                                         }
@@ -441,7 +451,7 @@ async fn run_app<B: Backend>(
                                 }
                                 KeyCode::F(5) => app.update_files_for_state(app.tab_index),
                                 KeyCode::F(2) => {
-                                    let name_opt = app.current_file_state().and_then(|fs| fs.files.get(fs.selected_index).map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string()));
+                                    let name_opt = app.current_file_state().and_then(|fs| fs.selected_index.and_then(|idx| fs.files.get(idx)).map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string()));
                                     if let Some(n) = name_opt { app.mode = AppMode::Rename; app.input = n; }
                                 }
                                 KeyCode::Delete => { app.mode = AppMode::Delete; }
@@ -451,7 +461,7 @@ async fn run_app<B: Backend>(
                                         let path = match app.sidebar_index { 0 => dirs::home_dir(), 1 => dirs::download_dir(), 2 => dirs::document_dir(), 3 => dirs::picture_dir(), _ => None };
                                         if let Some(p) = path {
                                             if let Some(fs) = app.current_file_state_mut() {
-                                                fs.current_path = p.clone(); fs.selected_index = 0; fs.search_filter.clear();
+                                                fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear();
                                                 *fs.table_state.offset_mut() = 0;
                                                 push_history(fs, p);
                                             }
@@ -459,11 +469,13 @@ async fn run_app<B: Backend>(
                                             app.sidebar_focus = false;
                                         }
                                     } else if let Some(fs) = app.current_file_state_mut() {
-                                        if let Some(path) = fs.files.get(fs.selected_index).cloned() {
-                                            if path.is_dir() {
-                                                fs.current_path = path.clone(); fs.selected_index = 0; fs.search_filter.clear();
-                                                *fs.table_state.offset_mut() = 0;
-                                                push_history(fs, path);
+                                        if let Some(idx) = fs.selected_index {
+                                            if let Some(path) = fs.files.get(idx).cloned() {
+                                                if path.is_dir() {
+                                                    fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear();
+                                                    *fs.table_state.offset_mut() = 0;
+                                                    push_history(fs, path);
+                                                }
                                             }
                                         }
                                         app.update_files_for_state(app.tab_index);
@@ -473,7 +485,7 @@ async fn run_app<B: Backend>(
                                     if let Some(fs) = app.current_file_state_mut() {
                                         if !fs.search_filter.is_empty() { fs.search_filter.pop(); }
                                         else if let Some(p) = fs.current_path.parent() {
-                                            let path = p.to_path_buf(); fs.current_path = path.clone(); fs.selected_index = 0;
+                                            let path = p.to_path_buf(); fs.current_path = path.clone(); fs.selected_index = Some(0);
                                             *fs.table_state.offset_mut() = 0;
                                             push_history(fs, path);
                                         }
@@ -490,7 +502,7 @@ async fn run_app<B: Backend>(
                                 }
                                 KeyCode::Char(c) => {
                                     if app.current_view == CurrentView::Files {
-                                        if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = 0; }
+                                        if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); }
                                         app.update_files_for_state(app.tab_index);
                                     } else if app.current_view == CurrentView::Docker {
                                         if c == 's' || c == 'x' {
@@ -501,12 +513,12 @@ async fn run_app<B: Backend>(
                                         }
                                     }
                                 }
-                                _ => {} 
+                                _ => {}
                             }
                         }
                     }
                 }
-                _ => {} 
+                _ => {}
             }
         }
         if last_tick.elapsed() >= tick_rate { app.system_module.update(&mut app.system_state); last_tick = Instant::now(); }
@@ -529,6 +541,10 @@ fn update_commands(app: &mut App) {
         CommandItem { label: "View: System".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::System) },
         CommandItem { label: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
     ];
+    for bookmark_idx in 0..app.remote_bookmarks.len() {
+        let bookmark = &app.remote_bookmarks[bookmark_idx];
+        commands.push(CommandItem { label: format!("Connect to: {}", bookmark.name), action: crate::app::CommandAction::ConnectToRemote(bookmark_idx) });
+    }
     for container in &app.docker_state.containers {
          let name = container.names.as_ref().map(|n| n.first().map(|s| s.as_str()).unwrap_or("")).unwrap_or("").trim_start_matches('/');
          if !name.is_empty() {
@@ -563,19 +579,20 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_modu
                             sess.set_tcp_stream(tcp);
                             if sess.handshake().is_ok() {
                                 if sess.userauth_agent(&user).is_ok() {
-                                    app.active_sessions.insert(key.clone(), Arc::new(sess));
+                                    app.active_sessions.insert(key.clone(), Arc::new(Mutex::new(sess)));
                                 }
                             }
                         }
                     }
                 }
 
-                if app.active_sessions.contains_key(&key) {
+                if let Some(session) = app.active_sessions.get(&key).cloned() {
                     if let Some(fs) = app.current_file_state_mut() {
                         fs.remote_session = Some(crate::app::RemoteSession {
                             name,
                             host,
                             user,
+                            session,
                         });
                         fs.current_path = std::path::PathBuf::from("/");
                         app.update_files_for_state(app.tab_index);
