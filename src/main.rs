@@ -323,8 +323,9 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             MouseEventKind::ScrollUp => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        // Allow scrolling if content is larger than a small safety margin
-                                        if fs.files.len() > rows.saturating_sub(5) as usize {
+                                        let capacity = fs.view_height.saturating_sub(2);
+                                        // Allow scrolling if content is larger than capacity
+                                        if fs.files.len() > capacity {
                                             fs.selected_index = None;
                                             fs.table_state.select(None);
                                             let new_offset = fs.table_state.offset().saturating_sub(3);
@@ -338,12 +339,12 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             MouseEventKind::ScrollDown => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
+                                        let capacity = fs.view_height.saturating_sub(2);
                                         // Relaxed check: Only block if it DEFINITELY fits
-                                        if fs.files.len() > rows.saturating_sub(5) as usize {
+                                        if fs.files.len() > capacity {
                                             fs.selected_index = None;
                                             fs.table_state.select(None);
                                             // Relaxed cap: Allow scrolling until last item is at top
-                                            // This prevents "getting stuck" at the cost of some empty space at bottom
                                             let max_offset = fs.files.len().saturating_sub(1);
                                             let new_offset = (fs.table_state.offset() + 3).min(max_offset);
                                             *fs.table_state.offset_mut() = new_offset;
