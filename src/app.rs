@@ -105,12 +105,23 @@ pub struct RemoteSession {
     pub session: Arc<Mutex<ssh2::Session>>,
 }
 
+#[derive(Clone, Default)]
+pub struct FileMetadata {
+    pub size: u64,
+    pub modified: std::time::SystemTime,
+    pub created: std::time::SystemTime,
+    pub permissions: u32,
+    pub extension: String,
+    pub is_dir: bool,
+}
+
 pub struct FileState {
     pub current_path: PathBuf,
     pub remote_session: Option<RemoteSession>, // None = Local, Some = SSH
     pub selected_index: Option<usize>,
     pub table_state: TableState,
     pub files: Vec<PathBuf>,
+    pub metadata: HashMap<PathBuf, FileMetadata>, // PRE-FETCHED CACHE
     pub show_hidden: bool,
     pub git_status: HashMap<PathBuf, String>,
     pub clipboard: Option<(PathBuf, ClipboardOp)>,
@@ -171,6 +182,7 @@ impl App {
             selected_index: Some(0),
             table_state: TableState::default(),
             files: Vec::new(),
+            metadata: HashMap::new(),
             show_hidden: false,
             git_status: HashMap::new(),
             clipboard: None,
