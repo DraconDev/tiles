@@ -102,6 +102,7 @@ pub struct RemoteSession {
     pub name: String,
     pub host: String,
     pub user: String,
+    pub session: Arc<Mutex<ssh2::Session>>,
 }
 
 pub struct FileState {
