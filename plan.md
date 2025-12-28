@@ -82,3 +82,5 @@ src/
 
 
 the menu should differentiate what we clicking on so for ex files empty space we might see new folder and new file, while for ex clicking on a folder has rename and delete options
+
+tiles should also have well formatted cli 
