@@ -324,8 +324,8 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             MouseEventKind::ScrollUp => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        fs.selected_index = None;
-                                        fs.table_state.select(None);
+                                        // Scroll offset directly. 
+                                        // Selection preservation is handled in draw_file_view (Smart Selection).
                                         let new_offset = fs.table_state.offset().saturating_sub(1);
                                         *fs.table_state.offset_mut() = new_offset;
                                     }
@@ -334,13 +334,10 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             MouseEventKind::ScrollDown => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        // Calculate max offset to leave 3 empty rows at the bottom
                                         let capacity = fs.view_height.saturating_sub(2);
                                         let effective_capacity = capacity.saturating_sub(3);
                                         let max_offset = fs.files.len().saturating_sub(effective_capacity);
                                         
-                                        fs.selected_index = None;
-                                        fs.table_state.select(None);
                                         let new_offset = (fs.table_state.offset() + 1).min(max_offset);
                                         *fs.table_state.offset_mut() = new_offset;
                                     }
