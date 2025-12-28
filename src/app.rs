@@ -304,12 +304,17 @@ impl App {
             CurrentView::Files => {
                 if let Some(file_state) = self.current_file_state_mut() {
                     let max_idx = file_state.files.len().saturating_sub(1);
-                    let new_index = match file_state.selected_index {
-                        Some(i) => if i < max_idx { Some(i + 1) } else { Some(max_idx) },
-                        None => Some(file_state.table_state.offset()),
+                    let mut new_index = match file_state.selected_index {
+                        Some(i) => if i < max_idx { i + 1 } else { max_idx },
+                        None => file_state.table_state.offset(),
                     };
-                    file_state.selected_index = new_index;
-                    file_state.table_state.select(new_index);
+
+                    // Logic to ensure selection stays in view
+                    // We don't have the height here, but we can detect if we moved past the current offset
+                    // In draw() the Table will handle the actual scrolling, but we need to ensure 
+                    // the state allows it.
+                    file_state.selected_index = Some(new_index);
+                    file_state.table_state.select(Some(new_index));
                 }
             }
             CurrentView::Docker => {
