@@ -129,20 +129,22 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
     if let Some(file_state) = app.current_file_state_mut() {
         file_state.view_height = area.height as usize;
         
-        // Smart Selection: Only tell TableState about selection if it's currently visible.
-        // We use 'sel > offset' (strict inequality) to hide the selection when it's at the very top edge.
-        // This prevents the Table widget from potentially snapping the offset back to the selection
-        // due to header/margin calculations overlapping with the first row.
+        // Use a temporary TableState for rendering to prevent the Table widget
+        // from permanently modifying our offset or fighting with our manual scroll logic.
+        let mut render_state = ratatui::widgets::TableState::default()
+            .with_offset(file_state.table_state.offset());
+
+        // Smart Selection: Only tell the render state about selection if it's currently visible.
         if let Some(sel) = file_state.selected_index {
             let offset = file_state.table_state.offset();
-            let capacity = file_state.view_height.saturating_sub(2); // Header + Margin
-            if sel > offset && sel < offset + capacity {
-                file_state.table_state.select(Some(sel));
+            let capacity = file_state.view_height.saturating_sub(2);
+            
+            // Allow selection to be visible at the top edge (sel >= offset)
+            if sel >= offset && sel < offset + capacity {
+                render_state.select(Some(sel));
             } else {
-                file_state.table_state.select(None);
+                render_state.select(None);
             }
-        } else {
-            file_state.table_state.select(None);
         }
 
         let header_cells = file_state.columns.iter().map(|c| {
@@ -176,11 +178,18 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                     FileColumn::Extension => Cell::from(path.extension().and_then(|e| e.to_str()).unwrap_or("")),
                 }
             });
+            // Use the original selected_index for styling decision to ensure consistency
             let style = if Some(i) == file_state.selected_index && !sidebar_focus { Style::default().bg(Color::DarkGray) } else { Style::default() };
             Row::new(cells).style(style)
         });
         let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| { match c { FileColumn::Name => Constraint::Percentage(50), FileColumn::Size => Constraint::Length(10), FileColumn::Modified => Constraint::Length(20), FileColumn::Created => Constraint::Length(20), FileColumn::Permissions => Constraint::Length(12), FileColumn::Extension => Constraint::Length(6) } }).collect();
-        f.render_stateful_widget(Table::new(rows, constraints).header(header).block(Block::default().borders(Borders::NONE)), area, &mut file_state.table_state);
+        
+        // Render using the temporary state
+        f.render_stateful_widget(Table::new(rows, constraints).header(header).block(Block::default().borders(Borders::NONE)), area, &mut render_state);
+        
+        // Sync the valid offset back to our persistent state
+        // This captures auto-scrolling (e.g. from keyboard navigation) but ignores snaps from hidden selection
+        *file_state.table_state.offset_mut() = render_state.offset();
         
         if file_state.files.len() > area.height.saturating_sub(2) as usize {
             let scrollbar = Scrollbar::default().orientation(ScrollbarOrientation::VerticalRight).begin_symbol(Some("↑")).end_symbol(Some("↓"));
