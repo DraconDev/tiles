@@ -220,11 +220,11 @@ impl App {
 
     pub fn update_files_for_state(&mut self, tab_idx: usize) {
         if let Some(fs) = self.file_tabs.get_mut(tab_idx) {
-            if let Some(rs) = \u0026fs.remote_session {
-                let key \u003d format!(\"{}:{}\", rs.host, 22);
-                if let Some(sess_mutex) \u003d self.active_sessions.get(\u0026key) {
-                    if let Ok(sess) \u003d sess_mutex.lock() {
-                        update_files(fs, Some(\u0026sess));
+            if let Some(rs) = &fs.remote_session {
+                let key = format!("{}:{}", rs.host, 22);
+                if let Some(sess_mutex) = self.active_sessions.get(&key) {
+                    if let Ok(sess) = sess_mutex.lock() {
+                        update_files(fs, Some(&sess));
                         return;
                     }
                 }
