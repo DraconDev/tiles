@@ -128,7 +128,21 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
     let sidebar_focus = app.sidebar_focus;
     if let Some(file_state) = app.current_file_state_mut() {
         file_state.view_height = area.height as usize;
-        // crate::app::log_debug(&format!("Draw: area.height={}, view_height={}", area.height, file_state.view_height));
+        
+        // Smart Selection: Only tell TableState about selection if it's currently visible.
+        // This prevents Table from auto-scrolling (resetting offset) when we scroll away from selection.
+        if let Some(sel) = file_state.selected_index {
+            let offset = file_state.table_state.offset();
+            let capacity = file_state.view_height.saturating_sub(2); // Header + Margin
+            if sel >= offset && sel < offset + capacity {
+                file_state.table_state.select(Some(sel));
+            } else {
+                file_state.table_state.select(None);
+            }
+        } else {
+            file_state.table_state.select(None);
+        }
+
         let header_cells = file_state.columns.iter().map(|c| {
             let name = match c { FileColumn::Name => "Name", FileColumn::Size => "Size", FileColumn::Modified => "Modified", FileColumn::Created => "Created", FileColumn::Permissions => "Permissions", FileColumn::Extension => "Ext" };
             Cell::from(name).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
