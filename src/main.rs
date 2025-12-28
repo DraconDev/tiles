@@ -274,11 +274,14 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             MouseEventKind::ScrollUp => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        if fs.files.len() > rows.saturating_sub(5) as usize {
+                                        let viewport_height = rows.saturating_sub(8) as usize;
+                                        if fs.files.len() > viewport_height {
                                             fs.selected_index = None;
-                                            fs.table_state.select(None); // FIX: Tell Ratatui to stop tracking selection
+                                            fs.table_state.select(None);
                                             let new_offset = fs.table_state.offset().saturating_sub(3);
                                             *fs.table_state.offset_mut() = new_offset;
+                                        } else {
+                                            *fs.table_state.offset_mut() = 0; // Snap to top if fits
                                         }
                                     }
                                 } else { app.move_up(); update_docker_filter(app); }
@@ -286,12 +289,15 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             MouseEventKind::ScrollDown => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        if fs.files.len() > rows.saturating_sub(5) as usize {
+                                        let viewport_height = rows.saturating_sub(8) as usize;
+                                        if fs.files.len() > viewport_height {
                                             fs.selected_index = None;
-                                            fs.table_state.select(None); // FIX: Tell Ratatui to stop tracking selection
-                                            let max_files = fs.files.len();
-                                            let new_offset = (fs.table_state.offset() + 3).min(max_files.saturating_sub(1));
+                                            fs.table_state.select(None);
+                                            let max_offset = fs.files.len().saturating_sub(viewport_height);
+                                            let new_offset = (fs.table_state.offset() + 3).min(max_offset);
                                             *fs.table_state.offset_mut() = new_offset;
+                                        } else {
+                                            *fs.table_state.offset_mut() = 0; // Snap to top if fits
                                         }
                                     }
                                 } else { app.move_down(); update_docker_filter(app); }
