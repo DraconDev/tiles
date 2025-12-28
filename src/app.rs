@@ -313,10 +313,14 @@ impl App {
     }
 
     pub fn move_left(&mut self) {
-        self.sidebar_focus = true;
+        if !self.sidebar_focus {
+            self.sidebar_focus = true;
+        }
     }
 
     pub fn move_right(&mut self) {
-        self.sidebar_focus = false;
+        if self.sidebar_focus {
+            self.sidebar_focus = false;
+        }
     }
 }
