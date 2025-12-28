@@ -77,3 +77,6 @@ src/
     ├── files.rs      # Local/Remote VFS, SFTP
     ├── docker.rs     # Bollard + SSH tunneling
     └── system.rs     # Sysinfo + SSH text parsing
+
+
+the men
