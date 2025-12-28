@@ -10,33 +10,38 @@ pub fn update_files(state: &mut FileState, session: Option<&ssh2::Session>) {
 
 fn update_local_files(state: &mut FileState) {
     if let Ok(entries) = std::fs::read_dir(&state.current_path) {
-        state.files = entries
-            .filter_map(|entry| entry.ok())
-            .map(|entry| entry.path())
-            .filter(|path| {
-                if state.show_hidden {
-                    true
-                } else {
-                    !path.file_name()
-                        .and_then(|n| n.to_str())
-                        .map(|s| s.starts_with('.'))
-                        .unwrap_or(false)
-                }
-            })
-            .filter(|path| {
-                if state.search_filter.is_empty() {
-                    true
-                } else {
-                    path.file_name()
-                        .and_then(|n| n.to_str())
-                        .map(|s| s.to_lowercase().contains(&state.search_filter.to_lowercase()))
-                        .unwrap_or(false)
-                }
-            })
-            .collect();
+        state.files.clear();
+        state.metadata.clear();
+        
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            
+            // Filtering
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if !state.show_hidden && name.starts_with('.') { continue; }
+            if !state.search_filter.is_empty() && !name.to_lowercase().contains(&state.search_filter.to_lowercase()) { continue; }
+
+            // Metadata Cache (The Fix)
+            if let Ok(m) = entry.metadata() {
+                let mut meta = crate::app::FileMetadata {
+                    size: m.len(),
+                    modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                    created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                    #[cfg(unix)]
+                    permissions: { use std::os::unix::fs::PermissionsExt; m.permissions().mode() },
+                    #[cfg(not(unix))]
+                    permissions: 0,
+                    extension: path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string(),
+                    is_dir: m.is_dir(),
+                };
+                state.metadata.insert(path.clone(), meta);
+            }
+            state.files.push(path);
+        }
+
         state.files.sort_by(|a, b| {
-            let a_is_dir = a.is_dir();
-            let b_is_dir = b.is_dir();
+            let a_is_dir = state.metadata.get(a).map(|m| m.is_dir).unwrap_or(false);
+            let b_is_dir = state.metadata.get(b).map(|m| m.is_dir).unwrap_or(false);
             if a_is_dir && !b_is_dir {
                 std::cmp::Ordering::Less
             } else if !a_is_dir && b_is_dir {
