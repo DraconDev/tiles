@@ -168,12 +168,12 @@ async fn run_app<B: Backend>(
 }
 
 async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
-    let (cols, rows) = (80, 24); // Placeholder or passed from draw
+    let (_cols, _rows) = (80, 24); // Placeholder or passed from draw
     match evt {
         Event::Mouse(mouse) => {
             match mouse.kind {
                 MouseEventKind::Down(btn) => {
-                    if let AppMode::ContextMenu(x, y) = app.mode {
+                    if let AppMode::ContextMenu(_x, _y) = app.mode {
                         app.mode = AppMode::Normal; // Simple dismiss for now
                         return;
                     }
