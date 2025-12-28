@@ -151,6 +151,7 @@ pub struct FileState {
     pub columns: Vec<FileColumn>,
     pub history: Vec<PathBuf>,
     pub history_index: usize,
+    pub view_height: usize,
 }
 
 use bollard::models::ContainerSummary;
