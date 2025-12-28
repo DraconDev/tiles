@@ -65,6 +65,8 @@ Phase 4: Safety & Polish
 - [ ] Production "Red Zone" Mode.
 - [ ] Global Trash Bin with Undo.
 - [ ] "Just Type" Search integration across all modules.
+- [x] Context Menu differentiation (Item vs Empty Space).
+- [x] Fix scrolling "stuck" bug by using dynamic view height.
 
 7. File Structure
 src/
