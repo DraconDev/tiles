@@ -177,7 +177,7 @@ impl App {
             history_index: 0,
         };
         file_state.table_state.select(Some(0));
-        update_files(&mut file_state);
+        update_files(&mut file_state, None);
 
         let license = check_license();
 
@@ -212,6 +212,16 @@ impl App {
 
     pub fn current_file_state(&self) -> Option<&FileState> {
         self.file_tabs.get(self.tab_index)
+    }
+
+    pub fn update_files_for_state(&mut self, tab_idx: usize) {
+        if let Some(fs) = self.file_tabs.get_mut(tab_idx) {
+            let session = fs.remote_session.as_ref().and_then(|rs| {
+                let key = format!("{}:{}", rs.host, 22); // Port hardcoded for now or from rs
+                self.active_sessions.get(&key).map(|s| &**s)
+            });
+            update_files(fs, session);
+        }
     }
 
     pub fn switch_view(&mut self) {
