@@ -133,7 +133,7 @@ async fn run_app<B: Backend>(
                                     if let Some(fs) = app.current_file_state() {
                                         if let Some(path) = fs.files.get(index).cloned() {
                                             if path.is_dir() {
-                                                let mut new_fs = crate::app::FileState {
+                                                let new_fs = crate::app::FileState {
                                                     current_path: path.clone(), remote_session: fs.remote_session.clone(), 
                                                     selected_index: 0, table_state: ratatui::widgets::TableState::default(),
                                                     files: Vec::new(), show_hidden: fs.show_hidden, git_status: std::collections::HashMap::new(),
