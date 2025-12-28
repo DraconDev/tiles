@@ -247,6 +247,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                                             show_hidden: fs.show_hidden, git_status: std::collections::HashMap::new(),
                                             clipboard: None, search_filter: String::new(), starred: fs.starred.clone(),
                                             columns: fs.columns.clone(), history: vec![path], history_index: 0,
+                                            view_height: 0,
                                         };
                                         app.file_tabs.push(new_fs);
                                         let _ = event_tx.send(AppEvent::RefreshFiles(app.file_tabs.len() - 1)).await;
@@ -414,6 +415,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                                         show_hidden: curr.show_hidden, git_status: std::collections::HashMap::new(),
                                         clipboard: None, search_filter: String::new(), starred: curr.starred.clone(),
                                         columns: curr.columns.clone(), history: vec![curr.current_path.clone()], history_index: 0,
+                                        view_height: 0,
                                     };
                                     app.file_tabs.push(new_fs); app.tab_index = app.file_tabs.len() - 1;
                                     let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
