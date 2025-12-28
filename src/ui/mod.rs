@@ -93,12 +93,11 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 
             let items: Vec<ListItem> = sidebar_items.into_iter().enumerate().map(|(i, item)| {
                 // Adjust index for selection (skipping the "Local" header)
-                let style = if i == app.sidebar_index + 1 && app.sidebar_focus { 
-                    Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD) 
+                if i == app.sidebar_index + 1 && app.sidebar_focus { 
+                    item.style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
                 } else { 
-                    item.style()
-                };
-                item.style(style)
+                    item
+                }
             }).collect();
             
             f.render_widget(List::new(items), inner);
