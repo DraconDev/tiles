@@ -404,7 +404,8 @@ async fn run_app<B: Backend>(
                                         let new_fs = crate::app::FileState {
                                             current_path: curr.current_path.clone(), remote_session: curr.remote_session.clone(), 
                                             selected_index: Some(0), table_state: ratatui::widgets::TableState::default(),
-                                            files: Vec::new(), show_hidden: curr.show_hidden, git_status: std::collections::HashMap::new(),
+                                            files: Vec::new(), metadata: std::collections::HashMap::new(), 
+                                            show_hidden: curr.show_hidden, git_status: std::collections::HashMap::new(),
                                             clipboard: None, search_filter: String::new(), starred: curr.starred.clone(),
                                             columns: curr.columns.clone(), history: vec![curr.current_path.clone()], history_index: 0,
                                         };
