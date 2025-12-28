@@ -130,11 +130,13 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         file_state.view_height = area.height as usize;
         
         // Smart Selection: Only tell TableState about selection if it's currently visible.
-        // This prevents Table from auto-scrolling (resetting offset) when we scroll away from selection.
+        // We use 'sel > offset' (strict inequality) to hide the selection when it's at the very top edge.
+        // This prevents the Table widget from potentially snapping the offset back to the selection
+        // due to header/margin calculations overlapping with the first row.
         if let Some(sel) = file_state.selected_index {
             let offset = file_state.table_state.offset();
             let capacity = file_state.view_height.saturating_sub(2); // Header + Margin
-            if sel >= offset && sel < offset + capacity {
+            if sel > offset && sel < offset + capacity {
                 file_state.table_state.select(Some(sel));
             } else {
                 file_state.table_state.select(None);
