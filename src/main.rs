@@ -138,7 +138,8 @@ async fn run_app<B: Backend>(
                                                 let new_fs = crate::app::FileState {
                                                     current_path: path.clone(), remote_session: fs.remote_session.clone(), 
                                                     selected_index: Some(0), table_state: ratatui::widgets::TableState::default(),
-                                                    files: Vec::new(), show_hidden: fs.show_hidden, git_status: std::collections::HashMap::new(),
+                                                    files: Vec::new(), metadata: std::collections::HashMap::new(), 
+                                                    show_hidden: fs.show_hidden, git_status: std::collections::HashMap::new(),
                                                     clipboard: None, search_filter: String::new(), starred: fs.starred.clone(),
                                                     columns: fs.columns.clone(), history: vec![path], history_index: 0,
                                                 };
