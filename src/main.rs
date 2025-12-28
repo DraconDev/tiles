@@ -287,7 +287,7 @@ fn fs_mouse_index(row: u16, app: &App) -> usize {
 }
 
 fn update_commands(app: &mut App) {
-    let mut commands = vec![
+    let commands = vec![
         CommandItem { label: "Quit".to_string(), action: crate::app::CommandAction::Quit },
         CommandItem { label: "View: Files".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Files) },
         CommandItem { label: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
