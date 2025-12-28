@@ -140,6 +140,7 @@ async fn run_app<B: Backend>(
                                     metadata: std::collections::HashMap::new(), show_hidden, git_status: std::collections::HashMap::new(),
                                     clipboard: None, search_filter: filter, starred: std::collections::HashSet::new(),
                                     columns: Vec::new(), history: Vec::new(), history_index: 0,
+                                    view_height: 0,
                                 };
                                 if let Some(s_mutex) = session {
                                     if let Ok(s) = s_mutex.lock() { crate::modules::files::update_files(&mut temp_state, Some(&s)); }
