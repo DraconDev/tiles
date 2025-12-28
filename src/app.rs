@@ -378,6 +378,13 @@ impl App {
     }
 }
 
+pub fn log_debug(msg: &str) {
+    use std::io::Write;
+    if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open("debug_tiles.log") {
+        let _ = writeln!(file, "{}", msg);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -403,11 +410,10 @@ mod tests {
             view_height: 20, 
         };
         
-        let capacity = fs.view_height.saturating_sub(2);
-        let max_offset = fs.files.len().saturating_sub(capacity);
+        // Relaxed Logic: Max offset is len - 1
+        let max_offset = fs.files.len().saturating_sub(1);
         
-        assert_eq!(capacity, 18);
-        assert_eq!(max_offset, 82);
+        assert_eq!(max_offset, 99);
 
         // Scroll Down 1 (offset 0 -> 3)
         let new_offset = (fs.table_state.offset() + 3).min(max_offset);
@@ -415,17 +421,18 @@ mod tests {
         assert_eq!(fs.table_state.offset(), 3);
 
         // Scroll Down many times
-        for _ in 0..30 {
+        for _ in 0..40 {
             let n = (fs.table_state.offset() + 3).min(max_offset);
             *fs.table_state.offset_mut() = n;
         }
         
-        assert_eq!(fs.table_state.offset(), 82);
+        // Should be capped at 99
+        assert_eq!(fs.table_state.offset(), 99);
         
         // Scroll Up
         let n_up = fs.table_state.offset().saturating_sub(3);
         *fs.table_state.offset_mut() = n_up;
-        assert_eq!(fs.table_state.offset(), 79);
+        assert_eq!(fs.table_state.offset(), 96);
     }
 
     #[test]
@@ -448,14 +455,14 @@ mod tests {
             view_height: 20, 
         };
 
-        let capacity = fs.view_height.saturating_sub(2);
-        let max_offset = fs.files.len().saturating_sub(capacity);
+        // Relaxed Logic: Max offset is len - 1
+        let max_offset = fs.files.len().saturating_sub(1);
         
-        assert_eq!(max_offset, 0);
+        assert_eq!(max_offset, 9);
 
         // Scroll Down
         let new_offset = (fs.table_state.offset() + 3).min(max_offset);
         *fs.table_state.offset_mut() = new_offset;
-        assert_eq!(fs.table_state.offset(), 0); 
+        assert_eq!(fs.table_state.offset(), 3); 
     }
 }

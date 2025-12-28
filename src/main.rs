@@ -334,8 +334,9 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             MouseEventKind::ScrollDown => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        let capacity = fs.view_height.saturating_sub(2);
-                                        let max_offset = fs.files.len().saturating_sub(capacity);
+                                        // Relaxed cap: Allow scrolling until last item is at top
+                                        // This prevents "getting stuck" regardless of view height
+                                        let max_offset = fs.files.len().saturating_sub(1);
                                         
                                         fs.selected_index = None;
                                         fs.table_state.select(None);
