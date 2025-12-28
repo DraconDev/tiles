@@ -96,6 +96,7 @@ pub enum FileColumn {
 
 use ratatui::widgets::TableState;
 
+#[derive(Clone)]
 pub struct RemoteSession {
     pub name: String,
     pub host: String,
