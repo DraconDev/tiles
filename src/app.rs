@@ -16,7 +16,7 @@ pub enum AppMode {
     Delete,     // Delete key mode
     ColumnSetup, // Column configuration mode
     AddRemote,   // Add new SSH remote host
-    ContextMenu(u16, u16), // x, y coordinates
+    ContextMenu { x: u16, y: u16, item_index: Option<usize> },
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
