@@ -530,6 +530,42 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_modu
         crate::app::CommandAction::StartContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.start_container(&name).await; }); } },
         crate::app::CommandAction::StopContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.stop_container(&name).await; }); } },
         crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); }
+        crate::app::CommandAction::ConnectToRemote(idx) => {
+            if let Some(bookmark) = app.remote_bookmarks.get(idx) {
+                let host = bookmark.host.clone();
+                let port = bookmark.port;
+                let user = bookmark.user.clone();
+                let key = format!("{}:{}", host, port);
+                
+                if !app.active_sessions.contains_key(&key) {
+                    // Start SSH connection attempt
+                    let addr = format!("{}:{}", host, port);
+                    if let Ok(tcp) = std::net::TcpStream::connect(&addr) {
+                        if let Ok(mut sess) = ssh2::Session::new() {
+                            sess.set_tcp_stream(tcp);
+                            if sess.handshake().is_ok() {
+                                // Try agent auth first
+                                if sess.userauth_agent(&user).is_ok() {
+                                    app.active_sessions.insert(key.clone(), Arc::new(sess));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if app.active_sessions.contains_key(&key) {
+                    if let Some(fs) = app.current_file_state_mut() {
+                        fs.remote_session = Some(crate::app::RemoteSession {
+                            name: bookmark.name.clone(),
+                            host: host.clone(),
+                            user: user.clone(),
+                        });
+                        fs.current_path = std::path::PathBuf::from("/");
+                        crate::modules::files::update_files(fs);
+                    }
+                }
+            }
+        }
     }
 }
 
