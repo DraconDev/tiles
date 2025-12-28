@@ -392,7 +392,7 @@ async fn run_app<B: Backend>(
                                 }
                                 KeyCode::Char('t') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => {
                                     if let Some(curr) = app.current_file_state() {
-                                        let mut new_fs = crate::app::FileState {
+                                        let new_fs = crate::app::FileState {
                                             current_path: curr.current_path.clone(), remote_session: curr.remote_session.clone(), 
                                             selected_index: 0, table_state: ratatui::widgets::TableState::default(),
                                             files: Vec::new(), show_hidden: curr.show_hidden, git_status: std::collections::HashMap::new(),

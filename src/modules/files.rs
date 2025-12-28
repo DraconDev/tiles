@@ -72,7 +72,30 @@ fn update_local_files(state: &mut FileState) {
 fn update_remote_files(state: &mut FileState, session: &ssh2::Session) {
     if let Ok(sftp) = session.sftp() {
         if let Ok(entries) = sftp.readdir(&state.current_path) {
-            state.files = entries.into_iter().map(|(path, _stat)| path).collect();
+            state.files = entries
+                .into_iter()
+                .map(|(path, _stat)| path)
+                .filter(|path| {
+                    if state.show_hidden {
+                        true
+                    } else {
+                        !path.file_name()
+                            .and_then(|n| n.to_str())
+                            .map(|s| s.starts_with('.'))
+                            .unwrap_or(false)
+                    }
+                })
+                .filter(|path| {
+                    if state.search_filter.is_empty() {
+                        true
+                    } else {
+                        path.file_name()
+                            .and_then(|n| n.to_str())
+                            .map(|s| s.to_lowercase().contains(&state.search_filter.to_lowercase()))
+                            .unwrap_or(false)
+                    }
+                })
+                .collect();
             state.files.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
         }
     }
