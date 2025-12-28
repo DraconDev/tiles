@@ -176,7 +176,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                 MouseEventKind::Down(btn) => {
                     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
                         let menu_width = 15;
-                        let menu_height = if item_index.is_some() { 5 } else { 4 };
+                        let menu_height = 5;
                         if mouse.column >= x && mouse.column < x + menu_width && mouse.row >= y && mouse.row < y + menu_height {
                             let menu_row = mouse.row.saturating_sub(y + 1) as usize;
                             if item_index.is_some() {
