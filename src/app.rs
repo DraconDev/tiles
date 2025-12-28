@@ -31,16 +31,15 @@ pub enum LicenseStatus {
     Commercial(String),
 }
 
-#[derive(Clone)]
-pub struct RemoteBookmark {
-    pub name: String,
-    pub host: String,
-    pub user: String,
-    pub port: u16,
-    pub last_path: PathBuf,
+#[derive(Debug)]
+pub enum AppEvent {
+    RefreshFiles(usize), // tab_index
+    FilesUpdated(usize, Vec<PathBuf>, HashMap<PathBuf, FileMetadata>, HashMap<PathBuf, String>), // tab_idx, files, metadata, git
+    Tick,
 }
 
 pub struct App {
+
     pub running: bool,
     pub current_view: CurrentView,
     pub mode: AppMode,
