@@ -105,7 +105,7 @@ pub struct RemoteSession {
     pub session: Arc<Mutex<ssh2::Session>>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct FileMetadata {
     pub size: u64,
     pub modified: std::time::SystemTime,
@@ -113,6 +113,19 @@ pub struct FileMetadata {
     pub permissions: u32,
     pub extension: String,
     pub is_dir: bool,
+}
+
+impl Default for FileMetadata {
+    fn default() -> Self {
+        Self {
+            size: 0,
+            modified: std::time::SystemTime::UNIX_EPOCH,
+            created: std::time::SystemTime::UNIX_EPOCH,
+            permissions: 0,
+            extension: String::new(),
+            is_dir: false,
+        }
+    }
 }
 
 pub struct FileState {
