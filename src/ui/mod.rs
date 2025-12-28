@@ -226,11 +226,16 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
 }
 
-fn draw_context_menu(f: &mut Frame, x: u16, y: u16) {
-    let area = Rect::new(x, y, 15, 5); f.render_widget(Clear, area);
+fn draw_context_menu(f: &mut Frame, x: u16, y: u16, item_index: Option<usize>) {
+    let height = if item_index.is_some() { 5 } else { 5 }; // Adjusted to be consistent
+    let area = Rect::new(x, y, 15, height); f.render_widget(Clear, area);
     let block = Block::default().borders(Borders::ALL).border_style(Style::default().fg(Color::Yellow)).title(" Menu ");
     let inner = block.inner(area); f.render_widget(block, area);
-    let items = vec![ListItem::new(" Rename"), ListItem::new(" Star"), ListItem::new(" Delete")];
+    let items = if item_index.is_some() {
+        vec![ListItem::new(" Rename"), ListItem::new(" Star"), ListItem::new(" Delete")]
+    } else {
+        vec![ListItem::new(" New Folder"), ListItem::new(" New File"), ListItem::new(" Refresh")]
+    };
     f.render_widget(List::new(items), inner);
 }
 
