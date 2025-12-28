@@ -90,7 +90,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             }
 
             let items: Vec<ListItem> = sidebar_items.into_iter().enumerate().map(|(i, item)| {
-                // Adjust index for selection (skipping the "Local" header)
                 if i == app.sidebar_index + 1 && app.sidebar_focus { 
                     item.style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
                 } else { 
@@ -165,7 +164,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| { match c { FileColumn::Name => Constraint::Percentage(50), FileColumn::Size => Constraint::Length(10), FileColumn::Modified => Constraint::Length(20), FileColumn::Created => Constraint::Length(20), FileColumn::Permissions => Constraint::Length(12), FileColumn::Extension => Constraint::Length(6) } }).collect();
         f.render_stateful_widget(Table::new(rows, constraints).header(header).block(Block::default().borders(Borders::NONE)), area, &mut file_state.table_state);
         
-        // Only show scrollbar if content exceeds viewport height (accounting for header + margin)
         if file_state.files.len() > area.height.saturating_sub(2) as usize {
             let scrollbar = Scrollbar::default().orientation(ScrollbarOrientation::VerticalRight).begin_symbol(Some("↑")).end_symbol(Some("↓"));
             let mut scrollbar_state = ScrollbarState::new(file_state.files.len()).position(file_state.table_state.offset());
@@ -198,7 +196,11 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
         if let Some(filter) = &app.docker_state.filter { if !name.contains(filter) { return None; } }
         Some((name, c.state.as_deref().unwrap_or(""), c.status.as_deref().unwrap_or("")))
     }).enumerate().map(|(i, (name, state, status))| {
-        let style = match state { "running" => Style::default().fg(Color::Green), "exited" => Style::default().fg(Color::Red), _ => Style::default() };
+        let style = match state {
+            "running" => Style::default().fg(Color::Green),
+            "exited" => Style::default().fg(Color::Red),
+            _ => Style::default()
+        };
         ListItem::new(format!("{}{:<20} {:<10} {}", if i == app.docker_state.selected_index && !app.sidebar_focus { "> " } else { "  " }, name, state, status)).style(style)
     }).collect();
     f.render_widget(List::new(items), area);
@@ -268,9 +270,22 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
     let block = Block::default().title(" Properties ").borders(Borders::ALL).border_style(Style::default().fg(Color::Cyan));
     let inner = block.inner(area); f.render_widget(block, area);
     let info = match app.current_view {
-        CurrentView::Files => if let Some(fs) = app.current_file_state() { if let Some(p) = fs.files.get(fs.selected_index) { let metadata = std::fs::metadata(p); let mut s = format!("Name: {}
-", p.file_name().unwrap_or_default().to_string_lossy()); s.push_str(&format!("Type: {}
-", if p.is_dir() { "Directory" } else { "File" })); if let Ok(m) = metadata { s.push_str(&format!("Size: {} bytes\n", m.len())); if let Ok(modi) = m.modified() { s.push_str(&format!("Modified: {:?}\n", modi)); } } s } else { "No file selected".to_string() } } else { "No file selected".to_string() },
+        CurrentView::Files => if let Some(fs) = app.current_file_state() { 
+            if let Some(idx) = fs.selected_index {
+                if let Some(p) = fs.files.get(idx) { 
+                    let metadata = std::fs::metadata(p); 
+                    let mut s = format!("Name: {}
+", p.file_name().unwrap_or_default().to_string_lossy()); 
+                    s.push_str(&format!("Type: {}
+", if p.is_dir() { "Directory" } else { "File" })); 
+                    if let Ok(m) = metadata { 
+                        s.push_str(&format!("Size: {} bytes\n", m.len())); 
+                        if let Ok(modi) = m.modified() { s.push_str(&format!("Modified: {:?}\n", modi)); } 
+                    } 
+                    s 
+                } else { "No file selected".to_string() } 
+            } else { "No file selected".to_string() }
+        } else { "No file selected".to_string() },
         _ => "No info available".to_string()
     };
     f.render_widget(Paragraph::new(info), inner);
@@ -298,10 +313,8 @@ fn draw_add_remote_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(50, 20, f.area()); f.render_widget(Clear, area);
     let block = Block::default().title(" Add Remote Host ").borders(Borders::ALL).border_style(Style::default().fg(Color::Green));
     let inner = block.inner(area); f.render_widget(block, area);
-    let text = format!("Enter connection string (user@host:port):
-> {}
-
-(Press Enter to add, Esc to cancel)", app.input);
+    let text = format!("Enter connection string (user@host:port):\n> {}
+\n(Press Enter to add, Esc to cancel)", app.input);
     f.render_widget(Paragraph::new(text), inner);
 }
 
