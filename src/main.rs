@@ -324,16 +324,10 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             MouseEventKind::ScrollUp => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        let capacity = fs.view_height.saturating_sub(2);
-                                        // Allow scrolling if content is larger than capacity
-                                        if fs.files.len() > capacity {
-                                            fs.selected_index = None;
-                                            fs.table_state.select(None);
-                                            let new_offset = fs.table_state.offset().saturating_sub(3);
-                                            *fs.table_state.offset_mut() = new_offset;
-                                        } else {
-                                            *fs.table_state.offset_mut() = 0;
-                                        }
+                                        fs.selected_index = None;
+                                        fs.table_state.select(None);
+                                        let new_offset = fs.table_state.offset().saturating_sub(3);
+                                        *fs.table_state.offset_mut() = new_offset;
                                     }
                                 } else { app.move_up(); update_docker_filter(app); }
                             }
@@ -341,17 +335,12 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
                                         let capacity = fs.view_height.saturating_sub(2);
-                                        // Relaxed check: Only block if it DEFINITELY fits
-                                        if fs.files.len() > capacity {
-                                            fs.selected_index = None;
-                                            fs.table_state.select(None);
-                                            // Relaxed cap: Allow scrolling until last item is at top
-                                            let max_offset = fs.files.len().saturating_sub(1);
-                                            let new_offset = (fs.table_state.offset() + 3).min(max_offset);
-                                            *fs.table_state.offset_mut() = new_offset;
-                                        } else {
-                                            *fs.table_state.offset_mut() = 0;
-                                        }
+                                        let max_offset = fs.files.len().saturating_sub(capacity);
+                                        
+                                        fs.selected_index = None;
+                                        fs.table_state.select(None);
+                                        let new_offset = (fs.table_state.offset() + 3).min(max_offset);
+                                        *fs.table_state.offset_mut() = new_offset;
                                     }
                                 } else { app.move_down(); update_docker_filter(app); }
                             }
