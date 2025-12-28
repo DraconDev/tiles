@@ -23,7 +23,7 @@ fn update_local_files(state: &mut FileState) {
 
             // Metadata Cache (The Fix)
             if let Ok(m) = entry.metadata() {
-                let mut meta = crate::app::FileMetadata {
+                let meta = crate::app::FileMetadata {
                     size: m.len(),
                     modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
                     created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
