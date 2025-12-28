@@ -213,6 +213,7 @@ impl App {
             columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
             history: vec![initial_path],
             history_index: 0,
+            view_height: 0,
         };
         file_state.table_state.select(Some(0));
         update_files(&mut file_state, None);
