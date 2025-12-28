@@ -104,7 +104,16 @@ pub struct RemoteSession {
     pub session: Arc<Mutex<ssh2::Session>>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
+pub struct RemoteBookmark {
+    pub name: String,
+    pub host: String,
+    pub user: String,
+    pub port: u16,
+    pub last_path: PathBuf,
+}
+
+#[derive(Clone, Debug)]
 pub struct FileMetadata {
     pub size: u64,
     pub modified: std::time::SystemTime,
