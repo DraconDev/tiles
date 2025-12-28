@@ -324,25 +324,25 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             MouseEventKind::ScrollUp => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        let new_index = match fs.selected_index {
-                                            Some(i) => if i > 0 { i - 1 } else { 0 },
-                                            None => fs.table_state.offset(),
-                                        };
-                                        fs.selected_index = Some(new_index);
-                                        fs.table_state.select(Some(new_index));
+                                        fs.selected_index = None;
+                                        fs.table_state.select(None);
+                                        let new_offset = fs.table_state.offset().saturating_sub(1);
+                                        *fs.table_state.offset_mut() = new_offset;
                                     }
                                 } else { app.move_up(); update_docker_filter(app); }
                             }
                             MouseEventKind::ScrollDown => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        let max_idx = fs.files.len().saturating_sub(1);
-                                        let new_index = match fs.selected_index {
-                                            Some(i) => if i < max_idx { i + 1 } else { max_idx },
-                                            None => fs.table_state.offset(),
-                                        };
-                                        fs.selected_index = Some(new_index);
-                                        fs.table_state.select(Some(new_index));
+                                        // Calculate max offset to leave 3 empty rows at the bottom
+                                        let capacity = fs.view_height.saturating_sub(2);
+                                        let effective_capacity = capacity.saturating_sub(3);
+                                        let max_offset = fs.files.len().saturating_sub(effective_capacity);
+                                        
+                                        fs.selected_index = None;
+                                        fs.table_state.select(None);
+                                        let new_offset = (fs.table_state.offset() + 1).min(max_offset);
+                                        *fs.table_state.offset_mut() = new_offset;
                                     }
                                 } else { app.move_down(); update_docker_filter(app); }
                             }
