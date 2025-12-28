@@ -274,14 +274,14 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             MouseEventKind::ScrollUp => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        let viewport_height = rows.saturating_sub(8) as usize;
-                                        if fs.files.len() > viewport_height {
+                                        // Allow scrolling if content is larger than a small safety margin
+                                        if fs.files.len() > rows.saturating_sub(5) as usize {
                                             fs.selected_index = None;
                                             fs.table_state.select(None);
                                             let new_offset = fs.table_state.offset().saturating_sub(3);
                                             *fs.table_state.offset_mut() = new_offset;
                                         } else {
-                                            *fs.table_state.offset_mut() = 0; // Snap to top if fits
+                                            *fs.table_state.offset_mut() = 0;
                                         }
                                     }
                                 } else { app.move_up(); update_docker_filter(app); }
@@ -289,15 +289,17 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             MouseEventKind::ScrollDown => {
                                 if app.current_view == CurrentView::Files {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        let viewport_height = rows.saturating_sub(8) as usize;
-                                        if fs.files.len() > viewport_height {
+                                        // Relaxed check: Only block if it DEFINITELY fits
+                                        if fs.files.len() > rows.saturating_sub(5) as usize {
                                             fs.selected_index = None;
                                             fs.table_state.select(None);
-                                            let max_offset = fs.files.len().saturating_sub(viewport_height);
+                                            // Relaxed cap: Allow scrolling until last item is at top
+                                            // This prevents "getting stuck" at the cost of some empty space at bottom
+                                            let max_offset = fs.files.len().saturating_sub(1);
                                             let new_offset = (fs.table_state.offset() + 3).min(max_offset);
                                             *fs.table_state.offset_mut() = new_offset;
                                         } else {
-                                            *fs.table_state.offset_mut() = 0; // Snap to top if fits
+                                            *fs.table_state.offset_mut() = 0;
                                         }
                                     }
                                 } else { app.move_down(); update_docker_filter(app); }
