@@ -270,12 +270,17 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                         }
                     }
                 }
-                MouseEventKind::ScrollUp => {
-                    if let Some(fs) = app.current_file_state_mut() {
-                        let new_offset = fs.table_state.offset().saturating_sub(3);
-                        *fs.table_state.offset_mut() = new_offset;
-                    }
-                }
+                            MouseEventKind::ScrollUp => {
+                                if app.current_view == CurrentView::Files {
+                                    if let Some(fs) = app.current_file_state_mut() {
+                                        if fs.files.len() > rows.saturating_sub(5) as usize { // Only scroll if content > viewport
+                                            fs.selected_index = None;
+                                            let new_offset = fs.table_state.offset().saturating_sub(3);
+                                            *fs.table_state.offset_mut() = new_offset;
+                                        }
+                                    }
+                                } else { app.move_up(); update_docker_filter(app); }
+                            }
                 MouseEventKind::ScrollDown => {
                     if let Some(fs) = app.current_file_state_mut() {
                         let new_offset = fs.table_state.offset().saturating_add(3);
