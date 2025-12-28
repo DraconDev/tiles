@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use crate::modules::system::SystemModule;
 use crate::modules::files::update_files;
 use crate::license::check_license;
