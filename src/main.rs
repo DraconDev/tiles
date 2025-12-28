@@ -171,7 +171,6 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
     let (cols, rows) = (size.width, size.height);
     match evt {
         Event::Mouse(mouse) => {
-            let (cols, rows) = (80, 24); // TODO: Get actual size
             match mouse.kind {
                 MouseEventKind::Down(btn) => {
                     if let AppMode::ContextMenu(_x, _y) = app.mode {
