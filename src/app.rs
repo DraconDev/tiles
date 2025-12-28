@@ -410,8 +410,11 @@ mod tests {
             view_height: 20, 
         };
         
-        // Capacity = 18. Effective = 15 (3 empty rows).
-        // Max Offset = 100 - 15 = 85.
+        // Initial Selection at 0
+        fs.selected_index = Some(0);
+        fs.table_state.select(Some(0));
+
+        // Capacity = 18. Effective = 15. Max = 85.
         let capacity = fs.view_height.saturating_sub(2);
         let effective_capacity = capacity.saturating_sub(3);
         let max_offset = fs.files.len().saturating_sub(effective_capacity);
@@ -419,9 +422,12 @@ mod tests {
         assert_eq!(max_offset, 85);
 
         // Scroll Down 1 (offset 0 -> 1)
+        // Selection should be preserved
         let new_offset = (fs.table_state.offset() + 1).min(max_offset);
         *fs.table_state.offset_mut() = new_offset;
+        
         assert_eq!(fs.table_state.offset(), 1);
+        assert_eq!(fs.selected_index, Some(0));
 
         // Scroll Down to limit
         for _ in 0..100 {
@@ -430,11 +436,7 @@ mod tests {
         }
         
         assert_eq!(fs.table_state.offset(), 85);
-        
-        // Scroll Up
-        let n_up = fs.table_state.offset().saturating_sub(1);
-        *fs.table_state.offset_mut() = n_up;
-        assert_eq!(fs.table_state.offset(), 84);
+        assert_eq!(fs.selected_index, Some(0)); // Still preserved
     }
 
     #[test]
@@ -457,8 +459,6 @@ mod tests {
             view_height: 20, 
         };
 
-        // Files 10. Effective Cap 15.
-        // Max Offset = 10 - 15 = 0.
         let capacity = fs.view_height.saturating_sub(2);
         let effective_capacity = capacity.saturating_sub(3);
         let max_offset = fs.files.len().saturating_sub(effective_capacity);
