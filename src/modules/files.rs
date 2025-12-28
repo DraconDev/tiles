@@ -89,7 +89,7 @@ fn update_remote_files(state: &mut FileState, session: &ssh2::Session) {
                     size: stat.size.unwrap_or(0),
                     modified: stat.mtime.map(|t| std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(t)).unwrap_or(std::time::SystemTime::UNIX_EPOCH),
                     created: std::time::SystemTime::UNIX_EPOCH, // SFTP usually doesn't provide birth time easily
-                    permissions: stat.permissions.unwrap_or(0),
+                    permissions: stat.perm.unwrap_or(0),
                     extension: path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string(),
                     is_dir: stat.is_dir(),
                 };
