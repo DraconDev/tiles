@@ -410,29 +410,32 @@ mod tests {
             view_height: 20, 
         };
         
-        // Relaxed Logic: Max offset is len - 1
-        let max_offset = fs.files.len().saturating_sub(1);
+        // Scroll Down 1 (Starts selection at offset 0)
+        let max_idx = fs.files.len().saturating_sub(1);
+        let new_index = match fs.selected_index {
+            Some(i) => if i < max_idx { i + 1 } else { max_idx },
+            None => fs.table_state.offset(),
+        };
+        fs.selected_index = Some(new_index);
         
-        assert_eq!(max_offset, 99);
+        assert_eq!(fs.selected_index, Some(0));
 
-        // Scroll Down 1 (offset 0 -> 1)
-        let new_offset = (fs.table_state.offset() + 1).min(max_offset);
-        *fs.table_state.offset_mut() = new_offset;
-        assert_eq!(fs.table_state.offset(), 1);
-
-        // Scroll Down many times
-        for _ in 0..120 {
-            let n = (fs.table_state.offset() + 1).min(max_offset);
-            *fs.table_state.offset_mut() = n;
-        }
+        // Scroll Down again (0 -> 1)
+        let max_idx = fs.files.len().saturating_sub(1);
+        let new_index = match fs.selected_index {
+            Some(i) => if i < max_idx { i + 1 } else { max_idx },
+            None => fs.table_state.offset(),
+        };
+        fs.selected_index = Some(new_index);
+        assert_eq!(fs.selected_index, Some(1));
         
-        // Should be capped at 99
-        assert_eq!(fs.table_state.offset(), 99);
-        
-        // Scroll Up
-        let n_up = fs.table_state.offset().saturating_sub(1);
-        *fs.table_state.offset_mut() = n_up;
-        assert_eq!(fs.table_state.offset(), 98);
+        // Scroll Up (1 -> 0)
+        let new_index = match fs.selected_index {
+            Some(i) => if i > 0 { i - 1 } else { 0 },
+            None => fs.table_state.offset(),
+        };
+        fs.selected_index = Some(new_index);
+        assert_eq!(fs.selected_index, Some(0));
     }
 
     #[test]
@@ -455,14 +458,14 @@ mod tests {
             view_height: 20, 
         };
 
-        // Relaxed Logic: Max offset is len - 1
-        let max_offset = fs.files.len().saturating_sub(1);
+        // Scroll Down (None -> 0)
+        let max_idx = fs.files.len().saturating_sub(1);
+        let new_index = match fs.selected_index {
+            Some(i) => if i < max_idx { i + 1 } else { max_idx },
+            None => fs.table_state.offset(),
+        };
+        fs.selected_index = Some(new_index);
         
-        assert_eq!(max_offset, 9);
-
-        // Scroll Down
-        let new_offset = (fs.table_state.offset() + 1).min(max_offset);
-        *fs.table_state.offset_mut() = new_offset;
-        assert_eq!(fs.table_state.offset(), 1); 
+        assert_eq!(fs.selected_index, Some(0));
     }
 }
