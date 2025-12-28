@@ -54,7 +54,7 @@ pub struct App {
     pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
     pub sidebar_index: usize,
     pub remote_bookmarks: Vec<RemoteBookmark>,
-    pub active_sessions: HashMap<String, Arc<ssh2::Session>>, // host:port -> session
+    pub active_sessions: HashMap<String, Arc<Mutex<ssh2::Session>>>, // host:port -> session
     pub filtered_commands: Vec<CommandItem>,
     pub command_index: usize,
     pub last_click: Option<(std::time::Instant, u16, u16)>, // time, row, col
