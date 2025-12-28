@@ -127,6 +127,7 @@ use std::time::SystemTime;
 fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
     let sidebar_focus = app.sidebar_focus;
     if let Some(file_state) = app.current_file_state_mut() {
+        file_state.view_height = area.height as usize;
         let header_cells = file_state.columns.iter().map(|c| {
             let name = match c { FileColumn::Name => "Name", FileColumn::Size => "Size", FileColumn::Modified => "Modified", FileColumn::Created => "Created", FileColumn::Permissions => "Permissions", FileColumn::Extension => "Ext" };
             Cell::from(name).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
