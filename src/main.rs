@@ -328,7 +328,37 @@ async fn run_app<B: Backend>(
                                 }
                             }
                         }
-                        app.mode = AppMode::Normal;
+                                app.mode = AppMode::Normal;
+                            }
+                            _ => {}
+                        }
+                    } else if matches!(app.mode, AppMode::AddRemote) {
+                        match key.code {
+                            KeyCode::Esc => app.mode = AppMode::Normal,
+                            KeyCode::Char(c) => app.input.push(c),
+                            KeyCode::Backspace => { app.input.pop(); }
+                            KeyCode::Enter => {
+                                let input = app.input.clone();
+                                // Parse user@host:port
+                                let parts: Vec<&str> = input.split('@').collect();
+                                if parts.len() == 2 {
+                                    let user = parts[0].to_string();
+                                    let host_port: Vec<&str> = parts[1].split(':').collect();
+                                    let host = host_port[0].to_string();
+                                    let port = host_port.get(1).and_then(|p| p.parse().ok()).unwrap_or(22);
+                                    
+                                    app.remote_bookmarks.push(crate::app::RemoteBookmark {
+                                        name: host.clone(),
+                                        host,
+                                        user,
+                                        port,
+                                        last_path: std::path::PathBuf::from("/"),
+                                    });
+                                }
+                                app.mode = AppMode::Normal;
+                            }
+                            _ => {}
+                        }
                     } else if matches!(app.mode, AppMode::CommandPalette) {
                         match key.code {
                             KeyCode::Esc => app.mode = AppMode::Normal,
