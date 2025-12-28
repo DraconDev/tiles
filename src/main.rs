@@ -196,6 +196,9 @@ async fn run_app<B: Backend>(
                                                 let bookmark_idx = r - 7;
                                                 if bookmark_idx < app.remote_bookmarks.len() {
                                                     app.sidebar_index = r - 1;
+                                                    if is_double_click {
+                                                        execute_command(crate::app::CommandAction::ConnectToRemote(bookmark_idx), app, &docker_module);
+                                                    }
                                                 }
                                             },
                                             _ => {}
