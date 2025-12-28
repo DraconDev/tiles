@@ -79,4 +79,4 @@ src/
     └── system.rs     # Sysinfo + SSH text parsing
 
 
-the menu should differentiate what we clicking on so 
+the menu should differentiate what we clicking on so for ex 
