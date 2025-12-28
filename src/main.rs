@@ -233,7 +233,6 @@ async fn run_app<B: Backend>(
                         MouseEventKind::ScrollUp => {
                             if app.current_view == CurrentView::Files {
                                 if let Some(fs) = app.current_file_state_mut() {
-                                    fs.selected_index = None; // Independent scrolling
                                     let new_offset = fs.table_state.offset().saturating_sub(3);
                                     *fs.table_state.offset_mut() = new_offset;
                                 }
@@ -242,7 +241,6 @@ async fn run_app<B: Backend>(
                         MouseEventKind::ScrollDown => {
                             if app.current_view == CurrentView::Files {
                                 if let Some(fs) = app.current_file_state_mut() {
-                                    fs.selected_index = None; // Independent scrolling
                                     let max_files = fs.files.len();
                                     let new_offset = (fs.table_state.offset() + 3).min(max_files.saturating_sub(1));
                                     *fs.table_state.offset_mut() = new_offset;
