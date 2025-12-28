@@ -158,7 +158,7 @@ async fn run_app<B: Backend>(
             res = tokio::task::spawn_blocking(|| crossterm::event::poll(Duration::from_millis(10))) => {
                 if let Ok(Ok(true)) = res {
                     if let Ok(evt) = crossterm::event::read() {
-                        handle_event(evt, app, &docker_module, event_tx.clone()).await;
+                        handle_event(evt, app, &docker_module, event_tx.clone(), terminal.size().unwrap_or_default()).await;
                     }
                 }
             }
@@ -167,7 +167,8 @@ async fn run_app<B: Backend>(
     Ok(())
 }
 
-async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
+async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>, size: ratatui::layout::Rect) {
+    let (cols, rows) = (size.width, size.height);
     match evt {
         Event::Mouse(mouse) => {
             let (cols, rows) = (80, 24); // TODO: Get actual size
