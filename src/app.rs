@@ -261,12 +261,19 @@ impl App {
         match self.current_view {
             CurrentView::Files => {
                 if let Some(file_state) = self.current_file_state_mut() {
-                    let new_index = match file_state.selected_index {
-                        Some(i) => if i > 0 { Some(i - 1) } else { Some(0) },
-                        None => Some(file_state.table_state.offset()),
+                    let mut new_index = match file_state.selected_index {
+                        Some(i) => if i > 0 { i - 1 } else { 0 },
+                        None => file_state.table_state.offset(),
                     };
-                    file_state.selected_index = new_index;
-                    file_state.table_state.select(new_index);
+                    
+                    // Logic to ensure selection stays in view
+                    let offset = file_state.table_state.offset();
+                    if new_index < offset {
+                        *file_state.table_state.offset_mut() = new_index;
+                    }
+                    
+                    file_state.selected_index = Some(new_index);
+                    file_state.table_state.select(Some(new_index));
                 }
             }
             CurrentView::Docker => {
