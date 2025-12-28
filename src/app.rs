@@ -410,32 +410,31 @@ mod tests {
             view_height: 20, 
         };
         
-        // Scroll Down 1 (Starts selection at offset 0)
-        let max_idx = fs.files.len().saturating_sub(1);
-        let new_index = match fs.selected_index {
-            Some(i) => if i < max_idx { i + 1 } else { max_idx },
-            None => fs.table_state.offset(),
-        };
-        fs.selected_index = Some(new_index);
+        // Capacity = 18. Effective = 15 (3 empty rows).
+        // Max Offset = 100 - 15 = 85.
+        let capacity = fs.view_height.saturating_sub(2);
+        let effective_capacity = capacity.saturating_sub(3);
+        let max_offset = fs.files.len().saturating_sub(effective_capacity);
         
-        assert_eq!(fs.selected_index, Some(0));
+        assert_eq!(max_offset, 85);
 
-        // Scroll Down again (0 -> 1)
-        let max_idx = fs.files.len().saturating_sub(1);
-        let new_index = match fs.selected_index {
-            Some(i) => if i < max_idx { i + 1 } else { max_idx },
-            None => fs.table_state.offset(),
-        };
-        fs.selected_index = Some(new_index);
-        assert_eq!(fs.selected_index, Some(1));
+        // Scroll Down 1 (offset 0 -> 1)
+        let new_offset = (fs.table_state.offset() + 1).min(max_offset);
+        *fs.table_state.offset_mut() = new_offset;
+        assert_eq!(fs.table_state.offset(), 1);
+
+        // Scroll Down to limit
+        for _ in 0..100 {
+            let n = (fs.table_state.offset() + 1).min(max_offset);
+            *fs.table_state.offset_mut() = n;
+        }
         
-        // Scroll Up (1 -> 0)
-        let new_index = match fs.selected_index {
-            Some(i) => if i > 0 { i - 1 } else { 0 },
-            None => fs.table_state.offset(),
-        };
-        fs.selected_index = Some(new_index);
-        assert_eq!(fs.selected_index, Some(0));
+        assert_eq!(fs.table_state.offset(), 85);
+        
+        // Scroll Up
+        let n_up = fs.table_state.offset().saturating_sub(1);
+        *fs.table_state.offset_mut() = n_up;
+        assert_eq!(fs.table_state.offset(), 84);
     }
 
     #[test]
@@ -458,14 +457,17 @@ mod tests {
             view_height: 20, 
         };
 
-        // Scroll Down (None -> 0)
-        let max_idx = fs.files.len().saturating_sub(1);
-        let new_index = match fs.selected_index {
-            Some(i) => if i < max_idx { i + 1 } else { max_idx },
-            None => fs.table_state.offset(),
-        };
-        fs.selected_index = Some(new_index);
+        // Files 10. Effective Cap 15.
+        // Max Offset = 10 - 15 = 0.
+        let capacity = fs.view_height.saturating_sub(2);
+        let effective_capacity = capacity.saturating_sub(3);
+        let max_offset = fs.files.len().saturating_sub(effective_capacity);
         
-        assert_eq!(fs.selected_index, Some(0));
+        assert_eq!(max_offset, 0);
+
+        // Scroll Down
+        let new_offset = (fs.table_state.offset() + 1).min(max_offset);
+        *fs.table_state.offset_mut() = new_offset;
+        assert_eq!(fs.table_state.offset(), 0); 
     }
 }
