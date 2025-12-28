@@ -174,11 +174,59 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
         Event::Mouse(mouse) => {
             match mouse.kind {
                 MouseEventKind::Down(btn) => {
-                    if let AppMode::ContextMenu(_x, _y) = app.mode {
+                    if let AppMode::ContextMenu { x, y, item_index } = app.mode {
+                        let menu_width = 15;
+                        let menu_height = if item_index.is_some() { 5 } else { 4 };
+                        if mouse.column >= x && mouse.column < x + menu_width && mouse.row >= y && mouse.row < y + menu_height {
+                            let menu_row = mouse.row.saturating_sub(y + 1) as usize;
+                            if item_index.is_some() {
+                                match menu_row {
+                                    0 => app.mode = AppMode::Rename,
+                                    1 => {
+                                        if let Some(fs) = app.current_file_state_mut() {
+                                            if let Some(idx) = item_index {
+                                                if let Some(path) = fs.files.get(idx).cloned() {
+                                                    if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); }
+                                                }
+                                            }
+                                        }
+                                        app.mode = AppMode::Normal;
+                                    },
+                                    2 => app.mode = AppMode::Delete,
+                                    _ => app.mode = AppMode::Normal,
+                                }
+                            } else {
+                                match menu_row {
+                                    0 => { app.mode = AppMode::NewFolder; app.input.clear(); },
+                                    1 => { /* New File */ app.mode = AppMode::Normal; },
+                                    2 => { let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; app.mode = AppMode::Normal; },
+                                    _ => app.mode = AppMode::Normal,
+                                }
+                            }
+                            return;
+                        }
                         app.mode = AppMode::Normal;
                         return;
                     }
-                    if btn == MouseButton::Right { app.mode = AppMode::ContextMenu(mouse.column, mouse.row); return; }
+                    if btn == MouseButton::Right {
+                        let index = if app.current_view == CurrentView::Files && !app.sidebar_focus {
+                            let idx = fs_mouse_index(mouse.row, app);
+                            if let Some(fs) = app.current_file_state() {
+                                if idx < fs.files.len() { Some(idx) } else { None }
+                            } else { None }
+                        } else { None };
+                        
+                        // Select the item on right click if it's a file
+                        if let Some(idx) = index {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                fs.selected_index = Some(idx);
+                                fs.table_state.select(Some(idx));
+                            }
+                        }
+
+                        app.mode = AppMode::ContextMenu { x: mouse.column, y: mouse.row, item_index: index };
+                        return;
+                    }
                     
                     let mut is_double_click = false;
                     if let Some((last_time, last_row, last_col)) = app.last_click {

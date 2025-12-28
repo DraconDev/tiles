@@ -33,8 +33,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_footer(f, chunks[2], app);
 
     // Context Menu
-    if let AppMode::ContextMenu(x, y) = app.mode {
-        draw_context_menu(f, x, y);
+    if let AppMode::ContextMenu { x, y, item_index } = app.mode {
+        draw_context_menu(f, x, y, item_index);
     }
 
     // Modals
