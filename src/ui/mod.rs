@@ -108,15 +108,9 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = block.inner(area); f.render_widget(block, area);
     if app.current_view == CurrentView::Files {
         let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Min(0)]).split(inner);
-        let mut path_text = if matches!(app.mode, AppMode::Location) { format!("Location: {}", app.input) } 
+        let path_text = if matches!(app.mode, AppMode::Location) { format!("Location: {}", app.input) } 
             else if let Some(fs) = app.current_file_state() { if !fs.search_filter.is_empty() { format!("Search: {} (Esc to clear)", fs.search_filter) } else { format!("Path: {}", fs.current_path.display()) } } 
             else { String::new() };
-        
-        // Debug Info
-        if let Some(fs) = app.current_file_state() {
-            path_text.push_str(&format!(" [Count: {} | Off: {} | H: {}]", fs.files.len(), fs.table_state.offset(), fs.view_height));
-        }
-
         f.render_widget(Paragraph::new(path_text).block(Block::default().borders(Borders::ALL).border_style(if matches!(app.mode, AppMode::Location) { Style::default().fg(Color::Yellow) } else if app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { Style::default().fg(Color::Magenta) } else { Style::default() })), chunks[0]);
         draw_file_view(f, chunks[1], app);
     } else {
