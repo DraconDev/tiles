@@ -32,7 +32,7 @@ async fn main() -> color_eyre::Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::new();
-    let (event_tx, mut event_rx) = mpsc::channel(100);
+    let (event_tx, event_rx) = mpsc::channel(100);
     let (docker_tx, docker_rx) = mpsc::channel(10);
     let docker_module = DockerModule::new().ok().map(Arc::new);
 
