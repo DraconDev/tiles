@@ -159,7 +159,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                     FileColumn::Extension => Cell::from(path.extension().and_then(|e| e.to_str()).unwrap_or("")),
                 }
             });
-            let style = if i == file_state.selected_index && !sidebar_focus { Style::default().bg(Color::DarkGray) } else { Style::default() };
+            let style = if Some(i) == file_state.selected_index && !sidebar_focus { Style::default().bg(Color::DarkGray) } else { Style::default() };
             Row::new(cells).style(style)
         });
         let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| { match c { FileColumn::Name => Constraint::Percentage(50), FileColumn::Size => Constraint::Length(10), FileColumn::Modified => Constraint::Length(20), FileColumn::Created => Constraint::Length(20), FileColumn::Permissions => Constraint::Length(12), FileColumn::Extension => Constraint::Length(6) } }).collect();
@@ -257,7 +257,7 @@ fn draw_delete_modal(f: &mut Frame, app: &App) {
     let block = Block::default().title(" Confirm Action ").borders(Borders::ALL).border_style(Style::default().fg(Color::Red));
     let inner = block.inner(area); f.render_widget(block, area);
     let text = match app.current_view {
-        CurrentView::Files => if let Some(fs) = app.current_file_state() { if let Some(p) = fs.files.get(fs.selected_index) { format!("Delete {}? (y/n)", p.file_name().unwrap_or_default().to_string_lossy()) } else { "Delete? (y/n)".to_string() } } else { "Delete? (y/n)".to_string() },
+        CurrentView::Files => if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(p) = fs.files.get(idx) { format!("Delete {}? (y/n)", p.file_name().unwrap_or_default().to_string_lossy()) } else { "Delete? (y/n)".to_string() } } else { "Delete? (y/n)".to_string() } } else { "Delete? (y/n)".to_string() },
         _ => "Delete? (y/n)".to_string()
     };
     f.render_widget(Paragraph::new(text), inner);
