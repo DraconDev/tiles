@@ -294,7 +294,7 @@ impl App {
         match self.current_view {
             CurrentView::Files => {
                 if let Some(file_state) = self.current_file_state_mut() {
-                    let mut new_index = match file_state.selected_index {
+                    let new_index = match file_state.selected_index {
                         Some(i) => if i > 0 { i - 1 } else { 0 },
                         None => file_state.table_state.offset(),
                     };
