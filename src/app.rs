@@ -337,7 +337,7 @@ impl App {
             CurrentView::Files => {
                 if let Some(file_state) = self.current_file_state_mut() {
                     let max_idx = file_state.files.len().saturating_sub(1);
-                    let mut new_index = match file_state.selected_index {
+                    let new_index = match file_state.selected_index {
                         Some(i) => if i < max_idx { i + 1 } else { max_idx },
                         None => file_state.table_state.offset(),
                     };
