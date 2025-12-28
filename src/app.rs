@@ -290,10 +290,13 @@ impl App {
         match self.current_view {
             CurrentView::Files => {
                 if let Some(file_state) = self.current_file_state_mut() {
-                    if file_state.selected_index < file_state.files.len().saturating_sub(1) {
-                        file_state.selected_index += 1;
-                        file_state.table_state.select(Some(file_state.selected_index));
-                    }
+                    let max_idx = file_state.files.len().saturating_sub(1);
+                    let new_index = match file_state.selected_index {
+                        Some(i) => if i < max_idx { Some(i + 1) } else { Some(max_idx) },
+                        None => Some(file_state.table_state.offset()),
+                    };
+                    file_state.selected_index = new_index;
+                    file_state.table_state.select(new_index);
                 }
             }
             CurrentView::Docker => {
