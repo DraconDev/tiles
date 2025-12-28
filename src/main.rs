@@ -1,6 +1,6 @@
 use std::{io, time::{Duration, Instant}};
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, Event, KeyCode, MouseEventKind, MouseButton},
+    event::{DisableMouseCapture, EnableMouseCapture, Event, KeyCode, MouseEventKind, MouseButton, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -32,7 +32,7 @@ async fn main() -> color_eyre::Result<()> {
     let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::new();
-    let (event_tx, event_rx) = mpsc::channel(100);
+    let (event_tx, mut event_rx) = mpsc::channel(100);
     let (docker_tx, docker_rx) = mpsc::channel(10);
     let docker_module = DockerModule::new().ok().map(Arc::new);
 
@@ -168,16 +168,23 @@ async fn run_app<B: Backend>(
 }
 
 async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
-    let (_cols, _rows) = (80, 24); // Placeholder or passed from draw
     match evt {
         Event::Mouse(mouse) => {
+            let (cols, rows) = (80, 24); // TODO: Get actual size
             match mouse.kind {
                 MouseEventKind::Down(btn) => {
                     if let AppMode::ContextMenu(_x, _y) = app.mode {
-                        app.mode = AppMode::Normal; // Simple dismiss for now
+                        app.mode = AppMode::Normal;
                         return;
                     }
                     if btn == MouseButton::Right { app.mode = AppMode::ContextMenu(mouse.column, mouse.row); return; }
+                    
+                    let mut is_double_click = false;
+                    if let Some((last_time, last_row, last_col)) = app.last_click {
+                        if last_time.elapsed() < Duration::from_millis(500) && last_row == mouse.row && last_col == mouse.column { is_double_click = true; }
+                    }
+                    app.last_click = Some((Instant::now(), mouse.row, mouse.column));
+
                     if btn == MouseButton::Middle {
                         if app.current_view == CurrentView::Files {
                             let index = fs_mouse_index(mouse.row, app);
@@ -200,13 +207,66 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                         }
                         return;
                     }
+
                     if btn == MouseButton::Left {
                         if mouse.row == 0 {
                             if mouse.column < 11 { app.current_view = CurrentView::Files; }
                             else if mouse.column < 22 { app.current_view = CurrentView::System; }
                             else if mouse.column < 33 { app.current_view = CurrentView::Docker; }
                         } else {
-                            // Focus logic handled in move_left/right or click detection
+                            let sidebar_width = 16; // 20% of 80
+                            if mouse.column < sidebar_width {
+                                app.sidebar_focus = true;
+                                let sidebar_row = mouse.row.saturating_sub(2) as usize;
+                                match sidebar_row {
+                                    1..=4 => {
+                                        app.sidebar_index = sidebar_row - 1;
+                                        if is_double_click {
+                                            let path = match app.sidebar_index { 0 => dirs::home_dir(), 1 => dirs::download_dir(), 2 => dirs::document_dir(), 3 => dirs::picture_dir(), _ => None };
+                                            if let Some(p) = path {
+                                                if let Some(fs) = app.current_file_state_mut() {
+                                                    fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear();
+                                                    *fs.table_state.offset_mut() = 0;
+                                                    push_history(fs, p);
+                                                }
+                                                let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                                app.sidebar_focus = false;
+                                            }
+                                        }
+                                    },
+                                    r if r >= 7 => {
+                                        let bookmark_idx = r - 7;
+                                        if bookmark_idx < app.remote_bookmarks.len() {
+                                            app.sidebar_index = r - 1;
+                                            if is_double_click {
+                                                execute_command(crate::app::CommandAction::ConnectToRemote(bookmark_idx), app, docker_module, event_tx.clone()).await;
+                                            }
+                                        }
+                                    },
+                                    _ => {}
+                                }
+                            } else {
+                                app.sidebar_focus = false;
+                                if app.current_view == CurrentView::Files {
+                                    let index = fs_mouse_index(mouse.row, app);
+                                    if let Some(fs) = app.current_file_state_mut() {
+                                        if index < fs.files.len() {
+                                            fs.selected_index = Some(index);
+                                            fs.table_state.select(Some(index));
+                                            if is_double_click {
+                                                if let Some(path) = fs.files.get(index).cloned() {
+                                                    if path.is_dir() {
+                                                        fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear();
+                                                        *fs.table_state.offset_mut() = 0;
+                                                        push_history(fs, path);
+                                                        let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -241,10 +301,77 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                         _ => {}
                     }
                 }
-                _ => {
+                AppMode::Location => {
                     match key.code {
-                        KeyCode::Char('q') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => app.running = false,
-                        KeyCode::Char('.') if key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) => { app.mode = AppMode::CommandPalette; update_commands(app); }
+                        KeyCode::Esc => app.mode = AppMode::Normal,
+                        KeyCode::Char(c) => app.input.push(c),
+                        KeyCode::Backspace => { app.input.pop(); }
+                        KeyCode::Enter => {
+                            let path = std::path::PathBuf::from(&app.input);
+                            if path.exists() {
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    fs.current_path = path.clone(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0;
+                                    push_history(fs, path); 
+                                }
+                                let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                            }
+                            app.mode = AppMode::Normal;
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {
+                    // Global Hotkeys
+                    if key.modifiers.contains(KeyModifiers::CONTROL) {
+                        match key.code {
+                            KeyCode::Char('q') => app.running = false,
+                            KeyCode::Char('.') => { app.mode = AppMode::CommandPalette; update_commands(app); }
+                            KeyCode::Char('f') => app.current_view = CurrentView::Files,
+                            KeyCode::Char('p') => app.current_view = CurrentView::System,
+                            KeyCode::Char('d') => app.current_view = CurrentView::Docker,
+                            KeyCode::Char('h') => {
+                                if let Some(fs) = app.current_file_state_mut() { 
+                                    fs.show_hidden = !fs.show_hidden; 
+                                    let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                }
+                            }
+                            KeyCode::Char('t') => {
+                                if let Some(curr) = app.current_file_state() {
+                                    let new_fs = crate::app::FileState {
+                                        current_path: curr.current_path.clone(), remote_session: curr.remote_session.clone(), 
+                                        selected_index: Some(0), table_state: ratatui::widgets::TableState::default(),
+                                        files: Vec::new(), metadata: std::collections::HashMap::new(), 
+                                        show_hidden: curr.show_hidden, git_status: std::collections::HashMap::new(),
+                                        clipboard: None, search_filter: String::new(), starred: curr.starred.clone(),
+                                        columns: curr.columns.clone(), history: vec![curr.current_path.clone()], history_index: 0,
+                                    };
+                                    app.file_tabs.push(new_fs); app.tab_index = app.file_tabs.len() - 1;
+                                    let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                }
+                            }
+                            KeyCode::Char('w') => {
+                                if app.file_tabs.len() > 1 { app.file_tabs.remove(app.tab_index); app.tab_index = app.tab_index.min(app.file_tabs.len() - 1); }
+                                else { app.running = false; }
+                            }
+                            KeyCode::Tab => {
+                                app.tab_index = (app.tab_index + 1) % app.file_tabs.len();
+                            }
+                            KeyCode::Char('b') => {
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    if let Some(idx) = fs.selected_index {
+                                        if let Some(path) = fs.files.get(idx).cloned() {
+                                            if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); }
+                                        }
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                        return;
+                    }
+
+                    // Navigation
+                    match key.code {
                         KeyCode::Down => { app.move_down(); }
                         KeyCode::Up => { app.move_up(); }
                         KeyCode::Left => { app.move_left(); }
@@ -264,9 +391,29 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                         }
                         KeyCode::Backspace => {
                             if let Some(fs) = app.current_file_state_mut() {
-                                if let Some(p) = fs.current_path.parent() {
+                                if !fs.search_filter.is_empty() {
+                                    fs.search_filter.pop();
+                                    let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                } else if let Some(p) = fs.current_path.parent() {
                                     let path = p.to_path_buf(); fs.current_path = path.clone(); fs.selected_index = Some(0);
                                     push_history(fs, path);
+                                    let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                }
+                            }
+                        }
+                        KeyCode::Char(c) => {
+                            if app.current_view == CurrentView::Files && !app.sidebar_focus {
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    fs.search_filter.push(c);
+                                    fs.selected_index = Some(0);
+                                    let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                }
+                            }
+                        }
+                        KeyCode::Esc => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                if !fs.search_filter.is_empty() {
+                                    fs.search_filter.clear();
                                     let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
                                 }
                             }
@@ -290,16 +437,26 @@ fn update_commands(app: &mut App) {
     let commands = vec![
         CommandItem { label: "Quit".to_string(), action: crate::app::CommandAction::Quit },
         CommandItem { label: "View: Files".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Files) },
+        CommandItem { label: "View: System".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::System) },
+        CommandItem { label: "View: Docker".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Docker) },
         CommandItem { label: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
     ];
-    app.filtered_commands = commands.into_iter().filter(|cmd| cmd.label.to_lowercase().contains(&app.input.to_lowercase())).collect();
+    let mut filtered = commands;
+    for bookmark_idx in 0..app.remote_bookmarks.len() {
+        let bookmark = &app.remote_bookmarks[bookmark_idx];
+        filtered.push(CommandItem { label: format!("Connect to: {}", bookmark.name), action: crate::app::CommandAction::ConnectToRemote(bookmark_idx) });
+    }
+    app.filtered_commands = filtered.into_iter().filter(|cmd| cmd.label.to_lowercase().contains(&app.input.to_lowercase())).collect();
     app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
 }
 
 async fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
     match action {
         crate::app::CommandAction::Quit => { app.running = false; },
+        crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
         crate::app::CommandAction::SwitchView(view) => app.current_view = view,
+        crate::app::CommandAction::StartContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.start_container(&name).await; }); } },
+        crate::app::CommandAction::StopContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.stop_container(&name).await; }); } },
         crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); },
         crate::app::CommandAction::ConnectToRemote(idx) => {
             if let Some(bookmark) = app.remote_bookmarks.get(idx).cloned() {
@@ -320,7 +477,6 @@ async fn execute_command(action: crate::app::CommandAction, app: &mut App, docke
                 }
             }
         },
-        _ => {}
     }
 }
 
