@@ -167,7 +167,7 @@ impl App {
         let mut file_state = FileState {
             current_path: initial_path.clone(),
             remote_session: None,
-            selected_index: 0,
+            selected_index: Some(0),
             table_state: TableState::default(),
             files: Vec::new(),
             show_hidden: false,
