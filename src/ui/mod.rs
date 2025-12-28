@@ -48,7 +48,6 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 }
 
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Min(0), Constraint::Length(5)]).split(area);
     let mut spans = Vec::new();
     let views = vec![("^F Files", CurrentView::Files), ("^P Proc", CurrentView::System), ("^D Docker", CurrentView::Docker)];
     for (label, view) in views {
@@ -63,8 +62,7 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
             spans.push(ratatui::text::Span::styled(format!("[{}]", name), style)); spans.push(ratatui::text::Span::raw(" "));
         }
     }
-    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), chunks[0]);
-    f.render_widget(Paragraph::new(" [X] ").style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), chunks[1]);
+    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
 }
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
