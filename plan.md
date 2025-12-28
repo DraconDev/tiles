@@ -79,4 +79,4 @@ src/
     └── system.rs     # Sysinfo + SSH text parsing
 
 
-the men
+the menu should 
