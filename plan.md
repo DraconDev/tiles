@@ -79,4 +79,4 @@ src/
     └── system.rs     # Sysinfo + SSH text parsing
 
 
-the menu should differentiate what we clicking on so for ex files empty space we might see new folder and new file, while clicking on a folder has rename and delete options
+the menu should differentiate what we clicking on so for ex files empty space we might see new folder and new file, while for ex clicking on a folder has rename and delete options
