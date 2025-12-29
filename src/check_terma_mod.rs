@@ -1,6 +1,4 @@
-
-use terma::event::read;
+use terma::Input;
 
 pub fn check() {
-    // let _ = read();
 }
