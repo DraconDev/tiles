@@ -259,6 +259,18 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                         return;
                     }
 
+                    // Best-effort support for Mouse 4/5 (Back/Forward) via 'Other' button
+                    // Assuming crossterm 0.29 might expose this or mapping it differently.
+                    // If 'Other' matches, we treat it as 'Back'.
+                    // Note: Ideally we'd distinguish 4 vs 5 but crossterm abstraction is limited.
+                    if let MouseButton::Other = btn {
+                        if let Some(fs) = app.current_file_state_mut() {
+                            navigate_back(fs);
+                            let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                        }
+                        return;
+                    }
+
                     if btn == MouseButton::Left {
                         if mouse.row == 0 {
                             if mouse.column < 11 { app.current_view = CurrentView::Files; }
