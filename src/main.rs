@@ -343,6 +343,18 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                                     }
                                 } else { app.move_down(); update_docker_filter(app); }
                             }
+                            MouseEventKind::ScrollLeft => {
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    navigate_back(fs);
+                                    let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                }
+                            }
+                            MouseEventKind::ScrollRight => {
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    navigate_forward(fs);
+                                    let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                }
+                            }
                 _ => {}
             }
         }
