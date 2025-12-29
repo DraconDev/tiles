@@ -96,3 +96,4 @@ the menu should differentiate what we clicking on so for ex files empty space we
 
 tiles should also have well formatted cli commands, partly for quick commands for human but mainly for the ai to understand, so they don't need to call 5 different commands but 1, and we cna be sneaky cause they might not need files on the remote
 
+when we click on 
