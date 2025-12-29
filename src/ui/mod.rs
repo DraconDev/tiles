@@ -345,16 +345,45 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
 }
 
-fn draw_context_menu(f: &mut Frame, x: u16, y: u16, item_index: Option<usize>) {
-    let height = if item_index.is_some() { 5 } else { 5 }; // Adjusted to be consistent
-    let area = Rect::new(x, y, 15, height); f.render_widget(Clear, area);
-    let block = Block::default().borders(Borders::ALL).border_style(Style::default().fg(Color::Yellow)).title(" Menu ");
-    let inner = block.inner(area); f.render_widget(block, area);
-    let items = if item_index.is_some() {
-        vec![ListItem::new(" Rename"), ListItem::new(" Star"), ListItem::new(" Delete")]
+fn draw_context_menu(f: &mut Frame, x: u16, y: u16, item_index: Option<usize>, app: &App) {
+    let mut items = Vec::new();
+    let mut title = " Menu ";
+    
+    if let Some(idx) = item_index {
+        if let Some(fs) = app.current_file_state() {
+            if let Some(path) = fs.files.get(idx) {
+                let is_dir = fs.metadata.get(path).map(|m| m.is_dir).unwrap_or(false);
+                if is_dir {
+                    title = " Folder ";
+                    items.push(ListItem::new(" 󰉋 Open"));
+                    items.push(ListItem::new(" 󰓎 Star"));
+                    items.push(ListItem::new(" 󰏫 Rename"));
+                    items.push(ListItem::new(" 󰆴 Delete"));
+                } else {
+                    title = " File ";
+                    items.push(ListItem::new(" 󰚩 Edit (Demon)"));
+                    items.push(ListItem::new(" 󰓎 Star"));
+                    items.push(ListItem::new(" 󰏫 Rename"));
+                    items.push(ListItem::new(" 󰆴 Delete"));
+                    items.push(ListItem::new(" 󰈙 Properties"));
+                }
+            }
+        }
     } else {
-        vec![ListItem::new(" New Folder"), ListItem::new(" New File"), ListItem::new(" Refresh")]
-    };
+        title = " Actions ";
+        items.push(ListItem::new(" 󰉋 New Folder"));
+        items.push(ListItem::new(" 󰈔 New File"));
+        items.push(ListItem::new(" 󰑐 Refresh"));
+        items.push(ListItem::new(" 󰆍 Terminal Here"));
+    }
+
+    let height = items.len() as u16 + 2;
+    let width = 20;
+    let area = Rect::new(x, y, width, height);
+    f.render_widget(Clear, area);
+    let block = Block::default().borders(Borders::ALL).border_style(Style::default().fg(Color::Yellow)).title(title);
+    let inner = block.inner(area);
+    f.render_widget(block, area);
     f.render_widget(List::new(items), inner);
 }
 
