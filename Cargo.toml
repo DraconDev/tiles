@@ -17,4 +17,4 @@ walkdir = "2.5.0"
 dirs = "5.0.1"
 chrono = "0.4.42"
 ssh2 = "0.9.5"
-terma = { path = "../Terma/terma" }
+terma = { git = "https://github.com/DraconDev/terma" }
