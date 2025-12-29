@@ -1,7 +1,8 @@
+
 use terma::{Event, MouseButton, KeyCode};
 
-fn main() {
-    let event: Event = unsafe { std::mem::zeroed() }; // Just for type checking, don't run this!
+pub fn check() {
+    let event: Event = unsafe { std::mem::zeroed() };
     match event {
         Event::Mouse { button, row, column, .. } => {
             match button {
@@ -14,7 +15,6 @@ fn main() {
             }
         }
         Event::Key(key) => {
-            // Check key structure
             let code = key.code;
             match code {
                 KeyCode::Char(_) => {},
