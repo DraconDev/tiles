@@ -260,6 +260,8 @@ use std::time::SystemTime;
 
 fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
     let sidebar_focus = app.sidebar_focus;
+    let image_queue = app.image_queue.clone();
+    
     if let Some(file_state) = app.current_file_state_mut() {
         file_state.view_height = area.height as usize;
         let mut render_state = ratatui::widgets::TableState::default();
