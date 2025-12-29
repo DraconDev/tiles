@@ -6,8 +6,13 @@ use ratatui::{
 };
 
 use crate::app::{App, AppMode, CurrentView, FileColumn};
+use terma::compositor::engine::ImagePlacement;
 
 pub fn draw(f: &mut Frame, app: &mut App) {
+    // Clear image queue at start of frame to prevent accumulation if flush doesn't happen (safety)
+    // Actually, flush happens after draw. Backend drains it. So we just push.
+    // Ideally we'd only push if we know it was cleared, but drain handles it.
+    
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -47,27 +52,53 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::AddRemote) { draw_add_remote_modal(f, app); }
 }
 
-fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
-    let mut spans = Vec::new();
-    let views = vec![("^F Files", CurrentView::Files), ("^P Proc", CurrentView::System), ("^D Docker", CurrentView::Docker)];
-    for (label, view) in views {
-        let style = if app.current_view == view { Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::DarkGray) };
-        spans.push(ratatui::text::Span::styled(format!(" {} ", label), style)); spans.push(ratatui::text::Span::raw(" "));
-    }
-    spans.push(ratatui::text::Span::raw(" | "));
-    if app.current_view == CurrentView::Files {
-        for (i, tab) in app.file_tabs.iter().enumerate() {
-            let name = tab.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string());
-            let style = if i == app.tab_index { Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED) } else { Style::default().fg(Color::Gray) };
-            spans.push(ratatui::text::Span::styled(format!("[{}]", name), style)); spans.push(ratatui::text::Span::raw(" "));
+fn generate_demon_logo() -> Vec<u8> {
+    let width = 64;
+    let height = 64;
+    let mut data = Vec::with_capacity((width * height * 4) as usize);
+    // Gradient: Red (Top-Left) to Black (Bottom-Right) with Alpha
+    for y in 0..height {
+        for x in 0..width {
+            let r = ((x as f32 / width as f32) * 200.0) as u8 + 55; // Red base
+            let g = 0;
+            let b = 0;
+            // Circular fade for a "sphere" look
+            let cx = width as f32 / 2.0;
+            let cy = height as f32 / 2.0;
+            let dist = ((x as f32 - cx).powi(2) + (y as f32 - cy).powi(2)).sqrt();
+            let alpha = if dist < 30.0 { 255 } else { 0 };
+            
+            data.push(r);
+            data.push(g);
+            data.push(b);
+            data.push(alpha);
         }
     }
-    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
+    data
 }
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Sidebar ").border_style(if app.sidebar_focus && app.current_view == CurrentView::Files { Style::default().fg(Color::Cyan) } else { Style::default() });
     f.render_widget(block, area);
+    
+    // Render Demon Logo using ImagePlacement
+    if area.width > 10 && area.height > 5 {
+        let logo_data = generate_demon_logo();
+        let img = ImagePlacement {
+            id: 1, // Persistent ID for the logo
+            data: logo_data,
+            width_px: 64,
+            height_px: 64,
+            x: area.x + area.width.saturating_sub(10), // Top right of sidebar, roughly
+            y: area.y + 1,
+            z_index: 1, // Overlay on top of text/borders
+        };
+        
+        if let Ok(mut queue) = app.image_queue.lock() {
+            queue.push(img);
+        }
+    }
+
     let inner = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
     match app.current_view {
         CurrentView::Files => {
