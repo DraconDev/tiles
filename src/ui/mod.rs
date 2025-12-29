@@ -319,7 +319,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                                 cols: Some(2),
                                 rows: Some(1),
                             };
-                            if let Ok(mut q) = app.image_queue.lock() { q.push(img); }
+                            if let Ok(mut q) = image_queue.lock() { q.push(img); }
                         }
 
                         Cell::from(format!("  {}", display_name)).style(style) // 2 spaces for icon
