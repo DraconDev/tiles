@@ -363,7 +363,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                     }
                 } else { app.move_up(); update_docker_filter(app); }
             }
-            if button == MouseButton::WheelDown {
+            if button == MouseButton::ScrollDown {
                 if app.current_view == CurrentView::Files {
                     if let Some(fs) = app.current_file_state_mut() {
                         let capacity = fs.view_height.saturating_sub(2);
