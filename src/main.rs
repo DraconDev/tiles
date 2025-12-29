@@ -60,7 +60,7 @@ async fn main() -> color_eyre::Result<()> {
 
     // Input Reader Task
     let input_tx = event_tx.clone();
-    tokio::task::spawn_blocking(move || {
+    std::thread::spawn(move || {
         let mut parser = terma::input::parser::Parser::new();
         let stdin = io::stdin();
         let mut handle = stdin.lock();
