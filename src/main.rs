@@ -29,9 +29,10 @@ async fn main() -> color_eyre::Result<()> {
     term.flush()?;
 
     let backend = TermaBackend::new(term)?;
+    let image_queue = backend.image_queue();
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new();
+    let mut app = App::new(image_queue);
     let (event_tx, mut event_rx) = mpsc::channel(100);
     let (docker_tx, mut docker_rx) = mpsc::channel(10);
     let docker_module = DockerModule::new().ok().map(Arc::new);
