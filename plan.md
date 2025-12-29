@@ -1,84 +1,95 @@
 🏗️ MASTER PLAN: PROJECT TILES
-Version: 2.0 (The Universal OS Command Center - Max Ambition)
-Legal: Dracon License v1.0 (Proprietary / Source Available)
+Version: 2.1 (The Universal OS Command Center)
+Legal: Dracon License v1.0 (Source Available; Free for individuals/<5 employees; Paid for 5+ employees).
 Stack: Rust, Ratatui, Tokio, Bollard, Sysinfo, Chrono.
 
 1. 🌍 The High-Level Vision
-Tiles is the "VLC of Terminal Tools"—a single, agentless binary that unifies File Management, System Operations, and Container Orchestration into a high-density, mouse-driven cockpit. It replaces the fragmented CLI experience with a professional, interactive environment that works locally and over SSH with zero installation on the target.
+Tiles is a "Terminal Workspace Environment." It solves the context-switching problem by unifying **Files**, **Containers**, and **System Resources** into a single, tiling pane interface.
+**Core Philosophy:** "The Glue." Selecting a file in the File Tile provides context in the Docker or System tiles (e.g., highlighting the container associated with a specific project folder).
 
-Business Goal: Standardize team workflows and provide secure, agentless remote management for enterprises (5+ employees).
+Business Goal: Capture the 5+ employee company market with a "Fixed Tier" license model (predictable costs, zero admin).
 
 2. 🏛️ Technical Architecture (Rust)
-A. The Core Event Loop (main.rs)
-- Dual-Threaded Async: Synchronous Ratatui UI thread + Asynchronous Tokio background runtime.
-- Input Philosophy: "Just Type" search (Space is a search character). Modifier-based shortcuts (Ctrl/Alt) for global actions.
-- Spatial Navigation: Left/Right arrows jump between "Logical Zones" (Sidebar ↔ Main Pane ↔ Split Pane).
-- Mouse-First: SGR 1006 protocol support for Double-click activation, Right-click context menus, and Drag-and-Drop.
+A. The Core Event Loop (`main.rs`)
+- Dual-Threaded Async: UI (Synchronous Ratatui) + Background (Asynchronous Tokio).
+- Input Philosophy: Mouse-first (SGR 1006) + Vim-style keys (`h/j/k/l`).
+- Spatial Navigation: Focus cycles between tiles; `Enter` zooms a tile to full screen.
 
-B. State Management (app.rs)
-- Relational Engine: Links between Files, Processes, and Containers (e.g., jump from Process -> Docker Container -> Source File).
-- Persona Toggles: "Focus Mode" (Files only) vs "Ops Mode" (Full Dashboard) toggleable via config or UI.
+B. State Management (`app.rs`)
+- Centralized `App` struct holding state for all tiles (`FileState`, `DockerState`, `SystemState`).
+- **Context Engine:** A mechanism to broadcast events (e.g., `ProjectSelected(Path)`) to other modules.
 
 3. 🧩 The Three Pillars (The Trinity)
 Pillar I: The Virtual File Workspace (Files)
-- 1:1 Nautilus Replacement: High-density tables, icons, and safe deletions (Global Trash Bin).
-- Agentless SFTP: Remote servers appear as sidebar bookmarks; drag-and-drop file transfers via SSH.
-- Smart Create: `n` shortcut creates full paths and pre-fills templates (e.g., `#!/bin/bash` for `.sh`).
+- **Visuals:** Tree/List view with high-density tables.
+- **Git Integration:** Color-coded status (`[+]`, `[-]`, `[M]`) and branch display.
+- **Smart Create:** `n` shortcut for templated creation.
+- **Context Trigger:** Hovering a folder with `Dockerfile` emits a context signal.
 
 Pillar II: The System Cockpit (Processes)
-- Actionable Observer: Stable process tree. Click/Right-click to Kill, Inspect Ports, or see Open Files.
-- 15-Minute Buffer: Time-traveling resource graphs to scrub back and see historical spikes.
-- Network Mapping: App-to-IP mapping with human-readable geolocation instead of raw scrolling text.
+- **Visuals:** Gauges for CPU/RAM, Sparklines for history.
+- **Process List:** Interactive tree. Right-click to Kill.
+- **Port Watcher:** List active listening ports and link them to Docker containers.
 
 Pillar III: The Container Orchestrator (Docker)
-- Visual Topology: Dependency maps based on Compose projects and Traefik/Nginx routing labels.
-- Magic Tunnels: One-click port forwarding from remote containers to `localhost`.
-- Log Streamer: JSON-aware, searchable log tailing with auto-formatting.
+- **Library:** `bollard` (Async).
+- **Features:** Full lifecycle (Start/Stop/Logs/Exec).
+- **Reactive Filtering:** Auto-filter container list based on selected File path.
+- **Log Streamer:** Aggregated log view for containers and files.
+
+Pillar IV: The Command Center (The "Glue")
+- **Trigger:** `Ctrl+P` or `:`.
+- **Function:** Fuzzy search across Files, Container Names, and App Commands (e.g., "Kill Container", "Git Commit").
 
 4. 🛡️ Safety & Operations
-- Production "Red Zone": Pulsing red UI for production connections; destructive actions require typed confirmation.
-- Safe Edit: Press `e` on remote/container files to edit locally in VS Code/Vim with auto-sync back to target.
-- Archive VFS: Browse `.zip` and `.tar.gz` as virtual folders without manual extraction.
+- Production "Red Zone": Visual warnings for production contexts.
+- Safe Edit: `e` to edit remote files locally.
+- Archive VFS: Browse archives transparently.
 
 5. 💼 Commercial Logic (Dracon License v1.0)
-- Model: Free for Individuals; Paid for Teams (5+ employees).
-- Trigger: Companies pay for standardized team configs and agentless security compliance.
-- Enforcement: "Hero Badge" UI indicator; cryptographic key verification via Ed25519.
+- **Model:** Fixed Tier Pricing (No per-seat tracking).
+    - Personal (<5 employees): Free.
+    - Small Team (5-20): ~$290/year flat.
+    - Corporate (20+): Tiered flat fees.
+- **Enforcement:** "Soft Lock" / Honor System.
+    - Free Mode: Footer shows "Free Edition (<5 employees). Support us at dracon.uk".
+    - Commercial Mode: Footer shows "Licensed to [Company Name]" (via `~/.config/tiles/license.key`).
 
 6. 🚀 Development Roadmap (Updated)
-Phase 1: Nautilus Foundations (Completed)
+Phase 1: Foundations (Completed)
 - [x] Ratatui loop with Tab/Sidebar layout.
 - [x] Standard file management (Sort, Icons, Clipboard).
-- [x] Pure Arrow & Mouse navigation.
+- [x] Mouse & Scroll logic (Fixed).
+- [x] Context Menus.
 
-Phase 2: The Agentless Leap (Next)
+Phase 2: The Agentless Leap & Data (Current)
 - [ ] SSH Connection Manager: Sidebar bookmarks for remote hosts.
-- [ ] Agentless SFTP: Local/Remote split view with drag-drop.
-- [ ] Docker SSH Tunneling: Managing remote containers via standard I/O streams.
+- [ ] Docker Module: Connect `bollard` to real Docker socket.
+- [ ] System Module: Connect `sysinfo` to real metrics.
 
-Phase 3: The Relational Engine
-- [ ] Atomic Combos: Linking Process -> Container -> File.
-- [ ] The 15-Minute History Buffer for system metrics.
-- [ ] Network Tab: App-to-IP mapping.
+Phase 3: The Interactivity
+- [ ] Zoom Mechanic (`Enter` to expand tile).
+- [ ] Docker Controls (Start/Stop via keybindings).
+- [ ] License Check (`utils/license.rs`).
 
-Phase 4: Safety & Polish
-- [ ] Production "Red Zone" Mode.
-- [ ] Global Trash Bin with Undo.
-- [ ] "Just Type" Search integration across all modules.
-- [x] Context Menu differentiation (Item vs Empty Space).
-- [x] Fix scrolling "stuck" bug by using dynamic view height.
+Phase 4: The "Glue" (Context)
+- [ ] Context Engine: File selection filters Docker list.
+- [ ] Command Palette (`Ctrl+P`).
+- [ ] Git Integration (File tile).
 
 7. File Structure
 src/
-├── main.rs           # Dual-threaded loop, Spatial Input, SGR Mouse
-├── app.rs            # Relational State, Personas, License Status
+├── main.rs           # Event loop, Input handling
+├── app.rs            # State, Context Engine, License
 ├── ui/
-│   ├── mod.rs        # Layout, Modals, Breadcrumbs
-│   └── theme.rs      # High-density, high-contrast engineering styles
-└── modules/
-    ├── files.rs      # Local/Remote VFS, SFTP
-    ├── docker.rs     # Bollard + SSH tunneling
-    └── system.rs     # Sysinfo + SSH text parsing
+│   ├── mod.rs        # Layout, Draw logic
+│   └── theme.rs      # Styling
+├── modules/
+│   ├── files.rs      # Local/Remote VFS, Git
+│   ├── docker.rs     # Bollard integration
+│   └── system.rs     # Sysinfo integration
+└── utils/
+    └── license.rs    # Key verification
 
 
 the menu should differentiate what we clicking on so for ex files empty space we might see new folder and new file, while for ex clicking on a folder has rename and delete options
