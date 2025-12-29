@@ -11,6 +11,9 @@
         },
         {
             "path": "../btop"
+        },
+        {
+            "path": "../crossterm"
         }
     ],
     "settings": {}
