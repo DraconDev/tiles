@@ -75,11 +75,50 @@ fn get_file_icon(path: &std::path::Path, is_dir: bool) -> &'static str {
     }
 }
 
+fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
+    let mut data = Vec::with_capacity((width * height * 4) as usize);
+    for y in 0..height {
+        for x in 0..width {
+            // Very dark blue to black vertical gradient
+            let ratio = y as f32 / height as f32;
+            let r = 5;
+            let g = (10.0 * (1.0 - ratio)) as u8 + 2;
+            let b = (40.0 * (1.0 - ratio)) as u8 + 10;
+            let alpha = 200; // Semi-transparent
+            
+            data.push(r);
+            data.push(g);
+            data.push(b);
+            data.push(alpha);
+        }
+    }
+    data
+}
+
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Sidebar ").border_style(if app.sidebar_focus && app.current_view == CurrentView::Files { Style::default().fg(Color::Cyan) } else { Style::default() });
     f.render_widget(block, area);
     
-    // Render Demon Logo using ImagePlacement
+    // Render Sidebar Background (Z = -1)
+    if area.width > 0 && area.height > 0 {
+        let bg_data = generate_panel_bg(10, 100); // Small buffer, let Kitty stretch it
+        let img = ImagePlacement {
+            id: 2, // Persistent ID for sidebar BG
+            data: bg_data,
+            width_px: 10,
+            height_px: 100,
+            x: area.x,
+            y: area.y,
+            z_index: -1, // Behind text
+            cols: Some(area.width),
+            rows: Some(area.height),
+        };
+        if let Ok(mut queue) = app.image_queue.lock() {
+            queue.push(img);
+        }
+    }
+
+    // Render Demon Logo using ImagePlacement (Z = 1)
     if area.width > 10 && area.height > 5 {
         let logo_data = generate_demon_logo();
         let img = ImagePlacement {
@@ -90,6 +129,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             x: area.x + area.width.saturating_sub(10), // Top right of sidebar, roughly
             y: area.y + 1,
             z_index: 1, // Overlay on top of text/borders
+            cols: Some(8),
+            rows: Some(4),
         };
         
         if let Ok(mut queue) = app.image_queue.lock() {
