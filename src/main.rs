@@ -436,8 +436,26 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                     match key.code {
                         KeyCode::Down => { app.move_down(); }
                         KeyCode::Up => { app.move_up(); }
-                        KeyCode::Left => { app.move_left(); }
-                        KeyCode::Right => { app.move_right(); }
+                        KeyCode::Left => { 
+                            if key.modifiers.contains(KeyModifiers::ALT) {
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    navigate_back(fs);
+                                    let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                }
+                            } else {
+                                app.move_left(); 
+                            }
+                        }
+                        KeyCode::Right => { 
+                            if key.modifiers.contains(KeyModifiers::ALT) {
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    navigate_forward(fs);
+                                    let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                }
+                            } else {
+                                app.move_right(); 
+                            }
+                        }
                         KeyCode::Enter => {
                             if let Some(fs) = app.current_file_state_mut() {
                                 if let Some(idx) = fs.selected_index {
