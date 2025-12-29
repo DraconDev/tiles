@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::modules::system::SystemModule;
 use crate::modules::files::update_files;
 use crate::license::check_license;
+use terma::input::parser::Event as TermaEvent;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum AppMode {
