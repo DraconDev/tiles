@@ -172,7 +172,14 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         let icon = if is_dir { "📁 " } else { "📄 " };
                         Cell::from(format!("{}{}", icon, display_name)).style(style)
                     },
-                    FileColumn::Size => Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))),
+                    FileColumn::Size => {
+                        let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
+                        if is_dir {
+                            Cell::from("<DIR>").style(Style::default().fg(Color::Cyan))
+                        } else {
+                            Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0)))
+                        }
+                    },
                     FileColumn::Modified => Cell::from(format_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH))),
                     FileColumn::Created => Cell::from(format_time(metadata.map(|m| m.created).unwrap_or(SystemTime::UNIX_EPOCH))),
                     FileColumn::Permissions => {
