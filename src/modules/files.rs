@@ -22,7 +22,11 @@ fn update_local_files(state: &mut FileState) {
             if !state.search_filter.is_empty() && !name.to_lowercase().contains(&state.search_filter.to_lowercase()) { continue; }
 
             // Metadata Cache (The Fix)
-            if let Ok(m) = entry.metadata() {
+            // Use std::fs::metadata to ensure we follow symlinks to get the REAL file size.
+            // Fallback to entry.metadata() (symlink itself) if target is broken.
+            let metadata_result = std::fs::metadata(&path).or_else(|_| entry.metadata());
+            
+            if let Ok(m) = metadata_result {
                 let meta = crate::app::FileMetadata {
                     size: m.len(),
                     modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
