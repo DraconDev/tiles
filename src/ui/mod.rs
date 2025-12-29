@@ -250,7 +250,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                             match status.as_str() { "M" | "MM" => style = style.fg(Color::Yellow), "A" | "AM" => style = style.fg(Color::Green), "??" => style = style.fg(Color::DarkGray), "D" => style = style.fg(Color::Red), _ => {} }
                         }
                         if file_state.starred.contains(path) { display_name.push_str(" [*]"); style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD); }
-                        let icon = if is_dir { "📁 " } else { "📄 " };
+                        let icon = get_file_icon(path, is_dir);
                         Cell::from(format!("{}{}", icon, display_name)).style(style)
                     },
                     FileColumn::Size => {
