@@ -39,7 +39,7 @@ fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
         for x in 0..width {
             // Very dark blue to black vertical gradient
             let ratio = y as f32 / height as f32;
-            let mut r = 5;
+            let mut r = 5u8;
             let mut g = (10.0 * (1.0 - ratio)) as u8 + 2;
             let mut b = (40.0 * (1.0 - ratio)) as u8 + 10;
             
@@ -55,7 +55,7 @@ fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
                 b = b.saturating_add(5);
             }
 
-            let alpha = 220; 
+            let alpha = 220u8; 
             
             data.push(r);
             data.push(g);
