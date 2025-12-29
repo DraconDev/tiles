@@ -1,5 +1,6 @@
 use std::{io, time::{Duration, Instant}};
 use terma::*;
+mod check_terma_mod;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture, Event, KeyCode, MouseEventKind, MouseButton, KeyModifiers},
     execute,
