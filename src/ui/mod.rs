@@ -81,10 +81,23 @@ fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
         for x in 0..width {
             // Very dark blue to black vertical gradient
             let ratio = y as f32 / height as f32;
-            let r = 5;
-            let g = (10.0 * (1.0 - ratio)) as u8 + 2;
-            let b = (40.0 * (1.0 - ratio)) as u8 + 10;
-            let alpha = 200; // Semi-transparent
+            let mut r = 5;
+            let mut g = (10.0 * (1.0 - ratio)) as u8 + 2;
+            let mut b = (40.0 * (1.0 - ratio)) as u8 + 10;
+            
+            // Subtle scanlines
+            if y % 2 == 0 {
+                r = r.saturating_sub(2);
+                g = g.saturating_sub(2);
+                b = b.saturating_sub(5);
+            }
+            
+            // Subtle vertical "tech" lines
+            if x % 20 == 0 {
+                b = b.saturating_add(5);
+            }
+
+            let alpha = 220; 
             
             data.push(r);
             data.push(g);
@@ -94,6 +107,31 @@ fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
     }
     data
 }
+
+fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
+    // Render Tabs Background
+    if area.width > 0 && area.height > 0 {
+        let mut bg_data = Vec::with_capacity((10 * 10 * 4) as usize);
+        for _ in 0..100 {
+            bg_data.push(30); bg_data.push(30); bg_data.push(35); bg_data.push(255);
+        }
+        let img = ImagePlacement {
+            id: 3, // Tabs BG
+            data: bg_data,
+            width_px: 10,
+            height_px: 10,
+            x: area.x,
+            y: area.y,
+            z_index: -1,
+            cols: Some(area.width),
+            rows: Some(area.height),
+        };
+        if let Ok(mut queue) = app.image_queue.lock() {
+            queue.push(img);
+        }
+    }
+
+    let mut spans = Vec::new();
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Sidebar ").border_style(if app.sidebar_focus && app.current_view == CurrentView::Files { Style::default().fg(Color::Cyan) } else { Style::default() });
