@@ -1,9 +1,7 @@
-
 use terma::input::parser::Parser;
 
 pub fn check() {
-    let parser = Parser::new();
-    for event in parser {
-        
-    }
+    let mut parser = Parser::new();
+    let _ = parser.next();
+    // let _ = parser.read_event();
 }
