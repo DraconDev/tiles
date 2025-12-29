@@ -112,4 +112,4 @@ apparently we have drag dragging files around would be nice
 
 can we use better icons for files?
 
-on default files view we can take up all the space of the container, we can even customize the columns, on split mode, we can 
+on default files view we can take up all the space of the container, we can even customize the columns, on split mode, we can have 
