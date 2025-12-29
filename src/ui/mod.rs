@@ -187,9 +187,10 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         // Render using the temporary state
         f.render_stateful_widget(Table::new(rows, constraints).header(header).block(Block::default().borders(Borders::NONE)), area, &mut render_state);
         
-        // Sync the valid offset back to our persistent state
-        // This captures auto-scrolling (e.g. from keyboard navigation) but ignores snaps from hidden selection
-        *file_state.table_state.offset_mut() = render_state.offset();
+        // IMPORTANT: We DO NOT sync the offset back from render_state.
+        // We manage offset manually in App::move_down/up and scroll handlers.
+        // This prevents the Table widget from auto-snapping the offset when we scroll away from selection.
+        // *file_state.table_state.offset_mut() = render_state.offset();
         
         if file_state.files.len() > area.height.saturating_sub(2) as usize {
             let scrollbar = Scrollbar::default().orientation(ScrollbarOrientation::VerticalRight).begin_symbol(Some("↑")).end_symbol(Some("↓"));
