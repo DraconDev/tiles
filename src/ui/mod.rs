@@ -66,7 +66,7 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
-    let block = Block::default().borders(Borders::ALL).title(" Sidebar ").border_style(if app.sidebar_focus && app.current_view == CurrentView::Files { Style::default().fg(Color::Cyan) } else { Style::default() });
+    let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Sidebar ").border_style(if app.sidebar_focus && app.current_view == CurrentView::Files { Style::default().fg(Color::Cyan) } else { Style::default() });
     f.render_widget(block, area);
     let inner = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
     match app.current_view {
@@ -104,19 +104,29 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
-    let block = Block::default().borders(Borders::ALL).title(format!(" {:?} ", app.current_view)).border_style(if !app.sidebar_focus { Style::default().fg(Color::Cyan) } else { Style::default() });
-    let inner = block.inner(area); f.render_widget(block, area);
+    // Flattened Layout: No outer block for Main Stage.
+    // Instead, we split the area directly into Path (Top) and Content (Bottom).
     if app.current_view == CurrentView::Files {
-        let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Min(0)]).split(inner);
+        let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Min(0)]).split(area);
+        
+        // Path Bar: Simple Rounded Border
         let path_text = if matches!(app.mode, AppMode::Location) { format!("Location: {}", app.input) } 
             else if let Some(fs) = app.current_file_state() { if !fs.search_filter.is_empty() { format!("Search: {} (Esc to clear)", fs.search_filter) } else { format!("Path: {}", fs.current_path.display()) } } 
             else { String::new() };
-        f.render_widget(Paragraph::new(path_text).block(Block::default().borders(Borders::ALL).border_style(if matches!(app.mode, AppMode::Location) { Style::default().fg(Color::Yellow) } else if app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { Style::default().fg(Color::Magenta) } else { Style::default() })), chunks[0]);
+            
+        let path_style = if matches!(app.mode, AppMode::Location) { Style::default().fg(Color::Yellow) } else if app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { Style::default().fg(Color::Magenta) } else { Style::default() };
+        
+        f.render_widget(Paragraph::new(path_text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).border_style(path_style)), chunks[0]);
+        
+        // File View: No border, fills the rest.
+        // We add a top padding of 1 line if we want separation, but the Path block handles it.
         draw_file_view(f, chunks[1], app);
     } else {
+        // For other views, we keep the frame for now or flatten them too.
+        // Let's flatten them for consistency.
         match app.current_view {
-            CurrentView::System => draw_system_view(f, inner, app),
-            CurrentView::Docker => draw_docker_view(f, inner, app),
+            CurrentView::System => draw_system_view(f, area, app),
+            CurrentView::Docker => draw_docker_view(f, area, app),
             _ => {}
         }
     }
