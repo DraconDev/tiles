@@ -154,7 +154,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
             let name = match c { FileColumn::Name => "Name", FileColumn::Size => "Size", FileColumn::Modified => "Modified", FileColumn::Created => "Created", FileColumn::Permissions => "Permissions", FileColumn::Extension => "Ext" };
             Cell::from(name).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
         });
-        let header = Row::new(header_cells).height(1).bottom_margin(1);
+        let header = Row::new(header_cells).height(1).bottom_margin(0);
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let metadata = file_state.metadata.get(path);
             let cells = file_state.columns.iter().map(|c| {
