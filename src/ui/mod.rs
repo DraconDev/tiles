@@ -131,8 +131,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         
         // Use a temporary TableState for rendering to prevent the Table widget
         // from permanently modifying our offset or fighting with our manual scroll logic.
-        let mut render_state = ratatui::widgets::TableState::default()
-            .with_offset(file_state.table_state.offset());
+        let mut render_state = ratatui::widgets::TableState::default();
 
         // Smart Selection: Only tell the render state about selection if it's currently visible.
         if let Some(sel) = file_state.selected_index {
@@ -146,6 +145,10 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                 render_state.select(None);
             }
         }
+        
+        // CRITICAL: Force the render offset to match our persistent/manual offset.
+        // We do this LAST to ensure no previous logic (like select()) reset it.
+        *render_state.offset_mut() = file_state.table_state.offset();
 
         let header_cells = file_state.columns.iter().map(|c| {
             let name = match c { FileColumn::Name => "Name", FileColumn::Size => "Size", FileColumn::Modified => "Modified", FileColumn::Created => "Created", FileColumn::Permissions => "Permissions", FileColumn::Extension => "Ext" };
