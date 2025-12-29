@@ -1,7 +1,6 @@
-use terma::input::parser::Parser;
+
+use terma::event::read;
 
 pub fn check() {
-    let mut parser = Parser::new();
-    let _ = parser.next();
-    // let _ = parser.read_event();
+    // let _ = read();
 }
