@@ -1,4 +1,5 @@
 use std::{io, time::{Duration, Instant}};
+use terma::*;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture, Event, KeyCode, MouseEventKind, MouseButton, KeyModifiers},
     execute,
