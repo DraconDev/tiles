@@ -1,7 +1,7 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Clear, Gauge, List, ListItem, Paragraph, Table, Row, Cell, Scrollbar, ScrollbarOrientation, ScrollbarState},
+    widgets::{Block, BorderType, Borders, Clear, Gauge, List, ListItem, Paragraph, Table, Row, Cell, Scrollbar, ScrollbarOrientation, ScrollbarState},
     Frame,
 };
 
