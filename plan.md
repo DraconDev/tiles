@@ -102,4 +102,4 @@ incorrect file sizes are displayed
 
 be able to click on the tabs we open with ctrl t and mmb
 
-add icons to sidebar 
+add icons to sidebar places such as home, 
