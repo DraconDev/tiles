@@ -301,14 +301,14 @@ impl App {
                         None => file_state.table_state.offset(),
                     };
                     
-                    // Logic to ensure selection stays in view
+                    file_state.selected_index = Some(new_index);
+                    file_state.table_state.select(Some(new_index));
+
+                    // Manual Auto-Scroll (Keep Selection in View)
                     let offset = file_state.table_state.offset();
                     if new_index < offset {
                         *file_state.table_state.offset_mut() = new_index;
                     }
-                    
-                    file_state.selected_index = Some(new_index);
-                    file_state.table_state.select(Some(new_index));
                 }
             }
             CurrentView::Docker => {
@@ -344,12 +344,17 @@ impl App {
                         None => file_state.table_state.offset(),
                     };
 
-                    // Logic to ensure selection stays in view
-                    // We don't have the height here, but we can detect if we moved past the current offset
-                    // In draw() the Table will handle the actual scrolling, but we need to ensure 
-                    // the state allows it.
                     file_state.selected_index = Some(new_index);
                     file_state.table_state.select(Some(new_index));
+
+                    // Manual Auto-Scroll (Keep Selection in View)
+                    if file_state.view_height > 2 {
+                        let offset = file_state.table_state.offset();
+                        let capacity = file_state.view_height.saturating_sub(2);
+                        if new_index >= offset + capacity {
+                            *file_state.table_state.offset_mut() = new_index.saturating_sub(capacity).saturating_add(1);
+                        }
+                    }
                 }
             }
             CurrentView::Docker => {
