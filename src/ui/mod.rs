@@ -8,50 +8,6 @@ use ratatui::{
 use crate::app::{App, AppMode, CurrentView, FileColumn};
 use terma::compositor::engine::ImagePlacement;
 
-pub fn draw(f: &mut Frame, app: &mut App) {
-    // Clear image queue at start of frame to prevent accumulation if flush doesn't happen (safety)
-    // Actually, flush happens after draw. Backend drains it. So we just push.
-    // Ideally we'd only push if we know it was cleared, but drain handles it.
-    
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // Tabs (Top)
-            Constraint::Min(0),    // Main Workspace
-            Constraint::Length(1), // Footer (Bottom)
-        ])
-        .split(f.area());
-
-    draw_tabs(f, chunks[0], app);
-
-    let workspace = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(20), // Sidebar
-            Constraint::Min(0), // Main Stage
-        ])
-        .split(chunks[1]);
-
-    draw_sidebar(f, workspace[0], app);
-    draw_main_stage(f, workspace[1], app);
-    
-    draw_footer(f, chunks[2], app);
-
-    // Context Menu
-    if let AppMode::ContextMenu { x, y, item_index } = app.mode {
-        draw_context_menu(f, x, y, item_index);
-    }
-
-    // Modals
-    if matches!(app.mode, AppMode::Rename) { draw_rename_modal(f, app); }
-    if matches!(app.mode, AppMode::Delete) { draw_delete_modal(f, app); }
-    if matches!(app.mode, AppMode::Properties) { draw_properties_modal(f, app); }
-    if matches!(app.mode, AppMode::NewFolder) { draw_new_folder_modal(f, app); }
-    if matches!(app.mode, AppMode::ColumnSetup) { draw_column_setup_modal(f, app); }
-    if matches!(app.mode, AppMode::CommandPalette) { draw_command_palette(f, app); }
-    if matches!(app.mode, AppMode::AddRemote) { draw_add_remote_modal(f, app); }
-}
-
 fn generate_demon_logo() -> Vec<u8> {
     let width = 64;
     let height = 64;
@@ -75,6 +31,24 @@ fn generate_demon_logo() -> Vec<u8> {
         }
     }
     data
+}
+
+fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
+    let mut spans = Vec::new();
+    let views = vec![("^F Files", CurrentView::Files), ("^P Proc", CurrentView::System), ("^D Docker", CurrentView::Docker)];
+    for (label, view) in views {
+        let style = if app.current_view == view { Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::DarkGray) };
+        spans.push(ratatui::text::Span::styled(format!(" {} ", label), style)); spans.push(ratatui::text::Span::raw(" "));
+    }
+    spans.push(ratatui::text::Span::raw(" | "));
+    if app.current_view == CurrentView::Files {
+        for (i, tab) in app.file_tabs.iter().enumerate() {
+            let name = tab.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string());
+            let style = if i == app.tab_index { Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED) } else { Style::default().fg(Color::Gray) };
+            spans.push(ratatui::text::Span::styled(format!("[{}]", name), style)); spans.push(ratatui::text::Span::raw(" "));
+        }
+    }
+    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
 }
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
@@ -132,6 +106,46 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
         },
         _ => {}
     }
+}
+
+pub fn draw(f: &mut Frame, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1), // Tabs (Top)
+            Constraint::Min(0),    // Main Workspace
+            Constraint::Length(1), // Footer (Bottom)
+        ])
+        .split(f.area());
+
+    draw_tabs(f, chunks[0], app);
+
+    let workspace = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(20), // Sidebar
+            Constraint::Min(0), // Main Stage
+        ])
+        .split(chunks[1]);
+
+    draw_sidebar(f, workspace[0], app);
+    draw_main_stage(f, workspace[1], app);
+    
+    draw_footer(f, chunks[2], app);
+
+    // Context Menu
+    if let AppMode::ContextMenu { x, y, item_index } = app.mode {
+        draw_context_menu(f, x, y, item_index);
+    }
+
+    // Modals
+    if matches!(app.mode, AppMode::Rename) { draw_rename_modal(f, app); }
+    if matches!(app.mode, AppMode::Delete) { draw_delete_modal(f, app); }
+    if matches!(app.mode, AppMode::Properties) { draw_properties_modal(f, app); }
+    if matches!(app.mode, AppMode::NewFolder) { draw_new_folder_modal(f, app); }
+    if matches!(app.mode, AppMode::ColumnSetup) { draw_column_setup_modal(f, app); }
+    if matches!(app.mode, AppMode::CommandPalette) { draw_command_palette(f, app); }
+    if matches!(app.mode, AppMode::AddRemote) { draw_add_remote_modal(f, app); }
 }
 
 fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
@@ -206,7 +220,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                         let mut style = if is_dir { Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD) } else { Style::default() };
                         if let Some(status) = file_state.git_status.get(path) {
-                            display_name.push_str(&format!(" [{}]", status));
+                            display_name.push_str(&format!(" [{}]
+", status));
                             match status.as_str() { "M" | "MM" => style = style.fg(Color::Yellow), "A" | "AM" => style = style.fg(Color::Green), "??" => style = style.fg(Color::DarkGray), "D" => style = style.fg(Color::Red), _ => {} }
                         }
                         if file_state.starred.contains(path) { display_name.push_str(" [*]"); style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD); }
