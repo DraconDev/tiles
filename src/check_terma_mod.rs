@@ -1,5 +1,6 @@
-use terma::input::parser::{Event, MouseButton, KeyCode, KeyModifiers};
+
+use terma::input::InputReader;
 
 pub fn check() {
-    let _ = terma::input::read();
+    // let _ = InputReader::new();
 }
