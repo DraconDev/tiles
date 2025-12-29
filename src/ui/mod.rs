@@ -120,6 +120,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Sidebar ").border_style(if app.sidebar_focus && app.current_view == CurrentView::Files { Style::default().fg(Color::Cyan) } else { Style::default() });
     f.render_widget(block, area);
     
+    let image_queue = app.image_queue.clone();
+
     // Render Sidebar Background (Z = -1)
     if area.width > 0 && area.height > 0 {
         let bg_data = generate_panel_bg(10, 100); // Small buffer, let Kitty stretch it
@@ -134,7 +136,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             cols: Some(area.width),
             rows: Some(area.height),
         };
-        if let Ok(mut queue) = app.image_queue.lock() {
+        if let Ok(mut queue) = image_queue.lock() {
             queue.push(img);
         }
     }
@@ -154,7 +156,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             rows: Some(4),
         };
         
-        if let Ok(mut queue) = app.image_queue.lock() {
+        if let Ok(mut queue) = image_queue.lock() {
             queue.push(img);
         }
     }
@@ -163,17 +165,34 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     match app.current_view {
         CurrentView::Files => {
             let mut sidebar_items = vec![
-                ListItem::new(" 󰉋 Local").style(Style::default().add_modifier(Modifier::UNDERLINED)),
-                ListItem::new("   󱂵 Home"),
-                ListItem::new("   󰉍 Downloads"),
-                ListItem::new("   󰈙 Documents"),
-                ListItem::new("   󰉏 Pictures"),
+                ListItem::new("   Local").style(Style::default().add_modifier(Modifier::UNDERLINED)),
+                ListItem::new("     Home"),
+                ListItem::new("     Downloads"),
+                ListItem::new("     Documents"),
+                ListItem::new("     Pictures"),
                 ListItem::new(""),
-                ListItem::new(" 󰒋 Remote").style(Style::default().add_modifier(Modifier::UNDERLINED)),
+                ListItem::new("   Remote").style(Style::default().add_modifier(Modifier::UNDERLINED)),
             ];
 
+            // Push sidebar icons to queue
+            if let Ok(mut q) = image_queue.lock() {
+                // Local icon
+                let local_asset = Icon::Folder.get_asset();
+                q.push(ImagePlacement { id: 6000, data: local_asset.rgba.clone(), width_px: local_asset.width, height_px: local_asset.height, x: inner.x, y: inner.y, z_index: 1, cols: Some(2), rows: Some(1) });
+                
+                // Home, etc.
+                let home_asset = Icon::Settings.get_asset(); // Using settings as placeholder for now
+                for i in 0..4 {
+                    q.push(ImagePlacement { id: 6001 + i, data: home_asset.rgba.clone(), width_px: home_asset.width, height_px: home_asset.height, x: inner.x + 2, y: inner.y + 1 + i as u16, z_index: 1, cols: Some(2), rows: Some(1) });
+                }
+                
+                // Remote icon
+                let remote_asset = Icon::Demon.get_asset();
+                q.push(ImagePlacement { id: 6010, data: remote_asset.rgba.clone(), width_px: remote_asset.width, height_px: remote_asset.height, x: inner.x, y: inner.y + 6, z_index: 1, cols: Some(2), rows: Some(1) });
+            }
+
             for bookmark in &app.remote_bookmarks {
-                sidebar_items.push(ListItem::new(format!("   󰒍 {}", bookmark.name)));
+                sidebar_items.push(ListItem::new(format!("     {}", bookmark.name)));
             }
 
             if app.remote_bookmarks.is_empty() {
