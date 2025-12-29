@@ -1,4 +1,3 @@
-
 use terma::input::parser::MouseButton;
 
 pub fn check() {
@@ -9,6 +8,8 @@ pub fn check() {
         MouseButton::Middle => {},
         MouseButton::Back => {},
         MouseButton::Forward => {},
-        // Force error to list variants
+        MouseButton::ScrollUp => {}, // Guess
+        MouseButton::ScrollDown => {}, // Guess
+        _ => {},
     }
 }
