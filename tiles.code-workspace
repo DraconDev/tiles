@@ -1,22 +1,28 @@
 {
     "folders": [
         {
+            "name": "tiles",
             "path": "."
         },
         {
+            "name": "terma",
+            "path": "../Terma/terma"
+        },
+        {
+            "name": "yazi",
             "path": "../yazi"
         },
         {
+            "name": "mc",
             "path": "../mc"
         },
         {
+            "name": "btop",
             "path": "../btop"
         },
         {
+            "name": "crossterm",
             "path": "../crossterm"
-        },
-        {
-            "path": "../Terma/terma"
         }
     ],
     "settings": {}

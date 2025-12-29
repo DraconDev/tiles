@@ -20,12 +20,12 @@ async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     
     // Terma Setup
-    let mut stdout = io::stdout();
+    let stdout = io::stdout();
     let mut term = Terma::new(stdout)?;
     
     // Enable features: Alt Screen + Mouse (1006) + Kitty Kbd + Focus + Paste
-    write!(term, "\x1b[?1049h\x1b[?1000h\x1b[?1006h\x1b[>1u\x1b[?1004h\x1b[?2004h")?;
-    write!(term, "\x1b[2J\x1b[H")?;
+    // Sequence order: Alt Screen -> Clear -> Home -> SGR Mouse -> Kitty Kbd -> Focus -> Paste
+    write!(term, "\x1b[?1049h\x1b[2J\x1b[H\x1b[?1000h\x1b[?1006h\x1b[>1u\x1b[?1004h\x1b[?2004h")?;
     term.flush()?;
 
     let backend = TermaBackend::new(term)?;
