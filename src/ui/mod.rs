@@ -51,6 +51,30 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
 }
 
+fn get_file_icon(path: &std::path::Path, is_dir: bool) -> &'static str {
+    if is_dir { return " "; } // Folder icon
+    
+    match path.extension().and_then(|s| s.to_str()).unwrap_or("") {
+        "rs" => " ",
+        "js" | "ts" => " ",
+        "json" => " ",
+        "md" => " ",
+        "py" => " ",
+        "c" | "cpp" => " ",
+        "h" | "hpp" => " ",
+        "toml" => " ",
+        "yaml" | "yml" => " ",
+        "png" | "jpg" | "jpeg" | "gif" | "svg" => "󰋩 ",
+        "mp4" | "mkv" | "avi" => "󰿚 ",
+        "mp3" | "wav" | "flac" => "󰝚 ",
+        "zip" | "tar" | "gz" | "7z" => " ",
+        "sh" | "bash" | "zsh" => " ",
+        "dockerfile" | "Dockerfile" => "󰡨 ",
+        "pdf" => "󰈦 ",
+        _ => "󰈔 ", // Default file
+    }
+}
+
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Sidebar ").border_style(if app.sidebar_focus && app.current_view == CurrentView::Files { Style::default().fg(Color::Cyan) } else { Style::default() });
     f.render_widget(block, area);
@@ -77,17 +101,17 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     match app.current_view {
         CurrentView::Files => {
             let mut sidebar_items = vec![
-                ListItem::new(" 📂 Local").style(Style::default().add_modifier(Modifier::UNDERLINED)),
-                ListItem::new("   Home"),
-                ListItem::new("   Downloads"),
-                ListItem::new("   Documents"),
-                ListItem::new("   Pictures"),
+                ListItem::new(" 󰉋 Local").style(Style::default().add_modifier(Modifier::UNDERLINED)),
+                ListItem::new("   󱂵 Home"),
+                ListItem::new("   󰉍 Downloads"),
+                ListItem::new("   󰈙 Documents"),
+                ListItem::new("   󰉏 Pictures"),
                 ListItem::new(""),
-                ListItem::new(" ☁  Remote").style(Style::default().add_modifier(Modifier::UNDERLINED)),
+                ListItem::new(" 󰒋 Remote").style(Style::default().add_modifier(Modifier::UNDERLINED)),
             ];
 
             for bookmark in &app.remote_bookmarks {
-                sidebar_items.push(ListItem::new(format!("   {}", bookmark.name)));
+                sidebar_items.push(ListItem::new(format!("   󰒍 {}", bookmark.name)));
             }
 
             if app.remote_bookmarks.is_empty() {
@@ -109,6 +133,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 }
 
 pub fn draw(f: &mut Frame, app: &mut App) {
+// ... (rest of draw function)
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
