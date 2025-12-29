@@ -7,6 +7,7 @@ use ratatui::{
 
 use crate::app::{App, AppMode, CurrentView, FileColumn};
 use terma::compositor::engine::ImagePlacement;
+use terma::visuals::assets::Icon;
 
 fn generate_demon_logo() -> Vec<u8> {
     let width = 64;
@@ -66,27 +67,12 @@ fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
     data
 }
 
-fn get_file_icon(path: &std::path::Path, is_dir: bool) -> &'static str {
-    if is_dir { return " "; } // Folder icon
-    
+fn get_file_icon_type(path: &std::path::Path, is_dir: bool) -> Icon {
+    if is_dir { return Icon::Folder; }
     match path.extension().and_then(|s| s.to_str()).unwrap_or("") {
-        "rs" => " ",
-        "js" | "ts" => " ",
-        "json" => " ",
-        "md" => " ",
-        "py" => " ",
-        "c" | "cpp" => " ",
-        "h" | "hpp" => " ",
-        "toml" => " ",
-        "yaml" | "yml" => " ",
-        "png" | "jpg" | "jpeg" | "gif" | "svg" => "󰋩 ",
-        "mp4" | "mkv" | "avi" => "󰿚 ",
-        "mp3" | "wav" | "flac" => "󰝚 ",
-        "zip" | "tar" | "gz" | "7z" => " ",
-        "sh" | "bash" | "zsh" => " ",
-        "dockerfile" | "Dockerfile" => "󰡨 ",
-        "pdf" => "󰈦 ",
-        _ => "󰈔 ", // Default file
+        "rs" => Icon::Rust,
+        "json" => Icon::Json,
+        _ => Icon::File,
     }
 }
 
@@ -295,6 +281,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
             Cell::from(name).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
         });
         let header = Row::new(header_cells).height(1).bottom_margin(0);
+        
+        let offset = file_state.table_state.offset();
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let metadata = file_state.metadata.get(path);
             let cells = file_state.columns.iter().map(|c| {
@@ -305,12 +293,34 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                         let mut style = if is_dir { Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD) } else { Style::default() };
                         if let Some(status) = file_state.git_status.get(path) {
-                            display_name.push_str(&format!(" [{}]", status));
+                            display_name.push_str(&format!(" [{}]
+", status));
                             match status.as_str() { "M" | "MM" => style = style.fg(Color::Yellow), "A" | "AM" => style = style.fg(Color::Green), "??" => style = style.fg(Color::DarkGray), "D" => style = style.fg(Color::Red), _ => {} }
                         }
                         if file_state.starred.contains(path) { display_name.push_str(" [*]"); style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD); }
-                        let icon = get_file_icon(path, is_dir);
-                        Cell::from(format!("{}{}", icon, display_name)).style(style)
+                        
+                        // Baked-in Icon Logic
+                        let icon_type = get_file_icon_type(path, is_dir);
+                        
+                        // Only add to queue if visible
+                        if i >= offset && i < offset + (area.height as usize).saturating_sub(1) {
+                            let row_y = area.y + 1 + (i - offset) as u16;
+                            let icon_asset = icon_type.get_asset();
+                            let img = ImagePlacement {
+                                id: 5000 + i as u32,
+                                data: icon_asset.rgba,
+                                width_px: icon_asset.width,
+                                height_px: icon_asset.height,
+                                x: area.x,
+                                y: row_y,
+                                z_index: 1,
+                                cols: Some(2),
+                                rows: Some(1),
+                            };
+                            if let Ok(mut q) = app.image_queue.lock() { q.push(img); }
+                        }
+
+                        Cell::from(format!("  {}", display_name)).style(style) // 2 spaces for icon
                     },
                     FileColumn::Size => {
                         let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
@@ -350,7 +360,8 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     let disk_items: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let percent = (disk.used_space / disk.total_space) * 100.0;
         let bar_width: usize = 20; let filled = (percent / 100.0 * bar_width as f64) as usize;
-        let bar = format!("[{}{}]", "#".repeat(filled), "-".repeat(bar_width.saturating_sub(filled)));
+        let bar = format!("[{}{}]
+", "#".repeat(filled), "-".repeat(bar_width.saturating_sub(filled)));
         ListItem::new(format!("{:<10} {}  {:.1} / {:.1} GB ({:.1}%)", disk.name, bar, disk.used_space, disk.total_space, percent))
     }).collect();
     f.render_widget(List::new(disk_items).block(Block::default().title(" Disk Usage ").borders(Borders::ALL)), layout[2]);
