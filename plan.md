@@ -112,4 +112,4 @@ apparently we have drag dragging files around would be nice
 
 can we use better icons for files?
 
-on default files view we can take up more 
+on default files view we can take up 
