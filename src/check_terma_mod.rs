@@ -1,10 +1,11 @@
+
 use terma::input::parser::{Event, MouseButton, KeyCode};
-use terma::TermaBackend; 
+use terma::integration::ratatui::TermaBackend;
 
 pub fn check() {
     let event: Event = unsafe { std::mem::zeroed() };
     match event {
-        Event::Mouse { button, row, column, .. } => {
+        Event::Mouse { button, x, y, .. } => {
             match button {
                 MouseButton::Left => {},
                 MouseButton::Right => {},
