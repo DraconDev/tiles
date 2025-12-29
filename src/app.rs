@@ -37,6 +37,7 @@ pub enum AppEvent {
     RefreshFiles(usize), // tab_index
     FilesUpdated(usize, Vec<PathBuf>, HashMap<PathBuf, FileMetadata>, HashMap<PathBuf, String>), // tab_idx, files, metadata, git
     Tick,
+    Raw(TermaEvent),
 }
 
 pub struct App {
