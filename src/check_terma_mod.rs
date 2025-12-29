@@ -1,6 +1,5 @@
-
-use terma::input::InputReader;
+use terma::input::parser::Parser;
 
 pub fn check() {
-    // let _ = InputReader::new();
+    
 }
