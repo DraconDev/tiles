@@ -541,7 +541,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
 }
 
 fn fs_mouse_index(row: u16, app: &App) -> usize {
-    let mouse_row_offset = row.saturating_sub(7) as usize;
+    let mouse_row_offset = row.saturating_sub(6) as usize;
     if let Some(fs) = app.current_file_state() { fs.table_state.offset() + mouse_row_offset }
     else { 0 }
 }
