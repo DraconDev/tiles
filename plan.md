@@ -1,117 +1,63 @@
-🏗️ MASTER PLAN: PROJECT TILES
-Version: 2.1 (The Universal OS Command Center)
-Legal: Dracon License v1.0 (Source Available; Free for individuals/<5 employees; Paid for 5+ employees).
-Stack: Rust, Ratatui, Tokio, Bollard, Sysinfo, Chrono.
+# 🏗️ PROJECT TILES: THE DATA COMMAND CENTER
+**Version:** 2.2 (The Director's Console)
+**Legal:** Dracon License v1.0 (Source Available).
+**Stack:** Rust, Ratatui, Terma, Tokio, Bollard, Sysinfo.
 
-1. 🌍 The High-Level Vision
-Tiles is a "Terminal Workspace Environment." It solves the context-switching problem by unifying **Files**, **Containers**, and **System Resources** into a single, tiling pane interface.
-**Core Philosophy:** "The Glue." Selecting a file in the File Tile provides context in the Docker or System tiles (e.g., highlighting the container associated with a specific project folder).
+## 1. 🌍 The Vision
+Tiles is not just a file manager; it is the **Data Command Center** for the Sovereign Developer.
+It provides a high-density, mouse-driven, visual interface for **Files**, **Containers**, and **System Resources** using the "Director" aesthetic.
 
-Business Goal: Capture the 5+ employee company market with a "Fixed Tier" license model (predictable costs, zero admin).
+## 2. 🏛️ Technical Architecture
+*   **Engine:** `terma` (Compositor, SGR 1006 Input, Kitty Graphics, Procedural Shapes).
+*   **Layout:** Grid-based "Industrial" design. No "box-inside-a-box" padding.
+*   **Input:** Hybrid. Keyboard for speed (`h/j/k/l`), Mouse for spatial orchestration (5-button support).
 
-2. 🏛️ Technical Architecture (Rust)
-A. The Core Event Loop (`main.rs`)
-- Dual-Threaded Async: UI (Synchronous Ratatui) + Background (Asynchronous Tokio).
-- Input Philosophy: Mouse-first (SGR 1006) + Vim-style keys (`h/j/k/l`).
-- Spatial Navigation: Focus cycles between tiles; `Enter` zooms a tile to full screen.
+## 3. 🚀 Development Roadmap
 
-B. State Management (`app.rs`)
-- Centralized `App` struct holding state for all tiles (`FileState`, `DockerState`, `SystemState`).
-- **Context Engine:** A mechanism to broadcast events (e.g., `ProjectSelected(Path)`) to other modules.
+### Phase 1: The Core Foundation (Completed)
+- [x] **Engine:** Migrated from Crossterm to Terma.
+- [x] **Input:** Reliable mouse clicks (0-based) and history nav (Back/Forward buttons).
+- [x] **Rendering:** Fixed "Extra Row" bug and Wide-char alignment.
+- [x] **Files:** Basic listing, sorting, and metadata (with correct symlink sizing).
+- [x] **Visuals:** Flattened UI borders (Rounded) and removed redundant margins.
 
-3. 🧩 The Three Pillars (The Trinity)
-Pillar I: The Virtual File Workspace (Files)
-- **Visuals:** Tree/List view with high-density tables.
-- **Git Integration:** Color-coded status (`[+]`, `[-]`, `[M]`) and branch display.
-- **Smart Create:** `n` shortcut for templated creation.
-- **Context Trigger:** Hovering a folder with `Dockerfile` emits a context signal.
+### Phase 2: The "Perfect" File Manager (Current Priority)
+*   **Visual Polish:**
+    *   [ ] **Icons:** Add NerdFont icons for sidebar (Home, Downloads, etc.) and better file type icons.
+    *   [ ] **Contextual Menu:** Different menus for "Folder", "File", and "Empty Space".
+    *   [ ] **Column Headers:** Click to sort (Asc/Desc toggle).
+    *   [ ] **Selection:** Ensure drag-to-select works or feels natural.
+*   **Navigation:**
+    *   [ ] **Tabs:** Clickable tabs (MMB to close).
+    *   [ ] **Arrow Keys:** Fix arrow key navigation if broken.
+*   **CLI Integration:**
+    *   [ ] **Smart Commands:** Formatted CLI output for AI consumption (`tiles --json list .`).
 
-Pillar II: The System Cockpit (Processes)
-- **Visuals:** Gauges for CPU/RAM, Sparklines for history.
-- **Process List:** Interactive tree. Right-click to Kill.
-- **Port Watcher:** List active listening ports and link them to Docker containers.
+### Phase 3: The System Cockpit (Processes)
+*   **Goal:** "htop" but better.
+*   **Features:**
+    *   [ ] **Process Tree:** Interactive visual tree.
+    *   [ ] **Kill Switch:** Right-click context menu to `kill -9`.
+    *   [ ] **Visuals:** Use Terma Shapes for smooth CPU/RAM history graphs (Sparklines).
 
-Pillar III: The Container Orchestrator (Docker)
-- **Library:** `bollard` (Async).
-- **Features:** Full lifecycle (Start/Stop/Logs/Exec).
-- **Reactive Filtering:** Auto-filter container list based on selected File path.
-- **Log Streamer:** Aggregated log view for containers and files.
+### Phase 4: The Container Orchestrator (Docker)
+*   **Goal:** "Lazydocker" but integrated.
+*   **Features:**
+    *   [ ] **Live State:** Connect `bollard` for real-time updates.
+    *   [ ] **Controls:** Start/Stop/Restart context menu.
+    *   [ ] **Logs:** Streaming log view in a floating Terma plane.
 
-Pillar IV: The Command Center (The "Glue")
-- **Trigger:** `Ctrl+P` or `:`.
-- **Function:** Fuzzy search across Files, Container Names, and App Commands (e.g., "Kill Container", "Git Commit").
+### Phase 5: The "Wow" Factor (Kitty Graphics)
+*   [ ] **Thumbnails:** Show image/video previews on hover using Terma's image protocol.
+*   [ ] **Asset Management:** "Drag-and-drop" assets between folders (visually).
 
-4. 🛡️ Safety & Operations
-- Production "Red Zone": Visual warnings for production contexts.
-- Safe Edit: `e` to edit remote files locally.
-- Archive VFS: Browse archives transparently.
-
-5. 💼 Commercial Logic (Dracon License v1.0)
-- **Model:** Fixed Tier Pricing (No per-seat tracking).
-    - Personal (<5 employees): Free.
-    - Small Team (5-20): ~$290/year flat.
-    - Corporate (20+): Tiered flat fees.
-- **Enforcement:** "Soft Lock" / Honor System.
-    - Free Mode: Footer shows "Free Edition (<5 employees). Support us at dracon.uk".
-    - Commercial Mode: Footer shows "Licensed to [Company Name]" (via `~/.config/tiles/license.key`).
-
-6. 🚀 Development Roadmap (Updated)
-Phase 1: Foundations (Completed)
-- [x] Ratatui loop with Tab/Sidebar layout.
-- [x] Standard file management (Sort, Icons, Clipboard).
-- [x] Mouse & Scroll logic (Fixed).
-- [x] Context Menus.
-
-Phase 2: The Agentless Leap & Data (Current)
-- [ ] SSH Connection Manager: Sidebar bookmarks for remote hosts.
-- [ ] Docker Module: Connect `bollard` to real Docker socket.
-- [ ] System Module: Connect `sysinfo` to real metrics.
-
-Phase 3: The Interactivity
-- [ ] Zoom Mechanic (`Enter` to expand tile).
-- [ ] Docker Controls (Start/Stop via keybindings).
-- [ ] License Check (`utils/license.rs`).
-
-Phase 4: The "Glue" (Context)
-- [ ] Context Engine: File selection filters Docker list.
-- [ ] Command Palette (`Ctrl+P`).
-- [ ] Git Integration (File tile).
-
-7. File Structure
-src/
-├── main.rs           # Event loop, Input handling
-├── app.rs            # State, Context Engine, License
-├── ui/
-│   ├── mod.rs        # Layout, Draw logic
-│   └── theme.rs      # Styling
-├── modules/
-│   ├── files.rs      # Local/Remote VFS, Git
-│   ├── docker.rs     # Bollard integration
-│   └── system.rs     # Sysinfo integration
-└── utils/
-    └── license.rs    # Key verification
-
-
-the menu should differentiate what we clicking on so for ex files empty space we might see new folder and new file, while for ex clicking on a folder has rename and delete options
-
-tiles should also have well formatted cli commands, partly for quick commands for human but mainly for the ai to understand, so they don't need to call 5 different commands but 1, and we cna be sneaky cause they might not need files on the remote
-
-when we click on col headers we should order the files by that columnin asc or desc order, this is a toggle
-
-incorrect file sizes are displayed
-
-be able to click on the tabs we open with ctrl t and mmb
-
-add icons to sidebar places such as home, downloads, documents, etc, persis change we make here
-
-preferably we want to star by clicking not by pressing ctrl b and it also need a better icon
-
-remote header on the sidebar needs a better icon
-
-apparently we have drag dragging files around would be nice
-
-can we use better icons for files?
-
-on default files view we can take up all the space of the container, we can even customize the columns, on split mode, we can have 2 files views, but also we probably have to cut some rows 
-
-the arrow key navigation is not working
+## 4. 📝 Todo List (User Requests)
+- [ ] **Sidebar Icons:** Specific icons for Home, Downloads, Documents, etc.
+- [ ] **Better File Icons:** Distinguish types clearly.
+- [ ] **Context Menu Logic:** Differentiate clicking on a file vs. empty space.
+- [ ] **Header Sorting:** Click column headers to sort.
+- [ ] **Tab Interaction:** Click to select, Middle-Click to close.
+- [ ] **Visual Drag:** Drag files around? (Requires cursor tracking).
+- [ ] **Key Navigation:** Ensure Arrow Keys work perfectly.
+- [ ] **Remote Header:** Needs a better icon/section style.
+- [ ] **Layout:** In "Split Mode", maximize space usage.
