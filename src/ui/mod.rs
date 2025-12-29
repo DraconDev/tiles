@@ -160,7 +160,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     // Context Menu
     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
-        draw_context_menu(f, x, y, item_index);
+        draw_context_menu(f, x, y, item_index, app);
     }
 
     // Modals
