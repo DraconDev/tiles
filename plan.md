@@ -98,3 +98,4 @@ tiles should also have well formatted cli commands, partly for quick commands fo
 
 when we click on col headers we should order the files by that columnin asc or desc order, this is a toggle
 
+incorrect file sizes are displayed
