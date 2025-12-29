@@ -80,10 +80,9 @@ async fn main() -> color_eyre::Result<()> {
     let res = run_app(&mut terminal, &mut app, event_rx, event_tx, docker_rx, docker_module).await;
 
     // Cleanup
-    let mut stdout = io::stdout();
     // Disable Alt Screen + Mouse + Kitty Kbd + Focus + Paste + Show Cursor
-    write!(stdout, "\x1b[?1049l\x1b[?1000l\x1b[?1006l\x1b[>1u\x1b[?1004l\x1b[?2004l\x1b[?25h")?;
-    let _ = stdout.flush();
+    write!(term, "\x1b[?1049l\x1b[?1000l\x1b[?1006l\x1b[>1u\x1b[?1004l\x1b[?2004l\x1b[?25h")?;
+    let _ = term.flush();
 
     if let Err(err) = res { println!("{err:?}"); }
     Ok(())
