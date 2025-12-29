@@ -104,4 +104,4 @@ be able to click on the tabs we open with ctrl t and mmb
 
 add icons to sidebar places such as home, downloads, documents, etc, persis change we make here
 
-preferably we want to star by clicking not by 
+preferably we want to star by clicking not by pressing ctrl b and it also need a better icon
