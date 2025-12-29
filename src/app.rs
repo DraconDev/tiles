@@ -4,6 +4,7 @@ use crate::modules::system::SystemModule;
 use crate::modules::files::update_files;
 use crate::license::check_license;
 use terma::input::parser::Event as TermaEvent;
+use terma::compositor::engine::ImagePlacement;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum AppMode {
@@ -41,7 +42,6 @@ pub enum AppEvent {
 }
 
 pub struct App {
-
     pub running: bool,
     pub current_view: CurrentView,
     pub mode: AppMode,
@@ -59,6 +59,7 @@ pub struct App {
     pub filtered_commands: Vec<CommandItem>,
     pub command_index: usize,
     pub last_click: Option<(std::time::Instant, u16, u16)>, // time, row, col
+    pub image_queue: Arc<Mutex<Vec<ImagePlacement>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -187,7 +188,7 @@ pub struct ProcessInfo {
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(image_queue: Arc<Mutex<Vec<ImagePlacement>>>) -> Self {
         let mut system_module = SystemModule::new();
         let mut system_state = SystemState {
             cpu_usage: 0.0,
@@ -244,6 +245,7 @@ impl App {
             filtered_commands: Vec::new(),
             command_index: 0,
             last_click: None,
+            image_queue,
         }
     }
 
