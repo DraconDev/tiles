@@ -1,5 +1,5 @@
-
-use terma::{Event, MouseButton, KeyCode};
+use terma::input::parser::{Event, MouseButton, KeyCode};
+use terma::TermaBackend; 
 
 pub fn check() {
     let event: Event = unsafe { std::mem::zeroed() };
