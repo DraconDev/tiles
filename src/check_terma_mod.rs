@@ -1,20 +1,12 @@
-
-use terma::input::parser::{Event, MouseButton, KeyCode};
+use terma::input::parser::{Event, MouseButton, KeyCode, KeyModifiers};
 use terma::integration::ratatui::TermaBackend;
 
 pub fn check() {
-    let event: Event = unsafe { std::mem::zeroed() };
-    match event {
-        Event::Mouse { button, column, line, .. } => {
-            match button {
-                MouseButton::Left => {},
-                MouseButton::Right => {},
-                MouseButton::Middle => {},
-                MouseButton::Back => {},
-                MouseButton::Forward => {},
-                _ => {},
-            }
-        }
-        _ => {}
-    }
+    // Check KeyModifiers
+    let _ = KeyModifiers::CONTROL;
+    
+    // Check read function - guessing names
+    // let _ = terma::read(); 
+    // let _ = terma::read_event();
+    // let _ = terma::input::read();
 }
