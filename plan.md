@@ -108,4 +108,4 @@ preferably we want to star by clicking not by pressing ctrl b and it also need a
 
 remote header on the sidebar needs a better icon
 
-apparently we have drag dragging 
+apparently we have drag dragging files around would be nice
