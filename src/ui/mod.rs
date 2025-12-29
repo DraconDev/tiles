@@ -33,48 +33,6 @@ fn generate_demon_logo() -> Vec<u8> {
     data
 }
 
-fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
-    let mut spans = Vec::new();
-    let views = vec![("^F Files", CurrentView::Files), ("^P Proc", CurrentView::System), ("^D Docker", CurrentView::Docker)];
-    for (label, view) in views {
-        let style = if app.current_view == view { Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::DarkGray) };
-        spans.push(ratatui::text::Span::styled(format!(" {} ", label), style)); spans.push(ratatui::text::Span::raw(" "));
-    }
-    spans.push(ratatui::text::Span::raw(" | "));
-    if app.current_view == CurrentView::Files {
-        for (i, tab) in app.file_tabs.iter().enumerate() {
-            let name = tab.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string());
-            let style = if i == app.tab_index { Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED) } else { Style::default().fg(Color::Gray) };
-            spans.push(ratatui::text::Span::styled(format!("[{}]", name), style)); spans.push(ratatui::text::Span::raw(" "));
-        }
-    }
-    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
-}
-
-fn get_file_icon(path: &std::path::Path, is_dir: bool) -> &'static str {
-    if is_dir { return " "; } // Folder icon
-    
-    match path.extension().and_then(|s| s.to_str()).unwrap_or("") {
-        "rs" => " ",
-        "js" | "ts" => " ",
-        "json" => " ",
-        "md" => " ",
-        "py" => " ",
-        "c" | "cpp" => " ",
-        "h" | "hpp" => " ",
-        "toml" => " ",
-        "yaml" | "yml" => " ",
-        "png" | "jpg" | "jpeg" | "gif" | "svg" => "󰋩 ",
-        "mp4" | "mkv" | "avi" => "󰿚 ",
-        "mp3" | "wav" | "flac" => "󰝚 ",
-        "zip" | "tar" | "gz" | "7z" => " ",
-        "sh" | "bash" | "zsh" => " ",
-        "dockerfile" | "Dockerfile" => "󰡨 ",
-        "pdf" => "󰈦 ",
-        _ => "󰈔 ", // Default file
-    }
-}
-
 fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
     let mut data = Vec::with_capacity((width * height * 4) as usize);
     for y in 0..height {
@@ -108,6 +66,30 @@ fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
     data
 }
 
+fn get_file_icon(path: &std::path::Path, is_dir: bool) -> &'static str {
+    if is_dir { return " "; } // Folder icon
+    
+    match path.extension().and_then(|s| s.to_str()).unwrap_or("") {
+        "rs" => " ",
+        "js" | "ts" => " ",
+        "json" => " ",
+        "md" => " ",
+        "py" => " ",
+        "c" | "cpp" => " ",
+        "h" | "hpp" => " ",
+        "toml" => " ",
+        "yaml" | "yml" => " ",
+        "png" | "jpg" | "jpeg" | "gif" | "svg" => "󰋩 ",
+        "mp4" | "mkv" | "avi" => "󰿚 ",
+        "mp3" | "wav" | "flac" => "󰝚 ",
+        "zip" | "tar" | "gz" | "7z" => " ",
+        "sh" | "bash" | "zsh" => " ",
+        "dockerfile" | "Dockerfile" => "󰡨 ",
+        "pdf" => "󰈦 ",
+        _ => "󰈔 ", // Default file
+    }
+}
+
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     // Render Tabs Background
     if area.width > 0 && area.height > 0 {
@@ -132,6 +114,21 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     }
 
     let mut spans = Vec::new();
+    let views = vec![("^F Files", CurrentView::Files), ("^P Proc", CurrentView::System), ("^D Docker", CurrentView::Docker)];
+    for (label, view) in views {
+        let style = if app.current_view == view { Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::DarkGray) };
+        spans.push(ratatui::text::Span::styled(format!(" {} ", label), style)); spans.push(ratatui::text::Span::raw(" "));
+    }
+    spans.push(ratatui::text::Span::raw(" | "));
+    if app.current_view == CurrentView::Files {
+        for (i, tab) in app.file_tabs.iter().enumerate() {
+            let name = tab.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string());
+            let style = if i == app.tab_index { Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED) } else { Style::default().fg(Color::Gray) };
+            spans.push(ratatui::text::Span::styled(format!("[{}]", name), style)); spans.push(ratatui::text::Span::raw(" "));
+        }
+    }
+    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
+}
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Sidebar ").border_style(if app.sidebar_focus && app.current_view == CurrentView::Files { Style::default().fg(Color::Cyan) } else { Style::default() });
@@ -212,7 +209,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 }
 
 pub fn draw(f: &mut Frame, app: &mut App) {
-// ... (rest of draw function)
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -253,12 +249,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 }
 
 fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
-    // Flattened Layout: No outer block for Main Stage.
-    // Instead, we split the area directly into Path (Top) and Content (Bottom).
     if app.current_view == CurrentView::Files {
         let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Min(0)]).split(area);
         
-        // Path Bar: Simple Rounded Border
         let path_text = if matches!(app.mode, AppMode::Location) { format!("Location: {}", app.input) } 
             else if let Some(fs) = app.current_file_state() { if !fs.search_filter.is_empty() { format!("Search: {} (Esc to clear)", fs.search_filter) } else { format!("Path: {}", fs.current_path.display()) } } 
             else { String::new() };
@@ -267,12 +260,8 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
         
         f.render_widget(Paragraph::new(path_text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).border_style(path_style)), chunks[0]);
         
-        // File View: No border, fills the rest.
-        // We add a top padding of 1 line if we want separation, but the Path block handles it.
         draw_file_view(f, chunks[1], app);
     } else {
-        // For other views, we keep the frame for now or flatten them too.
-        // Let's flatten them for consistency.
         match app.current_view {
             CurrentView::System => draw_system_view(f, area, app),
             CurrentView::Docker => draw_docker_view(f, area, app),
@@ -287,17 +276,11 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
     let sidebar_focus = app.sidebar_focus;
     if let Some(file_state) = app.current_file_state_mut() {
         file_state.view_height = area.height as usize;
-        
-        // Use a temporary TableState for rendering to prevent the Table widget
-        // from permanently modifying our offset or fighting with our manual scroll logic.
         let mut render_state = ratatui::widgets::TableState::default();
 
-        // Smart Selection: Only tell the render state about selection if it's currently visible.
         if let Some(sel) = file_state.selected_index {
             let offset = file_state.table_state.offset();
             let capacity = file_state.view_height.saturating_sub(2);
-            
-            // Allow selection to be visible at the top edge (sel >= offset)
             if sel >= offset && sel < offset + capacity {
                 render_state.select(Some(sel));
             } else {
@@ -305,8 +288,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
             }
         }
         
-        // CRITICAL: Force the render offset to match our persistent/manual offset.
-        // We do this LAST to ensure no previous logic (like select()) reset it.
         *render_state.offset_mut() = file_state.table_state.offset();
 
         let header_cells = file_state.columns.iter().map(|c| {
@@ -324,8 +305,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                         let mut style = if is_dir { Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD) } else { Style::default() };
                         if let Some(status) = file_state.git_status.get(path) {
-                            display_name.push_str(&format!(" [{}]
-", status));
+                            display_name.push_str(&format!(" [{}]", status));
                             match status.as_str() { "M" | "MM" => style = style.fg(Color::Yellow), "A" | "AM" => style = style.fg(Color::Green), "??" => style = style.fg(Color::DarkGray), "D" => style = style.fg(Color::Red), _ => {} }
                         }
                         if file_state.starred.contains(path) { display_name.push_str(" [*]"); style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD); }
@@ -348,19 +328,12 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                     FileColumn::Extension => Cell::from(path.extension().and_then(|e| e.to_str()).unwrap_or("")),
                 }
             });
-            // Use the original selected_index for styling decision to ensure consistency
             let style = if Some(i) == file_state.selected_index && !sidebar_focus { Style::default().bg(Color::DarkGray) } else { Style::default() };
             Row::new(cells).style(style)
         });
         let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| { match c { FileColumn::Name => Constraint::Percentage(50), FileColumn::Size => Constraint::Length(10), FileColumn::Modified => Constraint::Length(20), FileColumn::Created => Constraint::Length(20), FileColumn::Permissions => Constraint::Length(12), FileColumn::Extension => Constraint::Length(6) } }).collect();
         
-        // Render using the temporary state
         f.render_stateful_widget(Table::new(rows, constraints).header(header).block(Block::default().borders(Borders::NONE)), area, &mut render_state);
-        
-        // IMPORTANT: We DO NOT sync the offset back from render_state.
-        // We manage offset manually in App::move_down/up and scroll handlers.
-        // This prevents the Table widget from auto-snapping the offset when we scroll away from selection.
-        // *file_state.table_state.offset_mut() = render_state.offset();
         
         if file_state.files.len() > area.height.saturating_sub(2) as usize {
             let scrollbar = Scrollbar::default().orientation(ScrollbarOrientation::VerticalRight).begin_symbol(Some("↑")).end_symbol(Some("↓"));
@@ -545,8 +518,7 @@ fn draw_add_remote_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(50, 20, f.area()); f.render_widget(Clear, area);
     let block = Block::default().title(" Add Remote Host ").borders(Borders::ALL).border_style(Style::default().fg(Color::Green));
     let inner = block.inner(area); f.render_widget(block, area);
-    let text = format!("Enter connection string (user@host:port):\n> {}
-\n(Press Enter to add, Esc to cancel)", app.input);
+    let text = format!("Enter connection string (user@host:port):\n> {}\n\n(Press Enter to add, Esc to cancel)", app.input);
     f.render_widget(Paragraph::new(text), inner);
 }
 
