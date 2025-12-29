@@ -1,15 +1,8 @@
-
-use terma::input::parser::MouseButton;
+use terma::input::parser::Event;
 
 pub fn check() {
-    let b = MouseButton::Left;
-    match b {
-        MouseButton::Left => {},
-        MouseButton::Right => {},
-        MouseButton::Middle => {},
-        MouseButton::Release => {}, // Guess
-        MouseButton::WheelUp => {}, // Guess
-        MouseButton::WheelDown => {}, // Guess
-        _ => {},
+    let e: Event = unsafe { std::mem::zeroed() };
+    if let Event::Mouse { button, column, line } = e {
+        
     }
 }
