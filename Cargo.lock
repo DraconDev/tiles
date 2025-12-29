@@ -1586,7 +1586,6 @@ dependencies = [
 [[package]]
 name = "terma"
 version = "1.0.0"
-source = "git+https://github.com/DraconDev/terma#082bcc0439bfb2ca060f0c5c04aae838074a5fde"
 dependencies = [
  "bitflags",
  "libc",
