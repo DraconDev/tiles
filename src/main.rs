@@ -73,7 +73,9 @@ async fn main() -> color_eyre::Result<()> {
                         let _ = input_tx.blocking_send(AppEvent::Raw(evt));
                     }
                 }
-            } else { break; }
+            } else { 
+                break; 
+            }
         }
     });
 
