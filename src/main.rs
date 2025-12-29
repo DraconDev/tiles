@@ -28,7 +28,7 @@ async fn main() -> color_eyre::Result<()> {
     write!(term, "\x1b[2J\x1b[H")?;
     term.flush()?;
 
-    let backend = TermaBackend::new(term);
+    let backend = TermaBackend::new(term)?;
     let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::new();
@@ -355,7 +355,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                     }
                 }
             }
-            if button == MouseButton::WheelUp {
+            if button == MouseButton::ScrollUp {
                 if app.current_view == CurrentView::Files {
                     if let Some(fs) = app.current_file_state_mut() {
                         let new_offset = fs.table_state.offset().saturating_sub(1);
