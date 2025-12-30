@@ -8,6 +8,7 @@ use ratatui::{
 use crate::app::{App, AppMode, CurrentView, FileColumn};
 use terma::compositor::engine::TilePlacement;
 use terma::visuals::assets::Icon;
+use terma::widgets::TermaButton;
 
 pub fn generate_demon_logo() -> Vec<u8> {
     let width = 64;
