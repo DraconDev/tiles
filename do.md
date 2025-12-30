@@ -8,4 +8,4 @@ also will we able to solve one of our problems with layers? previously layers ov
 
 however this way how we are different from something like files and zed, are we just a gui with grids?
 
-however this approach would mean that assuming someone installs tiles on a vps, they can open it in their terminal and it will open tiles in their terminal, 
+however this approach would mean that assuming someone installs tiles on a vps, they can open it in their terminal and it will open 
