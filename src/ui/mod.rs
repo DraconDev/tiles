@@ -87,7 +87,7 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     for (label, view) in views {
         let width = (label.len() + 4) as u16;
         let tab_area = Rect::new(current_x, area.y, width, 1);
-        draw_tile_button(f, tab_area, label, app, app.current_view == view);
+        f.render_widget(TermaButton::new(label, app.current_view == view, app.tile_queue.clone()), tab_area);
         current_x += width + 1;
     }
     
