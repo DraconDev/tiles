@@ -430,7 +430,7 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
         let name = c.names.as_ref().and_then(|n| n.first()).map(|s| s.as_str()).unwrap_or("").trim_start_matches('/');
         if let Some(filter) = &app.docker_state.filter { if !name.contains(filter) { return None; } }
         Some((name, c.state.as_deref().unwrap_or(""), c.status.as_deref().unwrap_or("")))
-    }).map(|(i, (name, state, status))| {
+    }).enumerate().map(|(i, (name, state, status))| {
         let style = match state {
             "running" => Style::default().fg(Color::Green),
             "exited" => Style::default().fg(Color::Red),
