@@ -26,6 +26,16 @@ We are moving beyond the "Terminal Emulator" paradigm. We don't build apps that 
 - **Workflow:** High-density orchestration using the "System Lego" philosophy.
 - **Key Feature:** **Smart Client Remotes**. Local 60FPS UI connected to remote data agents via SSH.
 
+## 2.1 🧠 The God Mode Architecture
+*Why we build a Window, not just a CLI tool.*
+
+We distinguish between **Tenant Apps** (run inside a terminal, like `vim` or `fish`) and **Landlord Apps** (own the window, like Tiles).
+*   **The Problem:** Running 50 separate `xterm` windows for 50 agents results in 50 disconnected processes. No shared state, no coordination.
+*   **The Solution:** Tiles runs as a single **Sovereign Window**. It acts as the "God" of 50 virtual terminals (Planes).
+    *   **Shared Brain:** All agents live in one process memory space.
+    *   **Orchestration:** You can visualize, group, and manage 50 streams of data in a unified grid.
+    *   **Polymorphism:** On the desktop, it's a high-performance GUI. Over SSH, it degrades gracefully to a standard TUI, preserving the "Command Center" logic while sacrificing only the pixel-perfect rendering.
+
 ---
 
 ## 3. 🚀 Grand Unified Roadmap
