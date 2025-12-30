@@ -518,11 +518,15 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
             if let Some(idx) = fs.selected_index {
                 if let Some(p) = fs.files.get(idx) { 
                     let metadata = std::fs::metadata(p); 
-                    let mut s = format!("Name: {{}}\n", p.file_name().unwrap_or_default().to_string_lossy()); 
-                    s.push_str(&format!("Type: {{}}\n", if p.is_dir() { "Directory" } else { "File" })); 
+                    let mut s = format!("Name: {{}}
+", p.file_name().unwrap_or_default().to_string_lossy()); 
+                    s.push_str(&format!("Type: {{}}
+", if p.is_dir() { "Directory" } else { "File" })); 
                     if let Ok(m) = metadata { 
-                        s.push_str(&format!("Size: {{}} bytes\n", m.len())); 
-                        if let Ok(modi) = m.modified() { s.push_str(&format!("Modified: {{:?}}\n", modi)); }
+                        s.push_str(&format!("Size: {{}} bytes
+", m.len())); 
+                        if let Ok(modi) = m.modified() { s.push_str(&format!("Modified: {{:?}}
+", modi)); }
                     } 
                     s 
                 } else { "No file selected".to_string() } 
@@ -537,7 +541,7 @@ fn draw_column_setup_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 40, f.area()); f.render_widget(Clear, area);
     if let Some(fs) = app.current_file_state() {
         let options = vec![(FileColumn::Name, "Name (n)"), (FileColumn::Size, "Size (s)"), (FileColumn::Modified, "Modified (m)"), (FileColumn::Created, "Created (c)"), (FileColumn::Permissions, "Permissions (p)"), (FileColumn::Extension, "Extension (e)")];
-        let items: Vec<ListItem> = options.iter().map(|(col, label)| { let prefix = if fs.columns.contains(col) { "[x] " } else { "[ ] " }; ListItem::new(format!("{{}}{{\}}", prefix, label)) }).collect();
+        let items: Vec<ListItem> = options.iter().map(|(col, label)| { let prefix = if fs.columns.contains(col) { "[x] " } else { "[ ] " }; ListItem::new(format!("{{}}{{\"{}\"}}", prefix, label)) }).collect();
         f.render_widget(List::new(items).block(Block::default().title(" Column Setup ").borders(Borders::ALL).border_type(BorderType::Plain).border_style(Style::default().fg(Color::Cyan))), area);
     }
 }
