@@ -5,3 +5,5 @@ would it be a gui or still a terminal we can open?
 It also solves consistency issues with the terminal, cause other terminals often have missing pictures at least 
 
 also will we able to solve one of our problems with layers? previously layers overwrote each other which was not good for putting for ex text on a button image
+
+however this way howe we are different from something like firels and 
