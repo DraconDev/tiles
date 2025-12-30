@@ -10,7 +10,30 @@ use terma::compositor::engine::ImagePlacement;
 use terma::visuals::assets::Icon;
 
 pub fn generate_demon_logo() -> Vec<u8> {
-// ...
+    let width = 64;
+    let height = 64;
+    let mut data = Vec::with_capacity((width * height * 4) as usize);
+    // Gradient: Red (Top-Left) to Black (Bottom-Right) with Alpha
+    for y in 0..height {
+        for x in 0..width {
+            let r = ((x as f32 / width as f32) * 200.0) as u8 + 55; // Red base
+            let g = 0;
+            let b = 0;
+            // Circular fade for a "sphere" look
+            let cx = width as f32 / 2.0;
+            let cy = height as f32 / 2.0;
+            let dist = ((x as f32 - cx).powi(2) + (y as f32 - cy).powi(2)).sqrt();
+            let alpha = if dist < 30.0 { 255 } else { 0 };
+            
+            data.push(r);
+            data.push(g);
+            data.push(b);
+            data.push(alpha);
+        }
+    }
+    data
+}
+
 pub fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
     let mut data = Vec::with_capacity((width * height * 4) as usize);
     for y in 0..height {
@@ -54,28 +77,6 @@ fn get_file_icon_type(path: &std::path::Path, is_dir: bool) -> Icon {
 }
 
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
-    // Render Tabs Background
-    if area.width > 0 && area.height > 0 {
-        let mut bg_data = Vec::with_capacity((10 * 10 * 4) as usize);
-        for _ in 0..100 {
-            bg_data.push(30); bg_data.push(30); bg_data.push(35); bg_data.push(255);
-        }
-        let img = ImagePlacement {
-            id: 3, // Tabs BG
-            data: bg_data,
-            width_px: 10,
-            height_px: 10,
-            x: area.x,
-            y: area.y,
-            z_index: -1,
-            cols: Some(area.width),
-            rows: Some(area.height),
-        };
-        if let Ok(mut queue) = app.image_queue.lock() {
-            queue.push(img);
-        }
-    }
-
     let mut spans = Vec::new();
     let views = vec![("^F Files", CurrentView::Files), ("^P Proc", CurrentView::System), ("^D Docker", CurrentView::Docker)];
     for (label, view) in views {
@@ -101,17 +102,14 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 
     // Render Sidebar Background (Z = -1)
     if area.width > 0 && area.height > 0 {
-        let bg_data = generate_panel_bg(10, 100); // Small buffer, let Kitty stretch it
         let img = ImagePlacement {
-            id: 2, // Persistent ID for sidebar BG
-            data: bg_data,
-            width_px: 10,
-            height_px: 100,
+            asset_id: 1001, // Pre-registered Sidebar BG
             x: area.x,
             y: area.y,
-            z_index: -1, // Behind text
+            z_index: -1,
             cols: Some(area.width),
             rows: Some(area.height),
+            placement_id: Some(2),
         };
         if let Ok(mut queue) = image_queue.lock() {
             queue.push(img);
@@ -120,19 +118,15 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 
     // Render Demon Logo using ImagePlacement (Z = 1)
     if area.width > 10 && area.height > 5 {
-        let logo_data = generate_demon_logo();
         let img = ImagePlacement {
-            id: 1, // Persistent ID for the logo
-            data: logo_data,
-            width_px: 64,
-            height_px: 64,
-            x: area.x + area.width.saturating_sub(10), // Top right of sidebar, roughly
+            asset_id: 1000, // Pre-registered Demon Logo
+            x: area.x + area.width.saturating_sub(10),
             y: area.y + 1,
-            z_index: 1, // Overlay on top of text/borders
+            z_index: 1,
             cols: Some(8),
             rows: Some(4),
+            placement_id: Some(1),
         };
-        
         if let Ok(mut queue) = image_queue.lock() {
             queue.push(img);
         }
@@ -153,19 +147,16 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 
             // Push sidebar icons to queue
             if let Ok(mut q) = image_queue.lock() {
-                // Local icon
-                let local_asset = Icon::Folder.get_asset();
-                q.push(ImagePlacement { id: 6000, data: local_asset.rgba.clone(), width_px: local_asset.width, height_px: local_asset.height, x: inner.x, y: inner.y, z_index: 1, cols: Some(2), rows: Some(1) });
+                // Local icon (Folder)
+                q.push(ImagePlacement { asset_id: Icon::Folder as u32, x: inner.x, y: inner.y, z_index: 1, cols: Some(2), rows: Some(1), placement_id: Some(6000) });
                 
-                // Home, etc.
-                let home_asset = Icon::Settings.get_asset(); // Using settings as placeholder for now
+                // Home, etc. (Settings placeholder)
                 for i in 0..4 {
-                    q.push(ImagePlacement { id: 6001 + i, data: home_asset.rgba.clone(), width_px: home_asset.width, height_px: home_asset.height, x: inner.x + 2, y: inner.y + 1 + i as u16, z_index: 1, cols: Some(2), rows: Some(1) });
+                    q.push(ImagePlacement { asset_id: Icon::Settings as u32, x: inner.x + 2, y: inner.y + 1 + i as u16, z_index: 1, cols: Some(2), rows: Some(1), placement_id: Some(6001 + i) });
                 }
                 
-                // Remote icon
-                let remote_asset = Icon::Demon.get_asset();
-                q.push(ImagePlacement { id: 6010, data: remote_asset.rgba.clone(), width_px: remote_asset.width, height_px: remote_asset.height, x: inner.x, y: inner.y + 6, z_index: 1, cols: Some(2), rows: Some(1) });
+                // Remote icon (Demon)
+                q.push(ImagePlacement { asset_id: Icon::Demon as u32, x: inner.x, y: inner.y + 6, z_index: 1, cols: Some(2), rows: Some(1), placement_id: Some(6010) });
             }
 
             for bookmark in &app.remote_bookmarks {
@@ -173,7 +164,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             }
 
             if app.remote_bookmarks.is_empty() {
-                sidebar_items.push(ListItem::new("   (No remotes)").style(Style::default().fg(Color::DarkGray)));
+                sidebar_items.push(ListItem::new("     (No remotes)").style(Style::default().fg(Color::DarkGray)));
             }
 
             let items: Vec<ListItem> = sidebar_items.into_iter().enumerate().map(|(i, item)| {
@@ -291,8 +282,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                         let mut style = if is_dir { Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD) } else { Style::default() };
                         if let Some(status) = file_state.git_status.get(path) {
-                            display_name.push_str(&format!(" [{}]
-", status));
+                            display_name.push_str(&format!(" [{}]", status));
                             match status.as_str() { "M" | "MM" => style = style.fg(Color::Yellow), "A" | "AM" => style = style.fg(Color::Green), "??" => style = style.fg(Color::DarkGray), "D" => style = style.fg(Color::Red), _ => {} }
                         }
                         if file_state.starred.contains(path) { display_name.push_str(" [*]"); style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD); }
@@ -303,22 +293,19 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         // Only add to queue if visible
                         if i >= offset && i < offset + (area.height as usize).saturating_sub(1) {
                             let row_y = area.y + 1 + (i - offset) as u16;
-                            let icon_asset = icon_type.get_asset();
                             let img = ImagePlacement {
-                                id: 5000 + i as u32,
-                                data: icon_asset.rgba,
-                                width_px: icon_asset.width,
-                                height_px: icon_asset.height,
+                                asset_id: icon_type as u32,
                                 x: area.x,
                                 y: row_y,
                                 z_index: 1,
                                 cols: Some(2),
                                 rows: Some(1),
+                                placement_id: Some(5000 + i as u32),
                             };
                             if let Ok(mut q) = image_queue.lock() { q.push(img); }
                         }
 
-                        Cell::from(format!("  {}", display_name)).style(style) // 2 spaces for icon
+                        Cell::from(format!("  {}\n", display_name)).style(style) // 2 spaces for icon
                     },
                     FileColumn::Size => {
                         let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
@@ -358,8 +345,7 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     let disk_items: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let percent = (disk.used_space / disk.total_space) * 100.0;
         let bar_width: usize = 20; let filled = (percent / 100.0 * bar_width as f64) as usize;
-        let bar = format!("[{}{}]
-", "#".repeat(filled), "-".repeat(bar_width.saturating_sub(filled)));
+        let bar = format!("[{}{}]", "#".repeat(filled), "-".repeat(bar_width.saturating_sub(filled)));
         ListItem::new(format!("{:<10} {}  {:.1} / {:.1} GB ({:.1}%)", disk.name, bar, disk.used_space, disk.total_space, percent))
     }).collect();
     f.render_widget(List::new(disk_items).block(Block::default().title(" Disk Usage ").borders(Borders::ALL)), layout[2]);
@@ -488,10 +474,8 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
             if let Some(idx) = fs.selected_index {
                 if let Some(p) = fs.files.get(idx) { 
                     let metadata = std::fs::metadata(p); 
-                    let mut s = format!("Name: {}
-", p.file_name().unwrap_or_default().to_string_lossy()); 
-                    s.push_str(&format!("Type: {}
-", if p.is_dir() { "Directory" } else { "File" })); 
+                    let mut s = format!("Name: {}\n", p.file_name().unwrap_or_default().to_string_lossy()); 
+                    s.push_str(&format!("Type: {}\n", if p.is_dir() { "Directory" } else { "File" })); 
                     if let Ok(m) = metadata { 
                         s.push_str(&format!("Size: {} bytes\n", m.len())); 
                         if let Ok(modi) = m.modified() { s.push_str(&format!("Modified: {:?}\n", modi)); } 
