@@ -10,4 +10,4 @@ however this way how we are different from something like files and zed, are we 
 
 however this approach would mean that assuming someone installs tiles on a vps, they can open it in their terminal and it will open it it will not work correct cause it is a gui?
 
-now sure we can be sneaky and 
+now sure we can be sneaky and use ssh, but the we can just do it on our system perhaps in gloruios 
