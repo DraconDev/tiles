@@ -192,6 +192,53 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     }
 }
 
+fn draw_tile_button(f: &mut Frame, area: Rect, text: &str, app: &App) {
+    let tile_queue = app.tile_queue.clone();
+    
+    if area.width >= 3 {
+        if let Ok(mut q) = tile_queue.lock() {
+            // Left Slice (1 cell)
+            q.push(TilePlacement {
+                asset_id: Icon::ButtonLeft as u32,
+                x: area.x,
+                y: area.y,
+                z_index: -1,
+                cols: Some(1),
+                rows: Some(1),
+                placement_id: None,
+            });
+            
+            // Middle Slice (stretched)
+            q.push(TilePlacement {
+                asset_id: Icon::ButtonMid as u32,
+                x: area.x + 1,
+                y: area.y,
+                z_index: -1,
+                cols: Some(area.width.saturating_sub(2)),
+                rows: Some(1),
+                placement_id: None,
+            });
+            
+            // Right Slice (1 cell)
+            q.push(TilePlacement {
+                asset_id: Icon::ButtonRight as u32,
+                x: area.x + area.width - 1,
+                y: area.y,
+                z_index: -1,
+                cols: Some(1),
+                rows: Some(1),
+                placement_id: None,
+            });
+        }
+    }
+    
+    // Render text on top (Center aligned)
+    let p = Paragraph::new(text)
+        .alignment(ratatui::layout::Alignment::Center)
+        .style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD));
+    f.render_widget(p, area);
+}
+
 pub fn draw(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
