@@ -61,3 +61,5 @@ It provides a high-density, mouse-driven, visual interface for **Files**, **Cont
 - [ ] **Key Navigation:** Ensure Arrow Keys work perfectly.
 - [ ] **Remote Header:** Needs a better icon/section style.
 - [ ] **Layout:** In "Split Mode", maximize space usage.
+
+but can't we just install our own terminal like wes and kitty? cause its alreayd not built it, so instead of just having it and opening it in their terminal we alwyas open it in ours, and for vps we can even use ssh, so we dont have to have it installed there this way our tiles dreams are alive? so typing tiles opens our terminal not tiles in their terminal if this makes sense
