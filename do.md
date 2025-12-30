@@ -2,4 +2,4 @@ but can't we just install our own terminal like wes and kitty? cause its alreayd
 
 would it be a gui or still a terminal we can open?
 
-It also solves consistency issues with the terminal, cause 
+It also solves consistency issues with the terminal, cause other terminals often have missing pictures at least 
