@@ -1,37 +1,36 @@
 # 🏗️ PROJECT TILES: THE DATA COMMAND CENTER
-**Version:** 2.2 (The Director's Console)
+**Version:** 3.0 (The Sovereign Window)
 **Legal:** Dracon License v1.0 (Source Available).
-**Stack:** Rust, Ratatui, Terma, Tokio, Bollard, Sysinfo.
+**Stack:** Rust, Ratatui, Terma (Window Mode), Tokio, Bollard, Sysinfo.
 
 ## 1. 🌍 The Vision
-Tiles is not just a file manager; it is the **Data Command Center** for the Sovereign Developer.
-It provides a high-density, mouse-driven, visual interface for **Files**, **Containers**, and **System Resources** using the "Director" aesthetic.
+Tiles is **The Data Command Center**.
+It is a standalone, windowed application that combines the density of a TUI with the graphical capabilities of a GUI.
+It does **not** run inside your terminal emulator. It **is** the terminal.
 
 ## 2. 🏛️ Technical Architecture
-*   **Engine:** `terma` (Compositor, SGR 1006 Input, Kitty Graphics, Procedural Shapes).
-*   **Layout:** Grid-based "Industrial" design. No "box-inside-a-box" padding.
-*   **Input:** Hybrid. Keyboard for speed (`h/j/k/l`), Mouse for spatial orchestration (5-button support).
+*   **Engine:** `terma` (Window Mode).
+    *   **Backend:** `winit` (Window/Input) + `softbuffer` (Rendering) + `swash` (Fonts).
+    *   **Logic:** Renders a grid of `Cells` just like a TUI, but draws them pixel-perfectly.
+*   **Layout:** Grid-based "Industrial" design.
+*   **Input:** 100% reliable Mouse (Left/Right/Middle/Back/Forward/Scroll) + Keyboard.
 
 ## 3. 🚀 Development Roadmap
 
-### Phase 1: The Core Foundation (Completed)
-- [x] **Engine:** Migrated from Crossterm to Terma.
-- [x] **Input:** Reliable mouse clicks (0-based) and history nav (Back/Forward buttons).
-- [x] **Rendering:** Fixed "Extra Row" bug and Wide-char alignment.
-- [x] **Files:** Basic listing, sorting, and metadata (with correct symlink sizing).
-- [x] **Visuals:** Flattened UI borders (Rounded) and removed redundant margins.
+### Phase 1: The Engine Rebirth (Current Priority)
+- [ ] **Dependencies:** Add `winit`, `softbuffer`, `swash` (or similar) to `terma`.
+- [ ] **Window Backend:** Create `WindowBackend` implementing `ratatui::Backend`.
+- [ ] **Font Rendering:** Implement a fast cache to draw Monospace cells.
+- [ ] **Tiles Migration:** Switch `main.rs` to spawn the window instead of using stdout.
 
-### Phase 2: The "Perfect" File Manager (Current Priority)
+### Phase 2: The "Perfect" File Manager
 *   **Visual Polish:**
-    *   [ ] **Icons:** Add NerdFont icons for sidebar (Home, Downloads, etc.) and better file type icons.
+    *   [ ] **Real Images:** Replace "Kitty Protocol" hacks with direct pixel blitting in `Terma`.
+    *   [ ] **Icons:** Render NerdFonts reliably without worrying about user's installed fonts.
     *   [ ] **Contextual Menu:** Different menus for "Folder", "File", and "Empty Space".
-    *   [ ] **Column Headers:** Click to sort (Asc/Desc toggle).
-    *   [ ] **Selection:** Ensure drag-to-select works or feels natural.
 *   **Navigation:**
     *   [ ] **Tabs:** Clickable tabs (MMB to close).
-    *   [ ] **Arrow Keys:** Fix arrow key navigation if broken.
-*   **CLI Integration:**
-    *   [ ] **Smart Commands:** Formatted CLI output for AI consumption (`tiles --json list .`).
+    *   [ ] **Remote:** SSH Connect -> Local Window (The "Remote Superpower").
 
 ### Phase 3: The System Cockpit (Processes)
 *   **Goal:** "htop" but better.
@@ -47,18 +46,8 @@ It provides a high-density, mouse-driven, visual interface for **Files**, **Cont
     *   [ ] **Controls:** Start/Stop/Restart context menu.
     *   [ ] **Logs:** Streaming log view in a floating Terma plane.
 
-### Phase 5: The "Wow" Factor (Kitty Graphics)
-*   [ ] **Thumbnails:** Show image/video previews on hover using Terma's image protocol.
-*   [ ] **Asset Management:** "Drag-and-drop" assets between folders (visually).
-
-## 4. 📝 Todo List (User Requests)
-- [ ] **Sidebar Icons:** Specific icons for Home, Downloads, Documents, etc.
-- [ ] **Better File Icons:** Distinguish types clearly.
-- [ ] **Context Menu Logic:** Differentiate clicking on a file vs. empty space.
-- [ ] **Header Sorting:** Click column headers to sort.
-- [ ] **Tab Interaction:** Click to select, Middle-Click to close.
-- [ ] **Visual Drag:** Drag files around? (Requires cursor tracking).
-- [ ] **Key Navigation:** Ensure Arrow Keys work perfectly.
-- [ ] **Remote Header:** Needs a better icon/section style.
-- [ ] **Layout:** In "Split Mode", maximize space usage.
+## 4. 📝 Todo List (Architecture Shift)
+- [ ] **Research:** Verify `softbuffer` performance for 120fps TUI rendering.
+- [ ] **Font:** Pick the "Official" Dracon font (JetBrains Mono Nerd Font?) and embed it in the binary.
+- [ ] **Input:** Map `winit` events to `crossterm::event::Event` enum for compatibility with existing logic? Or create `terma::Event`? (Prefer `terma::Event`).
 
