@@ -62,6 +62,7 @@ pub struct App {
     pub command_index: usize,
     pub last_click: Option<(std::time::Instant, u16, u16)>, // time, row, col
     pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
+    pub current_preview: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
