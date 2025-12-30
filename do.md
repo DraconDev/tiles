@@ -4,4 +4,4 @@ would it be a gui or still a terminal we can open?
 
 It also solves consistency issues with the terminal, cause other terminals often have missing pictures at least 
 
-also will we able to solve one of our problems with layers? 
+also will we able to solve one of our problems with layers? currenl
