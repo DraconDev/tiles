@@ -386,25 +386,43 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
 fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     let layout = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Length(3), Constraint::Length(6), Constraint::Min(0)]).split(area);
     
+    // CPU
     let cpu_gauge = Gauge::default().gauge_style(Style::default().fg(Color::Green)).percent(app.system_state.cpu_usage as u16).label(format!("{:.1}%", app.system_state.cpu_usage));
-    f.render_widget(TermaPanel::new(" CPU Usage ", app.tile_queue.clone()).border_color(THEME.border_inactive).content(cpu_gauge), layout[0]);
+    let cpu_panel = TermaPanel::new(" CPU Usage ", app.tile_queue.clone()).border_color(THEME.border_inactive);
+    let cpu_inner = cpu_panel.inner(layout[0]);
+    f.render_widget(cpu_panel, layout[0]);
+    f.render_widget(cpu_gauge, cpu_inner);
 
+    // Memory
     if app.system_state.total_mem > 0.0 {
         let mem_gauge = Gauge::default().gauge_style(Style::default().fg(Color::Yellow)).percent((app.system_state.mem_usage / app.system_state.total_mem * 100.0) as u16).label(format!("{:.1} / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem));
-        f.render_widget(TermaPanel::new(" Memory Usage ", app.tile_queue.clone()).border_color(THEME.border_inactive).content(mem_gauge), layout[1]);
+        let mem_panel = TermaPanel::new(" Memory Usage ", app.tile_queue.clone()).border_color(THEME.border_inactive);
+        let mem_inner = mem_panel.inner(layout[1]);
+        f.render_widget(mem_panel, layout[1]);
+        f.render_widget(mem_gauge, mem_inner);
     }
+
+    // Disk
     let disk_items: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let percent = (disk.used_space / disk.total_space) * 100.0;
         let bar_width: usize = 20; let filled = (percent / 100.0 * bar_width as f64) as usize;
         let bar = format!("[{}{}]", "#".repeat(filled), "-".repeat(bar_width.saturating_sub(filled)));
         ListItem::new(format!("{:<10} {}  {:.1} / {:.1} GB ({:.1}%)", disk.name, bar, disk.used_space, disk.total_space, percent))
     }).collect();
-    f.render_widget(TermaPanel::new(" Disk Usage ", app.tile_queue.clone()).border_color(THEME.border_inactive).content(List::new(disk_items)), layout[2]);
+    let disk_panel = TermaPanel::new(" Disk Usage ", app.tile_queue.clone()).border_color(THEME.border_inactive);
+    let disk_inner = disk_panel.inner(layout[2]);
+    f.render_widget(disk_panel, layout[2]);
+    f.render_widget(List::new(disk_items), disk_inner);
+
+    // Processes
     let process_items: Vec<ListItem> = app.system_state.processes.iter().enumerate().map(|(i, p)| {
         let style = if i == app.system_state.selected_process_index && !app.sidebar_focus { Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD) } else { Style::default() };
         ListItem::new(format!("{:<6} {:<20} {:.1}%  {:.1} MB", p.pid, p.name.chars().take(20).collect::<String>(), p.cpu, p.mem as f64 / 1024.0 / 1024.0)).style(style)
     }).collect();
-    f.render_widget(TermaPanel::new(" Top Processes ", app.tile_queue.clone()).border_color(THEME.border_inactive).content(List::new(process_items)), layout[3]);
+    let proc_panel = TermaPanel::new(" Top Processes ", app.tile_queue.clone()).border_color(THEME.border_inactive);
+    let proc_inner = proc_panel.inner(layout[3]);
+    f.render_widget(proc_panel, layout[3]);
+    f.render_widget(List::new(process_items), proc_inner);
 }
 
 fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
