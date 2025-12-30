@@ -76,7 +76,7 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     if area.width > 0 && area.height > 0 {
         let mut bg_data = Vec::with_capacity((10 * 10 * 4) as usize);
         for _ in 0..100 {
-            bg_data.push(30); bg_data.push(30); bg_data.push(35); bg_data.push(255);
+            bg_data.push(10); bg_data.push(10); bg_data.push(10); bg_data.push(255);
         }
         let tile = TilePlacement {
             asset_id: 3, // Assuming 3 is registered for Tabs BG or handle dynamically
