@@ -389,7 +389,10 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     let cpu_gauge = Gauge::default().gauge_style(Style::default().fg(Color::Green)).percent(app.system_state.cpu_usage as u16).label(format!("{:.1}%", app.system_state.cpu_usage));
     f.render_widget(TermaPanel::new(" CPU Usage ", app.tile_queue.clone()).border_color(THEME.border_inactive).content(cpu_gauge), layout[0]);
 
-    if app.system_state.total_mem > 0.0 { f.render_widget(Gauge::default().block(Block::default().title(" Memory Usage ").borders(Borders::ALL).border_type(BorderType::Plain)).gauge_style(Style::default().fg(Color::Yellow)).percent((app.system_state.mem_usage / app.system_state.total_mem * 100.0) as u16).label(format!("{:.1} / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem)), layout[1]); }
+    if app.system_state.total_mem > 0.0 {
+        let mem_gauge = Gauge::default().gauge_style(Style::default().fg(Color::Yellow)).percent((app.system_state.mem_usage / app.system_state.total_mem * 100.0) as u16).label(format!("{:.1} / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem));
+        f.render_widget(TermaPanel::new(" Memory Usage ", app.tile_queue.clone()).border_color(THEME.border_inactive).content(mem_gauge), layout[1]);
+    }
     let disk_items: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let percent = (disk.used_space / disk.total_space) * 100.0;
         let bar_width: usize = 20; let filled = (percent / 100.0 * bar_width as f64) as usize;
