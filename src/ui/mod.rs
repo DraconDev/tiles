@@ -345,7 +345,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                         let mut style = if is_dir { Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD) } else { Style::default() };
                         if let Some(status) = file_state.git_status.get(path) {
-                            display_name.push_str(&format!(" [{}]\n", status));
+                            display_name.push_str(&format!(" [{}]
+", status));
                             match status.as_str() {
                                 "M" | "MM" => style = style.fg(Color::Yellow),
                                 "A" | "AM" => style = style.fg(Color::Green),
