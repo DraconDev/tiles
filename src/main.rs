@@ -9,6 +9,7 @@ use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent, UiCommand};
 use crate::modules::docker::DockerModule;
 use terma::compositor::plane::{Cell, Color, Styles};
 use terma::visuals::loader::ImageLoader;
+use terma::visuals::shapes::{ShapeGenerator, Color as ShapeColor};
 
 mod app;
 mod ui;
@@ -22,14 +23,21 @@ fn main() -> color_eyre::Result<()> {
     
     // Load Font
     let font_data = include_bytes!("../terma/assets/font.ttf");
-    let window = TermaWindow::new(font_data, 18.0)
+    let mut window = TermaWindow::new(font_data, 18.0)
         .map_err(|e| color_eyre::eyre::eyre!("{}", e))?;
     
+    // Generate and Register UI Assets (Gradients)
+    let sidebar_bg = ShapeGenerator::gradient_vertical(
+        300, 800, 
+        ShapeColor::new(10, 10, 15, 255), // Top: Deep Dark
+        ShapeColor::new(25, 25, 40, 255)  // Bottom: Slight Purple tint
+    );
+    window.add_image_asset(2001, sidebar_bg, 300, 800);
+
     let tile_queue = window.tile_queue();
     
     // Create App 
-    let app = Arc::new(Mutex::new(App::new(tile_queue)));
-    
+    let app = Arc::new(Mutex::new(App::new(tile_queue)));    
     let (event_tx, mut event_rx) = mpsc::channel(100);
     let (ui_tx, mut ui_rx) = mpsc::channel::<UiCommand>(10);
     let (docker_tx, mut docker_rx) = mpsc::channel(10);
