@@ -64,63 +64,6 @@ fn get_file_icon_type(path: &std::path::Path, is_dir: bool) -> Icon {
     }
 }
 
-fn draw_tile_button(f: &mut Frame, area: Rect, text: &str, app: &App, is_active: bool) {
-    let tile_queue = app.tile_queue.clone();
-    
-    if area.width >= 3 {
-        if let Ok(mut q) = tile_queue.lock() {
-            let base_id = 7000 + (area.y as u32 * 100) + area.x as u32;
-
-            // Left Slice
-            q.push(TilePlacement {
-                asset_id: Icon::ButtonLeft as u32,
-                is_image: false,
-                x: area.x,
-                y: area.y,
-                z_index: 1,
-                cols: Some(1),
-                rows: Some(1),
-                placement_id: Some(base_id),
-            });
-            
-            // Middle Slice (stretched)
-            q.push(TilePlacement {
-                asset_id: Icon::ButtonMid as u32,
-                is_image: false,
-                x: area.x + 1,
-                y: area.y,
-                z_index: 1,
-                cols: Some(area.width.saturating_sub(2)),
-                rows: Some(1),
-                placement_id: Some(base_id + 1),
-            });
-            
-            // Right Slice
-            q.push(TilePlacement {
-                asset_id: Icon::ButtonRight as u32,
-                is_image: false,
-                x: area.x + area.width.saturating_sub(1),
-                y: area.y,
-                z_index: 1,
-                cols: Some(1),
-                rows: Some(1),
-                placement_id: Some(base_id + 2),
-            });
-        }
-    }
-    
-    let style = if is_active {
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(Color::White)
-    };
-
-    let p = Paragraph::new(text)
-        .alignment(ratatui::layout::Alignment::Center)
-        .style(style);
-    f.render_widget(p, area);
-}
-
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     let tile_queue = app.tile_queue.clone();
     
