@@ -430,7 +430,7 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
         let name = c.names.as_ref().and_then(|n| n.first()).map(|s| s.as_str()).unwrap_or("").trim_start_matches('/');
         if let Some(filter) = &app.docker_state.filter { if !name.contains(filter) { return None; } }
         Some((name, c.state.as_deref().unwrap_or(""), c.status.as_deref().unwrap_or("")))
-    }).enumerate().map(|(i, (name, state, status))| {
+    }).map(|(i, (name, state, status))| {
         let style = match state {
             "running" => Style::default().fg(Color::Green),
             "exited" => Style::default().fg(Color::Red),
@@ -439,7 +439,11 @@ fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
         let prefix = if i == app.docker_state.selected_index && !app.sidebar_focus { "> " } else { "  " };
         ListItem::new(format!("{}{:<20} {:<10} {}", prefix, name, state, status)).style(style)
     }).collect();
-    f.render_widget(List::new(items), area);
+    
+    let panel = TermaPanel::new(" Containers ", app.tile_queue.clone()).border_color(THEME.border_active);
+    let inner = panel.inner(area);
+    f.render_widget(panel, area);
+    f.render_widget(List::new(items), inner);
 }
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
