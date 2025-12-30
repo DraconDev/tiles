@@ -119,9 +119,10 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     let tile_queue = app.tile_queue.clone();
 
     if area.width > 0 && area.height > 0 {
+        // Background Gradient
         let tile = TilePlacement {
-            asset_id: 1001,
-            is_image: false,
+            asset_id: 2001, // Sidebar Gradient
+            is_image: true,
             x: area.x,
             y: area.y,
             z_index: 0,
