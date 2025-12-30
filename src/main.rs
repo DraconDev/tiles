@@ -375,6 +375,12 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                     if app.current_view == CurrentView::Files { if let Some(fs) = app.current_file_state_mut() { let capacity = fs.view_height.saturating_sub(2); let effective_capacity = capacity.saturating_sub(3); let max_offset = fs.files.len().saturating_sub(effective_capacity); let new_offset = (fs.table_state.offset() + 1).min(max_offset); *fs.table_state.offset_mut() = new_offset; } } 
                     else { app.move_down(); update_docker_filter(app); }
                 }
+                MouseEventKind::ScrollLeft => {
+                    if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; }
+                }
+                MouseEventKind::ScrollRight => {
+                    if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; }
+                }
                 _ => {}
             }
         }
