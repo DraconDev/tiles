@@ -261,9 +261,8 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_preview(f: &mut Frame, area: Rect, app: &App, asset_id: u32) {
-    let block = Block::default().borders(Borders::ALL).title(" Preview ").border_style(Style::default().fg(Color::Cyan));
-    let inner = block.inner(area);
-    f.render_widget(block, area);
+    f.render_widget(TermaPanel::new(" Preview ", app.tile_queue.clone()).border_color(THEME.accent_secondary), area);
+    let inner = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
 
     // Request the engine to place the image tile in this area
     if let Ok(mut q) = app.tile_queue.lock() {
