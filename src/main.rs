@@ -88,7 +88,13 @@ fn main() -> color_eyre::Result<()> {
                     Some(evt) = event_rx.recv() => {
                         match evt {
                             AppEvent::Tick => {
-                                if let Ok(mut app) = app_bg.lock() { app.system_module.update(&mut app.system_state); }
+                                if let Ok(mut app) = app_bg.lock() {
+                                    let mut system_state = std::mem::replace(&mut app.system_state, crate::app::SystemState {
+                                        cpu_usage: 0.0, mem_usage: 0.0, total_mem: 0.0, disks: Vec::new(), processes: Vec::new(), selected_process_index: 0
+                                    });
+                                    app.system_module.update(&mut system_state);
+                                    app.system_state = system_state;
+                                }
                             }
                             AppEvent::Raw(raw) => {
                                 let mut app_guard = app_bg.lock().unwrap();
