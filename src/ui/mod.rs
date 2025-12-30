@@ -306,7 +306,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                 FileColumn::Permissions => "Permissions",
                 FileColumn::Extension => "Ext",
             };
-            Cell::from(name).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            Cell::from(name).style(Style::default().fg(THEME.header_fg).add_modifier(Modifier::BOLD))
         });
         let header = Row::new(header_cells).height(1).bottom_margin(0);
         
@@ -319,7 +319,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
                         let mut display_name = name.to_string();
                         let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
-                        let mut style = if is_dir { Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD) } else { Style::default() };
+                        let mut style = if is_dir { Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD) } else { Style::default().fg(THEME.fg) };
                         if let Some(status) = file_state.git_status.get(path) {
                             display_name.push_str(&format!(" [{}]
 ", status));
@@ -331,7 +331,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                                 _ => {} 
                             }
                         }
-                        if file_state.starred.contains(path) { display_name.push_str(" [*]"); style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD); }
+                        if file_state.starred.contains(path) { display_name.push_str(" [*]"); style = style.fg(THEME.accent_primary).add_modifier(Modifier::BOLD); }
                         
                         let icon_type = get_file_icon_type(path, is_dir);
                         if i >= offset && i < offset + (area.height as usize).saturating_sub(1) {
@@ -345,16 +345,20 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                     },
                     FileColumn::Size => {
                         let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
-                        if is_dir { Cell::from("<DIR>").style(Style::default().fg(Color::Cyan)) } 
-                        else { Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))) }
+                        if is_dir { Cell::from("<DIR>").style(Style::default().fg(THEME.accent_secondary)) } 
+                        else { Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))).style(Style::default().fg(THEME.fg)) }
                     },
-                    FileColumn::Modified => Cell::from(format_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH))),
-                    FileColumn::Created => Cell::from(format_time(metadata.map(|m| m.created).unwrap_or(SystemTime::UNIX_EPOCH))),
-                    FileColumn::Permissions => Cell::from(format_permissions(metadata.map(|m| m.permissions).unwrap_or(0))),
-                    FileColumn::Extension => Cell::from(path.extension().and_then(|e| e.to_str()).unwrap_or("")),
+                    FileColumn::Modified => Cell::from(format_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH))).style(Style::default().fg(THEME.fg)),
+                    FileColumn::Created => Cell::from(format_time(metadata.map(|m| m.created).unwrap_or(SystemTime::UNIX_EPOCH))).style(Style::default().fg(THEME.fg)),
+                    FileColumn::Permissions => Cell::from(format_permissions(metadata.map(|m| m.permissions).unwrap_or(0))).style(Style::default().fg(THEME.fg)),
+                    FileColumn::Extension => Cell::from(path.extension().and_then(|e| e.to_str()).unwrap_or("")).style(Style::default().fg(THEME.fg)),
                 }
             });
-            let style = if Some(i) == file_state.selected_index && !sidebar_focus { Style::default().bg(Color::DarkGray) } else { Style::default() };
+            let style = if Some(i) == file_state.selected_index && !sidebar_focus { 
+                Style::default().bg(THEME.selection_bg).fg(THEME.selection_fg) 
+            } else { 
+                Style::default() 
+            };
             Row::new(cells).style(style)
         });
         let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| {
