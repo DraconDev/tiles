@@ -399,12 +399,12 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
         let bar = format!("[{}{}]", "#".repeat(filled), "-".repeat(bar_width.saturating_sub(filled)));
         ListItem::new(format!("{:<10} {}  {:.1} / {:.1} GB ({:.1}%)", disk.name, bar, disk.used_space, disk.total_space, percent))
     }).collect();
-    f.render_widget(List::new(disk_items).block(Block::default().title(" Disk Usage ").borders(Borders::ALL).border_type(BorderType::Plain)), layout[2]);
+    f.render_widget(TermaPanel::new(" Disk Usage ", app.tile_queue.clone()).border_color(THEME.border_inactive).content(List::new(disk_items)), layout[2]);
     let process_items: Vec<ListItem> = app.system_state.processes.iter().enumerate().map(|(i, p)| {
         let style = if i == app.system_state.selected_process_index && !app.sidebar_focus { Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD) } else { Style::default() };
         ListItem::new(format!("{:<6} {:<20} {:.1}%  {:.1} MB", p.pid, p.name.chars().take(20).collect::<String>(), p.cpu, p.mem as f64 / 1024.0 / 1024.0)).style(style)
     }).collect();
-    f.render_widget(List::new(process_items).block(Block::default().title(" Top Processes ").borders(Borders::ALL).border_type(BorderType::Plain)), layout[3]);
+    f.render_widget(TermaPanel::new(" Top Processes ", app.tile_queue.clone()).border_color(THEME.border_inactive).content(List::new(process_items)), layout[3]);
 }
 
 fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
