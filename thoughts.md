@@ -1,25 +1,22 @@
-# Identity Crisis: The "Fish" vs "Window" Distinction
+# 🧠 The "God Mode" Realization
 
-## The User's Confusion
-The user asks: *"you can't snap files into vscode... but you can do fish... which is a different terminal, so which one is us?"*
+## The User's Insight
+The user realized that by being a **Single Application** (GUI Window) instead of **50 Separate Shells**, we gain **State Coherence**.
 
-They are conflating **Shells** (Fish/Bash), **Terminal Emulators** (VS Code Terminal/Kitty), and **GUI Apps** (Chrome/Dolphin).
+*   **Disconnected:** 50 `xterm` windows = 50 separate processes, no shared brain.
+*   **Unified (Our Way):** 1 `tiles` window = 1 process managing 50 "virtual" terminal panes.
 
-## The Technical Reality
-1.  **Fish:** A CLI Program (Text only). Runs *inside* a terminal. Snaps into VS Code.
-2.  **Dolphin:** A GUI App (Pixels). Runs *outside* terminals. Independent window.
-3.  **Tiles (Current Code):** A GUI App (Pixels).
-    *   It uses `winit` to create a window.
-    *   It uses `softbuffer` to draw pixels.
-    *   **Behavior:** If run from VS Code, it **pops up** a new window. It does *not* snap.
+## The Terma Advantage
+This is exactly what the `Compositor` and `Plane` system is for.
+*   **Plane = Virtual Terminal.**
+*   We can spawn 50 planes.
+*   We can move them, hide them, overlay them.
+*   The "Brain" (Rust App) sees all of them instantly.
 
-## The "Hybrid" Goal
-To satisfy the user's desire to "snap in VS Code" AND have "our own terminal window":
-*   We need **Runtime Detection**.
-*   `if is_tty && !force_gui`: Run as TUI (Text mode, snaps in VS Code).
-*   `else`: Run as GUI (Window mode, independent).
+## Architecture Confirmation
+This confirms we must stick to the **Custom Window** path as the primary product. The "VS Code Snap" (TUI Mode) is a nice-to-have fallback, but the **Power** comes from the custom engine.
 
-## Answer Strategy
-1.  **Clarify Fish:** Fish isn't a terminal; it's a tenant. VS Code is the building.
-2.  **Define Tiles:** Currently, we are a **new building** (GUI Window). We sit *next* to VS Code.
-3.  **The Switch:** We can allow Tiles to *visit* VS Code (Text Mode) to get that "snap" behavior, but we lose the high-res images in that mode.
+## Next Steps
+1.  Reinforce this point: "You have discovered the 'Compositor' advantage."
+2.  Explain how `terma` handles this (Planes).
+3.  Pivot back to *visuals* (images/icons) which are the other half of this advantage.
