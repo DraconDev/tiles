@@ -12,4 +12,4 @@ however this approach would mean that assuming someone installs tiles on a vps, 
 
 now sure we can be sneaky and use ssh, but the we can just do it on our system perhaps in gloruios gui too right
 
-also if i think about it we are not mainly making a terminal emulator, cause terma is not meant to be a terminal emulator, it is meant to be the brains/library of terminal based apps right? So we make tiles with it, but we could also make demon with it later, which is 
+also if i think about it we are not mainly making a terminal emulator, cause terma is not meant to be a terminal emulator, it is meant to be the brains/library of terminal based apps right? So we make tiles with it, but we could also make demon with it later, which is very different like how everyone else is 
