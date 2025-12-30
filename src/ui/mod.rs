@@ -38,25 +38,19 @@ pub fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
     let mut data = Vec::with_capacity((width * height * 4) as usize);
     for y in 0..height {
         for x in 0..width {
-            // Very dark blue to black vertical gradient
-            let ratio = y as f32 / height as f32;
-            let mut r = 5u8;
-            let mut g = (10.0 * (1.0 - ratio)) as u8 + 2;
-            let mut b = (40.0 * (1.0 - ratio)) as u8 + 10;
+            // Sleek neutral "Rich Black"
+            let mut r = 12u8;
+            let mut g = 12u8;
+            let mut b = 14u8;
             
-            // Subtle scanlines
-            if y % 2 == 0 {
+            // Very subtle scanlines (every 3rd row)
+            if y % 3 == 0 {
                 r = r.saturating_sub(2);
                 g = g.saturating_sub(2);
-                b = b.saturating_sub(5);
+                b = b.saturating_sub(2);
             }
             
-            // Subtle vertical "tech" lines
-            if x % 20 == 0 {
-                b = b.saturating_add(5);
-            }
-
-            let alpha = 220u8; 
+            let alpha = 255u8; 
             
             data.push(r);
             data.push(g);
@@ -116,7 +110,7 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
-    let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Sidebar ").border_style(if app.sidebar_focus && app.current_view == CurrentView::Files { Style::default().fg(Color::Cyan) } else { Style::default() });
+    let block = Block::default().borders(Borders::ALL).border_type(BorderType::Plain).title(" Sidebar ").border_style(if app.sidebar_focus && app.current_view == CurrentView::Files { Style::default().fg(Color::Cyan) } else { Style::default() });
     f.render_widget(block, area);
     
     let tile_queue = app.tile_queue.clone();
@@ -252,7 +246,7 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             
         let path_style = if matches!(app.mode, AppMode::Location) { Style::default().fg(Color::Yellow) } else if app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { Style::default().fg(Color::Magenta) } else { Style::default() };
         
-        f.render_widget(Paragraph::new(path_text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).border_style(path_style)), chunks[0]);
+        f.render_widget(Paragraph::new(path_text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Plain).border_style(path_style)), chunks[0]);
         
         draw_file_view(f, chunks[1], app);
     } else {
