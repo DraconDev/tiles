@@ -6,4 +6,4 @@ It also solves consistency issues with the terminal, cause other terminals often
 
 also will we able to solve one of our problems with layers? previously layers overwrote each other which was not good for putting for ex text on a button image
 
-however this way howe we are different from something like files and zed, are we just a gui with grids?
+however this way how we are different from something like files and zed, are we just a gui with grids?
