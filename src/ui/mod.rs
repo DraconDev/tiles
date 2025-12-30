@@ -292,13 +292,43 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
         } else { String::new() };
         let path_style = if app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { Style::default().fg(Color::Magenta) } else { Style::default() };
         f.render_widget(Paragraph::new(path_text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Plain).border_style(path_style)), chunks[0]);
-        draw_file_view(f, chunks[1], app);
+        
+        if let Some(asset_id) = app.current_preview {
+            let split = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+                .split(chunks[1]);
+            draw_file_view(f, split[0], app);
+            draw_preview(f, split[1], app, asset_id);
+        } else {
+            draw_file_view(f, chunks[1], app);
+        }
     } else {
         match app.current_view {
             CurrentView::System => draw_system_view(f, area, app),
             CurrentView::Docker => draw_docker_view(f, area, app),
             _ => {} 
         }
+    }
+}
+
+fn draw_preview(f: &mut Frame, area: Rect, app: &App, asset_id: u32) {
+    let block = Block::default().borders(Borders::ALL).title(" Preview ").border_style(Style::default().fg(Color::Cyan));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    // Request the engine to place the image tile in this area
+    if let Ok(mut q) = app.tile_queue.lock() {
+        q.push(TilePlacement {
+            asset_id,
+            is_image: true,
+            x: inner.x,
+            y: inner.y,
+            z_index: 5,
+            cols: Some(inner.width),
+            rows: Some(inner.height),
+            placement_id: Some(9999),
+        });
     }
 }
 
