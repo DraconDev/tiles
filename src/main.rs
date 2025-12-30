@@ -5,9 +5,10 @@ use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifi
 use ratatui::{Terminal};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
-use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent};
+use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent, UiCommand};
 use crate::modules::docker::DockerModule;
 use terma::compositor::plane::{Cell, Color, Styles};
+use terma::visuals::loader::ImageLoader;
 
 mod app;
 mod ui;
@@ -26,26 +27,11 @@ fn main() -> color_eyre::Result<()> {
     
     let tile_queue = window.tile_queue();
     
-    // Create App (moved assets registration inside closure or before)
+    // Create App 
     let app = Arc::new(Mutex::new(App::new(tile_queue)));
     
-    // Register Symbolic UI Assets (Tiles)
-    {
-        let mut app_lock = app.lock().unwrap();
-        // 1000: Demon Logo (Symbolic)
-        let logo_cells = vec![
-            Cell { char: '󰊠', fg: Color::Rgb(255, 0, 0), bg: Color::Reset, style: Styles::empty(), transparent: false, skip: false },
-            Cell { char: ' ', fg: Color::Reset, bg: Color::Reset, style: Styles::empty(), transparent: true, skip: false },
-        ];
-        // We need access to the window's compositor to add assets.
-        // TermaWindow should expose a way to add assets to its internal compositor.
-    }
-
-    // Since I can't easily add assets to the window's compositor yet due to ownership, 
-    // I'll add them inside the run closure for now, or update TermaWindow.
-    // Actually TermaWindow has add_tile_asset.
-
     let (event_tx, mut event_rx) = mpsc::channel(100);
+    let (ui_tx, mut ui_rx) = mpsc::channel::<UiCommand>(10);
     let (docker_tx, mut docker_rx) = mpsc::channel(10);
     let docker_module = DockerModule::new().ok().map(Arc::new);
 
@@ -53,6 +39,7 @@ fn main() -> color_eyre::Result<()> {
     let app_bg = app.clone();
     let docker_bg = docker_module.clone();
     let event_tx_bg = event_tx.clone();
+    let ui_tx_bg = ui_tx.clone();
     
     std::thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
@@ -99,6 +86,34 @@ fn main() -> color_eyre::Result<()> {
                             AppEvent::Raw(raw) => {
                                 let mut app_guard = app_bg.lock().unwrap();
                                 handle_event(raw, &mut app_guard, &docker_bg, event_tx_bg.clone()).await;
+                                
+                                // Check if selection changed and if it's an image
+                                if let Some(fs) = app_guard.current_file_state() {
+                                    if let Some(idx) = fs.selected_index {
+                                        if let Some(path) = fs.files.get(idx) {
+                                            let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+                                            if ext == "png" || ext == "jpg" || ext == "jpeg" {
+                                                let _ = event_tx_bg.send(AppEvent::LoadImage(path.clone())).await;
+                                            } else {
+                                                app_guard.current_preview = None;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            AppEvent::LoadImage(path) => {
+                                let ui_tx = ui_tx_bg.clone();
+                                tokio::spawn(async move {
+                                    // Use a stable ID for preview (e.g. 9999)
+                                    if let Ok(asset) = ImageLoader::load_and_resize(&path, 9999, 400, 400) {
+                                        let _ = ui_tx.send(UiCommand::RegisterImage(asset.id, asset.data, asset.width, asset.height)).await;
+                                    }
+                                });
+                            }
+                            AppEvent::ImageReady(id, _, _, _) => {
+                                if let Ok(mut app) = app_bg.lock() {
+                                    app.current_preview = Some(id);
+                                }
                             }
                             AppEvent::RefreshFiles(idx) => {
                                 let (path, show_hidden, filter, session) = {
@@ -144,6 +159,17 @@ fn main() -> color_eyre::Result<()> {
             let _ = event_tx.blocking_send(AppEvent::Raw(evt));
         }
 
+        // Process UI Commands
+        while let Ok(cmd) = ui_rx.try_recv() {
+            match cmd {
+                UiCommand::RegisterImage(id, data, w, h) => {
+                    compositor.add_image_asset(id, data, w, h);
+                    // Notify logic thread that image is ready to be set as current_preview
+                    let _ = event_tx.blocking_send(AppEvent::ImageReady(id, Vec::new(), 0, 0));
+                }
+            }
+        }
+
         // Render
         let mut app_guard = app.lock().unwrap();
         let backend = RatatuiCompositorBackend { compositor };
@@ -153,6 +179,9 @@ fn main() -> color_eyre::Result<()> {
             ui::draw(f, &mut app_guard);
         });
     }).map_err(|e| color_eyre::eyre::eyre!("{}", e))?;
+
+    Ok(())
+}
 
     Ok(())
 }
