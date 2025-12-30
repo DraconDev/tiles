@@ -28,8 +28,13 @@ async fn main() -> color_eyre::Result<()> {
     write!(term, "\x1b[?1049h\x1b[2J\x1b[H\x1b[?1000h\x1b[?1006h\x1b[>1u\x1b[?1004h\x1b[?2004h")?;
     term.flush()?;
 
-    let backend = TermaBackend::new(term)?;
+    let mut backend = TermaBackend::new(term)?;
     let image_queue = backend.image_queue();
+    
+    // Register UI Assets
+    backend.add_asset(1000, crate::ui::generate_demon_logo(), 64, 64);
+    backend.add_asset(1001, crate::ui::generate_panel_bg(10, 100), 10, 100);
+    
     let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::new(image_queue);
