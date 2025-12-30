@@ -34,6 +34,11 @@ pub enum LicenseStatus {
 }
 
 #[derive(Debug)]
+pub enum UiCommand {
+    RegisterImage(u32, Vec<u8>, u32, u32),
+}
+
+#[derive(Debug)]
 pub enum AppEvent {
     RefreshFiles(usize), // tab_index
     FilesUpdated(usize, Vec<PathBuf>, HashMap<PathBuf, FileMetadata>, HashMap<PathBuf, String>), // tab_idx, files, metadata, git
