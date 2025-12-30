@@ -24,20 +24,19 @@ async fn main() -> color_eyre::Result<()> {
     let mut term = Terma::new(stdout)?;
     
     // Enable features: Alt Screen + Mouse (1006) + Kitty Kbd + Focus + Paste
-    // Sequence order: Alt Screen -> Clear -> Home -> SGR Mouse -> Kitty Kbd -> Focus -> Paste
     write!(term, "\x1b[?1049h\x1b[2J\x1b[H\x1b[?1000h\x1b[?1006h\x1b[>1u\x1b[?1004h\x1b[?2004h")?;
     term.flush()?;
 
     let mut backend = TermaBackend::new(term)?;
-    let image_queue = backend.image_queue();
+    let tile_queue = backend.tile_queue();
     
-    // Register UI Assets
-    backend.add_asset(1000, crate::ui::generate_demon_logo(), 64, 64);
-    backend.add_asset(1001, crate::ui::generate_panel_bg(10, 100), 10, 100);
+    // Register UI Assets (Tiles)
+    backend.add_tile_asset(1000, crate::ui::generate_demon_logo(), 64, 64);
+    backend.add_tile_asset(1001, crate::ui::generate_panel_bg(10, 100), 10, 100);
     
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new(image_queue);
+    let mut app = App::new(tile_queue);
     let (event_tx, mut event_rx) = mpsc::channel(100);
     let (docker_tx, mut docker_rx) = mpsc::channel(10);
     let docker_module = DockerModule::new().ok().map(Arc::new);
@@ -60,7 +59,7 @@ async fn main() -> color_eyre::Result<()> {
     tokio::spawn(async move {
         loop {
             let _ = tick_tx.send(AppEvent::Tick).await;
-            tokio::time::sleep(Duration::from_millis(250)).await;
+            tokio::time::sleep(Duration::from_secs(1)).await; // 1s tick
         }
     });
 
@@ -89,7 +88,6 @@ async fn main() -> color_eyre::Result<()> {
 
     // Cleanup
     let mut stdout = io::stdout();
-    // Disable Alt Screen + Mouse + Kitty Kbd + Focus + Paste + Show Cursor
     write!(stdout, "\x1b[?1049l\x1b[?1000l\x1b[?1006l\x1b[>1u\x1b[?1004l\x1b[?2004l\x1b[?25h")?;
     let _ = stdout.flush();
 
@@ -158,8 +156,7 @@ async fn run_app<B: Backend>(
                 match evt {
                     AppEvent::Tick => { app.system_module.update(&mut app.system_state); }
                     AppEvent::Raw(raw) => {
-                         let size = terminal.size().unwrap_or_default();
-                         handle_event(raw, app, &docker_module, event_tx.clone(), (size.width, size.height)).await;
+                         handle_event(raw, app, &docker_module, event_tx.clone()).await;
                     }
                     AppEvent::RefreshFiles(idx) => {
                         if let Some(fs) = app.file_tabs.get(idx) {
@@ -196,7 +193,7 @@ async fn run_app<B: Backend>(
     Ok(())
 }
 
-async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>, size: (u16, u16)) {
+async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
     match evt {
         Event::Mouse { button, column, line, is_press, .. } => {
             if !is_press { return; }
