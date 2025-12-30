@@ -34,6 +34,13 @@ async fn main() -> color_eyre::Result<()> {
     backend.add_tile_asset(1000, crate::ui::generate_demon_logo(), 64, 64);
     backend.add_tile_asset(1001, crate::ui::generate_panel_bg(10, 100), 10, 100);
     
+    // Simple dark gray for tabs
+    let mut tabs_bg = vec![0u8; 10 * 10 * 4];
+    for i in 0..100 {
+        tabs_bg[i*4] = 10; tabs_bg[i*4+1] = 10; tabs_bg[i*4+2] = 10; tabs_bg[i*4+3] = 255;
+    }
+    backend.add_tile_asset(1002, tabs_bg, 10, 10);
+    
     let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::new(tile_queue);
