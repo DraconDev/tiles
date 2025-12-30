@@ -1,53 +1,32 @@
 # 🏗️ PROJECT TILES: THE DATA COMMAND CENTER
-**Version:** 3.0 (The Sovereign Window)
-**Legal:** Dracon License v1.0 (Source Available).
-**Stack:** Rust, Ratatui, Terma (Window Mode), Tokio, Bollard, Sysinfo.
+**Version:** 3.1 (The Visual Evolution)
+**Stack:** Rust, Ratatui, Terma Engine, Tokio.
 
-## 1. 🌍 The Vision
-Tiles is **The Data Command Center**.
-It is a standalone, windowed application that combines the density of a TUI with the graphical capabilities of a GUI.
-It does **not** run inside your terminal emulator. It **is** the terminal.
+## 1. 🚀 Development Status
 
-## 2. 🏛️ Technical Architecture
-*   **Engine:** `terma` (Window Mode).
-    *   **Backend:** `winit` (Window/Input) + `softbuffer` (Rendering) + `swash` (Fonts).
-    *   **Logic:** Renders a grid of `Cells` just like a TUI, but draws them pixel-perfectly.
-*   **Layout:** Grid-based "Industrial" design.
-*   **Input:** 100% reliable Mouse (Left/Right/Middle/Back/Forward/Scroll) + Keyboard.
+### Phase 1: The Engine Rebirth (COMPLETED)
+- [x] **Standalone Window:** App opens its own OS window.
+- [x] **Direct Rendering:** Pixels blitted to framebuffer (No TTY lag).
+- [x] **Decoupled Events:** Custom `terma::Event` system replaces `crossterm`.
+- [x] **Embedded Assets:** Font bundled into binary.
 
-## 3. 🚀 Development Roadmap
+### Phase 2: Visual Intelligence (CURRENT PRIORITY)
+*   **Asset Engine:**
+    *   [ ] **Real Image Previews:** Blit raw pixels for JPG/PNG thumbnails.
+    *   [ ] **Icon Overhaul:** Replace symbolic icons with high-res "Sprite" icons.
+    *   [ ] **Smooth Scaling:** Logic to fit high-res images into grid cells without distortion.
+*   **UI Polish:**
+    *   [ ] **Custom Chrome:** Rounder corners and custom dividers using Terma's Shape engine.
+    *   [ ] **Animations:** Support for subtle frame-based transitions (e.g., sliding tabs).
 
-### Phase 1: The Engine Rebirth (Current Priority)
-- [ ] **Dependencies:** Add `winit`, `softbuffer`, `swash` (or similar) to `terma`.
-- [ ] **Window Backend:** Create `WindowBackend` implementing `ratatui::Backend`.
-- [ ] **Font Rendering:** Implement a fast cache to draw Monospace cells.
-- [ ] **Tiles Migration:** Switch `main.rs` to spawn the window instead of using stdout.
-
-### Phase 2: The "Perfect" File Manager
-*   **Visual Polish:**
-    *   [ ] **Real Images:** Replace "Kitty Protocol" hacks with direct pixel blitting in `Terma`.
-    *   [ ] **Icons:** Render NerdFonts reliably without worrying about user's installed fonts.
-    *   [ ] **Contextual Menu:** Different menus for "Folder", "File", and "Empty Space".
-*   **Navigation:**
-    *   [ ] **Tabs:** Clickable tabs (MMB to close).
-    *   [ ] **Remote:** SSH Connect -> Local Window (The "Remote Superpower").
-
-### Phase 3: The System Cockpit (Processes)
-*   **Goal:** "htop" but better.
+### Phase 3: The System Cockpit
+*   **Goal:** Modular "System Lego" blocks.
 *   **Features:**
-    *   [ ] **Process Tree:** Interactive visual tree.
-    *   [ ] **Kill Switch:** Right-click context menu to `kill -9`.
-    *   [ ] **Visuals:** Use Terma Shapes for smooth CPU/RAM history graphs (Sparklines).
+    *   [ ] **Docker Block:** Live container logs and control.
+    *   [ ] **System Block:** GPU-drawn telemetry graphs.
 
-### Phase 4: The Container Orchestrator (Docker)
-*   **Goal:** "Lazydocker" but integrated.
-*   **Features:**
-    *   [ ] **Live State:** Connect `bollard` for real-time updates.
-    *   [ ] **Controls:** Start/Stop/Restart context menu.
-    *   [ ] **Logs:** Streaming log view in a floating Terma plane.
-
-## 4. 📝 Todo List (Architecture Shift)
-- [ ] **Research:** Verify `softbuffer` performance for 120fps TUI rendering.
-- [ ] **Font:** Pick the "Official" Dracon font (JetBrains Mono Nerd Font?) and embed it in the binary.
-- [ ] **Input:** Map `winit` events to `crossterm::event::Event` enum for compatibility with existing logic? Or create `terma::Event`? (Prefer `terma::Event`).
+## 2. 📝 Current Todo
+1.  **Refactor Asset Pipeline:** Create a system to load and cache PNGs into Terma's `image_assets`.
+2.  **Implementation:** Show an image thumbnail when a user selects an image file.
+3.  **Optimization:** Ensure 60FPS while blitting multiple high-res thumbnails.
 
