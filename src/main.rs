@@ -105,7 +105,7 @@ fn main() -> color_eyre::Result<()> {
                                 let ui_tx = ui_tx_bg.clone();
                                 tokio::spawn(async move {
                                     // Use a stable ID for preview (e.g. 9999)
-                                    if let Ok(asset) = ImageLoader::load_and_resize(&path, 9999, 400, 400) {
+                                    if let Some(asset) = ImageLoader::load_and_resize(&path, 9999, 400, 400).ok() {
                                         let _ = ui_tx.send(UiCommand::RegisterImage(asset.id, asset.data, asset.width, asset.height)).await;
                                     }
                                 });
