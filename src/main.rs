@@ -1,4 +1,4 @@
-use std::{io::{self, Read, Write}, time::{Duration, Instant}};
+use std::{time::{Duration, Instant}};
 use terma::integration::window::TermaWindow;
 use terma::integration::ratatui::RatatuiCompositorBackend;
 use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifiers};
@@ -7,7 +7,6 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent};
 use crate::modules::docker::DockerModule;
-use bollard::models::ContainerSummary;
 use terma::compositor::plane::{Cell, Color, Styles};
 
 mod app;
@@ -22,31 +21,30 @@ fn main() -> color_eyre::Result<()> {
     
     // Load Font
     let font_data = include_bytes!("../terma/assets/font.ttf");
-    let mut window = TermaWindow::new(font_data, 18.0)?;
+    let window = TermaWindow::new(font_data, 18.0)
+        .map_err(|e| color_eyre::eyre::eyre!("{}", e))?;
     
     let tile_queue = window.tile_queue();
     
-    // Register Symbolic UI Assets (Tiles)
-    // 1000: Demon Logo (Symbolic)
-    let logo_cells = vec![
-        Cell { char: '󰊠', fg: Color::Rgb(255, 0, 0), bg: Color::Reset, style: Styles::empty(), transparent: false, skip: false },
-        Cell { char: ' ', fg: Color::Reset, bg: Color::Reset, style: Styles::empty(), transparent: true, skip: false },
-    ];
-    window.add_tile_asset(1000, logo_cells, 2, 1);
-
-    // 1001: Sidebar Background (Symbolic)
-    let sidebar_cells = vec![
-        Cell { char: '▒', fg: Color::Rgb(20, 20, 20), bg: Color::Rgb(12, 12, 12), style: Styles::empty(), transparent: false, skip: false }
-    ];
-    window.add_tile_asset(1001, sidebar_cells, 1, 1);
-
-    // 1002: Tabs Background (Symbolic)
-    let tabs_cells = vec![
-        Cell { char: '█', fg: Color::Rgb(10, 10, 10), bg: Color::Reset, style: Styles::empty(), transparent: false, skip: false }
-    ];
-    window.add_tile_asset(1002, tabs_cells, 1, 1);
-
+    // Create App (moved assets registration inside closure or before)
     let app = Arc::new(Mutex::new(App::new(tile_queue)));
+    
+    // Register Symbolic UI Assets (Tiles)
+    {
+        let mut app_lock = app.lock().unwrap();
+        // 1000: Demon Logo (Symbolic)
+        let logo_cells = vec![
+            Cell { char: '󰊠', fg: Color::Rgb(255, 0, 0), bg: Color::Reset, style: Styles::empty(), transparent: false, skip: false },
+            Cell { char: ' ', fg: Color::Reset, bg: Color::Reset, style: Styles::empty(), transparent: true, skip: false },
+        ];
+        // We need access to the window's compositor to add assets.
+        // TermaWindow should expose a way to add assets to its internal compositor.
+    }
+
+    // Since I can't easily add assets to the window's compositor yet due to ownership, 
+    // I'll add them inside the run closure for now, or update TermaWindow.
+    // Actually TermaWindow has add_tile_asset.
+
     let (event_tx, mut event_rx) = mpsc::channel(100);
     let (docker_tx, mut docker_rx) = mpsc::channel(10);
     let docker_module = DockerModule::new().ok().map(Arc::new);
@@ -142,13 +140,13 @@ fn main() -> color_eyre::Result<()> {
 
         // Render
         let mut app_guard = app.lock().unwrap();
-        let mut backend = RatatuiCompositorBackend { compositor };
+        let backend = RatatuiCompositorBackend { compositor };
         let mut terminal = Terminal::new(backend).unwrap();
         
         let _ = terminal.draw(|f| {
             ui::draw(f, &mut app_guard);
         });
-    })?;
+    }).map_err(|e| color_eyre::eyre::eyre!("{}", e))?;
 
     Ok(())
 }
@@ -391,64 +389,6 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
         }
         _ => {}
     }
-}
-
-fn fs_mouse_index(row: u16, app: &App) -> usize {
-    let mouse_row_offset = row.saturating_sub(5) as usize;
-    if let Some(fs) = app.current_file_state() { fs.table_state.offset() + mouse_row_offset }
-    else { 0 }
-}
-
-fn update_commands(app: &mut App) {
-    let commands = vec![
-        CommandItem { label: "Quit".to_string(), action: crate::app::CommandAction::Quit },
-        CommandItem { label: "View: Files".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Files) },
-        CommandItem { label: "View: System".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::System) },
-        CommandItem { label: "View: Docker".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Docker) },
-        CommandItem { label: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
-    ];
-    let mut filtered = commands;
-    for bookmark_idx in 0..app.remote_bookmarks.len() {
-        let bookmark = &app.remote_bookmarks[bookmark_idx];
-        filtered.push(CommandItem { label: format!("Connect to: {}", bookmark.name), action: crate::app::CommandAction::ConnectToRemote(bookmark_idx) });
-    }
-    app.filtered_commands = filtered.into_iter().filter(|cmd| cmd.label.to_lowercase().contains(&app.input.to_lowercase())).collect();
-    app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
-}
-
-async fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
-    match action {
-        crate::app::CommandAction::Quit => { app.running = false; },
-        crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
-        crate::app::CommandAction::SwitchView(view) => app.current_view = view,
-        crate::app::CommandAction::StartContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.start_container(&name).await; }); } },
-        crate::app::CommandAction::StopContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.stop_container(&name).await; }); } },
-        crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); },
-        crate::app::CommandAction::ConnectToRemote(idx) => {
-            if let Some(bookmark) = app.remote_bookmarks.get(idx).cloned() {
-                let addr = format!("{}:{}", bookmark.host, bookmark.port);
-                if let Ok(tcp) = std::net::TcpStream::connect(&addr) {
-                    if let Ok(mut sess) = ssh2::Session::new() {
-                        sess.set_tcp_stream(tcp);
-                        if sess.handshake().is_ok() && sess.userauth_agent(&bookmark.user).is_ok() {
-                            let session = Arc::new(Mutex::new(sess));
-                            app.active_sessions.insert(addr.clone(), session.clone());
-                            if let Some(fs) = app.current_file_state_mut() {
-                                fs.remote_session = Some(crate::app::RemoteSession { name: bookmark.name, host: bookmark.host, user: bookmark.user, session });
-                                fs.current_path = std::path::PathBuf::from("/");
-                                let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
-                            }
-                        }
-                    }
-                }
-            }
-        },
-    }
-}
-
-fn toggle_column(file_state: &mut crate::app::FileState, col: crate::app::FileColumn) {
-    if file_state.columns.contains(&col) { file_state.columns.retain(|c| *c != col); }
-    else { file_state.columns.push(col); }
 }
 
 fn fs_mouse_index(row: u16, app: &App) -> usize {
