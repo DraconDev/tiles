@@ -1,43 +1,58 @@
-# 🧩 THE HYBRID IDENTITY: A SYSTEM-LEVEL LEGO SET
+# ☯️ The Hybrid Identity: Tiles & Terma
 
-**Project:** Tiles / Terma
-**Philosophy:** "Engine of a Terminal, Layout of a Plexer, Soul of a Commander."
+**Tiles is a "Polymorphic" Application.** It changes its nature based on where it runs.
 
-## 1. The Genetic Blueprint
-Tiles is not a single invention; it is the evolution of three powerful concepts fused into one **Sovereign Window**.
+## 1. The Chameleon Architecture
 
-### A. The WezTerm Connection (The Engine)
-WezTerm is a terminal emulator written in Rust that uses `winit` and its own compositor to talk directly to the GPU.
-*   **Similarity:** Like WezTerm, we bypass the legacy OS terminal. We share the same **Hardware-Accelerated DNA**.
-*   **The Evolution:** WezTerm is a **Vessel** designed to host *other* programs (bash, zsh). **Tiles** is the **Application**. We don't host shells; we host data modules.
+### 🖥️ Mode A: The "Native GUI" (Standalone)
+When you run `tiles` from your desktop launcher:
+*   **It is:** A **GUI Application** (using `winit` & `softbuffer`).
+*   **How it works:** It opens its own window, completely independent of any terminal emulator.
+*   **The Look:** It *looks* like a terminal (grid of characters), but it is actually drawing pixels directly.
+*   **Superpowers:** 
+    *   Zero-latency rendering (60+ FPS).
+    *   Pixel-perfect image previews (no "sixel" hacks).
+    *   Full mouse support (hover, drag, right-click).
+    *   Custom shaders/blur effects (future).
 
-### B. The Zellij Connection (The Building Blocks)
-Zellij revolutionized the TUI by allowing users to define "Panes" and "Plugins" that tile together.
-*   **Similarity:** We treat "Tiles" as independent modules that snap together.
-*   **The Evolution:** Zellij is constrained by the terminal's ANSI limitations. Because we are a **Sovereign Window**, our building blocks are uncensored. A Zellij pane is text; a **Tiles block** can be a 60FPS GPU graph, a live video feed, or a pixel-perfect interactive dashboard.
+### 📟 Mode B: The "Terminal Tenant" (Compatibility)
+When you run `tiles` inside VS Code, `gnome-terminal`, or over SSH:
+*   **It is:** A **TUI Application** (Standard ANSI Output).
+*   **How it works:** It detects it is inside a TTY and switches drivers.
+*   **The Look:** It adapts to the host terminal's font and color scheme.
+*   **Superpowers:**
+    *   **Ubiquity:** Runs on any server, VPS, or potato via SSH.
+    *   **VS Code Integration:** You just open the VS Code Terminal (`Ctrl+` `) and type `./tiles`. It runs *inside* the pane.
 
-### C. The Yazi Connection (The Data Focus)
-Yazi proved that a terminal file manager could be blazingly fast and visually rich.
-*   **Similarity:** We share the focus on high-performance data orchestration and visual previews.
-*   **The Evolution:** Yazi lives *inside* a terminal and fights for image support. **Tiles** "is" the terminal, so image support is a native right, not a struggle.
+## 2. Q&A: Addressing the Identity Crisis
 
-## 2. The "Director" Workflow
-By treating "Tiles" as building blocks, we turn the UI into a **modular cockpit**.
+**Q: "Is it a terminal window or a GUI one?"**
+**A:** It is **BOTH**. 
+*   On your local machine, it's a high-performance **GUI** that *mimics* a terminal. 
+*   On a VPS, it's a standard **TUI**.
 
-| Block Type | Capabilities |
-| :--- | :--- |
-| **Navigator Tile** | High-speed filesystem orchestration (The memory). |
-| **Orchestrator Tile** | Real-time Docker/Kubernetes control (The hands). |
-| **Monitor Tile** | GPU-accelerated system telemetry (The vitals). |
-| **Logic Tile** | Interface for the **DEMON** AI agent (The brain). |
+**Q: "Can I snap it in VS Code?"**
+**A:** **Yes.** But not as a "GUI window." You use the VS Code **Terminal Panel**.
+*   VS Code cannot easily embed external GUI windows (like Chrome or Calculator) into its layout.
+*   However, VS Code has a *great* terminal emulator built-in. 
+*   By running `tiles` inside that terminal pane, you get the "Snap" behavior for free.
 
-## 3. The Sovereign Result
-The user (The Director) doesn't just "use an app." They **assemble a Command Center**.
+**Q: "How are we different from Zed or Dolphin?"**
+*   **Dolphin:** Pure GUI. Cannot run over SSH.
+*   **Zed:** Pure GUI (GPU accelerated). Cannot run over SSH (yet, effectively).
+*   **Tiles:** **Hybrid.** We give you the "Dolphin experience" (images, mouse) when local, but we don't abandon you when you SSH into a server. We just degrade gracefully to text mode.
 
--   Everything lives in **One Memory Space**.
--   **Zero Latency** between tiles.
--   **Coordinate-Perfect** interaction.
--   **Visual Uniformity** across text and graphics.
+## 3. The "Terminal Emulator" Clarification
+You asked: *"can't we just install our own terminal like wes [WezTerm] and kitty?"*
 
----
-*We aren't building a tool. We are building the environment where tools are born.*
+**Tiles is NOT a Terminal Emulator (yet).**
+*   **WezTerm/Kitty:** Programs that *run shells* (bash/zsh).
+*   **Tiles:** An *application* (File Manager / Dashboard).
+
+*However*, because **Terma** (our engine) renders its own grid, `tiles` in "GUI Mode" is technically **emulating a terminal grid** to display itself. We skipped the "middle man" (the terminal emulator) to draw directly to the OS window.
+
+## 4. The Vision
+We aren't building a generic terminal to run `ls`. We are building a **Post-Terminal User Interface (PTUI)**. 
+*   It has the **speed** of a CLI.
+*   It has the **visuals** of a GUI.
+*   It has the **portability** of `vim`.
