@@ -217,11 +217,11 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             ];
 
             if let Ok(mut q) = tile_queue.lock() {
-                q.push(TilePlacement { asset_id: Icon::Folder as u32, is_image: false, x: inner.x, y: inner.y, z_index: 1, cols: Some(2), rows: Some(1), placement_id: Some(6000) });
+                q.push(TilePlacement { asset_id: Icon::Folder as u32, is_image: true, x: inner.x, y: inner.y, z_index: 2, cols: Some(2), rows: Some(1), placement_id: Some(6000) });
                 for i in 0..4 {
-                    q.push(TilePlacement { asset_id: Icon::Settings as u32, is_image: false, x: inner.x + 2, y: inner.y + 1 + i as u16, z_index: 1, cols: Some(2), rows: Some(1), placement_id: Some(6001 + i) });
+                    q.push(TilePlacement { asset_id: Icon::Settings as u32, is_image: true, x: inner.x + 2, y: inner.y + 1 + i as u16, z_index: 2, cols: Some(2), rows: Some(1), placement_id: Some(6001 + i) });
                 }
-                q.push(TilePlacement { asset_id: Icon::Demon as u32, is_image: false, x: inner.x, y: inner.y + 6, z_index: 1, cols: Some(2), rows: Some(1), placement_id: Some(6010) });
+                q.push(TilePlacement { asset_id: Icon::Demon as u32, is_image: true, x: inner.x, y: inner.y + 6, z_index: 2, cols: Some(2), rows: Some(1), placement_id: Some(6010) });
             }
 
             for bookmark in &app.remote_bookmarks {
