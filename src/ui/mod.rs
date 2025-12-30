@@ -13,13 +13,11 @@ pub fn generate_demon_logo() -> Vec<u8> {
     let width = 64;
     let height = 64;
     let mut data = Vec::with_capacity((width * height * 4) as usize);
-    // Gradient: Red (Top-Left) to Black (Bottom-Right) with Alpha
     for y in 0..height {
         for x in 0..width {
-            let r = ((x as f32 / width as f32) * 200.0) as u8 + 55; // Red base
+            let r = ((x as f32 / width as f32) * 200.0) as u8 + 55;
             let g = 0;
             let b = 0;
-            // Circular fade for a "sphere" look
             let cx = width as f32 / 2.0;
             let cy = height as f32 / 2.0;
             let dist = ((x as f32 - cx).powi(2) + (y as f32 - cy).powi(2)).sqrt();
@@ -38,20 +36,15 @@ pub fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
     let mut data = Vec::with_capacity((width * height * 4) as usize);
     for y in 0..height {
         for _x in 0..width {
-            // Sleek neutral "Rich Black"
             let mut r = 12u8;
             let mut g = 12u8;
             let mut b = 14u8;
-            
-            // Very subtle scanlines (every 3rd row)
             if y % 3 == 0 {
                 r = r.saturating_sub(2);
                 g = g.saturating_sub(2);
                 b = b.saturating_sub(2);
             }
-            
             let alpha = 255u8; 
-            
             data.push(r);
             data.push(g);
             data.push(b);
@@ -70,21 +63,77 @@ fn get_file_icon_type(path: &std::path::Path, is_dir: bool) -> Icon {
     }
 }
 
+fn draw_tile_button(f: &mut Frame, area: Rect, text: &str, app: &App, is_active: bool) {
+    let tile_queue = app.tile_queue.clone();
+    
+    if area.width >= 3 {
+        if let Ok(mut q) = tile_queue.lock() {
+            // Z=1 for buttons to ensure they are visible over panel backgrounds
+            // We use placement_ids to avoid flickering/conflicts
+            let base_id = 7000 + (area.y as u32 * 100) + area.x as u32;
+
+            // Left Slice
+            q.push(TilePlacement {
+                asset_id: Icon::ButtonLeft as u32,
+                x: area.x,
+                y: area.y,
+                z_index: 1,
+                cols: Some(1),
+                rows: Some(1),
+                placement_id: Some(base_id),
+            });
+            
+            // Middle Slice (stretched)
+            q.push(TilePlacement {
+                asset_id: Icon::ButtonMid as u32,
+                x: area.x + 1,
+                y: area.y,
+                z_index: 1,
+                cols: Some(area.width.saturating_sub(2)),
+                rows: Some(1),
+                placement_id: Some(base_id + 1),
+            });
+            
+            // Right Slice
+            q.push(TilePlacement {
+                asset_id: Icon::ButtonRight as u32,
+                x: area.x + area.width.saturating_sub(1),
+                y: area.y,
+                z_index: 1,
+                cols: Some(1),
+                rows: Some(1),
+                placement_id: Some(base_id + 2),
+            });
+        }
+    }
+    
+    let style = if is_active {
+        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::White)
+    };
+
+    let p = Paragraph::new(text)
+        .alignment(ratatui::layout::Alignment::Center)
+        .style(style);
+    f.render_widget(p, area);
+}
+
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     let tile_queue = app.tile_queue.clone();
-    // Render Tabs Background
+    
+    // Background for the whole tab bar
     if area.width > 0 && area.height > 0 {
-        let tile = TilePlacement {
-            asset_id: 1002, // Pre-registered Tabs BG
-            x: area.x,
-            y: area.y,
-            z_index: -1,
-            cols: Some(area.width),
-            rows: Some(area.height),
-            placement_id: Some(3),
-        };
         if let Ok(mut q) = tile_queue.lock() {
-            q.push(tile);
+            q.push(TilePlacement {
+                asset_id: 1002, 
+                x: area.x,
+                y: area.y,
+                z_index: 0,
+                cols: Some(area.width),
+                rows: Some(area.height),
+                placement_id: Some(3),
+            });
         }
     }
 
@@ -93,24 +142,21 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     for (label, view) in views {
         let width = (label.len() + 4) as u16;
         let tab_area = Rect::new(current_x, area.y, width, 1);
-        
-        // Background color logic if needed, but the Tile has its own style
-        draw_tile_button(f, tab_area, label, app);
-        
+        draw_tile_button(f, tab_area, label, app, app.current_view == view);
         current_x += width + 1;
     }
     
-    // Original tab logic for file tabs (optional if you want to keep them as text for now or convert too)
-    let spans = vec![ratatui::text::Span::raw(" | ")];
     let mut current_x_files = current_x;
-    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), Rect::new(current_x_files, area.y, 3, 1));
-    current_x_files += 3;
+    let sep = " | ";
+    f.render_widget(Paragraph::new(sep), Rect::new(current_x_files, area.y, sep.len() as u16, 1));
+    current_x_files += sep.len() as u16;
 
     if app.current_view == CurrentView::Files {
         for (i, tab) in app.file_tabs.iter().enumerate() {
             let name = tab.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string());
             let style = if i == app.tab_index { Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED) } else { Style::default().fg(Color::Gray) };
-            let label = format!("[{}]", name);
+            let label = format!("[{}]
+", name);
             let width = label.len() as u16;
             f.render_widget(Paragraph::new(ratatui::text::Span::styled(label, style)), Rect::new(current_x_files, area.y, width, 1));
             current_x_files += width + 1;
@@ -124,13 +170,13 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     
     let tile_queue = app.tile_queue.clone();
 
-    // Render Sidebar Background (Z = -1)
+    // Render Sidebar Background (Z = 0)
     if area.width > 0 && area.height > 0 {
         let tile = TilePlacement {
-            asset_id: 1001, // Pre-registered Sidebar BG Tile
+            asset_id: 1001,
             x: area.x,
             y: area.y,
-            z_index: -1,
+            z_index: 0,
             cols: Some(area.width),
             rows: Some(area.height),
             placement_id: Some(2),
@@ -140,13 +186,13 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
         }
     }
 
-    // Render Demon Logo using TilePlacement (Z = 1)
+    // Render Demon Logo (Z = 2)
     if area.width > 10 && area.height > 5 {
         let tile = TilePlacement {
-            asset_id: 1000, // Pre-registered Demon Logo Tile
+            asset_id: 1000,
             x: area.x + area.width.saturating_sub(10),
             y: area.y + 1,
-            z_index: 1,
+            z_index: 2,
             cols: Some(8),
             rows: Some(4),
             placement_id: Some(1),
@@ -169,17 +215,11 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                 ListItem::new("   Remote").style(Style::default().add_modifier(Modifier::UNDERLINED)),
             ];
 
-            // Push sidebar icons to queue
             if let Ok(mut q) = tile_queue.lock() {
-                // Local icon (Folder Tile)
                 q.push(TilePlacement { asset_id: Icon::Folder as u32, x: inner.x, y: inner.y, z_index: 1, cols: Some(2), rows: Some(1), placement_id: Some(6000) });
-                
-                // Home, etc. (Settings Tile placeholder)
                 for i in 0..4 {
                     q.push(TilePlacement { asset_id: Icon::Settings as u32, x: inner.x + 2, y: inner.y + 1 + i as u16, z_index: 1, cols: Some(2), rows: Some(1), placement_id: Some(6001 + i) });
                 }
-                
-                // Remote icon (Demon Tile)
                 q.push(TilePlacement { asset_id: Icon::Demon as u32, x: inner.x, y: inner.y + 6, z_index: 1, cols: Some(2), rows: Some(1), placement_id: Some(6010) });
             }
 
@@ -205,60 +245,13 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     }
 }
 
-fn draw_tile_button(f: &mut Frame, area: Rect, text: &str, app: &App) {
-    let tile_queue = app.tile_queue.clone();
-    
-    if area.width >= 3 {
-        if let Ok(mut q) = tile_queue.lock() {
-            // Left Slice (1 cell)
-            q.push(TilePlacement {
-                asset_id: Icon::ButtonLeft as u32,
-                x: area.x,
-                y: area.y,
-                z_index: -1,
-                cols: Some(1),
-                rows: Some(1),
-                placement_id: None,
-            });
-            
-            // Middle Slice (stretched)
-            q.push(TilePlacement {
-                asset_id: Icon::ButtonMid as u32,
-                x: area.x + 1,
-                y: area.y,
-                z_index: -1,
-                cols: Some(area.width.saturating_sub(2)),
-                rows: Some(1),
-                placement_id: None,
-            });
-            
-            // Right Slice (1 cell)
-            q.push(TilePlacement {
-                asset_id: Icon::ButtonRight as u32,
-                x: area.x + area.width - 1,
-                y: area.y,
-                z_index: -1,
-                cols: Some(1),
-                rows: Some(1),
-                placement_id: None,
-            });
-        }
-    }
-    
-    // Render text on top (Center aligned)
-    let p = Paragraph::new(text)
-        .alignment(ratatui::layout::Alignment::Center)
-        .style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD));
-    f.render_widget(p, area);
-}
-
 pub fn draw(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1), // Tabs (Top)
-            Constraint::Min(0),    // Main Workspace
-            Constraint::Length(1), // Footer (Bottom)
+            Constraint::Length(1), 
+            Constraint::Min(0),    
+            Constraint::Length(1), 
         ])
         .split(f.area());
 
@@ -267,8 +260,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     let workspace = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(20), // Sidebar
-            Constraint::Min(0), // Main Stage
+            Constraint::Percentage(20), 
+            Constraint::Min(0), 
         ])
         .split(chunks[1]);
 
@@ -277,12 +270,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     
     draw_footer(f, chunks[2], app);
 
-    // Context Menu
     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
         draw_context_menu(f, x, y, item_index, app);
     }
 
-    // Modals
     if matches!(app.mode, AppMode::Rename) { draw_rename_modal(f, app); }
     if matches!(app.mode, AppMode::Delete) { draw_delete_modal(f, app); }
     if matches!(app.mode, AppMode::Properties) { draw_properties_modal(f, app); }
@@ -295,15 +286,11 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
     if app.current_view == CurrentView::Files {
         let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Min(0)]).split(area);
-        
-        let path_text = if matches!(app.mode, AppMode::Location) { format!("Location: {}", app.input) } 
-            else if let Some(fs) = app.current_file_state() { if !fs.search_filter.is_empty() { format!("Search: {} (Esc to clear)", fs.search_filter) } else { format!("Path: {}", fs.current_path.display()) } } 
-            else { String::new() };
-            
-        let path_style = if matches!(app.mode, AppMode::Location) { Style::default().fg(Color::Yellow) } else if app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { Style::default().fg(Color::Magenta) } else { Style::default() };
-        
+        let path_text = if let Some(fs) = app.current_file_state() { 
+            if !fs.search_filter.is_empty() { format!("Search: {} (Esc to clear)", fs.search_filter) } else { format!("Path: {}", fs.current_path.display()) } 
+        } else { String::new() };
+        let path_style = if app.current_file_state().map(|s| !s.search_filter.is_empty()).unwrap_or(false) { Style::default().fg(Color::Magenta) } else { Style::default() };
         f.render_widget(Paragraph::new(path_text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Plain).border_style(path_style)), chunks[0]);
-        
         draw_file_view(f, chunks[1], app);
     } else {
         match app.current_view {
@@ -323,7 +310,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
     if let Some(file_state) = app.current_file_state_mut() {
         file_state.view_height = area.height as usize;
         let mut render_state = ratatui::widgets::TableState::default();
-
         if let Some(sel) = file_state.selected_index {
             let offset = file_state.table_state.offset();
             let capacity = file_state.view_height.saturating_sub(2);
@@ -333,7 +319,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                 render_state.select(None);
             }
         }
-        
         *render_state.offset_mut() = file_state.table_state.offset();
 
         let header_cells = file_state.columns.iter().map(|c| {
@@ -353,44 +338,29 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                         let mut style = if is_dir { Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD) } else { Style::default() };
                         if let Some(status) = file_state.git_status.get(path) {
-                            display_name.push_str(&format!(" [{}]", status));
+                            display_name.push_str(&format!(" [{}]
+", status));
                             match status.as_str() { "M" | "MM" => style = style.fg(Color::Yellow), "A" | "AM" => style = style.fg(Color::Green), "??" => style = style.fg(Color::DarkGray), "D" => style = style.fg(Color::Red), _ => {} }
                         }
                         if file_state.starred.contains(path) { display_name.push_str(" [*]"); style = style.fg(Color::Yellow).add_modifier(Modifier::BOLD); }
                         
-                        // Baked-in Tile Icon Logic
                         let icon_type = get_file_icon_type(path, is_dir);
-                        
-                        // Only add to queue if visible
                         if i >= offset && i < offset + (area.height as usize).saturating_sub(1) {
                             let row_y = area.y + 1 + (i - offset) as u16;
-                            let tile = TilePlacement {
-                                asset_id: icon_type as u32,
-                                x: area.x,
-                                y: row_y,
-                                z_index: 1,
-                                cols: Some(2),
-                                rows: Some(1),
-                                placement_id: Some(5000 + i as u32),
-                            };
-                            if let Ok(mut q) = tile_queue.lock() { q.push(tile); }
+                            if let Ok(mut q) = tile_queue.lock() {
+                                q.push(TilePlacement { asset_id: icon_type as u32, x: area.x, y: row_y, z_index: 1, cols: Some(2), rows: Some(1), placement_id: Some(5000 + i as u32) });
+                            }
                         }
-
-                        Cell::from(format!("  {}", display_name)).style(style) // 2 spaces for tile
+                        Cell::from(format!("  {}", display_name)).style(style) 
                     },
                     FileColumn::Size => {
                         let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
-                        if is_dir {
-                            Cell::from("<DIR>").style(Style::default().fg(Color::Cyan))
-                        } else {
-                            Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0)))
-                        }
+                        if is_dir { Cell::from("<DIR>").style(Style::default().fg(Color::Cyan)) } 
+                        else { Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))) }
                     },
                     FileColumn::Modified => Cell::from(format_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH))),
                     FileColumn::Created => Cell::from(format_time(metadata.map(|m| m.created).unwrap_or(SystemTime::UNIX_EPOCH))),
-                    FileColumn::Permissions => {
-                        Cell::from(format_permissions(metadata.map(|m| m.permissions).unwrap_or(0)))
-                    },
+                    FileColumn::Permissions => Cell::from(format_permissions(metadata.map(|m| m.permissions).unwrap_or(0))),
                     FileColumn::Extension => Cell::from(path.extension().and_then(|e| e.to_str()).unwrap_or("")),
                 }
             });
@@ -398,7 +368,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
             Row::new(cells).style(style)
         });
         let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| { match c { FileColumn::Name => Constraint::Percentage(50), FileColumn::Size => Constraint::Length(10), FileColumn::Modified => Constraint::Length(20), FileColumn::Created => Constraint::Length(20), FileColumn::Permissions => Constraint::Length(12), FileColumn::Extension => Constraint::Length(6) } }).collect();
-        
         f.render_stateful_widget(Table::new(rows, constraints).header(header).block(Block::default().borders(Borders::NONE)), area, &mut render_state);
         
         if file_state.files.len() > area.height.saturating_sub(2) as usize {
@@ -411,20 +380,20 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
 
 fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     let layout = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Length(3), Constraint::Length(6), Constraint::Min(0)]).split(area);
-    f.render_widget(Gauge::default().block(Block::default().title(" CPU Usage ").borders(Borders::ALL)).gauge_style(Style::default().fg(Color::Green)).percent(app.system_state.cpu_usage as u16).label(format!("{:.1}%", app.system_state.cpu_usage)), layout[0]);
-    if app.system_state.total_mem > 0.0 { f.render_widget(Gauge::default().block(Block::default().title(" Memory Usage ").borders(Borders::ALL)).gauge_style(Style::default().fg(Color::Yellow)).percent((app.system_state.mem_usage / app.system_state.total_mem * 100.0) as u16).label(format!("{:.1} / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem)), layout[1]); }
+    f.render_widget(Gauge::default().block(Block::default().title(" CPU Usage ").borders(Borders::ALL).border_type(BorderType::Plain)).gauge_style(Style::default().fg(Color::Green)).percent(app.system_state.cpu_usage as u16).label(format!("{:.1}%", app.system_state.cpu_usage)), layout[0]);
+    if app.system_state.total_mem > 0.0 { f.render_widget(Gauge::default().block(Block::default().title(" Memory Usage ").borders(Borders::ALL).border_type(BorderType::Plain)).gauge_style(Style::default().fg(Color::Yellow)).percent((app.system_state.mem_usage / app.system_state.total_mem * 100.0) as u16).label(format!("{:.1} / {:.1} GB", app.system_state.mem_usage, app.system_state.total_mem)), layout[1]); }
     let disk_items: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let percent = (disk.used_space / disk.total_space) * 100.0;
         let bar_width: usize = 20; let filled = (percent / 100.0 * bar_width as f64) as usize;
         let bar = format!("[{}{}]", "#".repeat(filled), "-".repeat(bar_width.saturating_sub(filled)));
         ListItem::new(format!("{:<10} {}  {:.1} / {:.1} GB ({:.1}%)", disk.name, bar, disk.used_space, disk.total_space, percent))
     }).collect();
-    f.render_widget(List::new(disk_items).block(Block::default().title(" Disk Usage ").borders(Borders::ALL)), layout[2]);
+    f.render_widget(List::new(disk_items).block(Block::default().title(" Disk Usage ").borders(Borders::ALL).border_type(BorderType::Plain)), layout[2]);
     let process_items: Vec<ListItem> = app.system_state.processes.iter().enumerate().map(|(i, p)| {
         let style = if i == app.system_state.selected_process_index && !app.sidebar_focus { Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD) } else { Style::default() };
         ListItem::new(format!("{}{:<6} {:<20} {:.1}%  {:.1} MB", if i == app.system_state.selected_process_index && !app.sidebar_focus { "> " } else { "  " }, p.pid, p.name.chars().take(20).collect::<String>(), p.cpu, p.mem as f64 / 1024.0 / 1024.0)).style(style)
     }).collect();
-    f.render_widget(List::new(process_items).block(Block::default().title(" Top Processes ").borders(Borders::ALL)), layout[3]);
+    f.render_widget(List::new(process_items).block(Block::default().title(" Top Processes ").borders(Borders::ALL).border_type(BorderType::Plain)), layout[3]);
 }
 
 fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
@@ -455,10 +424,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     spans.push(ratatui::text::Span::styled("Del", Style::default().fg(Color::Yellow))); spans.push(ratatui::text::Span::raw(" Action "));
     if let Some(disk) = app.system_state.disks.first() {
         spans.push(ratatui::text::Span::raw(" | Storage: "));
-        spans.push(ratatui::text::Span::styled(
-            format!("{:.1}/{:.1} GB", disk.total_space - disk.used_space, disk.total_space),
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
-        ));
+        spans.push(ratatui::text::Span::styled(format!("{:.1}/{:.1} GB", disk.total_space - disk.used_space, disk.total_space), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)));
     }
     f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
 }
@@ -466,7 +432,6 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
 fn draw_context_menu(f: &mut Frame, x: u16, y: u16, item_index: Option<usize>, app: &App) {
     let mut items = Vec::new();
     let mut title = " Menu ";
-    
     if let Some(idx) = item_index {
         if let Some(fs) = app.current_file_state() {
             if let Some(path) = fs.files.get(idx) {
@@ -494,22 +459,14 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, item_index: Option<usize>, a
         items.push(ListItem::new(" 󰑐 Refresh"));
         items.push(ListItem::new(" 󰆍 Terminal Here"));
     }
-
-    let height = items.len() as u16 + 2;
-    let width = 20;
-    let area = Rect::new(x, y, width, height);
+    let area = Rect::new(x, y, 20, items.len() as u16 + 2);
     f.render_widget(Clear, area);
-    let block = Block::default().borders(Borders::ALL).border_style(Style::default().fg(Color::Yellow)).title(title);
-    let inner = block.inner(area);
-    f.render_widget(block, area);
-    f.render_widget(List::new(items), inner);
+    f.render_widget(List::new(items).block(Block::default().borders(Borders::ALL).border_type(BorderType::Plain).border_style(Style::default().fg(Color::Yellow)).title(title)), area);
 }
 
 fn draw_command_palette(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 20, f.area()); f.render_widget(Clear, area);
-    let block = Block::default().borders(Borders::ALL).title(" Command Palette ").border_style(Style::default().fg(Color::Magenta));
-    let inner = block.inner(area); f.render_widget(block, area);
-    let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(1), Constraint::Min(0)]).split(inner);
+    let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(1), Constraint::Min(0)]).split(Block::default().borders(Borders::ALL).border_type(BorderType::Plain).title(" Command Palette ").border_style(Style::default().fg(Color::Magenta)).inner(area));
     f.render_widget(Paragraph::new(format!("> {}", app.input)).style(Style::default().fg(Color::Yellow)), chunks[0]);
     let items: Vec<ListItem> = app.filtered_commands.iter().enumerate().map(|(i, cmd)| {
         let style = if i == app.command_index { Style::default().bg(Color::DarkGray).fg(Color::White) } else { Style::default() };
@@ -520,26 +477,20 @@ fn draw_command_palette(f: &mut Frame, app: &App) {
 
 fn draw_rename_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
-    let block = Block::default().title(" Rename ").borders(Borders::ALL).border_style(Style::default().fg(Color::Yellow));
-    let inner = block.inner(area); f.render_widget(block, area);
-    f.render_widget(Paragraph::new(app.input.as_str()), inner);
+    f.render_widget(Paragraph::new(app.input.as_str()).block(Block::default().title(" Rename ").borders(Borders::ALL).border_type(BorderType::Plain).border_style(Style::default().fg(Color::Yellow))), area);
 }
 
 fn draw_delete_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
-    let block = Block::default().title(" Confirm Action ").borders(Borders::ALL).border_style(Style::default().fg(Color::Red));
-    let inner = block.inner(area); f.render_widget(block, area);
     let text = match app.current_view {
         CurrentView::Files => if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(p) = fs.files.get(idx) { format!("Delete {}? (y/n)", p.file_name().unwrap_or_default().to_string_lossy()) } else { "Delete? (y/n)".to_string() } } else { "Delete? (y/n)".to_string() } } else { "Delete? (y/n)".to_string() },
         _ => "Delete? (y/n)".to_string()
     };
-    f.render_widget(Paragraph::new(text), inner);
+    f.render_widget(Paragraph::new(text).block(Block::default().title(" Confirm Action ").borders(Borders::ALL).border_type(BorderType::Plain).border_style(Style::default().fg(Color::Red))), area);
 }
 
 fn draw_properties_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(50, 30, f.area()); f.render_widget(Clear, area);
-    let block = Block::default().title(" Properties ").borders(Borders::ALL).border_style(Style::default().fg(Color::Cyan));
-    let inner = block.inner(area); f.render_widget(block, area);
     let info = match app.current_view {
         CurrentView::Files => if let Some(fs) = app.current_file_state() { 
             if let Some(idx) = fs.selected_index {
@@ -561,33 +512,27 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
         } else { "No file selected".to_string() },
         _ => "No info available".to_string()
     };
-    f.render_widget(Paragraph::new(info), inner);
+    f.render_widget(Paragraph::new(info).block(Block::default().title(" Properties ").borders(Borders::ALL).border_type(BorderType::Plain).border_style(Style::default().fg(Color::Cyan))), area);
 }
 
 fn draw_column_setup_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 40, f.area()); f.render_widget(Clear, area);
-    let block = Block::default().title(" Column Setup ").borders(Borders::ALL).border_style(Style::default().fg(Color::Cyan));
-    let inner = block.inner(area); f.render_widget(block, area);
     if let Some(fs) = app.current_file_state() {
         let options = vec![(FileColumn::Name, "Name (n)"), (FileColumn::Size, "Size (s)"), (FileColumn::Modified, "Modified (m)"), (FileColumn::Created, "Created (c)"), (FileColumn::Permissions, "Permissions (p)"), (FileColumn::Extension, "Extension (e)")];
         let items: Vec<ListItem> = options.iter().map(|(col, label)| { let prefix = if fs.columns.contains(col) { "[x] " } else { "[ ] " }; ListItem::new(format!("{}{}", prefix, label)) }).collect();
-        f.render_widget(List::new(items), inner);
+        f.render_widget(List::new(items).block(Block::default().title(" Column Setup ").borders(Borders::ALL).border_type(BorderType::Plain).border_style(Style::default().fg(Color::Cyan))), area);
     }
 }
 
 fn draw_new_folder_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
-    let block = Block::default().title(" New Folder ").borders(Borders::ALL).border_style(Style::default().fg(Color::Green));
-    let inner = block.inner(area); f.render_widget(block, area);
-    f.render_widget(Paragraph::new(app.input.as_str()), inner);
+    f.render_widget(Paragraph::new(app.input.as_str()).block(Block::default().title(" New Folder ").borders(Borders::ALL).border_type(BorderType::Plain).border_style(Style::default().fg(Color::Green))), area);
 }
 
 fn draw_add_remote_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(50, 20, f.area()); f.render_widget(Clear, area);
-    let block = Block::default().title(" Add Remote Host ").borders(Borders::ALL).border_style(Style::default().fg(Color::Green));
-    let inner = block.inner(area); f.render_widget(block, area);
     let text = format!("Enter connection string (user@host:port):\n> {}\n\n(Press Enter to add, Esc to cancel)", app.input);
-    f.render_widget(Paragraph::new(text), inner);
+    f.render_widget(Paragraph::new(text).block(Block::default().title(" Add Remote Host ").borders(Borders::ALL).border_type(BorderType::Plain).border_style(Style::default().fg(Color::Green))), area);
 }
 
 use chrono::{DateTime, Local};
