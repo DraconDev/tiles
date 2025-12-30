@@ -88,21 +88,34 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
         }
     }
 
-    let mut spans = Vec::new();
+    let mut current_x = area.x;
     let views = vec![("^F Files", CurrentView::Files), ("^P Proc", CurrentView::System), ("^D Docker", CurrentView::Docker)];
     for (label, view) in views {
-        let style = if app.current_view == view { Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::DarkGray) };
-        spans.push(ratatui::text::Span::styled(format!(" {} ", label), style)); spans.push(ratatui::text::Span::raw(" "));
+        let width = (label.len() + 4) as u16;
+        let tab_area = Rect::new(current_x, area.y, width, 1);
+        
+        // Background color logic if needed, but the Tile has its own style
+        draw_tile_button(f, tab_area, label, app);
+        
+        current_x += width + 1;
     }
-    spans.push(ratatui::text::Span::raw(" | "));
+    
+    // Original tab logic for file tabs (optional if you want to keep them as text for now or convert too)
+    let spans = vec![ratatui::text::Span::raw(" | ")];
+    let mut current_x_files = current_x;
+    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), Rect::new(current_x_files, area.y, 3, 1));
+    current_x_files += 3;
+
     if app.current_view == CurrentView::Files {
         for (i, tab) in app.file_tabs.iter().enumerate() {
             let name = tab.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string());
             let style = if i == app.tab_index { Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED) } else { Style::default().fg(Color::Gray) };
-            spans.push(ratatui::text::Span::styled(format!("[{}]", name), style)); spans.push(ratatui::text::Span::raw(" "));
+            let label = format!("[{}]", name);
+            let width = label.len() as u16;
+            f.render_widget(Paragraph::new(ratatui::text::Span::styled(label, style)), Rect::new(current_x_files, area.y, width, 1));
+            current_x_files += width + 1;
         }
     }
-    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
 }
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
