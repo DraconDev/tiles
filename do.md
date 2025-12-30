@@ -12,4 +12,4 @@ however this approach would mean that assuming someone installs tiles on a vps, 
 
 now sure we can be sneaky and use ssh, but the we can just do it on our system perhaps in gloruios gui too right
 
-also if i think about it we are not mainly making a terminal emulator, 
+also if i think about it we are not mainly making a terminal emulator, cause terma is not mea
