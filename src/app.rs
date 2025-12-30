@@ -39,6 +39,8 @@ pub enum AppEvent {
     FilesUpdated(usize, Vec<PathBuf>, HashMap<PathBuf, FileMetadata>, HashMap<PathBuf, String>), // tab_idx, files, metadata, git
     Tick,
     Raw(TermaEvent),
+    LoadImage(PathBuf),
+    ImageReady(u32, Vec<u8>, u32, u32), // id, data, w, h
 }
 
 pub struct App {
