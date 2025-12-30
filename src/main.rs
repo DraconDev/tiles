@@ -193,9 +193,6 @@ fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-    Ok(())
-}
-
 fn push_history(fs: &mut crate::app::FileState, path: std::path::PathBuf) {
     if fs.current_path == path { return; }
     fs.history.truncate(fs.history_index + 1);
