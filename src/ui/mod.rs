@@ -37,7 +37,7 @@ pub fn generate_demon_logo() -> Vec<u8> {
 pub fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
     let mut data = Vec::with_capacity((width * height * 4) as usize);
     for y in 0..height {
-        for x in 0..width {
+        for _x in 0..width {
             // Sleek neutral "Rich Black"
             let mut r = 12u8;
             let mut g = 12u8;
@@ -61,25 +61,12 @@ pub fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
     data
 }
 
-fn get_file_icon_type(path: &std::path::Path, is_dir: bool) -> Icon {
-    if is_dir { return Icon::Folder; }
-    match path.extension().and_then(|s| s.to_str()).unwrap_or("") {
-        "rs" => Icon::Rust,
-        "json" => Icon::Json,
-        _ => Icon::File,
-    }
-}
-
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     let tile_queue = app.tile_queue.clone();
     // Render Tabs Background
     if area.width > 0 && area.height > 0 {
-        let mut bg_data = Vec::with_capacity((10 * 10 * 4) as usize);
-        for _ in 0..100 {
-            bg_data.push(10); bg_data.push(10); bg_data.push(10); bg_data.push(255);
-        }
         let tile = TilePlacement {
-            asset_id: 3, // Assuming 3 is registered for Tabs BG or handle dynamically
+            asset_id: 1002, // Pre-registered Tabs BG
             x: area.x,
             y: area.y,
             z_index: -1,
@@ -87,9 +74,9 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
             rows: Some(area.height),
             placement_id: Some(3),
         };
-        // NOTE: We need to register asset 3 if not done.
-        // For simplicity in this rename pass, I'll assume assets 1000+ are used.
-        // Actually, let's fix the IDs to match main.rs registrations.
+        if let Ok(mut q) = tile_queue.lock() {
+            q.push(tile);
+        }
     }
 
     let mut spans = Vec::new();
