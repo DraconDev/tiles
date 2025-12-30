@@ -34,6 +34,14 @@ fn main() -> color_eyre::Result<()> {
     );
     window.add_image_asset(2001, sidebar_bg, 300, 800);
 
+    // Register Panel Header Gradient
+    let header_bg = ShapeGenerator::gradient_horizontal(
+        100, 16,
+        ShapeColor::new(0, 255, 200, 50), // Left: Cyan Glow
+        ShapeColor::new(0, 0, 0, 0)       // Right: Fade out
+    );
+    window.add_image_asset(3001, header_bg, 100, 16);
+
     let tile_queue = window.tile_queue();
     
     // Create App 
