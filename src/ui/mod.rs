@@ -392,7 +392,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         if i >= offset && i < offset + (area.height as usize).saturating_sub(1) {
                             let row_y = area.y + 1 + (i - offset) as u16;
                             if let Ok(mut q) = tile_queue.lock() {
-                                q.push(TilePlacement { asset_id: icon_type as u32, is_image: false, x: area.x, y: row_y, z_index: 1, cols: Some(2), rows: Some(1), placement_id: Some(5000 + i as u32) });
+                                // Use is_image: true for Sprite Icons
+                                q.push(TilePlacement { asset_id: icon_type as u32, is_image: true, x: area.x, y: row_y, z_index: 2, cols: Some(2), rows: Some(1), placement_id: Some(5000 + i as u32) });
                             }
                         }
                         Cell::from(format!("  {}", display_name)).style(style) 
