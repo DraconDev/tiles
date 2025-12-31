@@ -33,3 +33,4 @@ __pycache__/
 *.p12
 reference/
 *.kilocode
+venv/
