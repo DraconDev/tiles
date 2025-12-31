@@ -259,11 +259,11 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
             match me.kind {
                 MouseEventKind::Down(button) => {
                     if button == MouseButton::Back {
-                        if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; }
+                        if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); }
                         return;
                     }
                     if button == MouseButton::Forward {
-                        if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; }
+                        if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); }
                         return;
                     }
                     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
@@ -282,7 +282,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                                 match menu_row {
                                     0 => { app.mode = AppMode::NewFolder; app.input.clear(); },
                                     1 => { app.mode = AppMode::Normal; },
-                                    2 => { let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; app.mode = AppMode::Normal; },
+                                    2 => { let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); app.mode = AppMode::Normal; },
                                     _ => app.mode = AppMode::Normal,
                                 }
                             }
@@ -321,7 +321,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                                             view_height: 0,
                                         };
                                         app.file_tabs.push(new_fs);
-                                        let _ = event_tx.send(AppEvent::RefreshFiles(app.file_tabs.len() - 1)).await;
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.file_tabs.len() - 1));
                                     }
                                 }
                             }
@@ -349,7 +349,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                                                     *fs.table_state.offset_mut() = 0;
                                                     push_history(fs, p);
                                                 }
-                                                let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
                                                 app.sidebar_focus = false;
                                             }
                                         }
@@ -379,7 +379,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                                                         fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear();
                                                         *fs.table_state.offset_mut() = 0;
                                                         push_history(fs, path);
-                                                        let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
                                                     }
                                                 }
                                             }
@@ -399,10 +399,10 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                     else { app.move_down(); update_docker_filter(app); }
                 }
                 MouseEventKind::ScrollLeft => {
-                    if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; }
+                    if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); }
                 }
                 MouseEventKind::ScrollRight => {
-                    if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; }
+                    if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); }
                 }
                 _ => {}
             }
@@ -423,7 +423,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                         KeyCode::Esc => app.mode = AppMode::Normal,
                         KeyCode::Char(c) => app.input.push(c),
                         KeyCode::Backspace => { app.input.pop(); }
-                        KeyCode::Enter => { let path = std::path::PathBuf::from(&app.input); if path.exists() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; push_history(fs, path); } let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; } app.mode = AppMode::Normal; }
+                        KeyCode::Enter => { let path = std::path::PathBuf::from(&app.input); if path.exists() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; push_history(fs, path); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } app.mode = AppMode::Normal; }
                         _ => {}
                     }
                 }
@@ -435,7 +435,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                             KeyCode::Char('f') => app.current_view = CurrentView::Files,
                             KeyCode::Char('p') => app.current_view = CurrentView::System,
                             KeyCode::Char('d') => app.current_view = CurrentView::Docker,
-                            KeyCode::Char('h') => { if let Some(fs) = app.current_file_state_mut() { fs.show_hidden = !fs.show_hidden; let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; } }
+                            KeyCode::Char('h') => { if let Some(fs) = app.current_file_state_mut() { fs.show_hidden = !fs.show_hidden; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } }
                             _ => {}
                         }
                         return;
@@ -443,9 +443,9 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                     match key.code {
                         KeyCode::Down => { app.move_down(); }
                         KeyCode::Up => { app.move_up(); }
-                        KeyCode::Left => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; } } else { app.move_left(); } }
-                        KeyCode::Right => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; } } else { app.move_right(); } }
-                        KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); push_history(fs, path); let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await; } } } } }
+                        KeyCode::Left => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } else { app.move_left(); } }
+                        KeyCode::Right => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } else { app.move_right(); } }
+                        KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } } } }
                         _ => {}
                     }
                 }
@@ -498,7 +498,7 @@ async fn execute_command(action: crate::app::CommandAction, app: &mut App, docke
                             if let Some(fs) = app.current_file_state_mut() {
                                 fs.remote_session = Some(crate::app::RemoteSession { name: bookmark.name, host: bookmark.host, user: bookmark.user, session });
                                 fs.current_path = std::path::PathBuf::from("/");
-                                let _ = event_tx.send(AppEvent::RefreshFiles(app.tab_index)).await;
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
                             }
                         }
                     }
