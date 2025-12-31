@@ -1,22 +1,28 @@
-# 🧠 The "God Mode" Realization
+# 🔎 Case Study: WezTerm & Zellij
 
-## The User's Insight
-The user realized that by being a **Single Application** (GUI Window) instead of **50 Separate Shells**, we gain **State Coherence**.
+## The User's Question
+"Would looking at WezTerm locally help us? or Zellij? it is better now, but still needs work."
 
-*   **Disconnected:** 50 `xterm` windows = 50 separate processes, no shared brain.
-*   **Unified (Our Way):** 1 `tiles` window = 1 process managing 50 "virtual" terminal panes.
+## Why WezTerm Matters
+WezTerm is the gold standard for "GPU-Accelerated Terminal Emulators in Rust."
+*   **Font Rendering:** It uses `freetype` + GPU caching. We use `rusttype` + CPU blitting.
+*   **Windowing:** It handles DPI scaling and complex window events perfectly.
+*   **Relevance:** Analyzing how WezTerm initializes its window and handles fonts could solve our remaining "blocky" or "laggy" issues. It has solved the problems we are currently fighting.
 
-## The Terma Advantage
-This is exactly what the `Compositor` and `Plane` system is for.
-*   **Plane = Virtual Terminal.**
-*   We can spawn 50 planes.
-*   We can move them, hide them, overlay them.
-*   The "Brain" (Rust App) sees all of them instantly.
+## Why Zellij Matters
+Zellij is a "Terminal Multiplexer" (like our `TermaPanel` layout engine).
+*   **Layout Engine:** It handles splitting panes and resizing them efficiently.
+*   **Plugin System:** It runs WASM plugins.
+*   **Relevance:** Less about rendering pixels, more about *layout logic*. If we struggle with panel resizing or "snapping," Zellij is the reference.
 
-## Architecture Confirmation
-This confirms we must stick to the **Custom Window** path as the primary product. The "VS Code Snap" (TUI Mode) is a nice-to-have fallback, but the **Power** comes from the custom engine.
+## Strategic Decision
+The user provided these repos locally.
+*   **Action:** Yes, we should look at them. Specifically `wezterm`'s font rendering code.
+*   **Goal:** Steal (learn) their DPI handling and texture caching strategy to move `Terma` from "Good CPU Renderer" to "Great GPU Renderer" (eventually).
 
-## Next Steps
-1.  Reinforce this point: "You have discovered the 'Compositor' advantage."
-2.  Explain how `terma` handles this (Planes).
-3.  Pivot back to *visuals* (images/icons) which are the other half of this advantage.
+## Current Status
+*   **Visuals:** Anti-aliasing is ON. Gradients are ON.
+*   **Performance:** Throttling is ON.
+*   **Stability:** Deadlocks FIXED.
+
+**Next Step:** I will investigate the local `wezterm` folder to see how they handle font rasterization settings.
