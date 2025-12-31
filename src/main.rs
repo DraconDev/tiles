@@ -23,7 +23,7 @@ fn main() -> color_eyre::Result<()> {
     
     // Load Font
     let font_data = include_bytes!("../terma/assets/font.ttf");
-    let mut window = TermaWindow::new(font_data, 18.0)
+    let mut window = TermaWindow::new(font_data, 24.0)
         .map_err(|e| color_eyre::eyre::eyre!("{}", e))?;
     
     // Generate and Register UI Assets (Gradients)
@@ -182,7 +182,7 @@ fn main() -> color_eyre::Result<()> {
     // Main Window Loop
     window.run(move |compositor, event| {
         if let Some(evt) = event {
-            let _ = event_tx.blocking_send(AppEvent::Raw(evt));
+            let _ = event_tx.try_send(AppEvent::Raw(evt));
         }
 
         // Process UI Commands
