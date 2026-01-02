@@ -37,7 +37,7 @@ pub enum LicenseStatus {
     Commercial(String),
 }
 
-#[derive(Debug, Debug)]
+#[derive(Debug)]
 pub enum AppEvent {
     RefreshFiles(usize), // tab_index
     FilesUpdated(

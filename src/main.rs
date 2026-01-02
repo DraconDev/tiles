@@ -11,7 +11,7 @@ use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifi
 use ratatui::Terminal;
 
 // App Imports
-use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent, UiCommand};
+use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent};
 use crate::modules::docker::DockerModule;
 
 mod app;
