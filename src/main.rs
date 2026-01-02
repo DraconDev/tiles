@@ -1,16 +1,11 @@
 use std::time::Duration;
-use std::io::IsTerminal;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 
 
 // Terma Imports
-use terma::integration::window::TermaWindow;
-use terma::integration::ratatui::{TermaBackend, RatatuiCompositorBackend};
+use terma::integration::ratatui::TermaBackend;
 use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifiers};
-
-use terma::visuals::loader::ImageLoader;
-use terma::visuals::shapes::{ShapeGenerator, Color as ShapeColor};
 
 // Ratatui Imports
 use ratatui::Terminal;
@@ -29,150 +24,8 @@ mod license;
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     
-    // Check for --window flag to force GUI mode
-    let args: Vec<String> = std::env::args().collect();
-    let force_window = args.iter().any(|a| a == "--window" || a == "-w");
-    
-    // Check if we should run in TTY mode (SSH / Integrated Terminal)
-    // or Window mode (Desktop App).
-    let run_in_tty = std::io::stdout().is_terminal() 
-        && !force_window 
-        && std::env::var("TILES_FORCE_WINDOW").is_err();
-
-    if run_in_tty {
-        // TTY MODE: Inside VS Code or SSH
-        run_tty()
-    } else {
-        // WINDOW MODE: Standalone Window
-        println!("Launching Tiles in GUI Window mode...");
-        run_window()
-    }
-}
-
-// ==================================================================================
-//                                  WINDOW MODE
-// ==================================================================================
-fn run_window() -> color_eyre::Result<()> {
-    // Load Font
-    let font_data = include_bytes!("../../terma/assets/font.ttf");
-    let mut window = TermaWindow::new(font_data, 24.0)
-        .map_err(|e| color_eyre::eyre::eyre!("{}", e))?;
-    
-    // Generate Assets
-    let sidebar_bg = ShapeGenerator::gradient_vertical(
-        300, 800, 
-        ShapeColor::new(10, 10, 15, 255),
-        ShapeColor::new(25, 25, 40, 255)
-    );
-    window.add_image_asset(2001, sidebar_bg, 300, 800);
-    // Add Placement for Sidebar
-    window.add_tile_asset(2001, vec![], 300, 800); // Hack: using add_tile_asset to trigger placement if it supports it? 
-    // Wait, TermaWindow logic distinguishes add_image_asset (register) vs placements.
-    // I need to add a placement. TermaWindow exposes tile_queue.
-    if let Ok(mut queue) = window.tile_queue().lock() {
-        use terma::compositor::engine::TilePlacement;
-        queue.push(TilePlacement {
-             asset_id: 2001,
-             x: 0,
-             y: 0,
-             z_index: 0, // Behind TUI
-             cols: None, // Use native size
-             rows: None,
-             is_image: true,
-             placement_id: None,
-        });
-        // Header
-         queue.push(TilePlacement {
-             asset_id: 3001,
-             x: 0,
-             y: 0,
-             z_index: 1, 
-             cols: Some(150), // Stretch width
-             rows: None,
-             is_image: true,
-             placement_id: None,
-        });
-    }
-
-    let header_bg = ShapeGenerator::gradient_horizontal(
-        100, 16,
-        ShapeColor::new(0, 255, 200, 50),
-        ShapeColor::new(0, 0, 0, 0)
-    );
-    window.add_image_asset(3001, header_bg, 100, 16);
-    
-    // CAT BACKGROUND PROOF - This proves we're rendering actual pixels, not just text!
-    // The asset is registered here, but placement happens in the render loop via ui::draw
-    let cat_image = include_bytes!("../assets/cat.png");
-    let cat_loaded = if let Ok(img) = image::load_from_memory(cat_image) {
-        let rgba = img.to_rgba8();
-        let (w, h) = (rgba.width(), rgba.height());
-        window.add_image_asset(9000, rgba.into_raw(), w, h);
-        true
-    } else {
-        false
-    };
-
-    let tile_queue = window.tile_queue();
-    
-    // Setup App & Async
-    let (app, event_tx, mut _event_rx, _ui_tx, mut ui_rx, _docker) = setup_app(tile_queue);
-
-    // Main Window Loop
-    window.run(move |compositor, event| {
-        if let Some(evt) = event {
-            // Optimization: Ignore MouseMoved events to prevent channel flooding
-            let is_spam = if let Event::Mouse(ref me) = evt {
-                matches!(me.kind, MouseEventKind::Moved)
-            } else { false };
-
-            if !is_spam {
-                if let Err(_) = event_tx.try_send(AppEvent::Raw(evt)) {
-                     // Log dropped event if needed
-                }
-            }
-        }
-
-        // Process UI Commands
-        while let Ok(cmd) = ui_rx.try_recv() {
-            match cmd {
-                UiCommand::RegisterImage(id, data, w, h) => {
-                    compositor.add_image_asset(id, data, w, h);
-                    let _ = event_tx.blocking_send(AppEvent::ImageReady(id, Vec::new(), 0, 0));
-                }
-            }
-        }
-
-        // Render
-        let mut app_guard = app.lock().unwrap();
-        
-        // Place cat image every frame (it gets cleared each frame by window backend)
-        if cat_loaded {
-            if let Ok(mut q) = app_guard.tile_queue.lock() {
-                use terma::compositor::engine::TilePlacement;
-                q.push(TilePlacement {
-                    asset_id: 9000,
-                    x: 50, // Offset from left
-                    y: 5,  // Offset from top
-                    z_index: 10, // Above everything to prove it works
-                    cols: Some(25), // Width in character columns
-                    rows: Some(15), // Height in rows
-                    is_image: true,
-                    placement_id: Some(9000),
-                });
-            }
-        }
-        
-        // Window Mode uses RatatuiCompositorBackend wrapper
-        let backend = RatatuiCompositorBackend { compositor };
-        let mut terminal = Terminal::new(backend).unwrap();
-        
-        let _ = terminal.draw(|f| {
-            ui::draw(f, &mut app_guard);
-        });
-    }).map_err(|e| color_eyre::eyre::eyre!("{}", e))?;
-
-    Ok(())
+    // Always run in TTY Mode
+    run_tty()
 }
 
 // ==================================================================================

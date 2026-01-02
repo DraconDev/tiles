@@ -2686,7 +2686,7 @@ dependencies = [
 
 [[package]]
 name = "tiles"
-version = "0.1.131"
+version = "0.1.133"
 dependencies = [
  "anyhow",
  "bollard",
@@ -2694,7 +2694,6 @@ dependencies = [
  "clap",
  "color-eyre",
  "dirs",
- "image",
  "openssl",
  "ratatui",
  "serde",
