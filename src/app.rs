@@ -245,10 +245,9 @@ impl App {
             tab_index: 0,
 
             system_state,
-            system_module,
             license,
             sidebar_focus: false,
-            sidebar_index: 0,
+            sidebar_index: 1, // Start at Home (selectable)
             remote_bookmarks: Vec::new(),
             active_sessions: HashMap::new(),
             filtered_commands: Vec::new(),
