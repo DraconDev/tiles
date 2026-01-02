@@ -262,7 +262,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             } else {
                                 match menu_row {
                                     0 => { app.mode = AppMode::NewFolder; app.input.clear(); },
-                                    1 => { app.mode = AppMode::Normal; },
+                                    1 => { app.mode = AppMode::NewFile; app.input.clear(); },
                                     2 => { let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); app.mode = AppMode::Normal; },
                                     _ => app.mode = AppMode::Normal,
                                 }
@@ -415,6 +415,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         KeyCode::Char(c) => app.input.push(c),
                         KeyCode::Backspace => { app.input.pop(); }
                         KeyCode::Enter => { let path = std::path::PathBuf::from(&app.input); if path.exists() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; push_history(fs, path); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } app.mode = AppMode::Normal; }
+                        _ => {}
+                    }
+                }
+                AppMode::NewFile => {
+                    match key.code {
+                        KeyCode::Esc => app.mode = AppMode::Normal,
+                        KeyCode::Char(c) => app.input.push(c),
+                        KeyCode::Backspace => { app.input.pop(); }
+                        KeyCode::Enter => { let name = app.input.clone(); let _ = event_tx.try_send(AppEvent::CreateFile(name)); app.mode = AppMode::Normal; }
                         _ => {}
                     }
                 }

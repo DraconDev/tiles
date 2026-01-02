@@ -269,6 +269,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::NewFolder) {
         draw_new_folder_modal(f, app);
     }
+    if matches!(app.mode, AppMode::NewFile) {
+        draw_new_file_modal(f, app);
+    }
     if matches!(app.mode, AppMode::ColumnSetup) {
         draw_column_setup_modal(f, app);
     }
@@ -738,6 +741,21 @@ fn draw_rename_modal(f: &mut Frame, app: &App) {
                 .borders(Borders::ALL)
                 .border_type(BorderType::Plain)
                 .border_style(Style::default().fg(Color::Yellow)),
+        ),
+        area,
+    );
+}
+
+fn draw_new_file_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(40, 10, f.area());
+    f.render_widget(Clear, area);
+    f.render_widget(
+        Paragraph::new(app.input.as_str()).block(
+            Block::default()
+                .title(" New File Name ")
+                .borders(Borders::ALL)
+                .border_type(BorderType::Plain)
+                .border_style(Style::default().fg(Color::Green)),
         ),
         area,
     );
