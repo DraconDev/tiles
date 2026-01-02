@@ -15,6 +15,7 @@ pub enum AppMode {
     Rename,      // F2 mode
     Properties,  // Alt+Enter mode
     NewFolder,   // Ctrl+Shift+N mode
+    NewFile,     // New File mode
     Delete,      // Delete key mode
     ColumnSetup, // Column configuration mode
     AddRemote,   // Add new SSH remote host
@@ -38,6 +39,7 @@ pub enum LicenseStatus {
 #[derive(Debug)]
 pub enum AppEvent {
     RefreshFiles(usize), // tab_index
+    CreateFile(String),  // filename
     FilesUpdated(
         usize,
         Vec<PathBuf>,
