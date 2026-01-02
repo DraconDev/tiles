@@ -210,11 +210,19 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                             AppEvent::CreateFolder(foldername) => {
                                 if let Ok(mut app) = app_bg.lock() {
                                     if let Some(fs) = app.current_file_state() {
-                                        let path = fs.current_path.join(foldername);
+                                        let path = fs.current_path.join(&foldername);
+                                        let _ = std::fs::write("/home/dracon/debug_tiles.log", format!("Attempting to create folder: {:?} in {:?}\n", foldername, fs.current_path));
                                         if !path.exists() {
-                                            if let Ok(_) = std::fs::create_dir(&path) {
-                                                // Success
+                                            match std::fs::create_dir(&path) {
+                                                Ok(_) => {
+                                                     let _ = std::fs::write("/home/dracon/debug_tiles_success.log", format!("Created: {:?}\n", path));
+                                                }
+                                                Err(e) => {
+                                                     let _ = std::fs::write("/home/dracon/debug_tiles_error.log", format!("Error creating {:?}: {}\n", path, e));
+                                                }
                                             }
+                                        } else {
+                                             let _ = std::fs::write("/home/dracon/debug_tiles_error.log", format!("Path exists: {:?}\n", path));
                                         }
                                     }
                                     let _ = event_tx_bg.try_send(AppEvent::RefreshFiles(app.tab_index));
