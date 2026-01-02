@@ -141,72 +141,66 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     });
     match app.current_view {
         CurrentView::Files => {
-            let mut sidebar_items = vec![
-                ListItem::new("   Local")
-                    .style(Style::default().add_modifier(Modifier::UNDERLINED)),
-                ListItem::new("     Home"),
-                ListItem::new("     Downloads"),
-                ListItem::new("     Documents"),
-                ListItem::new("     Pictures"),
-                ListItem::new(""),
-                ListItem::new("   Remote")
-                    .style(Style::default().add_modifier(Modifier::UNDERLINED)),
-            ];
+            let mut sidebar_items = Vec::new();
 
-            if let Ok(mut q) = tile_queue.lock() {
-                q.push(TilePlacement {
-                    asset_id: Icon::Folder as u32,
-                    is_image: true,
-                    x: inner.x,
-                    y: inner.y,
-                    z_index: 2,
-                    cols: Some(2),
-                    rows: Some(1),
-                    placement_id: Some(6000),
-                });
-                for i in 0..4 {
-                    q.push(TilePlacement {
-                        asset_id: Icon::Settings as u32,
-                        is_image: true,
-                        x: inner.x + 2,
-                        y: inner.y + 1 + i as u16,
-                        z_index: 2,
-                        cols: Some(2),
-                        rows: Some(1),
-                        placement_id: Some(6001 + i),
-                    });
-                }
-                q.push(TilePlacement {
-                    asset_id: Icon::Demon as u32,
-                    is_image: true,
-                    x: inner.x,
-                    y: inner.y + 6,
-                    z_index: 2,
-                    cols: Some(2),
-                    rows: Some(1),
-                    placement_id: Some(6010),
-                });
-            }
+            // FILES Section
+            sidebar_items.push(
+                ListItem::new(" [ FILES ]").style(
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            );
+            sidebar_items.push(ListItem::new("   Home"));
+            sidebar_items.push(ListItem::new("   Downloads"));
+            sidebar_items.push(ListItem::new("   Documents"));
+            sidebar_items.push(ListItem::new("   Pictures"));
 
+            // REMOTE Section
+            sidebar_items.push(ListItem::new(""));
+            sidebar_items.push(
+                ListItem::new(" [ REMOTE ]").style(
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            );
             for bookmark in &app.remote_bookmarks {
-                sidebar_items.push(ListItem::new(format!("     {}", bookmark.name)));
+                sidebar_items.push(ListItem::new(format!("   {}", bookmark.name)));
             }
-
             if app.remote_bookmarks.is_empty() {
                 sidebar_items.push(
-                    ListItem::new("     (No remotes)").style(Style::default().fg(Color::DarkGray)),
+                    ListItem::new("   (No remotes)").style(Style::default().fg(Color::DarkGray)),
                 );
             }
+
+            // STORAGE Section
+            sidebar_items.push(ListItem::new(""));
+            sidebar_items.push(
+                ListItem::new(" [ STORAGE ]").style(
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            );
+            sidebar_items.push(ListItem::new("   Root (/)"));
+            sidebar_items.push(ListItem::new("   Media (/run/media)"));
 
             let items: Vec<ListItem> = sidebar_items
                 .into_iter()
                 .enumerate()
                 .map(|(i, item): (usize, ListItem)| {
-                    if i == app.sidebar_index + 1 && app.sidebar_focus {
+                    // Check if this row is actually selectable (not a header or empty)
+                    let is_selectable = i > 0 && i < 5
+                        || (i > 7 && i < 8 + app.remote_bookmarks.len().max(1))
+                        || i > 9 + app.remote_bookmarks.len().max(1);
+
+                    if i == app.sidebar_index && app.sidebar_focus {
                         item.clone().style(
                             Style::default()
-                                .fg(Color::Yellow)
-                                .add_modifier(Modifier::BOLD),
+                                .fg(Color::Cyan)
+                                .add_modifier(Modifier::BOLD)
+                                .add_modifier(Modifier::REVERSED),
                         )
                     } else {
                         item.clone()

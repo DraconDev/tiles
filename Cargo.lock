@@ -1078,7 +1078,7 @@ dependencies = [
 
 [[package]]
 name = "tiles"
-version = "0.1.523"
+version = "0.1.524"
 dependencies = [
  "anyhow",
  "chrono",
