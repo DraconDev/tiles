@@ -458,11 +458,21 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
             let scrollbar = Scrollbar::default()
                 .orientation(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(Some("▲"))
-                .end_symbol(Some("▼"));
+                .end_symbol(Some("▼"))
+                .thumb_symbol("█")
+                .style(Style::default().fg(THEME.accent_primary));
+
             let mut scrollbar_state = ScrollbarState::new(file_state.files.len())
                 .position(file_state.table_state.offset());
-            // Render directly on the area, Ratatui handles the right-alignment
-            f.render_stateful_widget(scrollbar, area, &mut scrollbar_state);
+
+            // Render ON the right border
+            let scrollbar_area = Rect {
+                x: area.x + area.width.saturating_sub(1),
+                y: area.y + 1,
+                width: 1,
+                height: area.height.saturating_sub(2),
+            };
+            f.render_stateful_widget(scrollbar, scrollbar_area, &mut scrollbar_state);
         }
     }
 }
