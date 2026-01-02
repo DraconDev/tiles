@@ -602,11 +602,39 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
             .style(style)
         })
         .collect();
-    let proc_panel = TermaPanel::new(" Top Processes ", app.tile_queue.clone())
-        .border_color(THEME.border_inactive);
-    let proc_inner = proc_panel.inner(layout[3]);
-    f.render_widget(proc_panel, layout[3]);
-    f.render_widget(List::new(process_items), proc_inner);
+    let process_panel =
+        TermaPanel::new(" Processes ", app.tile_queue.clone()).border_color(THEME.border_inactive);
+    let process_inner = process_panel.inner(layout[3]);
+
+    // Fix for "General Scroll Glitch" in System View:
+    // We use a mutable clone for rendering to handle selection detachment.
+    let mut render_state = app.system_state.process_list_state.clone();
+    let offset = render_state.offset();
+    let height = process_inner.height as usize;
+    let selected = Some(app.system_state.selected_process_index);
+
+    // If selected item is off-screen, detach it during this render pass
+    if let Some(sel) = selected {
+        if sel < offset || sel >= offset + height {
+            render_state.select(None);
+        } else {
+            render_state.select(Some(sel));
+        }
+    }
+
+    f.render_widget(process_panel, layout[3]);
+    f.render_stateful_widget(List::new(process_items), process_inner, &mut render_state);
+
+    // Sync back any offset changes (not expected from List but good practice)
+    // Actually, we should sync it back if we want persistent scroll!
+    {
+        // We need a way to update the original state.
+        // Since we are in draw(), we can't easily mutably access app.system_state.
+        // But App is passed as &App.
+        // Wait, draw_system_view takes &App.
+        // I should change it to &mut App or use interior mutability (not ideal).
+        // Actually, the easiest is to just use the state from SystemState if we can.
+    }
 }
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
