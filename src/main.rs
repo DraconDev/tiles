@@ -194,6 +194,19 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                     }
                                 }
                             }
+                            AppEvent::CreateFile(filename) => {
+                                if let Ok(mut app) = app_bg.lock() {
+                                    if let Some(fs) = app.current_file_state() {
+                                        let path = fs.current_path.join(filename);
+                                        if !path.exists() {
+                                            if let Ok(_) = std::fs::File::create(&path) {
+                                                // Success
+                                            }
+                                        }
+                                    }
+                                    let _ = event_tx_bg.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                }
+                            }
                         }
                     }
                 }
