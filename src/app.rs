@@ -275,8 +275,7 @@ impl App {
     pub fn switch_view(&mut self) {
         self.current_view = match self.current_view {
             CurrentView::Files => CurrentView::System,
-            CurrentView::System => CurrentView::Docker,
-            CurrentView::Docker => CurrentView::Files,
+            CurrentView::System => CurrentView::Files,
         };
     }
 
