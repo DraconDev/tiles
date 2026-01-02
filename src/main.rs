@@ -214,7 +214,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
         });
     });
 
-    (app, logic_tx, event_rx, None)
+    (app, logic_tx, event_rx)
 }
 
 fn push_history(fs: &mut crate::app::FileState, path: std::path::PathBuf) {
@@ -474,7 +474,7 @@ fn update_commands(app: &mut App) {
         CommandItem { label: "Quit".to_string(), action: crate::app::CommandAction::Quit },
         CommandItem { label: "View: Files".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Files) },
         CommandItem { label: "View: System".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::System) },
-        CommandItem { label: "View: Docker".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Docker) },
+
         CommandItem { label: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
     ];
     let mut filtered = commands;
