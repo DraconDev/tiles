@@ -448,23 +448,24 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
             .border_style(Style::default().fg(THEME.accent_secondary));
-        let table = Table::new(rows, constraints)
-            .header(header)
-            .block(file_block);
-        // Force render to Rule out Logic errors
-        if true {
+        f.render_stateful_widget(table, area, &mut render_state);
+
+        // Scrollbar logic:
+        // Use Safety Margin (sub(4)) to match scrolling logic.
+        if file_state.files.len() > area.height.saturating_sub(4) as usize {
             let scrollbar = Scrollbar::default()
                 .orientation(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(Some("▲"))
                 .end_symbol(Some("▼"))
                 .track_symbol(Some("│"))
                 .thumb_symbol("█")
-                .style(Style::default().fg(Color::Magenta));
+                .style(Style::default().fg(Color::Yellow));
 
             let mut scrollbar_state = ScrollbarState::new(file_state.files.len())
                 .position(file_state.table_state.offset());
 
-            // Move it 3 chars in from the right to ensure it's not on the border
+            // Render with 1-char gutter from border (width-3)
+            // This ensures it is always visible and doesn't clash with borders.
             let scrollbar_area = Rect {
                 x: area.x + area.width.saturating_sub(3),
                 y: area.y + 1,
