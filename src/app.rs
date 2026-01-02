@@ -201,8 +201,7 @@ pub struct ProcessInfo {
 
 impl App {
     pub fn new(tile_queue: Arc<Mutex<Vec<TilePlacement>>>) -> Self {
-        let mut system_module = SystemModule::new();
-        let mut system_state = SystemState {
+        let system_state = SystemState {
             cpu_usage: 0.0,
             mem_usage: 0.0,
             total_mem: 0.0,
@@ -211,7 +210,6 @@ impl App {
             selected_process_index: 0,
             process_list_state: ratatui::widgets::ListState::default(),
         };
-        system_module.update(&mut system_state);
 
         let initial_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let mut file_state = FileState {
