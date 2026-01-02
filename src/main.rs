@@ -229,7 +229,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                             AppEvent::Raw(raw) => {
                                 let mut app_guard = app_bg.lock().unwrap();
                                 let app_tx = event_tx_bg.clone();
-                                handle_event(raw, &mut app_guard, &docker_bg, app_tx).await;
+                                handle_event(raw, &mut app_guard, &docker_bg, app_tx);
                                 
                                 // Check if selection changed and if it's an image
                                 if let Some(fs) = app_guard.current_file_state() {
@@ -350,7 +350,7 @@ fn update_docker_filter(app: &mut App) {
     app.docker_state.filter = None;
 }
 
-async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
+fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
     match evt {
         Event::Mouse(me) => {
             let column = me.column;
@@ -449,7 +449,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                                         let bookmark_idx = r - 7;
                                         if bookmark_idx < app.remote_bookmarks.len() {
                                             app.sidebar_index = r - 1;
-                                            execute_command(crate::app::CommandAction::ConnectToRemote(bookmark_idx), app, docker_module, event_tx.clone()).await;
+                                            execute_command(crate::app::CommandAction::ConnectToRemote(bookmark_idx), app, docker_module, event_tx.clone());
                                         }
                                     },
                                     _ => {}
@@ -492,7 +492,7 @@ async fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<Dock
                         KeyCode::Esc => app.mode = AppMode::Normal,
                         KeyCode::Char(c) => { app.input.push(c); update_commands(app); }
                         KeyCode::Backspace => { app.input.pop(); update_commands(app); }
-                        KeyCode::Enter => { if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() { execute_command(cmd.action, app, docker_module, event_tx.clone()).await; } app.mode = AppMode::Normal; app.input.clear(); }
+                        KeyCode::Enter => { if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() { execute_command(cmd.action, app, docker_module, event_tx.clone()); } app.mode = AppMode::Normal; app.input.clear(); }
                         _ => {}
                     }
                 }
@@ -556,7 +556,7 @@ fn update_commands(app: &mut App) {
     app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
 }
 
-async fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
+fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
     match action {
         crate::app::CommandAction::Quit => { app.running = false; },
         crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
