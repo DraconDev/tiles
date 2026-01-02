@@ -125,7 +125,9 @@ fn run_tty() -> color_eyre::Result<()> {
             loop {
                 if stdin.read(&mut buffer).is_ok() {
                     if let Some(evt) = parser.advance(buffer[0]) {
-                         let _ = tx.blocking_send(AppEvent::Raw(evt));
+                         if let Some(converted) = crate::event::convert_event(evt) {
+                             let _ = tx.blocking_send(AppEvent::Raw(converted));
+                         }
                     }
                 }
             }
