@@ -207,6 +207,19 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                     let _ = event_tx_bg.try_send(AppEvent::RefreshFiles(app.tab_index));
                                 }
                             }
+                            AppEvent::CreateFolder(foldername) => {
+                                if let Ok(mut app) = app_bg.lock() {
+                                    if let Some(fs) = app.current_file_state() {
+                                        let path = fs.current_path.join(foldername);
+                                        if !path.exists() {
+                                            if let Ok(_) = std::fs::create_dir(&path) {
+                                                // Success
+                                            }
+                                        }
+                                    }
+                                    let _ = event_tx_bg.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                }
+                            }
                         }
                     }
                 }
@@ -463,6 +476,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         KeyCode::Left => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } else { app.move_left(); } }
                         KeyCode::Right => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } else { app.move_right(); } }
                         KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } } } }
+                        KeyCode::Char('N') => { app.mode = AppMode::NewFolder; app.input.clear(); }
+                        KeyCode::Char('n') => { app.mode = AppMode::NewFile; app.input.clear(); }
                         _ => {}
                     }
                 }
