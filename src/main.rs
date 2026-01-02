@@ -12,7 +12,7 @@ use ratatui::Terminal;
 
 // App Imports
 use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent};
-use crate::modules::docker::DockerModule;
+
 
 mod app;
 mod ui;
@@ -99,18 +99,15 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
     Arc<Mutex<App>>,
     mpsc::Sender<AppEvent>,
     mpsc::Receiver<AppEvent>,
-    Option<Arc<DockerModule>>
+
 ) {
     let app = Arc::new(Mutex::new(App::new(tile_queue)));    
     let (_event_tx, event_rx) = mpsc::channel(1000); 
     // Logic Loop Channel (Input)
     let (logic_tx, mut logic_rx) = mpsc::channel(1000);
     
-    let (docker_tx, mut docker_rx) = mpsc::channel(10);
-    let docker_module = DockerModule::new().ok().map(Arc::new);
-
+    
     let app_bg = app.clone();
-    let docker_bg = docker_module.clone();
     let event_tx_bg = logic_tx.clone(); // Logic loop sends to itself via this? No, event_tx sends to logic_rx.
     
     // WE need to separate:
@@ -119,24 +116,11 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
     
     // The callers (run_window) need a Sender. We return logic_tx as 'event_tx'.
     
-    let docker_tx_bg = docker_tx.clone();
+
     
     std::thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            // Docker Monitor
-            if let Some(docker) = docker_bg.clone() {
-                let tx = docker_tx_bg;
-                tokio::spawn(async move {
-                    loop {
-                        if let Ok(containers) = docker.get_containers().await {
-                            let _ = tx.send(containers).await;
-                        }
-                        tokio::time::sleep(Duration::from_secs(2)).await;
-                    }
-                });
-            }
-
             // Tick
             let tick_tx = event_tx_bg.clone();
             tokio::spawn(async move {
