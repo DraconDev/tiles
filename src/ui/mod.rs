@@ -306,7 +306,23 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             chunks[0],
         );
 
-        draw_file_view(f, chunks[1], app);
+        match app.mode {
+            AppMode::NewFile => {
+                draw_file_view(f, chunks[1], app);
+                draw_new_file_modal(f, app);
+            }
+            AppMode::NewFolder => {
+                draw_file_view(f, chunks[1], app);
+                draw_new_folder_modal(f, app);
+            }
+            AppMode::Rename => {
+                draw_file_view(f, chunks[1], app);
+                draw_rename_modal(f, app);
+            }
+            _ => {
+                draw_file_view(f, chunks[1], app);
+            }
+        }
     } else {
         match app.current_view {
             CurrentView::System => draw_system_view(f, area, app),
