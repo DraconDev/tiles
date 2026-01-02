@@ -407,6 +407,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                 }
                 MouseEventKind::ScrollDown => {
+                    // crate::app::log_debug("DEBUG: ScrollDown received");
                     let sidebar_width = 16;
                     let in_file_area = column > sidebar_width && row > 2;
                     
