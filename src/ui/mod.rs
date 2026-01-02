@@ -49,7 +49,6 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     let views = vec![
         ("^F Files", CurrentView::Files),
         ("^P Proc", CurrentView::System),
-        ("^D Docker", CurrentView::Docker),
     ];
     for (label, view) in views {
         let width = (label.len() + 4) as u16;
@@ -319,7 +318,7 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
     } else {
         match app.current_view {
             CurrentView::System => draw_system_view(f, area, app),
-            CurrentView::Docker => draw_docker_view(f, area, app),
+
             _ => {}
         }
     }
@@ -592,53 +591,6 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
     let proc_inner = proc_panel.inner(layout[3]);
     f.render_widget(proc_panel, layout[3]);
     f.render_widget(List::new(process_items), proc_inner);
-}
-
-fn draw_docker_view(f: &mut Frame, area: Rect, app: &App) {
-    let items: Vec<ListItem> = app
-        .docker_state
-        .containers
-        .iter()
-        .filter_map(|c| {
-            let name = c
-                .names
-                .as_ref()
-                .and_then(|n| n.first())
-                .map(|s| s.as_str())
-                .unwrap_or("")
-                .trim_start_matches('/');
-            if let Some(filter) = &app.docker_state.filter {
-                if !name.contains(filter) {
-                    return None;
-                }
-            }
-            Some((
-                name,
-                c.state.as_deref().unwrap_or(""),
-                c.status.as_deref().unwrap_or(""),
-            ))
-        })
-        .enumerate()
-        .map(|(i, (name, state, status))| {
-            let style = match state {
-                "running" => Style::default().fg(Color::Green),
-                "exited" => Style::default().fg(Color::Red),
-                _ => Style::default(),
-            };
-            let prefix = if i == app.docker_state.selected_index && !app.sidebar_focus {
-                "> "
-            } else {
-                "  "
-            };
-            ListItem::new(format!("{}{:<20} {:<10} {}", prefix, name, state, status)).style(style)
-        })
-        .collect();
-
-    let panel =
-        TermaPanel::new(" Containers ", app.tile_queue.clone()).border_color(THEME.border_active);
-    let inner = panel.inner(area);
-    f.render_widget(panel, area);
-    f.render_widget(List::new(items), inner);
 }
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
