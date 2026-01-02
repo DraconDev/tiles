@@ -307,9 +307,10 @@ impl App {
 
                 while (self.sidebar_index == 0
                     || self.sidebar_index == 5
-                    || self.sidebar_index == 6
-                    || self.sidebar_index == 7 + num_remotes
-                    || self.sidebar_index == 8 + num_remotes)
+                    || self.sidebar_index == remote_header
+                    || self.sidebar_index == (remote_header - 1)
+                    || self.sidebar_index == storage_header
+                    || self.sidebar_index == (storage_header - 1))
                     && self.sidebar_index > 1
                 {
                     self.sidebar_index -= 1;
