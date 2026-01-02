@@ -167,7 +167,14 @@ fn run_tty() -> color_eyre::Result<()> {
                 if stdin.read(&mut buffer).is_ok() {
                     if let Some(evt) = parser.advance(buffer[0]) {
                          if let Some(converted) = crate::event::convert_event(evt) {
-                             let _ = tx.blocking_send(AppEvent::Raw(converted));
+                             // Filter Move events in TTY mode too
+                             let is_spam = if let Event::Mouse(ref me) = converted {
+                                  matches!(me.kind, MouseEventKind::Moved)
+                             } else { false };
+                             
+                             if !is_spam {
+                                 let _ = tx.blocking_send(AppEvent::Raw(converted));
+                             }
                          }
                     }
                 }
