@@ -150,6 +150,14 @@ fn run_tty() -> color_eyre::Result<()> {
     let backend = TermaBackend::new(std::io::stdout())?;
     let tile_queue = backend.tile_queue();
     let mut terminal = Terminal::new(backend)?;
+    
+    // Enable Mouse (1000 = Basic, 1006 = SGR Ext). Avoid 1003 (Any) to prevent flood.
+    {
+        use std::io::Write;
+        let mut stdout = std::io::stdout();
+        write!(stdout, "\x1b[?1000h\x1b[?1006h")?;
+        stdout.flush()?;
+    }
 
     // Setup App & Async
     let (app, event_tx, mut _event_rx, _ui_tx, _ui_rx, _docker) = setup_app(tile_queue);
