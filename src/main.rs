@@ -133,7 +133,8 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                             AppEvent::Tick => {
                                 if let Ok(mut app) = app_bg.lock() {
                                     let mut system_state = std::mem::replace(&mut app.system_state, crate::app::SystemState {
-                                        cpu_usage: 0.0, mem_usage: 0.0, total_mem: 0.0, disks: Vec::new(), processes: Vec::new(), selected_process_index: 0
+                                        cpu_usage: 0.0, mem_usage: 0.0, total_mem: 0.0, disks: Vec::new(), processes: Vec::new(), selected_process_index: 0,
+                                        process_list_state: ratatui::widgets::ListState::default()
                                     });
                                     app.system_module.update(&mut system_state);
                                     app.system_state = system_state;

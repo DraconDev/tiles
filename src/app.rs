@@ -198,6 +198,7 @@ impl App {
             disks: Vec::new(),
             processes: Vec::new(),
             selected_process_index: 0,
+            process_list_state: ratatui::widgets::ListState::default(),
         };
         system_module.update(&mut system_state);
 
