@@ -136,10 +136,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
             // LOGIC LOOP
             loop {
                 tokio::select! {
-                     Some(containers) = docker_rx.recv() => {
-                        if let Ok(mut app) = app_bg.lock() { app.docker_state.containers = containers; }
-                    }
-                    Some(evt) = logic_rx.recv() => {
+                     Some(evt) = logic_rx.recv() => {
                          match evt {
                             AppEvent::Tick => {
                                 if let Ok(mut app) = app_bg.lock() {
@@ -204,7 +201,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
         });
     });
 
-    (app, logic_tx, event_rx, docker_module)
+    (app, logic_tx, event_rx, None)
 }
 
 fn push_history(fs: &mut crate::app::FileState, path: std::path::PathBuf) {
@@ -232,21 +229,7 @@ fn navigate_forward(fs: &mut crate::app::FileState) {
     }
 }
 
-fn update_docker_filter(app: &mut App) {
-    if let Some(fs) = app.current_file_state() {
-        if let Some(idx) = fs.selected_index {
-            if let Some(path) = fs.files.get(idx) {
-                if path.is_dir() {
-                    if path.join("Dockerfile").exists() || path.join("docker-compose.yml").exists() || path.join("docker-compose.yaml").exists() {
-                        app.docker_state.filter = Some(path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_string());
-                        return;
-                    }
-                }
-            }
-        }
-    }
-    app.docker_state.filter = None;
-}
+
 
 fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
     match evt {
