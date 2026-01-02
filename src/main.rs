@@ -221,15 +221,6 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                 if let Ok(mut app) = app_bg.lock() {
                                     if let Some(fs) = app.file_tabs.get_mut(idx) {
                                         fs.files = files; fs.metadata = meta; fs.git_status = git;
-                                        // Trigger preview if an image is selected
-                                        if let Some(sel_idx) = fs.selected_index {
-                                            if let Some(path) = fs.files.get(sel_idx) {
-                                                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-                                                if ext == "png" || ext == "jpg" || ext == "jpeg" {
-                                                    let _ = event_tx_bg.send(AppEvent::LoadImage(path.clone())).await;
-                                                }
-                                            }
-                                        }
                                     }
                                 }
                             }
