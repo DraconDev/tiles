@@ -108,7 +108,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
     
     
     let app_bg = app.clone();
-    let event_tx_bg = logic_tx.clone(); // Logic loop sends to itself via this? No, event_tx sends to logic_rx.
+    let event_tx_bg: mpsc::Sender<AppEvent> = logic_tx.clone();
     
     // WE need to separate:
     // 1. External Events (Window/TTY) -> logic_tx
@@ -321,7 +321,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         if row == 0 {
                             if column < 11 { app.current_view = CurrentView::Files; }
                             else if column < 22 { app.current_view = CurrentView::System; }
-    
                         } else {
                             let sidebar_width = 16;
                             if column < sidebar_width {
@@ -344,7 +343,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         let bookmark_idx = r - 7;
                                         if bookmark_idx < app.remote_bookmarks.len() {
                                             app.sidebar_index = r - 1;
-                                            execute_command(crate::app::CommandAction::ConnectToRemote(bookmark_idx), app, docker_module, event_tx.clone());
+                                            execute_command(crate::app::CommandAction::ConnectToRemote(bookmark_idx), app, event_tx.clone());
                                         }
                                     },
                                     _ => {}
