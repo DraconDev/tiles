@@ -464,10 +464,26 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
             .border_style(Style::default().fg(THEME.accent_secondary));
-        let table = Table::new(rows, constraints)
-            .header(header)
-            .block(file_block);
-        f.render_stateful_widget(table, area, &mut render_state);
+        let height = area.height.saturating_sub(2) as usize; // Account for borders
+        let offset = render_state.offset();
+        let selected = render_state.selected();
+
+        // Fix for "Scroll Glitch":
+        // If the selected item is NOT in the current view range (offset..offset+height),
+        // we must effectively "hide" the selection from the Table widget during this render pass.
+        // Otherwise, Table will forcibly snap the offset back to bring the selection into view,
+        // undoing any manual mouse scrolling.
+        let mut display_state = render_state.clone();
+        if let Some(sel) = selected {
+            if sel < offset || sel >= offset + height {
+                display_state.select(None);
+            }
+        }
+
+        f.render_stateful_widget(table, area, &mut display_state);
+
+        // Write back the offset to the persistent state, in case Table adjusted it (e.g. bottom clamp)
+        *file_state.table_state.offset_mut() = display_state.offset();
 
         // Scrollbar logic:
         // Use Safety Margin (sub(4)) to match scrolling logic.
