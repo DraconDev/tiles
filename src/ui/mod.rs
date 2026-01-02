@@ -212,7 +212,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             let items: Vec<ListItem> = sidebar_items
                 .into_iter()
                 .enumerate()
-                .map(|(i, item): (usize, &ListItem)| {
+                .map(|(i, item): (usize, ListItem)| {
                     if i == app.sidebar_index + 1 && app.sidebar_focus {
                         item.clone().style(
                             Style::default()

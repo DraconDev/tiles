@@ -163,12 +163,6 @@ pub struct FileState {
     pub view_height: usize,
 }
 
-pub struct DockerState {
-    pub containers: Vec<ContainerSummary>,
-    pub selected_index: usize,
-    pub filter: Option<String>,
-}
-
 pub struct SystemState {
     pub cpu_usage: f32,
     pub mem_usage: f64,
