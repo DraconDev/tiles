@@ -261,7 +261,6 @@ fn navigate_forward(fs: &mut crate::app::FileState) {
 fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
     match evt {
         Event::Mouse(me) => {
-            println!("DEBUG: Handler: Mouse at R={}, C={}", me.row, me.column);
             let column = me.column;
             let row = me.row;
             match me.kind {
