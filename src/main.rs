@@ -383,52 +383,36 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                 }
                 MouseEventKind::ScrollUp => {
-                    // crate::app::log_debug("DEBUG: ScrollUp received");
-                    // Only scroll file list if mouse is in the file area (right of sidebar, below header)
-                    let sidebar_width = 16;
-                    let in_file_area = column > sidebar_width && row > 2;
-                    
-                    if app.current_view == CurrentView::Files {
-                        // Only scroll if in valid area, otherwise ignore completely
-                        if in_file_area && !app.sidebar_focus {
+                    match app.current_view {
+                        CurrentView::Files => {
                             if let Some(fs) = app.current_file_state_mut() {
                                 let new_offset = fs.table_state.offset().saturating_sub(3);
                                 *fs.table_state.offset_mut() = new_offset;
                             }
                         }
-                        // If not in file area, do nothing (no shiver)
-                        // For Docker/System views, allow scroll anywhere
-                        if app.current_view == CurrentView::System {
+                        CurrentView::System => {
                             let new_offset = app.system_state.process_list_state.offset().saturating_sub(3);
                             *app.system_state.process_list_state.offset_mut() = new_offset;
-                        } else {
-                            app.move_up();
                         }
+                        _ => {}
                     }
                 }
                 MouseEventKind::ScrollDown => {
-                    // crate::app::log_debug("DEBUG: ScrollDown received");
-                    let sidebar_width = 16;
-                    let in_file_area = column > sidebar_width && row > 2;
-                    
-                    if app.current_view == CurrentView::Files {
-                        if in_file_area && !app.sidebar_focus {
+                    match app.current_view {
+                        CurrentView::Files => {
                             if let Some(fs) = app.current_file_state_mut() {
                                 let capacity = fs.view_height.saturating_sub(4);
-                                let effective_capacity = capacity.saturating_sub(3);
+                                let effective_capacity = capacity.saturating_sub(2); // Margin
                                 let max_offset = fs.files.len().saturating_sub(effective_capacity);
                                 let new_offset = (fs.table_state.offset() + 3).min(max_offset);
                                 *fs.table_state.offset_mut() = new_offset;
                             }
                         }
-                        if app.current_view == CurrentView::System {
+                        CurrentView::System => {
                             let new_offset = app.system_state.process_list_state.offset().saturating_add(3);
-                            // We don't have a max_offset easily here without checking process len, 
-                            // but List widgets handle overflow gracefully by clamping.
                             *app.system_state.process_list_state.offset_mut() = new_offset;
-                        } else {
-                            app.move_down();
                         }
+                        _ => {}
                     }
                 }
                 _ => {}
