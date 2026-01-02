@@ -514,7 +514,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
-fn draw_system_view(f: &mut Frame, area: Rect, app: &App) {
+fn draw_system_view(f: &mut Frame, area: Rect, app: &mut App) {
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
