@@ -58,6 +58,32 @@ fn run_window() -> color_eyre::Result<()> {
         ShapeColor::new(25, 25, 40, 255)
     );
     window.add_image_asset(2001, sidebar_bg, 300, 800);
+    // Add Placement for Sidebar
+    window.add_tile_asset(2001, vec![], 300, 800); // Hack: using add_tile_asset to trigger placement if it supports it? 
+    // Wait, TermaWindow logic distinguishes add_image_asset (register) vs placements.
+    // I need to add a placement. TermaWindow exposes tile_queue.
+    if let Ok(mut queue) = window.tile_queue().lock() {
+        use terma::compositor::engine::TilePlacement;
+        queue.push(TilePlacement {
+             asset_id: 2001,
+             x: 0,
+             y: 0,
+             z: 0, // Behind TUI
+             cols: None, // Use native size
+             rows: None,
+             is_image: true,
+        });
+        // Header
+         queue.push(TilePlacement {
+             asset_id: 3001,
+             x: 0,
+             y: 0,
+             z: 1, 
+             cols: Some(150), // Stretch width
+             rows: None,
+             is_image: true,
+        });
+    }
 
     let header_bg = ShapeGenerator::gradient_horizontal(
         100, 16,
