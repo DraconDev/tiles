@@ -2686,7 +2686,7 @@ dependencies = [
 
 [[package]]
 name = "tiles"
-version = "0.1.225"
+version = "0.1.226"
 dependencies = [
  "anyhow",
  "bollard",
