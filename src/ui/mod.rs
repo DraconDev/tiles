@@ -367,86 +367,97 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         let offset = file_state.table_state.offset();
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let metadata = file_state.metadata.get(path);
-            let cells = file_state.columns.iter().map(|c| {
-                match c {
-                    FileColumn::Name => {
-                        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
-                        let mut display_name = name.to_string();
-                        let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
-                        let mut style = if is_dir {
-                            Style::default()
-                                .fg(THEME.accent_secondary)
-                                .add_modifier(Modifier::BOLD)
-                        } else {
-                            Style::default().fg(THEME.fg)
-                        };
-                        if let Some(status) = file_state.git_status.get(path) {
-                            display_name.push_str(&format!(
-                                " [{}]
+            let cells = file_state.columns.iter().map(|c| match c {
+                FileColumn::Name => {
+                    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
+                    let mut display_name = name.to_string();
+                    let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
+                    let mut style = if is_dir {
+                        Style::default()
+                            .fg(THEME.accent_secondary)
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default().fg(THEME.fg)
+                    };
+                    if let Some(status) = file_state.git_status.get(path) {
+                        display_name.push_str(&format!(
+                            " [{}]
 ",
-                                status
-                            ));
-                            match status.as_str() {
-                                "M" | "MM" => style = style.fg(Color::Yellow),
-                                "A" | "AM" => style = style.fg(Color::Green),
-                                "??" => style = style.fg(Color::DarkGray),
-                                "D" => style = style.fg(Color::Red),
-                                _ => {}
-                            }
+                            status
+                        ));
+                        match status.as_str() {
+                            "M" | "MM" => style = style.fg(Color::Yellow),
+                            "A" | "AM" => style = style.fg(Color::Green),
+                            "??" => style = style.fg(Color::DarkGray),
+                            "D" => style = style.fg(Color::Red),
+                            _ => {}
                         }
-                        if file_state.starred.contains(path) {
-                            display_name.push_str(" [*]");
-                            style = style.fg(THEME.accent_primary).add_modifier(Modifier::BOLD);
-                        }
+                    }
+                    if file_state.starred.contains(path) {
+                        display_name.push_str(" [*]");
+                        style = style.fg(THEME.accent_primary).add_modifier(Modifier::BOLD);
+                    }
 
-                        let icon_type = get_file_icon_type(path, is_dir);
-                        if i >= offset && i < offset + (area.height as usize).saturating_sub(1) {
-                            let row_y = area.y + 1 + (i - offset) as u16;
-                            if let Ok(mut q) = tile_queue.lock() {
-                                // Use is_image: true for Sprite Icons
-                                q.push(TilePlacement {
-                                    asset_id: icon_type as u32,
-                                    is_image: true,
-                                    x: area.x,
-                                    y: row_y,
-                                    z_index: 2,
-                                    cols: Some(2),
-                                    rows: Some(1),
-                                    placement_id: Some(5000 + i as u32),
-                                });
-                            }
+                    let icon = if is_dir {
+                        " "
+                    } else {
+                        match path
+                            .extension()
+                            .and_then(|e| e.to_str())
+                            .unwrap_or("")
+                            .to_lowercase()
+                            .as_str()
+                        {
+                            "rs" => " ",
+                            "toml" => " ",
+                            "md" => " ",
+                            "json" => " ",
+                            "js" => " ",
+                            "ts" => " ",
+                            "css" => " ",
+                            "html" => " ",
+                            "png" | "jpg" | "jpeg" | "gif" | "webp" => " ",
+                            "mp4" | "mkv" | "mov" | "webm" => " ",
+                            "mp3" | "wav" | "flac" | "aac" => " ",
+                            "zip" | "tar" | "gz" | "7z" | "rar" => " ",
+                            "pdf" => " ",
+                            "txt" => " ",
+                            "sh" => " ",
+                            "py" => " ",
+                            _ => " ",
                         }
-                        Cell::from(format!("  {}", display_name)).style(style)
-                    }
-                    FileColumn::Size => {
-                        let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
-                        if is_dir {
-                            Cell::from("<DIR>").style(Style::default().fg(THEME.accent_secondary))
-                        } else {
-                            Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0)))
-                                .style(Style::default().fg(THEME.fg))
-                        }
-                    }
-                    FileColumn::Modified => Cell::from(format_time(
-                        metadata
-                            .map(|m| m.modified)
-                            .unwrap_or(SystemTime::UNIX_EPOCH),
-                    ))
-                    .style(Style::default().fg(THEME.fg)),
-                    FileColumn::Created => Cell::from(format_time(
-                        metadata
-                            .map(|m| m.created)
-                            .unwrap_or(SystemTime::UNIX_EPOCH),
-                    ))
-                    .style(Style::default().fg(THEME.fg)),
-                    FileColumn::Permissions => Cell::from(format_permissions(
-                        metadata.map(|m| m.permissions).unwrap_or(0),
-                    ))
-                    .style(Style::default().fg(THEME.fg)),
-                    FileColumn::Extension => {
-                        Cell::from(path.extension().and_then(|e| e.to_str()).unwrap_or(""))
+                    };
+
+                    Cell::from(format!("{} {}", icon, display_name)).style(style)
+                }
+                FileColumn::Size => {
+                    let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
+                    if is_dir {
+                        Cell::from("<DIR>").style(Style::default().fg(THEME.accent_secondary))
+                    } else {
+                        Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0)))
                             .style(Style::default().fg(THEME.fg))
                     }
+                }
+                FileColumn::Modified => Cell::from(format_time(
+                    metadata
+                        .map(|m| m.modified)
+                        .unwrap_or(SystemTime::UNIX_EPOCH),
+                ))
+                .style(Style::default().fg(THEME.fg)),
+                FileColumn::Created => Cell::from(format_time(
+                    metadata
+                        .map(|m| m.created)
+                        .unwrap_or(SystemTime::UNIX_EPOCH),
+                ))
+                .style(Style::default().fg(THEME.fg)),
+                FileColumn::Permissions => Cell::from(format_permissions(
+                    metadata.map(|m| m.permissions).unwrap_or(0),
+                ))
+                .style(Style::default().fg(THEME.fg)),
+                FileColumn::Extension => {
+                    Cell::from(path.extension().and_then(|e| e.to_str()).unwrap_or(""))
+                        .style(Style::default().fg(THEME.fg))
                 }
             });
             let style = if Some(i) == file_state.selected_index && !sidebar_focus {
@@ -480,7 +491,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         f.render_stateful_widget(table, area, &mut render_state);
 
         // Scrollbar
-        if file_state.files.len() > area.height.saturating_sub(2) as usize {
+        let list_height = area.height.saturating_sub(2) as usize;
+        if file_state.files.len() > list_height {
             let scrollbar = Scrollbar::default()
                 .orientation(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(Some("▲"))
@@ -489,7 +501,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                 .thumb_symbol("█");
             let mut scrollbar_state = ScrollbarState::new(file_state.files.len())
                 .position(file_state.table_state.offset());
-            // Render inside the area, shifted by 1 for border
+            // Render inside the area, shifted by 1 for border (Right side)
             let scrollbar_area = Rect {
                 x: area.x + area.width.saturating_sub(1),
                 y: area.y + 1,
