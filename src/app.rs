@@ -166,6 +166,15 @@ pub struct FileState {
     pub view_height: usize,
 }
 
+#[derive(Clone, Debug)]
+pub struct SystemData {
+    pub cpu_usage: f32,
+    pub mem_usage: f64,
+    pub total_mem: f64,
+    pub disks: Vec<DiskInfo>,
+    pub processes: Vec<ProcessInfo>,
+}
+
 pub struct SystemState {
     pub cpu_usage: f32,
     pub mem_usage: f64,
@@ -176,12 +185,14 @@ pub struct SystemState {
     pub process_list_state: ratatui::widgets::ListState,
 }
 
+#[derive(Clone, Debug)]
 pub struct DiskInfo {
     pub name: String,
     pub used_space: f64,  // GB
     pub total_space: f64, // GB
 }
 
+#[derive(Clone, Debug)]
 pub struct ProcessInfo {
     pub pid: u32,
     pub name: String,
