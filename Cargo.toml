@@ -1,6 +1,6 @@
 [package]
 name = "tiles"
-version = "0.1.285"
+version = "0.1.286"
 edition = "2021"
 
 [dependencies]
@@ -14,6 +14,7 @@ dirs = "5.0.1"
 chrono = "0.4.42"
 ssh2 = "0.9.5"
 terma = { path = "../terma" }
+tokio = { version = "1.0", features = ["full"] }
 openssl = { version = "0.10", features = ["vendored"] }
 
 
