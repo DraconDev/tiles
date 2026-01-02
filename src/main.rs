@@ -533,7 +533,7 @@ fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModu
                 MouseEventKind::ScrollUp => {
                     // Only scroll file list if mouse is in the file area (right of sidebar, below header)
                     let sidebar_width = 16;
-                    let in_file_area = col > sidebar_width && row > 1;
+                    let in_file_area = column > sidebar_width && row > 1;
                     if app.current_view == CurrentView::Files && in_file_area && !app.sidebar_focus {
                         if let Some(fs) = app.current_file_state_mut() {
                             let new_offset = fs.table_state.offset().saturating_sub(3);
@@ -546,7 +546,7 @@ fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModu
                 }
                 MouseEventKind::ScrollDown => {
                     let sidebar_width = 16;
-                    let in_file_area = col > sidebar_width && row > 1;
+                    let in_file_area = column > sidebar_width && row > 1;
                     if app.current_view == CurrentView::Files && in_file_area && !app.sidebar_focus {
                         if let Some(fs) = app.current_file_state_mut() {
                             let capacity = fs.view_height.saturating_sub(2);
