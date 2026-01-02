@@ -510,6 +510,16 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     fs.selected_index = Some(0);
                                     *fs.table_state.offset_mut() = 0;
                                     let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                } else {
+                                    // Go UP one level if search is empty
+                                    if let Some(parent) = fs.current_path.parent() {
+                                        let p = parent.to_path_buf();
+                                        fs.current_path = p.clone();
+                                        fs.selected_index = Some(0);
+                                        *fs.table_state.offset_mut() = 0;
+                                        push_history(fs, p);
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                    }
                                 }
                             }
                         }
