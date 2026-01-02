@@ -454,7 +454,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         f.render_stateful_widget(table, area, &mut render_state);
 
         // Scrollbar
-        if file_state.files.len() > area.height.saturating_sub(3) as usize {
+        if file_state.files.len() > area.height.saturating_sub(4) as usize {
             let scrollbar = Scrollbar::default()
                 .orientation(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(Some("▲"))
@@ -466,9 +466,9 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
             let mut scrollbar_state = ScrollbarState::new(file_state.files.len())
                 .position(file_state.table_state.offset());
 
-            // Render INSIDE the right border (Nautilus style)
+            // Render INSIDE the right border
             let scrollbar_area = Rect {
-                x: area.x + area.width.saturating_sub(2), // Inside border
+                x: area.x + area.width.saturating_sub(2),
                 y: area.y + 1,
                 width: 1,
                 height: area.height.saturating_sub(2),
