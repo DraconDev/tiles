@@ -444,8 +444,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             KeyCode::Char('.') => { app.mode = AppMode::CommandPalette; update_commands(app); }
                             KeyCode::Char('f') => app.current_view = CurrentView::Files,
                             KeyCode::Char('p') => app.current_view = CurrentView::System,
-
-                            KeyCode::Char('h') => { if let Some(fs) = app.current_file_state_mut() { fs.show_hidden = !fs.show_hidden; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } }
                             _ => {}
                         }
                         return;

@@ -212,9 +212,9 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             let items: Vec<ListItem> = sidebar_items
                 .into_iter()
                 .enumerate()
-                .map(|(i, item)| {
+                .map(|(i, item): (usize, &ListItem)| {
                     if i == app.sidebar_index + 1 && app.sidebar_focus {
-                        item.style(
+                        item.clone().style(
                             Style::default()
                                 .fg(Color::Yellow)
                                 .add_modifier(Modifier::BOLD),
