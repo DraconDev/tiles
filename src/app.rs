@@ -62,7 +62,6 @@ pub struct App {
     pub tab_index: usize,
     pub system_state: SystemState,
     pub license: LicenseStatus,
-    pub system_module: SystemModule,
     pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
     pub sidebar_index: usize,
     pub remote_bookmarks: Vec<RemoteBookmark>,
