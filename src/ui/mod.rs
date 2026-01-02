@@ -16,17 +16,6 @@ use terma::compositor::engine::TilePlacement;
 use terma::visuals::assets::Icon;
 use terma::widgets::{TermaButton, TermaPanel};
 
-fn get_file_icon_type(path: &std::path::Path, is_dir: bool) -> Icon {
-    if is_dir {
-        return Icon::Folder;
-    }
-    match path.extension().and_then(|s| s.to_str()).unwrap_or("") {
-        "rs" => Icon::Rust,
-        "json" => Icon::Json,
-        _ => Icon::File,
-    }
-}
-
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     let tile_queue = app.tile_queue.clone();
 
