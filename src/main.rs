@@ -8,7 +8,7 @@ use tokio::sync::mpsc;
 use terma::integration::window::TermaWindow;
 use terma::integration::ratatui::{TermaBackend, RatatuiCompositorBackend};
 use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifiers};
-use terma::compositor::plane::Cell;
+use terma::compositor::plane::Plane;
 use terma::visuals::loader::ImageLoader;
 use terma::visuals::shapes::{ShapeGenerator, Color as ShapeColor};
 
@@ -162,7 +162,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
     Option<Arc<DockerModule>>
 ) {
     let app = Arc::new(Mutex::new(App::new(tile_queue)));    
-    let (event_tx, _event_rx) = mpsc::channel(100); 
+    let (event_tx, event_rx) = mpsc::channel(100); 
     // Logic Loop Channel (Input)
     let (logic_tx, mut logic_rx) = mpsc::channel(100);
     
