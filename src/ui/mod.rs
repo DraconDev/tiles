@@ -194,6 +194,10 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                         || (i > 7 && i < 8 + app.remote_bookmarks.len().max(1))
                         || i > 9 + app.remote_bookmarks.len().max(1);
 
+                    if !is_selectable {
+                        return item.clone().style(Style::default().fg(Color::DarkGray));
+                    }
+
                     if i == app.sidebar_index && app.sidebar_focus {
                         item.clone().style(
                             Style::default()
