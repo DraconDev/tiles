@@ -278,30 +278,50 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(3), Constraint::Min(0)])
             .split(area);
-        let path_text = if let Some(fs) = app.current_file_state() {
+        let mut path_spans = Vec::new();
+        if let Some(fs) = app.current_file_state() {
             if !fs.search_filter.is_empty() {
-                format!("Search: {} (Esc to clear)", fs.search_filter)
+                path_spans.push(ratatui::text::Span::styled(
+                    format!("Search: {} (Esc to clear)", fs.search_filter),
+                    Style::default().fg(Color::Magenta),
+                ));
             } else {
-                format!("Path: {}", fs.current_path.display())
+                path_spans.push(ratatui::text::Span::raw("Path: "));
+                let path = &fs.current_path;
+                let components: Vec<_> = path.components().collect();
+                let mut current_path = std::path::PathBuf::new();
+
+                for (i, comp) in components.iter().enumerate() {
+                    let part = match comp {
+                        std::path::Component::RootDir => "/".to_string(),
+                        std::path::Component::Normal(s) => s.to_string_lossy().to_string(),
+                        _ => continue,
+                    };
+
+                    current_path.push(comp);
+                    let mut style = Style::default().fg(Color::Cyan);
+                    if i == components.len() - 1 {
+                        style = style.add_modifier(Modifier::BOLD);
+                    } else {
+                        style = style.add_modifier(Modifier::UNDERLINED);
+                    }
+
+                    path_spans.push(ratatui::text::Span::styled(part, style));
+                    if i < components.len() - 1 && i > 0 {
+                        path_spans.push(ratatui::text::Span::raw("/"));
+                    } else if i == 0 && components.len() > 1 {
+                        // Root dir already has / if it's the only one or if we add it here
+                        // If it's RootDir, part is "/"
+                    }
+                }
             }
-        } else {
-            String::new()
-        };
-        let path_style = if app
-            .current_file_state()
-            .map(|s| !s.search_filter.is_empty())
-            .unwrap_or(false)
-        {
-            Style::default().fg(Color::Magenta)
-        } else {
-            Style::default()
-        };
+        }
+
         f.render_widget(
-            Paragraph::new(path_text).block(
+            Paragraph::new(ratatui::text::Line::from(path_spans)).block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_type(BorderType::Plain)
-                    .border_style(path_style),
+                    .border_type(BorderType::Plain),
             ),
             chunks[0],
         );
