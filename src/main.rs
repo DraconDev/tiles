@@ -129,19 +129,32 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
             // Init Files
             let _ = event_tx_bg.send(AppEvent::RefreshFiles(0)).await;
             
+            // System Updates Thread
+            let sys_tx = event_tx_bg.clone();
+            std::thread::spawn(move || {
+                let mut sys_mod = crate::modules::system::SystemModule::new();
+                loop {
+                    let data = sys_mod.get_data();
+                    let _ = sys_tx.blocking_send(AppEvent::SystemUpdated(data));
+                    std::thread::sleep(Duration::from_millis(1000));
+                }
+            });
+            
             // LOGIC LOOP
             loop {
                 tokio::select! {
                      Some(evt) = logic_rx.recv() => {
                          match evt {
                             AppEvent::Tick => {
+                                // Tick is now only for general timing if needed
+                            }
+                            AppEvent::SystemUpdated(data) => {
                                 if let Ok(mut app) = app_bg.lock() {
-                                    let mut system_state = std::mem::replace(&mut app.system_state, crate::app::SystemState {
-                                        cpu_usage: 0.0, mem_usage: 0.0, total_mem: 0.0, disks: Vec::new(), processes: Vec::new(), selected_process_index: 0,
-                                        process_list_state: ratatui::widgets::ListState::default()
-                                    });
-                                    app.system_module.update(&mut system_state);
-                                    app.system_state = system_state;
+                                    app.system_state.cpu_usage = data.cpu_usage;
+                                    app.system_state.mem_usage = data.mem_usage;
+                                    app.system_state.total_mem = data.total_mem;
+                                    app.system_state.disks = data.disks;
+                                    app.system_state.processes = data.processes;
                                 }
                             }
                             AppEvent::Raw(raw) => {
