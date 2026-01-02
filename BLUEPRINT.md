@@ -1,59 +1,53 @@
 # 📜 The Sovereign Blueprint: Tiles & Terma
 
-**Version:** 4.0 (The AI-Native Era)
-**Status:** Hybrid Core Implemented
+**Version:** 5.0 (The Universal Terminal Era)
+**Status:** Core Pivot Complete
 
 ## 1. The Core Vision
 
-We have successfully transitioned `tiles` from a vague TUI concept to a **Sovereign Application**.
+We have refined the vision from a "Sovereign Window" to a **Universal Interface**.
+`tiles` is not just an app; it is the **Ultimate Terminal Dashboard**.
 
-- **Terma (The Engine)**: A GPU-accelerated console engine that handles "God Mode" graphics (Images, Gradients) while maintaining a grid-based coordinate system.
-- **Tiles (The Body)**: A hybrid File Manager / Dashboard that owns its window locally but degrades gracefully to SSH remotely.
-- **Demon (The Mind)**: The AI Agent that inhabits the Tiles body, leveraging the deterministic nature of the grid for perfect control.
+- **Terma (The Engine)**: A robust TUI engine wrapper around `ratatui` that standardizes input handling and event loops.
+- **Tiles (The Body)**: A high-performance remote/local file manager and dashboard that lives inside your existing terminal.
+- **Philosophy**: "Any Terminal, Anywhere".
 
-## 2. Architecture: The "Hybrid Core"
+## 2. Architecture: Single-Stack Efficiency
 
-We have implemented the **Dual-Runtime** model in `tiles/src/main.rs`.
+We have simplified the architecture to a single, robust TTY runtime.
 
-| Runtime             | Technology             | Use Case                              | Status             |
-| :------------------ | :--------------------- | :------------------------------------ | :----------------- |
-| **Sovereign (GUI)** | `winit` + `softbuffer` | Local Desktop, High-Res Assets, 60FPS | ✅ **Active**      |
-| **Tenant (TTY)**    | `crossterm` / `stdout` | SSH, VS Code Terminal, Legacy         | ✅ **Implemented** |
+| Runtime           | Technology              | Use Case                          | Status        |
+| :---------------- | :---------------------- | :-------------------------------- | :------------ |
+| **Universal TTY** | `crossterm` + `ratatui` | SSH, VS Code, Linux Console, tmux | ✅ **Active** |
+
+**Why TTY Only?**
+
+- **Zero Dependencies**: No X11/Wayland libraries required. Builds instantly on any Linux machine.
+- **Zero Latency**: Direct terminal rendering.
+- **Maximum Portability**: Works over 3G SSH connections, inside docker containers, and within IDE terminals.
 
 ## 3. The "Secret Weapon": AI Introspection
 
-Standard GUIs (Web/Native) are opaque to AI. They require "Computer Vision" to understand.
+Standard TUIs are opaque to AI (screens of text).
 **Tiles is Transparent.**
 We have created the **Introspection Module** (`tiles/src/modules/introspection.rs`).
 
 - **Mechanism**: Serializes the `WorldState` (Tabs, Focus, Items) into a semantic structure.
-- **Result**: The AI does not "look" at the screen. It "reads" the mind of the app. It knows exactly that "File 3 is `docker-compose.yml`" without OCR.
+- **Result**: The AI "reads" the mind of the app, knowing state directly without OCR or screen scraping.
 
-## 4. Aesthetic Strategy: The Tileset Engine
+## 4. Aesthetic Strategy: "Terminal High-Fidelity"
 
-We solved the "Ugly TUI" problem without the "CSS Spaghetti" problem.
+We prove that "Terminal" doesn't mean "Ugly".
 
-- **Implementation**: `terma/src/visuals/tileset.rs`
-- **Concept**: The logic defines _structure_ (Wall, Header). The `Tileset` trait defines _skin_ (Pixels, Chars).
-- **Themes**:
-  - `Director`: Cyberpunk, Neon, Dark (Default).
-  - `Paper`: High-Contrast, Corporate (Business).
+- **Design System**: Strict usage of rounded borders, consistent spacing, and semantic coloring.
+- **Input Mastery**: Full mouse support (including SGR extended mode) makes the TUI feel like a GUI.
 
-## 5. Current Obstacles & Next Steps
+## 5. Roadmap
 
-### 🛑 Environmental Blocker: OpenSSL
-
-The project currently fails to compile `ssh2` due to missing `libssl-dev` on the host system.
-
-- **Immediate Fix**: User needs to install OpenSSL dev headers (`sudo apt install libssl-dev`).
-- **Workaround**: We can disable the `remote` feature initially if needed.
-
-### 🚀 Roadmap
-
-1.  **Verify Hybrid Switch**: Ensure `is_terminal()` check works reliably in user's shell.
+1.  **Stabilize Core**: Ensure perfect scrolling and mouse interaction (Done).
 2.  **Connect Demon**: Hook up the `Introspection` module to the actual AI Agent API.
-3.  **Polish Tilesets**: Create high-res bitmap tilesets for the "Window Mode" to fully utilize the GPU.
+3.  **Expansion**: Add more modules (Docker management, Git interface) now that the core is stable.
 
 ---
 
-_The Sovereign Window is no longer a theory. It is a compiling, architecturally sound reality._
+_The Sovereign Window is now the Sovereign Terminal. Everywhere you go, there you are._
