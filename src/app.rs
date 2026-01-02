@@ -50,6 +50,7 @@ pub enum AppEvent {
     ), // tab_idx, files, metadata, git
     Tick,
     Raw(TermaEvent),
+    SystemUpdated(SystemState),
 }
 
 pub struct App {
