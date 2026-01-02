@@ -356,9 +356,10 @@ impl App {
                     file_state.table_state.select(Some(new_index));
 
                     // Manual Auto-Scroll (Keep Selection in View)
-                    if file_state.view_height > 2 {
+                    if file_state.view_height > 3 {
                         let offset = file_state.table_state.offset();
-                        let capacity = file_state.view_height.saturating_sub(2);
+                        // Capacity = Height - 2 (Borders) - 1 (Header) = 3
+                        let capacity = file_state.view_height.saturating_sub(3);
                         if new_index >= offset + capacity {
                             *file_state.table_state.offset_mut() =
                                 new_index.saturating_sub(capacity).saturating_add(1);
