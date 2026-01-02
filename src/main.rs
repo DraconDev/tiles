@@ -407,7 +407,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     if app.current_view == CurrentView::Files {
                         if in_file_area && !app.sidebar_focus {
                             if let Some(fs) = app.current_file_state_mut() {
-                                let capacity = fs.view_height.saturating_sub(2);
+                                let capacity = fs.view_height.saturating_sub(4);
                                 let effective_capacity = capacity.saturating_sub(3);
                                 let max_offset = fs.files.len().saturating_sub(effective_capacity);
                                 let new_offset = (fs.table_state.offset() + 3).min(max_offset);
