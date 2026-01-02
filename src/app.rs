@@ -330,12 +330,22 @@ impl App {
 
     pub fn move_down(&mut self) {
         if self.sidebar_focus {
-            let max_index: usize = 4 + self.remote_bookmarks.len(); // 4 local items + gap + remote items
-            if self.sidebar_index < max_index.saturating_sub(1) {
+            let num_remotes = self.remote_bookmarks.len().max(1);
+            let total_items = 11 + num_remotes;
+            if self.sidebar_index < total_items.saturating_sub(1) {
                 self.sidebar_index += 1;
-                // Skip the gap at index 4
-                if self.sidebar_index == 4 {
-                    self.sidebar_index += 2;
+                // Skip headers and spacers
+                let remote_header = 6;
+                let storage_header = 8 + num_remotes;
+
+                while (self.sidebar_index == 0
+                    || self.sidebar_index == 5
+                    || self.sidebar_index == 6
+                    || self.sidebar_index == 7 + num_remotes
+                    || self.sidebar_index == 8 + num_remotes)
+                    && self.sidebar_index < total_items.saturating_sub(1)
+                {
+                    self.sidebar_index += 1;
                 }
             }
             return;
