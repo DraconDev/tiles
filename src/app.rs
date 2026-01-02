@@ -28,9 +28,7 @@ pub enum AppMode {
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum CurrentView {
     Files,
-    Docker,
-    System,
-}
+
 
 pub enum LicenseStatus {
     FreeMode,
