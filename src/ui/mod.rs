@@ -16,51 +16,6 @@ use terma::compositor::engine::TilePlacement;
 use terma::visuals::assets::Icon;
 use terma::widgets::{TermaButton, TermaPanel};
 
-pub fn generate_demon_logo() -> Vec<u8> {
-    let width = 64;
-    let height = 64;
-    let mut data = Vec::with_capacity((width * height * 4) as usize);
-    for y in 0..height {
-        for x in 0..width {
-            let r = ((x as f32 / width as f32) * 200.0) as u8 + 55;
-            let g = 0;
-            let b = 0;
-            let cx = width as f32 / 2.0;
-            let cy = height as f32 / 2.0;
-            let dist = ((x as f32 - cx).powi(2) + (y as f32 - cy).powi(2)).sqrt();
-            let alpha = if dist < 30.0 { 255 } else { 0 };
-
-            data.push(r);
-            data.push(g);
-            data.push(b);
-            data.push(alpha);
-        }
-    }
-    data
-}
-
-pub fn generate_panel_bg(width: u32, height: u32) -> Vec<u8> {
-    let mut data = Vec::with_capacity((width * height * 4) as usize);
-    for y in 0..height {
-        for _x in 0..width {
-            let mut r = 12u8;
-            let mut g = 12u8;
-            let mut b = 14u8;
-            if y % 3 == 0 {
-                r = r.saturating_sub(2);
-                g = g.saturating_sub(2);
-                b = b.saturating_sub(2);
-            }
-            let alpha = 255u8;
-            data.push(r);
-            data.push(g);
-            data.push(b);
-            data.push(alpha);
-        }
-    }
-    data
-}
-
 fn get_file_icon_type(path: &std::path::Path, is_dir: bool) -> Icon {
     if is_dir {
         return Icon::Folder;
@@ -360,47 +315,13 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             chunks[0],
         );
 
-        if let Some(asset_id) = app.current_preview {
-            let split = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
-                .split(chunks[1]);
-            draw_file_view(f, split[0], app);
-            draw_preview(f, split[1], app, asset_id);
-        } else {
-            draw_file_view(f, chunks[1], app);
-        }
+        draw_file_view(f, chunks[1], app);
     } else {
         match app.current_view {
             CurrentView::System => draw_system_view(f, area, app),
             CurrentView::Docker => draw_docker_view(f, area, app),
             _ => {}
         }
-    }
-}
-
-fn draw_preview(f: &mut Frame, area: Rect, app: &App, asset_id: u32) {
-    f.render_widget(
-        TermaPanel::new(" Preview ", app.tile_queue.clone()).border_color(THEME.accent_secondary),
-        area,
-    );
-    let inner = area.inner(ratatui::layout::Margin {
-        vertical: 1,
-        horizontal: 1,
-    });
-
-    // Request the engine to place the image tile in this area
-    if let Ok(mut q) = app.tile_queue.lock() {
-        q.push(TilePlacement {
-            asset_id,
-            is_image: true,
-            x: inner.x,
-            y: inner.y,
-            z_index: 5,
-            cols: Some(inner.width),
-            rows: Some(inner.height),
-            placement_id: Some(9999),
-        });
     }
 }
 
