@@ -459,15 +459,16 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                 .orientation(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(Some("▲"))
                 .end_symbol(Some("▼"))
+                .track_symbol(Some("│"))
                 .thumb_symbol("█")
-                .style(Style::default().fg(THEME.accent_primary));
+                .style(Style::default().fg(Color::Yellow));
 
             let mut scrollbar_state = ScrollbarState::new(file_state.files.len())
                 .position(file_state.table_state.offset());
 
-            // Render ON the right border
+            // Render INSIDE the right border (Nautilus style)
             let scrollbar_area = Rect {
-                x: area.x + area.width.saturating_sub(1),
+                x: area.x + area.width.saturating_sub(2), // Inside border
                 y: area.y + 1,
                 width: 1,
                 height: area.height.saturating_sub(2),
