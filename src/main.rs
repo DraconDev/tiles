@@ -99,8 +99,6 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
     Arc<Mutex<App>>,
     mpsc::Sender<AppEvent>,
     mpsc::Receiver<AppEvent>,
-    mpsc::Sender<UiCommand>,
-    mpsc::Receiver<UiCommand>,
     Option<Arc<DockerModule>>
 ) {
     let app = Arc::new(Mutex::new(App::new(tile_queue)));    
@@ -108,7 +106,6 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
     // Logic Loop Channel (Input)
     let (logic_tx, mut logic_rx) = mpsc::channel(1000);
     
-    let (ui_tx, ui_rx) = mpsc::channel::<UiCommand>(10);
     let (docker_tx, mut docker_rx) = mpsc::channel(10);
     let docker_module = DockerModule::new().ok().map(Arc::new);
 
@@ -122,7 +119,6 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
     
     // The callers (run_window) need a Sender. We return logic_tx as 'event_tx'.
     
-    let ui_tx_bg = ui_tx.clone();
     let docker_tx_bg = docker_tx.clone();
     
     std::thread::spawn(move || {
