@@ -1,24 +1,28 @@
+use crate::license::check_license;
+use crate::modules::files::update_files;
+use crate::modules::system::SystemModule;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use crate::modules::system::SystemModule;
-use crate::modules::files::update_files;
-use crate::license::check_license;
-use terma::input::event::Event as TermaEvent;
 use terma::compositor::engine::TilePlacement;
+use terma::input::event::Event as TermaEvent;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum AppMode {
     Normal,
     Zoomed,
     CommandPalette,
-    Location, // Ctrl+L mode
-    Rename,   // F2 mode
-    Properties, // Alt+Enter mode
-    NewFolder,  // Ctrl+Shift+N mode
-    Delete,     // Delete key mode
+    Location,    // Ctrl+L mode
+    Rename,      // F2 mode
+    Properties,  // Alt+Enter mode
+    NewFolder,   // Ctrl+Shift+N mode
+    Delete,      // Delete key mode
     ColumnSetup, // Column configuration mode
     AddRemote,   // Add new SSH remote host
-    ContextMenu { x: u16, y: u16, item_index: Option<usize> },
+    ContextMenu {
+        x: u16,
+        y: u16,
+        item_index: Option<usize>,
+    },
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -34,18 +38,17 @@ pub enum LicenseStatus {
 }
 
 #[derive(Debug)]
-pub enum UiCommand {
-    RegisterImage(u32, Vec<u8>, u32, u32),
-}
-
 #[derive(Debug)]
 pub enum AppEvent {
     RefreshFiles(usize), // tab_index
-    FilesUpdated(usize, Vec<PathBuf>, HashMap<PathBuf, FileMetadata>, HashMap<PathBuf, String>), // tab_idx, files, metadata, git
+    FilesUpdated(
+        usize,
+        Vec<PathBuf>,
+        HashMap<PathBuf, FileMetadata>,
+        HashMap<PathBuf, String>,
+    ), // tab_idx, files, metadata, git
     Tick,
     Raw(TermaEvent),
-    LoadImage(PathBuf),
-    ImageReady(u32, Vec<u8>, u32, u32), // id, data, w, h
 }
 
 pub struct App {
@@ -67,7 +70,6 @@ pub struct App {
     pub command_index: usize,
     pub last_click: Option<(std::time::Instant, u16, u16)>, // time, row, col
     pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
-    pub current_preview: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -184,7 +186,7 @@ pub struct SystemState {
 
 pub struct DiskInfo {
     pub name: String,
-    pub used_space: f64, // GB
+    pub used_space: f64,  // GB
     pub total_space: f64, // GB
 }
 
@@ -301,7 +303,9 @@ impl App {
             if self.sidebar_index > 0 {
                 self.sidebar_index -= 1;
                 // Skip the gap at index 4
-                if self.sidebar_index == 5 { self.sidebar_index -= 2; }
+                if self.sidebar_index == 5 {
+                    self.sidebar_index -= 2;
+                }
             }
             return;
         }
@@ -310,10 +314,16 @@ impl App {
             CurrentView::Files => {
                 if let Some(file_state) = self.current_file_state_mut() {
                     let new_index = match file_state.selected_index {
-                        Some(i) => if i > 0 { i - 1 } else { 0 },
+                        Some(i) => {
+                            if i > 0 {
+                                i - 1
+                            } else {
+                                0
+                            }
+                        }
                         None => file_state.table_state.offset(),
                     };
-                    
+
                     file_state.selected_index = Some(new_index);
                     file_state.table_state.select(Some(new_index));
 
@@ -343,7 +353,9 @@ impl App {
             if self.sidebar_index < max_index.saturating_sub(1) {
                 self.sidebar_index += 1;
                 // Skip the gap at index 4
-                if self.sidebar_index == 4 { self.sidebar_index += 2; }
+                if self.sidebar_index == 4 {
+                    self.sidebar_index += 2;
+                }
             }
             return;
         }
@@ -353,7 +365,13 @@ impl App {
                 if let Some(file_state) = self.current_file_state_mut() {
                     let max_idx = file_state.files.len().saturating_sub(1);
                     let new_index = match file_state.selected_index {
-                        Some(i) => if i < max_idx { i + 1 } else { max_idx },
+                        Some(i) => {
+                            if i < max_idx {
+                                i + 1
+                            } else {
+                                max_idx
+                            }
+                        }
                         None => file_state.table_state.offset(),
                     };
 
@@ -365,18 +383,23 @@ impl App {
                         let offset = file_state.table_state.offset();
                         let capacity = file_state.view_height.saturating_sub(2);
                         if new_index >= offset + capacity {
-                            *file_state.table_state.offset_mut() = new_index.saturating_sub(capacity).saturating_add(1);
+                            *file_state.table_state.offset_mut() =
+                                new_index.saturating_sub(capacity).saturating_add(1);
                         }
                     }
                 }
             }
             CurrentView::Docker => {
-                if self.docker_state.selected_index < self.docker_state.containers.len().saturating_sub(1) {
+                if self.docker_state.selected_index
+                    < self.docker_state.containers.len().saturating_sub(1)
+                {
                     self.docker_state.selected_index += 1;
                 }
             }
             CurrentView::System => {
-                if self.system_state.selected_process_index < self.system_state.processes.len().saturating_sub(1) {
+                if self.system_state.selected_process_index
+                    < self.system_state.processes.len().saturating_sub(1)
+                {
                     self.system_state.selected_process_index += 1;
                 }
             }
@@ -398,7 +421,11 @@ impl App {
 
 pub fn log_debug(msg: &str) {
     use std::io::Write;
-    if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open("debug_tiles.log") {
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("debug_tiles.log")
+    {
         let _ = writeln!(file, "{}", msg);
     }
 }
@@ -415,7 +442,9 @@ mod tests {
             remote_session: None,
             selected_index: None,
             table_state: ratatui::widgets::TableState::default(),
-            files: (0..100).map(|i| PathBuf::from(format!("/file_{}", i))).collect(),
+            files: (0..100)
+                .map(|i| PathBuf::from(format!("/file_{}", i)))
+                .collect(),
             metadata: std::collections::HashMap::new(),
             show_hidden: false,
             git_status: std::collections::HashMap::new(),
@@ -425,9 +454,9 @@ mod tests {
             columns: vec![],
             history: vec![],
             history_index: 0,
-            view_height: 20, 
+            view_height: 20,
         };
-        
+
         // Initial Selection at 0
         fs.selected_index = Some(0);
         fs.table_state.select(Some(0));
@@ -436,14 +465,14 @@ mod tests {
         let capacity = fs.view_height.saturating_sub(2);
         let effective_capacity = capacity.saturating_sub(3);
         let max_offset = fs.files.len().saturating_sub(effective_capacity);
-        
+
         assert_eq!(max_offset, 85);
 
         // Scroll Down 1 (offset 0 -> 1)
         // Selection should be preserved
         let new_offset = (fs.table_state.offset() + 1).min(max_offset);
         *fs.table_state.offset_mut() = new_offset;
-        
+
         assert_eq!(fs.table_state.offset(), 1);
         assert_eq!(fs.selected_index, Some(0));
 
@@ -452,7 +481,7 @@ mod tests {
             let n = (fs.table_state.offset() + 1).min(max_offset);
             *fs.table_state.offset_mut() = n;
         }
-        
+
         assert_eq!(fs.table_state.offset(), 85);
         assert_eq!(fs.selected_index, Some(0)); // Still preserved
     }
@@ -464,7 +493,9 @@ mod tests {
             remote_session: None,
             selected_index: None,
             table_state: ratatui::widgets::TableState::default(),
-            files: (0..10).map(|i| PathBuf::from(format!("/file_{}", i))).collect(),
+            files: (0..10)
+                .map(|i| PathBuf::from(format!("/file_{}", i)))
+                .collect(),
             metadata: std::collections::HashMap::new(),
             show_hidden: false,
             git_status: std::collections::HashMap::new(),
@@ -474,18 +505,18 @@ mod tests {
             columns: vec![],
             history: vec![],
             history_index: 0,
-            view_height: 20, 
+            view_height: 20,
         };
 
         let capacity = fs.view_height.saturating_sub(2);
         let effective_capacity = capacity.saturating_sub(3);
         let max_offset = fs.files.len().saturating_sub(effective_capacity);
-        
+
         assert_eq!(max_offset, 0);
 
         // Scroll Down
         let new_offset = (fs.table_state.offset() + 1).min(max_offset);
         *fs.table_state.offset_mut() = new_offset;
-        assert_eq!(fs.table_state.offset(), 0); 
+        assert_eq!(fs.table_state.offset(), 0);
     }
 }
