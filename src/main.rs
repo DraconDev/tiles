@@ -383,6 +383,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                 }
                 MouseEventKind::ScrollUp => {
+                    // crate::app::log_debug("DEBUG: ScrollUp received");
                     // Only scroll file list if mouse is in the file area (right of sidebar, below header)
                     let sidebar_width = 16;
                     let in_file_area = column > sidebar_width && row > 2;
