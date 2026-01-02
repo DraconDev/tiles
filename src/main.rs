@@ -108,8 +108,12 @@ fn run_window() -> color_eyre::Result<()> {
             } else { false };
 
             if !is_spam {
+                // Debug Print
+                if let Event::Mouse(_) = evt {
+                    // println!("DEBUG: Sending Mouse Event: {:?}", evt);
+                }
                 if let Err(_) = event_tx.try_send(AppEvent::Raw(evt)) {
-                    // Log dropped event if needed, but for now just drop
+                     println!("DEBUG: Channel Full! Dropping event.");
                 }
             }
         }
