@@ -324,14 +324,6 @@ impl App {
                     }
                 }
             }
-<<<<<<< SEARCH
-            CurrentView::Docker => {
-                if self.docker_state.selected_index > 0 {
-                    self.docker_state.selected_index -= 1;
-                }
-            }
-=======
-
             CurrentView::System => {
                 if self.system_state.selected_process_index > 0 {
                     self.system_state.selected_process_index -= 1;
