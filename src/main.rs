@@ -267,16 +267,29 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
         Event::Mouse(me) => {
             let column = me.column;
             let row = me.row;
+            let mut is_double_click = false;
+            if let MouseEventKind::Down(button) = me.kind {
+                if button == MouseButton::Left {
+                    let now = std::time::Instant::now();
+                    if let Some((last_time, last_row, last_col)) = app.last_click {
+                        if now.duration_since(last_time) < Duration::from_millis(500) && last_row == row && last_col == column {
+                            is_double_click = true;
+                        }
+                    }
+                    app.last_click = Some((now, row, column));
+                }
+            }
+
             match me.kind {
+                MouseEventKind::Down(button) | MouseEventKind::Up(button) if button == MouseButton::Back || button == MouseButton::Forward => {
+                    if let Some(fs) = app.current_file_state_mut() {
+                        if button == MouseButton::Back { navigate_back(fs); }
+                        else { navigate_forward(fs); }
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                    }
+                    return;
+                }
                 MouseEventKind::Down(button) => {
-                    if button == MouseButton::Back {
-                        if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); }
-                        return;
-                    }
-                    if button == MouseButton::Forward {
-                        if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); }
-                        return;
-                    }
                     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
                         let menu_width = 20;
                         let menu_height = 5;
@@ -374,9 +387,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             fs.selected_index = Some(index);
                                             fs.table_state.select(Some(index));
                                             if let Some(path) = fs.files.get(index).cloned() {
-                                                if path.is_dir() {
-                                                    // Double click logic omitted for brevity in MVP, single click select
-                                                }
+                                            if path.is_dir() && is_double_click {
+                                                fs.current_path = path.clone();
+                                                fs.selected_index = Some(0);
+                                                fs.search_filter.clear();
+                                                *fs.table_state.offset_mut() = 0;
+                                                push_history(fs, path);
+                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                            }
                                             }
                                         }
                                     }
@@ -473,9 +491,38 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         KeyCode::Up => { app.move_up(); }
                         KeyCode::Left => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } else { app.move_left(); } }
                         KeyCode::Right => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } else { app.move_right(); } }
-                        KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } } } }
+                        KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } } } }
                         KeyCode::Char('N') => { app.mode = AppMode::NewFolder; app.input.clear(); }
                         KeyCode::Char('n') => { app.mode = AppMode::NewFile; app.input.clear(); }
+                        // Nautilus-style search
+                        KeyCode::Char(c) if key.modifiers.is_empty() => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                fs.search_filter.push(c);
+                                fs.selected_index = Some(0);
+                                *fs.table_state.offset_mut() = 0;
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                            }
+                        }
+                        KeyCode::Backspace => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                if !fs.search_filter.is_empty() {
+                                    fs.search_filter.pop();
+                                    fs.selected_index = Some(0);
+                                    *fs.table_state.offset_mut() = 0;
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                }
+                            }
+                        }
+                        KeyCode::Esc => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                if !fs.search_filter.is_empty() {
+                                    fs.search_filter.clear();
+                                    fs.selected_index = Some(0);
+                                    *fs.table_state.offset_mut() = 0;
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                }
+                            }
+                        }
                         _ => {}
                     }
                 }
