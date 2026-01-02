@@ -327,8 +327,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         let mut render_state = ratatui::widgets::TableState::default();
         if let Some(sel) = file_state.selected_index {
             let offset = file_state.table_state.offset();
-            // Capacity = Height - 2 (Borders) - 1 (Header)
-            let capacity = file_state.view_height.saturating_sub(3);
+            // Capacity = Height - 2 (Borders) - 1 (Header) - 1 (Safety Margin)
+            let capacity = file_state.view_height.saturating_sub(4);
 
             // CRITICAL FIX: Only tell Ratatui to select the row if it is PHYSICALLY visible
             // based on our manual offset. Otherwise, Ratatui will auto-scroll the offset
