@@ -55,7 +55,6 @@ pub struct App {
     pub input: String,
     pub file_tabs: Vec<FileState>,
     pub tab_index: usize,
-    pub docker_state: DockerState,
     pub system_state: SystemState,
     pub license: LicenseStatus,
     pub system_module: SystemModule,
@@ -80,8 +79,6 @@ pub enum CommandAction {
     Quit,
     ToggleZoom,
     SwitchView(CurrentView),
-    StartContainer(String),
-    StopContainer(String),
     AddRemote,
     ConnectToRemote(usize), // index into remote_bookmarks
 }
@@ -237,11 +234,7 @@ impl App {
             input: String::new(),
             file_tabs: vec![file_state],
             tab_index: 0,
-            docker_state: DockerState {
-                containers: Vec::new(),
-                selected_index: 0,
-                filter: None,
-            },
+
             system_state,
             system_module,
             license,
