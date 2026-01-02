@@ -9,3 +9,6 @@ left side of the files is a good question we can we jsut be like nautilus but pe
 when hovering over path can we edit it and underline the section we are in and jump to it when clicked?
 
 backspace should take us out and enter in 
+
+
+
