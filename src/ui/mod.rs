@@ -338,7 +338,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         let mut render_state = ratatui::widgets::TableState::default();
         if let Some(sel) = file_state.selected_index {
             let offset = file_state.table_state.offset();
-            let capacity = file_state.view_height.saturating_sub(2);
+            // Capacity = Height - 2 (Borders) - 1 (Header)
+            let capacity = file_state.view_height.saturating_sub(3);
             if sel >= offset && sel < offset + capacity {
                 render_state.select(Some(sel));
             } else {
