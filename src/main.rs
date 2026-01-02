@@ -102,7 +102,16 @@ fn run_window() -> color_eyre::Result<()> {
     // Main Window Loop
     window.run(move |compositor, event| {
         if let Some(evt) = event {
-            let _ = event_tx.try_send(AppEvent::Raw(evt));
+            // Optimization: Ignore MouseMoved events to prevent channel flooding
+            let is_spam = if let Event::Mouse(ref me) = evt {
+                matches!(me.kind, MouseEventKind::Moved)
+            } else { false };
+
+            if !is_spam {
+                if let Err(_) = event_tx.try_send(AppEvent::Raw(evt)) {
+                    // Log dropped event if needed, but for now just drop
+                }
+            }
         }
 
         // Process UI Commands
@@ -190,7 +199,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
     Option<Arc<DockerModule>>
 ) {
     let app = Arc::new(Mutex::new(App::new(tile_queue)));    
-    let (event_tx, event_rx) = mpsc::channel(100); 
+    let (event_tx, event_rx) = mpsc::channel(1000); 
     // Logic Loop Channel (Input)
     let (logic_tx, mut logic_rx) = mpsc::channel(100);
     
