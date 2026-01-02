@@ -151,7 +151,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                 // println!("DEBUG: Receiver: Got Raw Event: {:?}", raw);
                                 let mut app_guard = app_bg.lock().unwrap();
                                 let app_tx = event_tx_bg.clone();
-                                handle_event(raw, &mut app_guard, &docker_bg, app_tx);
+                                handle_event(raw, &mut app_guard, app_tx);
                                 
                                 // Check if selection changed and if it's an image
                                 if let Some(fs) = app_guard.current_file_state() {
@@ -231,7 +231,7 @@ fn navigate_forward(fs: &mut crate::app::FileState) {
 
 
 
-fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
+fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
     match evt {
         Event::Mouse(me) => {
             println!("DEBUG: Handler: Mouse at R={}, C={}", me.row, me.column);
@@ -405,7 +405,7 @@ fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModu
                         KeyCode::Esc => app.mode = AppMode::Normal,
                         KeyCode::Char(c) => { app.input.push(c); update_commands(app); }
                         KeyCode::Backspace => { app.input.pop(); update_commands(app); }
-                        KeyCode::Enter => { if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() { execute_command(cmd.action, app, docker_module, event_tx.clone()); } app.mode = AppMode::Normal; app.input.clear(); }
+                        KeyCode::Enter => { if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() { execute_command(cmd.action, app, event_tx.clone()); } app.mode = AppMode::Normal; app.input.clear(); }
                         _ => {}
                     }
                 }
@@ -469,13 +469,11 @@ fn update_commands(app: &mut App) {
     app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
 }
 
-fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_module: &Option<Arc<DockerModule>>, _event_tx: mpsc::Sender<AppEvent>) {
+fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: mpsc::Sender<AppEvent>) {
     match action {
         crate::app::CommandAction::Quit => { app.running = false; },
         crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
         crate::app::CommandAction::SwitchView(view) => app.current_view = view,
-        crate::app::CommandAction::StartContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.start_container(&name).await; }); } },
-        crate::app::CommandAction::StopContainer(name) => { if let Some(docker) = docker_module { let docker = docker.clone(); tokio::spawn(async move { let _ = docker.stop_container(&name).await; }); } },
         crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); },
         crate::app::CommandAction::ConnectToRemote(idx) => {
             if let Some(bookmark) = app.remote_bookmarks.get(idx).cloned() {
