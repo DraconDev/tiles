@@ -187,8 +187,6 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                             }
                         }
                     }
-                }
-            }
             AppEvent::LoadImage(_path) => {
                 // No-op for TTY mode
             }
