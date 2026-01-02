@@ -394,7 +394,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             let new_offset = app.system_state.process_list_state.offset().saturating_sub(3);
                             *app.system_state.process_list_state.offset_mut() = new_offset;
                         }
-                        _ => {}
                     }
                 }
                 MouseEventKind::ScrollDown => {
@@ -412,7 +411,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             let new_offset = app.system_state.process_list_state.offset().saturating_add(3);
                             *app.system_state.process_list_state.offset_mut() = new_offset;
                         }
-                        _ => {}
                     }
                 }
                 _ => {}
