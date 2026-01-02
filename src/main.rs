@@ -46,7 +46,7 @@ fn run_tty() -> color_eyre::Result<()> {
     }
 
     // Setup App & Async
-    let (app, event_tx, mut _event_rx, _ui_tx, _ui_rx, _docker) = setup_app(tile_queue);
+    let (app, event_tx, mut _event_rx, _docker) = setup_app(tile_queue);
 
     // TTY Event Loop
     {
@@ -220,7 +220,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
         });
     });
 
-    (app, logic_tx, event_rx, ui_tx, ui_rx, docker_module)
+    (app, logic_tx, event_rx, docker_module)
 }
 
 fn push_history(fs: &mut crate::app::FileState, path: std::path::PathBuf) {
