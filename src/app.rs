@@ -324,11 +324,14 @@ impl App {
                     }
                 }
             }
+<<<<<<< SEARCH
             CurrentView::Docker => {
                 if self.docker_state.selected_index > 0 {
                     self.docker_state.selected_index -= 1;
                 }
             }
+=======
+
             CurrentView::System => {
                 if self.system_state.selected_process_index > 0 {
                     self.system_state.selected_process_index -= 1;
@@ -379,13 +382,7 @@ impl App {
                     }
                 }
             }
-            CurrentView::Docker => {
-                if self.docker_state.selected_index
-                    < self.docker_state.containers.len().saturating_sub(1)
-                {
-                    self.docker_state.selected_index += 1;
-                }
-            }
+
             CurrentView::System => {
                 if self.system_state.selected_process_index
                     < self.system_state.processes.len().saturating_sub(1)
