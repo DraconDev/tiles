@@ -437,6 +437,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         _ => {}
                     }
                 }
+                AppMode::NewFolder => {
+                    match key.code {
+                        KeyCode::Esc => app.mode = AppMode::Normal,
+                        KeyCode::Char(c) => app.input.push(c),
+                        KeyCode::Backspace => { app.input.pop(); }
+                        KeyCode::Enter => { let name = app.input.clone(); let _ = event_tx.try_send(AppEvent::CreateFolder(name)); app.mode = AppMode::Normal; }
+                        _ => {}
+                    }
+                }
                 _ => {
                     if key.modifiers.contains(KeyModifiers::CONTROL) {
                         match key.code {
