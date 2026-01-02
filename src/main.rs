@@ -36,8 +36,6 @@ fn run_tty() -> color_eyre::Result<()> {
     let backend = TermaBackend::new(std::io::stdout())?;
     let tile_queue = backend.tile_queue();
     let mut terminal = Terminal::new(backend)?;
-    
-    let mut terminal = Terminal::new(backend)?;
 
     // Setup App & Async
     let (app, event_tx, mut _event_rx) = setup_app(tile_queue);
