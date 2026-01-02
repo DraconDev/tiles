@@ -6,4 +6,4 @@ search by typing doesn't work like nautilus
 
 left side of the files is a good question we can we jsut be like nautilus but perhaps we should have files section, remote section, and storage section, 
 
-when hovering over path can we edit it and underline the section we are in and jump
+when hovering over path can we edit it and underline the section we are in and jump to it when clicked?
