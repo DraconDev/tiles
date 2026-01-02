@@ -46,7 +46,7 @@ fn run_tty() -> color_eyre::Result<()> {
     }
 
     // Setup App & Async
-    let (app, event_tx, mut _event_rx, _docker) = setup_app(tile_queue);
+    let (app, event_tx, mut _event_rx) = setup_app(tile_queue);
 
     // TTY Event Loop
     {

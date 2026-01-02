@@ -40,7 +40,7 @@ impl SystemModule {
             .collect();
 
         let mut processes: Vec<_> = self.sys.processes().values().collect();
-        processes.sort_by(|a: &sysinfo::Process, b: &sysinfo::Process| {
+        processes.sort_by(|a: &&sysinfo::Process, b: &&sysinfo::Process| {
             b.cpu_usage()
                 .partial_cmp(&a.cpu_usage())
                 .unwrap_or(std::cmp::Ordering::Equal)

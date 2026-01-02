@@ -220,7 +220,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                                 .add_modifier(Modifier::BOLD),
                         )
                     } else {
-                        item
+                        item.clone()
                     }
                 })
                 .collect();

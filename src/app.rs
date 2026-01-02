@@ -163,8 +163,6 @@ pub struct FileState {
     pub view_height: usize,
 }
 
-use bollard::models::ContainerSummary;
-
 pub struct DockerState {
     pub containers: Vec<ContainerSummary>,
     pub selected_index: usize,
