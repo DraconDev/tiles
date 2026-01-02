@@ -451,24 +451,22 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         let table = Table::new(rows, constraints)
             .header(header)
             .block(file_block);
-        f.render_stateful_widget(table, area, &mut render_state);
-
-        // Scrollbar
-        if file_state.files.len() > area.height.saturating_sub(4) as usize {
+        // Force render to Rule out Logic errors
+        if true {
             let scrollbar = Scrollbar::default()
                 .orientation(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(Some("▲"))
                 .end_symbol(Some("▼"))
                 .track_symbol(Some("│"))
                 .thumb_symbol("█")
-                .style(Style::default().fg(Color::Yellow));
+                .style(Style::default().fg(Color::Magenta));
 
             let mut scrollbar_state = ScrollbarState::new(file_state.files.len())
                 .position(file_state.table_state.offset());
 
-            // Render INSIDE the right border
+            // Move it 3 chars in from the right to ensure it's not on the border
             let scrollbar_area = Rect {
-                x: area.x + area.width.saturating_sub(2),
+                x: area.x + area.width.saturating_sub(3),
                 y: area.y + 1,
                 width: 1,
                 height: area.height.saturating_sub(2),
