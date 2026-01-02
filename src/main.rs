@@ -100,6 +100,28 @@ fn run_window() -> color_eyre::Result<()> {
         ShapeColor::new(0, 0, 0, 0)
     );
     window.add_image_asset(3001, header_bg, 100, 16);
+    
+    // CAT BACKGROUND PROOF - This proves we're rendering actual pixels, not just text!
+    let cat_image = include_bytes!("../assets/cat.png");
+    if let Ok(img) = image::load_from_memory(cat_image) {
+        let rgba = img.to_rgba8();
+        let (w, h) = (rgba.width(), rgba.height());
+        window.add_image_asset(9000, rgba.into_raw(), w, h);
+        // Place cat in bottom-right corner
+        if let Ok(mut queue) = window.tile_queue().lock() {
+            use terma::compositor::engine::TilePlacement;
+            queue.push(TilePlacement {
+                asset_id: 9000,
+                x: 40, // Offset from left  
+                y: 10, // Offset from top
+                z_index: -1, // Behind everything
+                cols: Some(30), // Scale in character columns
+                rows: Some(20), // Scale in rows
+                is_image: true,
+                placement_id: Some(9000),
+            });
+        }
+    }
 
     let tile_queue = window.tile_queue();
     
