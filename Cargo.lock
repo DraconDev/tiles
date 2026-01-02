@@ -1037,7 +1037,7 @@ dependencies = [
 
 [[package]]
 name = "terma"
-version = "1.0.5"
+version = "1.0.6"
 dependencies = [
  "bitflags",
  "libc",
@@ -1078,7 +1078,7 @@ dependencies = [
 
 [[package]]
 name = "tiles"
-version = "0.1.475"
+version = "0.1.476"
 dependencies = [
  "anyhow",
  "chrono",
