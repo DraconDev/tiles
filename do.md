@@ -1,6 +1,6 @@
 double click on folder doesnt work currently
 
-mouse back and forward buttons dont work, they do nothing, they should work 
+mouse back and forward buttons dont work, they do nothing, they should work allow us to go back and forth in the places we visited
 
 search by typing doesn't work like nautilus 
 
