@@ -50,19 +50,23 @@ fn run_tty() -> color_eyre::Result<()> {
             let mut stdin = std::io::stdin();
             let mut buffer = [0; 1];
             loop {
-                if stdin.read(&mut buffer).is_ok() {
-                    if let Some(evt) = parser.advance(buffer[0]) {
-                         if let Some(converted) = crate::event::convert_event(evt) {
-                             // Filter Move events in TTY mode too
-                             let is_spam = if let Event::Mouse(ref me) = converted {
-                                  matches!(me.kind, MouseEventKind::Moved)
-                             } else { false };
-                             
-                             if !is_spam {
-                                 let _ = tx.blocking_send(AppEvent::Raw(converted));
+                match stdin.read(&mut buffer) {
+                    Ok(0) => break, // EOF
+                    Ok(_) => {
+                        if let Some(evt) = parser.advance(buffer[0]) {
+                             if let Some(converted) = crate::event::convert_event(evt) {
+                                 // Filter Move events in TTY mode too
+                                 let is_spam = if let Event::Mouse(ref me) = converted {
+                                      matches!(me.kind, MouseEventKind::Moved)
+                                 } else { false };
+                                 
+                                 if !is_spam {
+                                     let _ = tx.blocking_send(AppEvent::Raw(converted));
+                                 }
                              }
-                         }
+                        }
                     }
+                    Err(_) => break,
                 }
             }
         });
