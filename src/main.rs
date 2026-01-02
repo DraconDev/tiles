@@ -29,15 +29,22 @@ mod license;
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     
+    // Check for --window flag to force GUI mode
+    let args: Vec<String> = std::env::args().collect();
+    let force_window = args.iter().any(|a| a == "--window" || a == "-w");
+    
     // Check if we should run in TTY mode (SSH / Integrated Terminal)
     // or Window mode (Desktop App).
-    let run_in_tty = std::io::stdout().is_terminal() && std::env::var("TILES_FORCE_WINDOW").is_err();
+    let run_in_tty = std::io::stdout().is_terminal() 
+        && !force_window 
+        && std::env::var("TILES_FORCE_WINDOW").is_err();
 
     if run_in_tty {
         // TTY MODE: Inside VS Code or SSH
         run_tty()
     } else {
         // WINDOW MODE: Standalone Window
+        println!("Launching Tiles in GUI Window mode...");
         run_window()
     }
 }
