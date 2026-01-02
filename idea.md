@@ -1,1 +1,1 @@
-- i do have have an idea, our problem was that we couldnt do images right but what if we have control over the fonts? meaning imagine nerdfonts, but we can jsut have our our font package that lead to a sort of tiles we can reuse? So not strictly icons and 
+- i do have have an idea, our problem was that we couldnt do images right but what if we have control over the fonts? meaning imagine nerdfonts, but we can jsut have our our font package that lead to a sort of tiles we can reuse? So not strictly icons and letters and sumbols but building blocks, so we are still tui,
