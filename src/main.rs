@@ -68,20 +68,22 @@ fn run_window() -> color_eyre::Result<()> {
              asset_id: 2001,
              x: 0,
              y: 0,
-             z: 0, // Behind TUI
+             z_index: 0, // Behind TUI
              cols: None, // Use native size
              rows: None,
              is_image: true,
+             placement_id: None,
         });
         // Header
          queue.push(TilePlacement {
              asset_id: 3001,
              x: 0,
              y: 0,
-             z: 1, 
+             z_index: 1, 
              cols: Some(150), // Stretch width
              rows: None,
              is_image: true,
+             placement_id: None,
         });
     }
 
