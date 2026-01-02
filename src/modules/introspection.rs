@@ -1,5 +1,5 @@
-use crate::app::{App, AppMode, CurrentView, FileState};
-use serde::{Serialize, Serializer};
+use crate::app::{App, FileState};
+use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct WorldState {

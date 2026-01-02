@@ -1,14 +1,14 @@
-use std::{time::{Duration, Instant}};
+use std::time::Duration;
 use std::io::IsTerminal;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
-use std::collections::{HashMap, HashSet};
+
 
 // Terma Imports
 use terma::integration::window::TermaWindow;
 use terma::integration::ratatui::{TermaBackend, RatatuiCompositorBackend};
 use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifiers};
-use terma::compositor::plane::{Cell, Color, Styles};
+use terma::compositor::plane::Cell;
 use terma::visuals::loader::ImageLoader;
 use terma::visuals::shapes::{ShapeGenerator, Color as ShapeColor};
 
@@ -47,7 +47,7 @@ fn main() -> color_eyre::Result<()> {
 // ==================================================================================
 fn run_window() -> color_eyre::Result<()> {
     // Load Font
-    let font_data = include_bytes!("../terma/assets/font.ttf");
+    let font_data = include_bytes!("../../terma/assets/font.ttf");
     let mut window = TermaWindow::new(font_data, 24.0)
         .map_err(|e| color_eyre::eyre::eyre!("{}", e))?;
     
@@ -162,7 +162,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
     Option<Arc<DockerModule>>
 ) {
     let app = Arc::new(Mutex::new(App::new(tile_queue)));    
-    let (event_tx, event_rx) = mpsc::channel(100); 
+    let (event_tx, _event_rx) = mpsc::channel(100); 
     // Logic Loop Channel (Input)
     let (logic_tx, mut logic_rx) = mpsc::channel(100);
     
@@ -558,7 +558,7 @@ fn update_commands(app: &mut App) {
     app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
 }
 
-fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
+fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_module: &Option<Arc<DockerModule>>, _event_tx: mpsc::Sender<AppEvent>) {
     match action {
         crate::app::CommandAction::Quit => { app.running = false; },
         crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
@@ -569,7 +569,7 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, docker_modu
         crate::app::CommandAction::ConnectToRemote(idx) => {
             if let Some(bookmark) = app.remote_bookmarks.get(idx).cloned() {
                 let addr = format!("{}:{}", bookmark.host, bookmark.port);
-                if let Ok(tcp) = std::net::TcpStream::connect(&addr) {
+                if let Ok(_tcp) = std::net::TcpStream::connect(&addr) {
                      // Simplified SSH logic for restoration
                 }
             }
