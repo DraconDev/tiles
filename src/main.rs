@@ -533,29 +533,38 @@ fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModu
                 MouseEventKind::ScrollUp => {
                     // Only scroll file list if mouse is in the file area (right of sidebar, below header)
                     let sidebar_width = 16;
-                    let in_file_area = column > sidebar_width && row > 1;
-                    if app.current_view == CurrentView::Files && in_file_area && !app.sidebar_focus {
-                        if let Some(fs) = app.current_file_state_mut() {
-                            let new_offset = fs.table_state.offset().saturating_sub(3);
-                            *fs.table_state.offset_mut() = new_offset;
+                    let in_file_area = column > sidebar_width && row > 2;
+                    
+                    if app.current_view == CurrentView::Files {
+                        // Only scroll if in valid area, otherwise ignore completely
+                        if in_file_area && !app.sidebar_focus {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                let new_offset = fs.table_state.offset().saturating_sub(3);
+                                *fs.table_state.offset_mut() = new_offset;
+                            }
                         }
-                    } else if app.current_view != CurrentView::Files {
+                        // If not in file area, do nothing (no shiver)
+                    } else {
+                        // For Docker/System views, allow scroll anywhere
                         app.move_up();
                         update_docker_filter(app);
                     }
                 }
                 MouseEventKind::ScrollDown => {
                     let sidebar_width = 16;
-                    let in_file_area = column > sidebar_width && row > 1;
-                    if app.current_view == CurrentView::Files && in_file_area && !app.sidebar_focus {
-                        if let Some(fs) = app.current_file_state_mut() {
-                            let capacity = fs.view_height.saturating_sub(2);
-                            let effective_capacity = capacity.saturating_sub(3);
-                            let max_offset = fs.files.len().saturating_sub(effective_capacity);
-                            let new_offset = (fs.table_state.offset() + 3).min(max_offset);
-                            *fs.table_state.offset_mut() = new_offset;
+                    let in_file_area = column > sidebar_width && row > 2;
+                    
+                    if app.current_view == CurrentView::Files {
+                        if in_file_area && !app.sidebar_focus {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                let capacity = fs.view_height.saturating_sub(2);
+                                let effective_capacity = capacity.saturating_sub(3);
+                                let max_offset = fs.files.len().saturating_sub(effective_capacity);
+                                let new_offset = (fs.table_state.offset() + 3).min(max_offset);
+                                *fs.table_state.offset_mut() = new_offset;
+                            }
                         }
-                    } else if app.current_view != CurrentView::Files {
+                    } else {
                         app.move_down();
                         update_docker_filter(app);
                     }
