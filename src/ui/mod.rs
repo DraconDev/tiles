@@ -375,9 +375,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         Style::default().fg(THEME.fg)
                     };
                     if let Some(status) = file_state.git_status.get(path) {
-                        display_name.push_str(&format!(
-                            " [{}]
-",
+                            " [{}]",
                             status
                         ));
                         match status.as_str() {
