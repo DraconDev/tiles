@@ -1,3 +1,3 @@
 - i do have have an idea, our problem was that we couldnt do images right but what if we have control over the fonts? meaning imagine nerdfonts, but we can jsut have our our font package that lead to a sort of tiles we can reuse? So not strictly icons and letters and sumbols but building blocks, so we are still tui, but we can use images, if you can call whatever we can fit into a box an image, 
 
-- i do even have antoher idea, what about console, konsole, zshell, bash, fish , and so on how do these connect, if we could open not a gui, but our 
+- i do even have antoher idea, what about console, konsole, zshell, bash, fish , and so on how do these connect, if we could open not a gui, but our own console, then maybe we can back the 
