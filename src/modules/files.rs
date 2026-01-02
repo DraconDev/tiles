@@ -12,30 +12,45 @@ fn update_local_files(state: &mut FileState) {
     if let Ok(entries) = std::fs::read_dir(&state.current_path) {
         state.files.clear();
         state.metadata.clear();
-        
+
         for entry in entries.filter_map(|e| e.ok()) {
             let path = entry.path();
-            
+
             // Filtering
             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if !state.show_hidden && name.starts_with('.') { continue; }
-            if !state.search_filter.is_empty() && !name.to_lowercase().contains(&state.search_filter.to_lowercase()) { continue; }
+            if !state.show_hidden && name.starts_with('.') {
+                continue;
+            }
+            if !state.search_filter.is_empty()
+                && !name
+                    .to_lowercase()
+                    .contains(&state.search_filter.to_lowercase())
+            {
+                continue;
+            }
 
             // Metadata Cache (The Fix)
             // Use std::fs::metadata to ensure we follow symlinks to get the REAL file size.
             // Fallback to entry.metadata() (symlink itself) if target is broken.
             let metadata_result = std::fs::metadata(&path).or_else(|_| entry.metadata());
-            
+
             if let Ok(m) = metadata_result {
                 let meta = crate::app::FileMetadata {
                     size: m.len(),
                     modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
                     created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
                     #[cfg(unix)]
-                    permissions: { use std::os::unix::fs::PermissionsExt; m.permissions().mode() },
+                    permissions: {
+                        use std::os::unix::fs::PermissionsExt;
+                        m.permissions().mode()
+                    },
                     #[cfg(not(unix))]
                     permissions: 0,
-                    extension: path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string(),
+                    extension: path
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("")
+                        .to_string(),
                     is_dir: m.is_dir(),
                 };
                 state.metadata.insert(path.clone(), meta);
@@ -56,25 +71,7 @@ fn update_local_files(state: &mut FileState) {
         });
 
         // Git Integration
-        state.git_status.clear();
-        if let Ok(output) = std::process::Command::new("git")
-            .args(&["status", "--porcelain"])
-            .current_dir(&state.current_path)
-            .output() 
-        {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            for line in stdout.lines() {
-                if line.len() < 4 { continue; }
-                let status = line[0..2].trim();
-                let relative_path = &line[3..];
-                
-                let path_buf = std::path::PathBuf::from(relative_path);
-                if let Some(std::path::Component::Normal(first_component)) = path_buf.components().next() {
-                     let full_path = state.current_path.join(first_component);
-                     state.git_status.insert(full_path, status.to_string());
-                }
-            }
-        }
+        state.git_status = crate::modules::git::GitModule::get_repo_status(&state.current_path);
     }
 }
 
@@ -86,21 +83,40 @@ fn update_remote_files(state: &mut FileState, session: &ssh2::Session) {
 
             for (path, stat) in entries {
                 let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-                if !state.show_hidden && name.starts_with('.') { continue; }
-                if !state.search_filter.is_empty() && !name.to_lowercase().contains(&state.search_filter.to_lowercase()) { continue; }
+                if !state.show_hidden && name.starts_with('.') {
+                    continue;
+                }
+                if !state.search_filter.is_empty()
+                    && !name
+                        .to_lowercase()
+                        .contains(&state.search_filter.to_lowercase())
+                {
+                    continue;
+                }
 
                 let meta = crate::app::FileMetadata {
                     size: stat.size.unwrap_or(0),
-                    modified: stat.mtime.map(|t| std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(t)).unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                    modified: stat
+                        .mtime
+                        .map(|t| {
+                            std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(t)
+                        })
+                        .unwrap_or(std::time::SystemTime::UNIX_EPOCH),
                     created: std::time::SystemTime::UNIX_EPOCH, // SFTP usually doesn't provide birth time easily
                     permissions: stat.perm.unwrap_or(0),
-                    extension: path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string(),
+                    extension: path
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("")
+                        .to_string(),
                     is_dir: stat.is_dir(),
                 };
                 state.metadata.insert(path.clone(), meta);
                 state.files.push(path);
             }
-            state.files.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
+            state
+                .files
+                .sort_by(|a, b| a.file_name().cmp(&b.file_name()));
         }
     }
 }
