@@ -180,19 +180,12 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                 if let Some(fs) = app_guard.current_file_state() {
                                     if let Some(idx) = fs.selected_index {
                                         if let Some(path) = fs.files.get(idx) {
-                                            let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-                                    // Image preview removed for TTY-only mode
-                                    app_guard.current_preview = None;
-                                }
+                                            let _ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+                                        }
                             }
                         }
                     }
-            AppEvent::LoadImage(_path) => {
-                // No-op for TTY mode
-            }
-            AppEvent::ImageReady(_id, _, _, _) => {
-                // No-op
-            }
+
                             AppEvent::RefreshFiles(idx) => {
                                 let (path, show_hidden, filter, session) = {
                                     if let Ok(app) = app_bg.lock() {
