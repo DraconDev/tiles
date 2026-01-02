@@ -625,16 +625,8 @@ fn draw_system_view(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(process_panel, layout[3]);
     f.render_stateful_widget(List::new(process_items), process_inner, &mut render_state);
 
-    // Sync back any offset changes (not expected from List but good practice)
-    // Actually, we should sync it back if we want persistent scroll!
-    {
-        // We need a way to update the original state.
-        // Since we are in draw(), we can't easily mutably access app.system_state.
-        // But App is passed as &App.
-        // Wait, draw_system_view takes &App.
-        // I should change it to &mut App or use interior mutability (not ideal).
-        // Actually, the easiest is to just use the state from SystemState if we can.
-    }
+    // Sync back any offset changes (essential for persistent mouse scroll)
+    *app.system_state.process_list_state.offset_mut() = render_state.offset();
 }
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {

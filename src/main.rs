@@ -396,9 +396,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                         }
                         // If not in file area, do nothing (no shiver)
-                    } else {
                         // For Docker/System views, allow scroll anywhere
-                        app.move_up();
+                        if app.current_view == CurrentView::System {
+                            let new_offset = app.system_state.process_list_state.offset().saturating_sub(3);
+                            *app.system_state.process_list_state.offset_mut() = new_offset;
+                        } else {
+                            app.move_up();
+                        }
                     }
                 }
                 MouseEventKind::ScrollDown => {
@@ -415,8 +419,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 *fs.table_state.offset_mut() = new_offset;
                             }
                         }
-                    } else {
-                        app.move_down();
+                        if app.current_view == CurrentView::System {
+                            let new_offset = app.system_state.process_list_state.offset().saturating_add(3);
+                            // We don't have a max_offset easily here without checking process len, 
+                            // but List widgets handle overflow gracefully by clamping.
+                            *app.system_state.process_list_state.offset_mut() = new_offset;
+                        } else {
+                            app.move_down();
+                        }
                     }
                 }
                 _ => {}
