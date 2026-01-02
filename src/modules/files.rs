@@ -70,8 +70,8 @@ fn update_local_files(state: &mut FileState) {
             }
         });
 
-        // Git Integration
-        state.git_status = crate::modules::git::GitModule::get_repo_status(&state.current_path);
+        // Git Integration (Disabled/Backlog)
+        state.git_status.clear();
     }
 }
 
