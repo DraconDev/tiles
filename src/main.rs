@@ -110,7 +110,7 @@ fn run_window() -> color_eyre::Result<()> {
             if !is_spam {
                 // Debug Print
                 // if let Event::Mouse(_) = evt {
-                //    println!("DEBUG: Sending Mouse Event: {:?}", evt);
+                //    println!("DEBUG: Sender: Sending Mouse Event: {:?}", evt);
                 // }
                 if let Err(_) = event_tx.try_send(AppEvent::Raw(evt)) {
                      println!("DEBUG: Channel Full! Dropping event.");
@@ -270,6 +270,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                 }
                             }
                             AppEvent::Raw(raw) => {
+                                // println!("DEBUG: Receiver: Got Raw Event: {:?}", raw);
                                 let mut app_guard = app_bg.lock().unwrap();
                                 let app_tx = event_tx_bg.clone();
                                 handle_event(raw, &mut app_guard, &docker_bg, app_tx);
@@ -396,6 +397,7 @@ fn update_docker_filter(app: &mut App) {
 fn handle_event(evt: Event, app: &mut App, docker_module: &Option<Arc<DockerModule>>, event_tx: mpsc::Sender<AppEvent>) {
     match evt {
         Event::Mouse(me) => {
+            println!("DEBUG: Handler: Mouse at R={}, C={}", me.row, me.column);
             let column = me.column;
             let row = me.row;
             match me.kind {
