@@ -356,10 +356,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             if column < sidebar_width {
                                 app.sidebar_focus = true;
                                 let sidebar_row = row.saturating_sub(2) as usize;
+                                let num_remotes = app.remote_bookmarks.len().max(1);
                                 match sidebar_row {
                                     1..=4 => {
-                                        app.sidebar_index = sidebar_row - 1;
-                                        if let Some(p) = match app.sidebar_index { 0 => dirs::home_dir(), 1 => dirs::download_dir(), 2 => dirs::document_dir(), 3 => dirs::picture_dir(), _ => None } {
+                                        app.sidebar_index = sidebar_row;
+                                        if let Some(p) = match app.sidebar_index { 1 => dirs::home_dir(), 2 => dirs::download_dir(), 3 => dirs::document_dir(), 4 => dirs::picture_dir(), _ => None } {
                                             if let Some(fs) = app.current_file_state_mut() {
                                                 fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear();
                                                 *fs.table_state.offset_mut() = 0;
@@ -369,13 +370,31 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             app.sidebar_focus = false;
                                         }
                                     },
-                                    r if r >= 7 => {
+                                    r if r >= 7 && r < 7 + num_remotes => {
                                         let bookmark_idx = r - 7;
                                         if bookmark_idx < app.remote_bookmarks.len() {
-                                            app.sidebar_index = r - 1;
+                                            app.sidebar_index = r;
                                             execute_command(crate::app::CommandAction::ConnectToRemote(bookmark_idx), app, event_tx.clone());
                                         }
                                     },
+                                    r if r >= 9 + num_remotes => {
+                                        let storage_idx = r - (9 + num_remotes);
+                                        app.sidebar_index = r;
+                                        let path = match storage_idx {
+                                            0 => Some(std::path::PathBuf::from("/")),
+                                            1 => Some(std::path::PathBuf::from("/run/media")),
+                                            _ => None,
+                                        };
+                                        if let Some(p) = path {
+                                            if let Some(fs) = app.current_file_state_mut() {
+                                                fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear();
+                                                *fs.table_state.offset_mut() = 0;
+                                                push_history(fs, p);
+                                            }
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                            app.sidebar_focus = false;
+                                        }
+                                    }
                                     _ => {}
                                 }
                                 app.sidebar_focus = false;
