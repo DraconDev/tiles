@@ -378,9 +378,48 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     },
                                     _ => {}
                                 }
-                            } else {
                                 app.sidebar_focus = false;
                                 if app.current_view == CurrentView::Files {
+                                    // Row 2 is the content of the Path Bar (breadcrumbs)
+                                    if row == 2 {
+                                        if let Some(fs) = app.current_file_state_mut() {
+                                            if fs.search_filter.is_empty() {
+                                                let text_start = sidebar_width + 7; // Sidebar + "Path: " (6) + border
+                                                if column >= text_start {
+                                                    let mut click_offset = column - text_start;
+                                                    let components: Vec<_> = fs.current_path.components().collect();
+                                                    let mut current_pos = 0;
+                                                    let mut target_path = std::path::PathBuf::new();
+                                                    
+                                                    for (i, comp) in components.iter().enumerate() {
+                                                        let part = match comp {
+                                                            std::path::Component::RootDir => "/".to_string(),
+                                                            std::path::Component::Normal(s) => s.to_string_lossy().to_string(),
+                                                            _ => continue,
+                                                        };
+                                                        let part_len = part.len() as u16;
+                                                        target_path.push(comp);
+                                                        
+                                                        if click_offset >= current_pos && click_offset < current_pos + part_len {
+                                                            // Clicked on this component
+                                                            fs.current_path = target_path;
+                                                            fs.selected_index = Some(0);
+                                                            *fs.table_state.offset_mut() = 0;
+                                                            push_history(fs, fs.current_path.clone());
+                                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                                            return;
+                                                        }
+                                                        
+                                                        current_pos += part_len;
+                                                        if i < components.len() - 1 && i > 0 {
+                                                            current_pos += 1; // for "/"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     let index = fs_mouse_index(row, app);
                                     if let Some(fs) = app.current_file_state_mut() {
                                         if index < fs.files.len() {
