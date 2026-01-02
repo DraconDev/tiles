@@ -181,29 +181,20 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                     if let Some(idx) = fs.selected_index {
                                         if let Some(path) = fs.files.get(idx) {
                                             let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-                                            if ext == "png" || ext == "jpg" || ext == "jpeg" {
-                                                let _ = event_tx_bg.send(AppEvent::LoadImage(path.clone())).await;
-                                            } else {
-                                                app_guard.current_preview = None;
-                                            }
-                                        }
-                                    }
+                                    // Image preview removed for TTY-only mode
+                                    app_guard.current_preview = None;
                                 }
                             }
-                            AppEvent::LoadImage(path) => {
-                                let ui_tx = ui_tx_bg.clone();
-                                tokio::spawn(async move {
-                                    // Use a stable ID for preview (e.g. 9999)
-                                    if let Some(asset) = ImageLoader::load_and_resize(&path, 9999, 400, 400).ok() {
-                                        let _ = ui_tx.send(UiCommand::RegisterImage(asset.id, asset.data, asset.width, asset.height)).await;
-                                    }
-                                });
-                            }
-                            AppEvent::ImageReady(id, _, _, _) => {
-                                if let Ok(mut app) = app_bg.lock() {
-                                    app.current_preview = Some(id);
-                                }
-                            }
+                        }
+                    }
+                }
+            }
+            AppEvent::LoadImage(_path) => {
+                // No-op for TTY mode
+            }
+            AppEvent::ImageReady(_id, _, _, _) => {
+                // No-op
+            }
                             AppEvent::RefreshFiles(idx) => {
                                 let (path, show_hidden, filter, session) = {
                                     if let Ok(app) = app_bg.lock() {
