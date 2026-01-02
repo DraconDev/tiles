@@ -28,8 +28,8 @@ pub enum AppMode {
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum CurrentView {
     Files,
-
-
+    System,
+}
 pub enum LicenseStatus {
     FreeMode,
     Commercial(String),
