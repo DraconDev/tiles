@@ -448,6 +448,9 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
             .border_style(Style::default().fg(THEME.accent_secondary));
+        let table = Table::new(rows, constraints)
+            .header(header)
+            .block(file_block);
         f.render_stateful_widget(table, area, &mut render_state);
 
         // Scrollbar logic:
