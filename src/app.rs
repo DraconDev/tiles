@@ -37,8 +37,7 @@ pub enum LicenseStatus {
     Commercial(String),
 }
 
-#[derive(Debug)]
-#[derive(Debug)]
+#[derive(Debug, Debug)]
 pub enum AppEvent {
     RefreshFiles(usize), // tab_index
     FilesUpdated(
@@ -256,7 +255,6 @@ impl App {
             command_index: 0,
             last_click: None,
             tile_queue,
-            current_preview: None,
         }
     }
 
