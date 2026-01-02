@@ -24,6 +24,7 @@ pub enum AppMode {
         y: u16,
         item_index: Option<usize>,
     },
+    Context, // Context Menu (Right Click)
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -36,10 +37,11 @@ pub enum LicenseStatus {
     Commercial(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AppEvent {
     RefreshFiles(usize), // tab_index
     CreateFile(String),  // filename
+    CreateFolder(String),
     FilesUpdated(
         usize,
         Vec<PathBuf>,
