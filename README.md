@@ -5,23 +5,29 @@ Welcome to the **Sovereign Developer Environment**. This repository contains **T
 ## 🚀 Projects in this Repo
 
 ### 1. [Tiles (The Application)](./plan.md)
+
 A high-performance, modular data commander.
+
 - **Role:** File Manager + Container Orchestrator + System Dashboard.
-- **Tech:** Standalone OS Window, 60FPS Grid Rendering.
+- **Tech:** Universal TTY, 60FPS Grid Rendering.
 
 ### 2. [Terma (The Engine)](./TERMA_ENGINE_DEFINITION.md)
+
 The Unreal Engine of the TUI world.
-- **Nature:** An application engine, not an emulator.
-- **Key Files:** [Engine Definition](./TERMA_ENGINE_DEFINITION.md) | [Window Architecture](./WINDOW_ARCHITECTURE.md).
+
+- **Nature:** An application engine wrapper around Ratatui.
+- **Key Files:** [Engine Definition](./TERMA_ENGINE_DEFINITION.md).
 
 ## 🏛️ Manifesto & Philosophy
-- [**The Sovereign Window**](./SOVEREIGN_WINDOW.md): Why we bypass the terminal emulator.
+
+- [**The Sovereign Terminal**](./BLUEPRINT.md): Why we utilize the terminal as our platform.
 - [**Hybrid Identity**](./HYBRID_IDENTITY.md): Combining WezTerm, Zellij, and Yazi.
 - [**Memory Efficiency**](./MEMORY_EFFICIENCY.md): How we stay under 20MB while others use 500MB+.
 
 ## 🛠️ Getting Started
+
 ```bash
-# Run the Sovereign Window
+# Run the Sovereign Terminal
 cargo run
 
 # Run the input debugger
@@ -29,4 +35,5 @@ cargo run -p terma --example input_debug
 ```
 
 ---
-*Built for the Agent Director Era. Owned by you.*
+
+_Built for the Agent Director Era. Owned by you._
