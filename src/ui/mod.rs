@@ -13,7 +13,6 @@ use ratatui::{
 use crate::app::{App, AppMode, CurrentView, FileColumn};
 use crate::ui::theme::THEME;
 use terma::compositor::engine::TilePlacement;
-use terma::visuals::assets::Icon;
 use terma::widgets::{TermaButton, TermaPanel};
 
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
