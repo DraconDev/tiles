@@ -393,37 +393,9 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         style = style.fg(THEME.accent_primary).add_modifier(Modifier::BOLD);
                     }
 
-                    let icon = if is_dir {
-                        " "
-                    } else {
-                        match path
-                            .extension()
-                            .and_then(|e| e.to_str())
-                            .unwrap_or("")
-                            .to_lowercase()
-                            .as_str()
-                        {
-                            "rs" => " ",
-                            "toml" => " ",
-                            "md" => " ",
-                            "json" => " ",
-                            "js" => " ",
-                            "ts" => " ",
-                            "css" => " ",
-                            "html" => " ",
-                            "png" | "jpg" | "jpeg" | "gif" | "webp" => " ",
-                            "mp4" | "mkv" | "mov" | "webm" => " ",
-                            "mp3" | "wav" | "flac" | "aac" => " ",
-                            "zip" | "tar" | "gz" | "7z" | "rar" => " ",
-                            "pdf" => " ",
-                            "txt" => " ",
-                            "sh" => " ",
-                            "py" => " ",
-                            _ => " ",
-                        }
-                    };
-
-                    Cell::from(format!("{} {}", icon, display_name)).style(style)
+                    // Icons removed per user request (was causing rendering issues/boxes)
+                    // We rely purely on color and styling for differentiation now.
+                    Cell::from(format!("  {}", display_name)).style(style)
                 }
                 FileColumn::Size => {
                     let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
