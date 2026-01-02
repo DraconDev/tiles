@@ -321,7 +321,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         if row == 0 {
                             if column < 11 { app.current_view = CurrentView::Files; }
                             else if column < 22 { app.current_view = CurrentView::System; }
-                            else if column < 33 { app.current_view = CurrentView::Docker; }
+    
                         } else {
                             let sidebar_width = 16;
                             if column < sidebar_width {
@@ -386,7 +386,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     } else {
                         // For Docker/System views, allow scroll anywhere
                         app.move_up();
-                        update_docker_filter(app);
                     }
                 }
                 MouseEventKind::ScrollDown => {
@@ -405,7 +404,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                     } else {
                         app.move_down();
-                        update_docker_filter(app);
                     }
                 }
                 _ => {}
@@ -447,7 +445,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             KeyCode::Char('.') => { app.mode = AppMode::CommandPalette; update_commands(app); }
                             KeyCode::Char('f') => app.current_view = CurrentView::Files,
                             KeyCode::Char('p') => app.current_view = CurrentView::System,
-                            KeyCode::Char('d') => app.current_view = CurrentView::Docker,
+
                             KeyCode::Char('h') => { if let Some(fs) = app.current_file_state_mut() { fs.show_hidden = !fs.show_hidden; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } }
                             _ => {}
                         }
