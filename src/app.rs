@@ -172,6 +172,7 @@ pub struct SystemState {
     pub disks: Vec<DiskInfo>,
     pub processes: Vec<ProcessInfo>,
     pub selected_process_index: usize,
+    pub process_list_state: ratatui::widgets::ListState,
 }
 
 pub struct DiskInfo {
