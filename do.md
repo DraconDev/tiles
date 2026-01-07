@@ -15,7 +15,7 @@ we navigate with the arrow keys to left right up down, so on the file tab we nav
 
 we also have a scroll bar, that dynamically disappears on the file bar
 
-we are not using fancy icons, we use color coding
+
 
 
 
@@ -41,3 +41,6 @@ would it be possible to have drag group select?
 
 not sure how muc interaction we can have with files but we should look into it 
 
+##
+
+we are not using fancy icons, we use color coding

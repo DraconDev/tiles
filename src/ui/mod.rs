@@ -505,8 +505,17 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
         let mut current_path = PathBuf::new();
 
         // Calculate actual screen coordinates for segments to enable hover/click
-        // Each segment is " name /" or " name "
+        // Each segment is "name" (no spaces)
         let mut current_pos_x = area.x + 2; // Approximate start offset inside block title " [breadcrumb] "
+
+        let breadcrumb_colors = [
+            THEME.accent_secondary, // Cyan
+            THEME.file_code,        // Orange
+            THEME.file_config,      // Gold
+            THEME.file_exec,        // Green
+            THEME.file_media,       // Violet
+            THEME.file_archive,     // Pink
+        ];
 
         for (i, comp) in components.iter().enumerate() {
             match comp {
@@ -530,12 +539,15 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
                 let is_hovered =
                     file_state.hovered_breadcrumb == Some(file_state.breadcrumb_bounds.len());
 
+                let base_color = breadcrumb_colors[i % breadcrumb_colors.len()];
+
                 let style = if is_hovered {
                     Style::default()
-                        .fg(THEME.border_active)
-                        .add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
+                        .bg(base_color)
+                        .fg(THEME.bg)
+                        .add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(THEME.fg)
+                    Style::default().fg(base_color)
                 };
 
                 let text = display_name;
