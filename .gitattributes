@@ -14,5 +14,4 @@
 *.ico binary
 *.woff binary
 *.woff2 binary
-Cargo.toml !filter !diff
 # --- END DEMON MANAGED BLOCK ---

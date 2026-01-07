@@ -4,7 +4,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     widgets::{
-        Block, BorderType, Borders, Cell, Clear, Gauge, List, ListItem, Paragraph, Row, Scrollbar,
+        Block, BorderType, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Scrollbar,
         ScrollbarOrientation, ScrollbarState, Table,
     },
     Frame,
@@ -13,7 +13,8 @@ use ratatui::{
 use crate::app::{App, AppMode, CurrentView, FileColumn};
 use crate::ui::theme::THEME;
 use terma::compositor::engine::TilePlacement;
-use terma::widgets::{TermaButton, TermaPanel};
+use terma::utils::{format_permissions, format_size, format_time};
+use terma::widgets::TermaButton;
 
 fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     let tile_queue = app.tile_queue.clone();
@@ -34,19 +35,30 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     }
 
     let mut current_x = area.x;
-    let views = vec![
-        ("^F Files", CurrentView::Files),
-        ("^P Proc", CurrentView::System),
-    ];
-    for (label, view) in views {
-        let width = (label.len() + 4) as u16;
-        let tab_area = Rect::new(current_x, area.y, width, 1);
-        f.render_widget(
-            TermaButton::new(label, app.current_view == view, app.tile_queue.clone()),
-            tab_area,
-        );
-        current_x += width + 1;
-    }
+    // Files tab only
+    let label = "Files";
+    let width = (label.len() + 4) as u16;
+    let tab_area = Rect::new(current_x, area.y, width, 1);
+    f.render_widget(
+        TermaButton::new(label, true, app.tile_queue.clone()),
+        tab_area,
+    );
+    current_x += width + 1;
+
+    // Settings and Split buttons on the right
+    let settings_label = "[\u{2699}]";
+    let split_label = "[\u{229e}]";
+    let settings_width = 4;
+    let split_width = 4;
+    let right_x = area.x + area.width.saturating_sub(settings_width + split_width + 2);
+    f.render_widget(
+        Paragraph::new(split_label).style(Style::default().fg(Color::Cyan)),
+        Rect::new(right_x, area.y, split_width, 1),
+    );
+    f.render_widget(
+        Paragraph::new(settings_label).style(Style::default().fg(Color::Yellow)),
+        Rect::new(right_x + split_width + 1, area.y, settings_width, 1),
+    );
 
     let mut current_x_files = current_x;
     let sep = " | ";
@@ -70,11 +82,14 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
             } else {
                 Style::default().fg(Color::Gray)
             };
-            let label = format!(
-                "[{}]
-",
-                name
-            );
+            let mut label = format!("[{}]", name);
+            if i == app.tab_index {
+                if let Some(fs) = app.current_file_state() {
+                    if !fs.search_filter.is_empty() {
+                        label = format!("[{}: {}]", name, fs.search_filter);
+                    }
+                }
+            }
             let width = label.len() as u16;
             f.render_widget(
                 Paragraph::new(ratatui::text::Span::styled(label, style)),
@@ -88,7 +103,7 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_type(BorderType::Plain)
+        .border_type(BorderType::Rounded)
         .title(" Sidebar ")
         .border_style(
             if app.sidebar_focus && app.current_view == CurrentView::Files {
@@ -144,46 +159,59 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 
             // FILES Section
             sidebar_items.push(
-                ListItem::new(" [ FILES ]").style(
+                ListItem::new("[FILES]").style(
                     Style::default()
                         .fg(Color::Yellow)
                         .add_modifier(Modifier::BOLD),
                 ),
             );
-            sidebar_items.push(ListItem::new("   Home"));
-            sidebar_items.push(ListItem::new("   Downloads"));
-            sidebar_items.push(ListItem::new("   Documents"));
-            sidebar_items.push(ListItem::new("   Pictures"));
+            sidebar_items.push(ListItem::new("Home"));
+            sidebar_items.push(ListItem::new("Downloads"));
+            sidebar_items.push(ListItem::new("Documents"));
+            sidebar_items.push(ListItem::new("Pictures"));
 
             // REMOTE Section
             sidebar_items.push(ListItem::new(""));
             sidebar_items.push(
-                ListItem::new(" [ REMOTE ]").style(
+                ListItem::new("[REMOTE]").style(
                     Style::default()
                         .fg(Color::Yellow)
                         .add_modifier(Modifier::BOLD),
                 ),
             );
             for bookmark in &app.remote_bookmarks {
-                sidebar_items.push(ListItem::new(format!("   {}", bookmark.name)));
+                sidebar_items.push(ListItem::new(bookmark.name.clone()));
             }
             if app.remote_bookmarks.is_empty() {
                 sidebar_items.push(
-                    ListItem::new("   (No remotes)").style(Style::default().fg(Color::DarkGray)),
+                    ListItem::new("(No remotes)").style(Style::default().fg(Color::DarkGray)),
                 );
             }
 
             // STORAGE Section
             sidebar_items.push(ListItem::new(""));
             sidebar_items.push(
-                ListItem::new(" [ STORAGE ]").style(
+                ListItem::new("[STORAGE]").style(
                     Style::default()
                         .fg(Color::Yellow)
                         .add_modifier(Modifier::BOLD),
                 ),
             );
-            sidebar_items.push(ListItem::new("   Root (/)"));
-            sidebar_items.push(ListItem::new("   Media (/run/media)"));
+            for disk in &app.system_state.disks {
+                let free = disk.total_space - disk.used_space;
+                let disk_item = ratatui::text::Line::from(vec![
+                    ratatui::text::Span::raw(format!("{} - ", disk.name)),
+                    ratatui::text::Span::styled(
+                        format!("{:.0}GB Free", free),
+                        Style::default().fg(Color::Green),
+                    ),
+                ]);
+                sidebar_items.push(ListItem::new(disk_item));
+            }
+            if app.system_state.disks.is_empty() {
+                sidebar_items.push(ListItem::new("Root (/)"));
+                sidebar_items.push(ListItem::new("Media"));
+            }
 
             let items: Vec<ListItem> = sidebar_items
                 .into_iter()
@@ -191,8 +219,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                 .map(|(i, item): (usize, ListItem)| {
                     // Check if this row is actually selectable (not a header or empty)
                     let is_selectable = i > 0 && i < 5
-                        || (i > 7 && i < 8 + app.remote_bookmarks.len().max(1))
-                        || i > 9 + app.remote_bookmarks.len().max(1);
+                        || (i > 7 && i < 7 + app.remote_bookmarks.len())
+                        || i >= 9 + app.remote_bookmarks.len().max(1);
 
                     if !is_selectable {
                         return item.clone().style(Style::default().fg(Color::DarkGray));
@@ -213,7 +241,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 
             f.render_widget(List::new(items), inner);
         }
-        _ => {}
     }
 }
 
@@ -271,91 +298,31 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
 fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
     if app.current_view == CurrentView::Files {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Min(0)])
-            .split(area);
-        let mut path_spans = Vec::new();
-        if let Some(fs) = app.current_file_state() {
-            if !fs.search_filter.is_empty() {
-                path_spans.push(ratatui::text::Span::styled(
-                    format!("Search: {} (Esc to clear)", fs.search_filter),
-                    Style::default().fg(Color::Magenta),
-                ));
-            } else {
-                path_spans.push(ratatui::text::Span::raw("Path: "));
-                let path = &fs.current_path;
-                let components: Vec<_> = path.components().collect();
-                let mut current_path = std::path::PathBuf::new();
+        if let Some(split_idx) = app.split_index {
+            let chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .split(area);
 
-                for (i, comp) in components.iter().enumerate() {
-                    let part = match comp {
-                        std::path::Component::RootDir => "/".to_string(),
-                        std::path::Component::Normal(s) => s.to_string_lossy().to_string(),
-                        _ => continue,
-                    };
+            let left_focused = !app.focus_right && !app.sidebar_focus;
+            let right_focused = app.focus_right && !app.sidebar_focus;
 
-                    current_path.push(comp);
-                    let mut style = Style::default().fg(Color::Cyan);
-                    if i == components.len() - 1 {
-                        style = style.add_modifier(Modifier::BOLD);
-                    } else {
-                        style = style.add_modifier(Modifier::UNDERLINED);
-                    }
-
-                    path_spans.push(ratatui::text::Span::styled(part, style));
-                    if i < components.len() - 1 && i > 0 {
-                        path_spans.push(ratatui::text::Span::raw("/"));
-                    } else if i == 0 && components.len() > 1 {
-                        // Root dir already has / if it's the only one or if we add it here
-                        // If it's RootDir, part is "/"
-                    }
-                }
-            }
+            draw_file_view(f, chunks[0], app, app.tab_index, left_focused);
+            draw_file_view(f, chunks[1], app, split_idx, right_focused);
+        } else {
+            let is_focused = !app.sidebar_focus;
+            draw_file_view(f, area, app, app.tab_index, is_focused);
         }
-
-        f.render_widget(
-            Paragraph::new(ratatui::text::Line::from(path_spans)).block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Plain),
-            ),
-            chunks[0],
-        );
-
-        match app.mode {
-            AppMode::NewFile => {
-                draw_file_view(f, chunks[1], app);
-                draw_new_file_modal(f, app);
-            }
-            AppMode::NewFolder => {
-                draw_file_view(f, chunks[1], app);
-                draw_new_folder_modal(f, app);
-            }
-            AppMode::Rename => {
-                draw_file_view(f, chunks[1], app);
-                draw_rename_modal(f, app);
-            }
-            _ => {
-                draw_file_view(f, chunks[1], app);
-            }
-        }
-    } else {
-        match app.current_view {
-            CurrentView::System => draw_system_view(f, area, app),
-
-            _ => {}
-        }
+    }
+}
+        // Files is the only view now, no other cases
     }
 }
 
 use std::time::SystemTime;
 
-fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
-    let sidebar_focus = app.sidebar_focus;
-    let tile_queue = app.tile_queue.clone();
-
-    if let Some(file_state) = app.current_file_state_mut() {
+fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_focused: bool) {
+    if let Some(file_state) = app.file_tabs.get_mut(tab_idx) {
         file_state.view_height = area.height as usize;
         let mut render_state = ratatui::widgets::TableState::default();
         if let Some(sel) = file_state.selected_index {
@@ -375,14 +342,25 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         // Force the render state offset to match our manual offset
         *render_state.offset_mut() = file_state.table_state.offset();
 
+        let sort_col = file_state.sort_column;
+        let sort_asc = file_state.sort_ascending;
         let header_cells = file_state.columns.iter().map(|c| {
-            let name = match c {
+            let base_name = match c {
                 FileColumn::Name => "Name",
                 FileColumn::Size => "Size",
                 FileColumn::Modified => "Modified",
                 FileColumn::Created => "Created",
                 FileColumn::Permissions => "Permissions",
                 FileColumn::Extension => "Ext",
+            };
+            let name = if *c == sort_col {
+                if sort_asc {
+                    format!("{} ▲", base_name)
+                } else {
+                    format!("{} ▼", base_name)
+                }
+            } else {
+                base_name.to_string()
             };
             Cell::from(name).style(
                 Style::default()
@@ -392,7 +370,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
         });
         let header = Row::new(header_cells).height(1).bottom_margin(0);
 
-        let offset = file_state.table_state.offset();
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let metadata = file_state.metadata.get(path);
             let cells = file_state.columns.iter().map(|c| match c {
@@ -422,9 +399,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                         style = style.fg(THEME.accent_primary).add_modifier(Modifier::BOLD);
                     }
 
-                    // Icons removed per user request (was causing rendering issues/boxes)
-                    // We rely purely on color and styling for differentiation now.
-                    Cell::from(format!("  {}", display_name)).style(style)
+                    // No indentation - display name directly
+                    Cell::from(display_name).style(style)
                 }
                 FileColumn::Size => {
                     let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
@@ -477,11 +453,19 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
                 FileColumn::Extension => Constraint::Length(6),
             })
             .collect();
-        let file_block = Block::default().border_style(Style::default().fg(THEME.accent_secondary));
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .title(" Files ")
+            .border_style(if is_focused {
+                Style::default().fg(THEME.accent)
+            } else {
+                Style::default().fg(THEME.border_inactive)
+            });
 
         let table = Table::new(rows, constraints)
             .header(header)
-            .block(file_block);
+            .block(block);
 
         let height = area.height.saturating_sub(2) as usize; // Account for borders
         let offset = render_state.offset();
@@ -531,176 +515,54 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
-fn draw_system_view(f: &mut Frame, area: Rect, app: &mut App) {
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),
-            Constraint::Length(3),
-            Constraint::Length(6),
-            Constraint::Min(0),
-        ])
-        .split(area);
+fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
+    let mut spans = Vec::new();
 
     // CPU
-    let cpu_gauge = Gauge::default()
-        .gauge_style(Style::default().fg(Color::Green))
-        .percent(app.system_state.cpu_usage as u16)
-        .label(format!("{:.1}%", app.system_state.cpu_usage));
-    let cpu_panel =
-        TermaPanel::new(" CPU Usage ", app.tile_queue.clone()).border_color(THEME.border_inactive);
-    let cpu_inner = cpu_panel.inner(layout[0]);
-    f.render_widget(cpu_panel, layout[0]);
-    f.render_widget(cpu_gauge, cpu_inner);
+    spans.push(ratatui::text::Span::styled(
+        format!("CPU: {:.0}%", app.system_state.cpu_usage),
+        Style::default().fg(Color::Green),
+    ));
+    spans.push(ratatui::text::Span::raw(" | "));
 
     // Memory
     if app.system_state.total_mem > 0.0 {
-        let mem_gauge = Gauge::default()
-            .gauge_style(Style::default().fg(Color::Yellow))
-            .percent((app.system_state.mem_usage / app.system_state.total_mem * 100.0) as u16)
-            .label(format!(
-                "{:.1} / {:.1} GB",
-                app.system_state.mem_usage, app.system_state.total_mem
-            ));
-        let mem_panel = TermaPanel::new(" Memory Usage ", app.tile_queue.clone())
-            .border_color(THEME.border_inactive);
-        let mem_inner = mem_panel.inner(layout[1]);
-        f.render_widget(mem_panel, layout[1]);
-        f.render_widget(mem_gauge, mem_inner);
-    }
-
-    // Disk
-    let disk_items: Vec<ListItem> = app
-        .system_state
-        .disks
-        .iter()
-        .map(|disk| {
-            let percent = (disk.used_space / disk.total_space) * 100.0;
-            let bar_width: usize = 20;
-            let filled = (percent / 100.0 * bar_width as f64) as usize;
-            let bar = format!(
-                "[{}{}]",
-                "#".repeat(filled),
-                "-".repeat(bar_width.saturating_sub(filled))
-            );
-            ListItem::new(format!(
-                "{:<10} {}  {:.1} / {:.1} GB ({:.1}%)",
-                disk.name, bar, disk.used_space, disk.total_space, percent
-            ))
-        })
-        .collect();
-    let disk_panel =
-        TermaPanel::new(" Disk Usage ", app.tile_queue.clone()).border_color(THEME.border_inactive);
-    let disk_inner = disk_panel.inner(layout[2]);
-    f.render_widget(disk_panel, layout[2]);
-    f.render_widget(List::new(disk_items), disk_inner);
-
-    // Processes
-    let process_items: Vec<ListItem> = app
-        .system_state
-        .processes
-        .iter()
-        .enumerate()
-        .map(|(i, p)| {
-            let style = if i == app.system_state.selected_process_index && !app.sidebar_focus {
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default()
-            };
-            ListItem::new(format!(
-                "{:<6} {:<20} {:.1}%  {:.1} MB",
-                p.pid,
-                p.name.chars().take(20).collect::<String>(),
-                p.cpu,
-                p.mem as f64 / 1024.0 / 1024.0
-            ))
-            .style(style)
-        })
-        .collect();
-    let process_panel =
-        TermaPanel::new(" Processes ", app.tile_queue.clone()).border_color(THEME.border_inactive);
-    let process_inner = process_panel.inner(layout[3]);
-
-    // Fix for "General Scroll Glitch" in System View:
-    // We use a mutable clone for rendering to handle selection detachment.
-    let mut render_state = app.system_state.process_list_state.clone();
-    let offset = render_state.offset();
-    let height = process_inner.height as usize;
-    let selected = Some(app.system_state.selected_process_index);
-
-    // If selected item is off-screen, detach it during this render pass
-    if let Some(sel) = selected {
-        if sel < offset || sel >= offset + height {
-            render_state.select(None);
-        } else {
-            render_state.select(Some(sel));
-        }
-    }
-
-    f.render_widget(process_panel, layout[3]);
-    f.render_stateful_widget(List::new(process_items), process_inner, &mut render_state);
-
-    // Sync back any offset changes (essential for persistent mouse scroll)
-    *app.system_state.process_list_state.offset_mut() = render_state.offset();
-}
-
-fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
-    let mut spans = Vec::new();
-    spans.push(ratatui::text::Span::styled(
-        "^Q",
-        Style::default().fg(Color::Yellow),
-    ));
-    spans.push(ratatui::text::Span::raw(" Quit | "));
-    let console_style = if matches!(app.mode, AppMode::CommandPalette) {
-        Style::default()
-            .fg(Color::Magenta)
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(Color::Yellow)
-    };
-    spans.push(ratatui::text::Span::styled("^.", console_style));
-    spans.push(ratatui::text::Span::raw(" Console | "));
-    spans.push(ratatui::text::Span::styled(
-        "^H",
-        Style::default().fg(Color::Yellow),
-    ));
-    spans.push(ratatui::text::Span::raw(" Hidden | "));
-    spans.push(ratatui::text::Span::styled(
-        "^B",
-        Style::default().fg(Color::Yellow),
-    ));
-    spans.push(ratatui::text::Span::raw(" Star | "));
-    spans.push(ratatui::text::Span::styled(
-        "^T",
-        Style::default().fg(Color::Yellow),
-    ));
-    spans.push(ratatui::text::Span::raw(" New Tab | "));
-    spans.push(ratatui::text::Span::styled(
-        "^W",
-        Style::default().fg(Color::Yellow),
-    ));
-    spans.push(ratatui::text::Span::raw(" Close Tab | "));
-    spans.push(ratatui::text::Span::styled(
-        "Del",
-        Style::default().fg(Color::Yellow),
-    ));
-    spans.push(ratatui::text::Span::raw(" Action "));
-    if let Some(disk) = app.system_state.disks.first() {
-        spans.push(ratatui::text::Span::raw(" | Storage: "));
+        let mem_percent = (app.system_state.mem_usage / app.system_state.total_mem) * 100.0;
         spans.push(ratatui::text::Span::styled(
-            format!(
-                "{:.1}/{:.1} GB",
-                disk.total_space - disk.used_space,
-                disk.total_space
-            ),
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
+            format!("Mem: {:.0}%", mem_percent),
+            Style::default().fg(Color::Yellow),
+        ));
+        spans.push(ratatui::text::Span::raw(" | "));
+    }
+
+    // Storage
+    let mut total_used = 0.0;
+    let mut total_space = 0.0;
+    for disk in &app.system_state.disks {
+        total_used += disk.used_space;
+        total_space += disk.total_space;
+    }
+
+    if total_space > 0.0 {
+        let storage_percent = (total_used / total_space) * 100.0;
+        spans.push(ratatui::text::Span::styled(
+            format!("Storage: {:.0}%", storage_percent),
+            Style::default().fg(Color::Cyan),
+        ));
+    } else if let Some(disk) = app.system_state.disks.first() {
+        let free = disk.total_space - disk.used_space;
+        spans.push(ratatui::text::Span::styled(
+            format!("Storage: {:.1}GB", free),
+            Style::default().fg(Color::Cyan),
         ));
     }
-    f.render_widget(Paragraph::new(ratatui::text::Line::from(spans)), area);
+
+    // Right-align the footer content
+    let line = ratatui::text::Line::from(spans);
+    f.render_widget(
+        Paragraph::new(line).alignment(ratatui::layout::Alignment::Right),
+        area,
+    );
 }
 
 fn draw_context_menu(f: &mut Frame, x: u16, y: u16, item_index: Option<usize>, app: &App) {
@@ -739,7 +601,7 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, item_index: Option<usize>, a
         List::new(items).block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_type(BorderType::Plain)
+                .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Yellow))
                 .title(title),
         ),
@@ -756,7 +618,7 @@ fn draw_command_palette(f: &mut Frame, app: &App) {
         .split(
             Block::default()
                 .borders(Borders::ALL)
-                .border_type(BorderType::Plain)
+                .border_type(BorderType::Rounded)
                 .title(" Command Palette ")
                 .border_style(Style::default().fg(Color::Magenta))
                 .inner(area),
@@ -789,7 +651,7 @@ fn draw_rename_modal(f: &mut Frame, app: &App) {
             Block::default()
                 .title(" Rename ")
                 .borders(Borders::ALL)
-                .border_type(BorderType::Plain)
+                .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Yellow)),
         ),
         area,
@@ -804,7 +666,7 @@ fn draw_new_folder_modal(f: &mut Frame, app: &App) {
             Block::default()
                 .title(" New Folder ")
                 .borders(Borders::ALL)
-                .border_type(BorderType::Plain)
+                .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Green)),
         ),
         area,
@@ -819,7 +681,7 @@ fn draw_new_file_modal(f: &mut Frame, app: &App) {
             Block::default()
                 .title(" New File Name ")
                 .borders(Borders::ALL)
-                .border_type(BorderType::Plain)
+                .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Green)),
         ),
         area,
@@ -848,14 +710,13 @@ fn draw_delete_modal(f: &mut Frame, app: &App) {
                 "Delete? (y/n)".to_string()
             }
         }
-        _ => "Delete? (y/n)".to_string(),
     };
     f.render_widget(
         Paragraph::new(text).block(
             Block::default()
                 .title(" Confirm Action ")
                 .borders(Borders::ALL)
-                .border_type(BorderType::Plain)
+                .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Red)),
         ),
         area,
@@ -896,14 +757,13 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
                 "No file selected".to_string()
             }
         }
-        _ => "No info available".to_string(),
     };
     f.render_widget(
         Paragraph::new(info).block(
             Block::default()
                 .title(" Properties ")
                 .borders(Borders::ALL)
-                .border_type(BorderType::Plain)
+                .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Cyan)),
         ),
         area,
@@ -938,7 +798,7 @@ fn draw_column_setup_modal(f: &mut Frame, app: &App) {
                 Block::default()
                     .title(" Column Setup ")
                     .borders(Borders::ALL)
-                    .border_type(BorderType::Plain)
+                    .border_type(BorderType::Rounded)
                     .border_style(Style::default().fg(Color::Cyan)),
             ),
             area,
@@ -958,46 +818,13 @@ fn draw_add_remote_modal(f: &mut Frame, app: &App) {
             Block::default()
                 .title(" Add Remote Host ")
                 .borders(Borders::ALL)
-                .border_type(BorderType::Plain)
+                .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Green)),
         ),
         area,
     );
 }
 
-use chrono::{DateTime, Local};
-fn format_size(size: u64) -> String {
-    if size >= 1073741824 {
-        format!("{:.1} GB", size as f64 / 1073741824.0)
-    } else if size >= 1048576 {
-        format!("{:.1} MB", size as f64 / 1048576.0)
-    } else if size >= 1024 {
-        format!("{:.1} KB", size as f64 / 1024.0)
-    } else {
-        format!("{} B", size)
-    }
-}
-fn format_time(time: SystemTime) -> String {
-    let datetime: DateTime<Local> = time.into();
-    datetime.format("%Y-%m-%d %H:%M").to_string()
-}
-fn format_permissions(mode: u32) -> String {
-    let r = |b| if b & 4 != 0 { "r" } else { "-" };
-    let w = |b| if b & 2 != 0 { "w" } else { "-" };
-    let x = |b| if b & 1 != 0 { "x" } else { "-" };
-    format!(
-        "{}{}{}{}{}{}{}{}{}",
-        r((mode >> 6) & 0o7),
-        w((mode >> 6) & 0o7),
-        x((mode >> 6) & 0o7),
-        r((mode >> 3) & 0o7),
-        w((mode >> 3) & 0o7),
-        x((mode >> 3) & 0o7),
-        r(mode & 0o7),
-        w(mode & 0o7),
-        x(mode & 0o7)
-    )
-}
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
