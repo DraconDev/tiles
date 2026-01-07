@@ -37,5 +37,5 @@ on footer storage is percentage util, on sidebar is available space show with gr
 
 would it be possible to have drag group select?
 
-not sure how muc interaction we can have with element
+not sure how muc interaction we can have with files but we should look into it 
 
