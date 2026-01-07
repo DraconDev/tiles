@@ -14,6 +14,7 @@ use ratatui::{
 
 use crate::app::{App, AppMode, CurrentView, FileColumn};
 use crate::ui::theme::THEME;
+use terma::compositor::engine::TilePlacement;
 use terma::utils::{format_permissions, format_size, format_time};
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
