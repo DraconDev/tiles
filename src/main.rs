@@ -395,6 +395,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             clipboard: None, search_filter: String::new(), starred: fs.starred.clone(),
                                             columns: fs.columns.clone(), history: vec![path], history_index: 0,
                                             view_height: 0, sort_column: fs.sort_column, sort_ascending: fs.sort_ascending,
+                                            breadcrumb_bounds: Vec::new(),
                                         };
                                         app.file_tabs.push(new_fs);
                                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.file_tabs.len() - 1));
