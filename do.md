@@ -17,6 +17,8 @@ we also have a scroll bar, that dynamically disappears on the file bar
 
 we are not using fancy icons, we use color coding
 
+
+
 double click on directory enters, right click opens a context menu, different context menus for clicing on folders, files, sidebar files, empty space, and remotes
 
 on the sidebar we dont have a dedicated favorites section we have them together under the first section, and navigate with the arrow keys too, and click on them, also by clicking on one we can reorder them, and they swap around as we pass them with dragging with m1, 
