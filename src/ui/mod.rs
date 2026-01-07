@@ -166,24 +166,59 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 pub fn draw(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(1)])
+        .constraints([
+            Constraint::Length(1), // Global Header
+            Constraint::Min(0),    // Workspace
+            Constraint::Length(1), // Footer
+        ])
         .split(f.area());
 
-    // draw_tabs(f, chunks[0], app); // Removed
+    draw_global_header(f, chunks[0], app);
 
     let workspace = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(20), Constraint::Min(0)])
-        .split(chunks[0]); // Was chunks[1]
+        .split(chunks[1]);
 
     draw_sidebar(f, workspace[0], app);
     draw_main_stage(f, workspace[1], app);
 
-    draw_footer(f, chunks[1], app); // Was chunks[2]
+    draw_footer(f, chunks[2], app);
 
     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
         draw_context_menu(f, x, y, item_index, app);
     }
+}
+
+fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
+    let mut current_x = area.x;
+    // Files Label
+    let label = " Files ";
+    let width = label.len() as u16;
+    f.render_widget(
+        Paragraph::new(label).style(Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
+        Rect::new(current_x, area.y, width, 1),
+    );
+    current_x += width;
+
+    // Settings and Split buttons on the right
+    let settings_label = "[\u{2699}]";
+    let split_label = "[\u{229e}]";
+    let settings_width = 4;
+    let split_width = 4;
+    
+    // Right align calculation
+    let right_x = area.x + area.width.saturating_sub(settings_width + split_width + 2);
+    
+    f.render_widget(
+        Paragraph::new(split_label).style(Style::default().fg(Color::Cyan)),
+        Rect::new(right_x, area.y, split_width, 1),
+    );
+    f.render_widget(
+        Paragraph::new(settings_label).style(Style::default().fg(Color::Yellow)),
+        Rect::new(right_x + split_width + 1, area.y, settings_width, 1),
+    );
+}
 
     if matches!(app.mode, AppMode::Rename) {
         draw_rename_modal(f, app);
