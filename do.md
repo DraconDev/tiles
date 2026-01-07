@@ -2,7 +2,7 @@ terma is to be a shared terminal manipulation library so if logic can be built i
 
 there was some misunderstanding where teh path should go, it is where Files is in the filelist tab, aslo make it continous and if we hover over a segment we highlight it 
 
-the breadcrumbs are too colorful, lets color the / to red if its the active window, and lets 
+the breadcrumbs are too colorful, lets color the / to red if its the active window, and lets highlights the word to red again if we are hovering over it, otherwise the text is white?
 
 make sure we are opening the tabs above the filelist tab, and this means if we have a second tab we open the tabs for that starting from the top of that filelist tab
 
