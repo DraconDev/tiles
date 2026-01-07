@@ -41,6 +41,6 @@ would it be possible to have drag group select?
 
 not sure how muc interaction we can have with files but we should look into it 
 
-##
+## Done
 
 we are not using fancy icons, we use color coding
