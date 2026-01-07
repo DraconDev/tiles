@@ -340,7 +340,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
         ])
         .split(area);
 
-    let tabs_area = chunks[0];
     let content_area = chunks[1];
 
     // Draw Local Tabs
