@@ -429,7 +429,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
                         .style(Style::default().fg(THEME.fg))
                 }
             });
-            let style = if Some(i) == file_state.selected_index && !sidebar_focus {
+            let style = if Some(i) == file_state.selected_index && is_focused {
                 Style::default()
                     .bg(THEME.selection_bg)
                     .fg(THEME.selection_fg)
