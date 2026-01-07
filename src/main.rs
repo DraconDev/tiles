@@ -78,6 +78,7 @@ fn run_tty() -> color_eyre::Result<()> {
             let mut app_guard = app.lock().unwrap();
             if !app_guard.running { break; }
             terminal.draw(|f| {
+                app_guard.terminal_size = (f.area().width, f.area().height);
                 ui::draw(f, &mut app_guard);
             })?;
         }
@@ -189,6 +190,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                         columns: Vec::new(), history: Vec::new(), history_index: 0,
                                         view_height: 0, sort_column: crate::app::FileColumn::Name, sort_ascending: true,
                                         breadcrumb_bounds: Vec::new(),
+                                        hovered_breadcrumb: None,
                                     };
                                     if let Some(s_mutex) = session {
                                         if let Ok(s) = s_mutex.lock() { crate::modules::files::update_files(&mut temp_state, Some(&s)); }
@@ -294,6 +296,31 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                     return;
                 }
+                MouseEventKind::Moved => {
+                    app.mouse_pos = (column, row);
+                    
+                    // Update hovered breadcrumb for all visible file states
+                    let mut tabs_to_check = vec![app.tab_index];
+                    if let Some(split) = app.split_index {
+                        tabs_to_check.push(split);
+                    }
+
+                    for &idx in &tabs_to_check {
+                        if let Some(fs) = app.file_tabs.get_mut(idx) {
+                            fs.hovered_breadcrumb = None;
+                            
+                            // Relocated breadcrumbs are in chunks[1] of main layout, row index is 1
+                            if row == 1 {
+                                for (i, (start, end, _)) in fs.breadcrumb_bounds.iter().enumerate() {
+                                    if column >= *start && column < *end {
+                                        fs.hovered_breadcrumb = Some(i);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 MouseEventKind::Down(button) => {
                     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
                         let menu_width = 20;
@@ -393,9 +420,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             files: Vec::new(), metadata: std::collections::HashMap::new(), 
                                             show_hidden: fs.show_hidden, git_status: std::collections::HashMap::new(),
                                             clipboard: None, search_filter: String::new(), starred: fs.starred.clone(),
-                                            columns: fs.columns.clone(), history: vec![path], history_index: 0,
+                                    columns: fs.columns.clone(), history: vec![path], history_index: 0,
                                             view_height: 0, sort_column: fs.sort_column, sort_ascending: fs.sort_ascending,
                                             breadcrumb_bounds: Vec::new(),
+                                            hovered_breadcrumb: None,
                                         };
                                         app.file_tabs.push(new_fs);
                                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.file_tabs.len() - 1));
@@ -406,8 +434,31 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         return;
                     }
                     if button == MouseButton::Left {
-                        if row == 0 {
-                            // Header area - could add settings/split buttons here
+                        // Relocated Breadcrumb click detection (row 1 of the global layout)
+                        if row == 1 {
+                            // Find which panel was clicked
+                            let sidebar_width = 16;
+                            let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
+                            let mid_point = sidebar_width + content_area_width / 2;
+                            
+                            let target_fs = if app.split_index.is_some() && column >= mid_point {
+                                app.split_index.and_then(|idx| app.file_tabs.get_mut(idx))
+                            } else {
+                                app.file_tabs.get_mut(app.tab_index)
+                            };
+
+                            if let Some(fs) = target_fs {
+                                for (start, end, path) in fs.breadcrumb_bounds.clone() {
+                                    if column >= start && column < end {
+                                        fs.current_path = path.clone();
+                                        fs.selected_index = Some(0);
+                                        fs.search_filter.clear();
+                                        push_history(fs, path);
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                        return;
+                                    }
+                                }
+                            }
                             app.current_view = CurrentView::Files;
                         } else {
                             let sidebar_width = 16;
@@ -455,6 +506,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             } else {
                                 // Clicking in the files area (column >= sidebar_width)
                                 app.sidebar_focus = false;
+                                if let Some(_split_idx) = app.split_index {
+                                    let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
+                                    let mid_point = sidebar_width + content_area_width / 2;
+                                    app.focus_right = column >= mid_point;
+                                } else {
+                                    app.focus_right = false;
+                                }
+
                                 if app.current_view == CurrentView::Files {
                                     // Column header click detection (row 2 is the header row)
                                     if row == 2 {

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::app::{App, FileState};
 use serde::Serialize;
 

@@ -1,3 +1,4 @@
+#![allow(dead_code, unused)]
 use ratatui::style::{Color, Modifier, Style};
 
 pub struct DraconTheme {
@@ -15,15 +16,15 @@ pub struct DraconTheme {
 impl DraconTheme {
     pub fn cyberpunk() -> Self {
         Self {
-            bg: Color::Rgb(10, 10, 15), // Deep dark blue/black
-            fg: Color::Rgb(220, 220, 230), // Off-white
-            accent_primary: Color::Rgb(255, 0, 85), // Neon Red/Pink
+            bg: Color::Rgb(10, 10, 15),                // Deep dark blue/black
+            fg: Color::Rgb(220, 220, 230),             // Off-white
+            accent_primary: Color::Rgb(255, 0, 85),    // Neon Red/Pink
             accent_secondary: Color::Rgb(0, 255, 200), // Cyan
-            selection_bg: Color::Rgb(40, 40, 50), // Dark Grey
-            selection_fg: Color::Rgb(255, 255, 255), // White
-            border_active: Color::Rgb(255, 0, 85), // Primary Accent
-            border_inactive: Color::Rgb(60, 60, 70), // Dim Grey
-            header_fg: Color::Rgb(0, 255, 200), // Secondary Accent
+            selection_bg: Color::Rgb(40, 40, 50),      // Dark Grey
+            selection_fg: Color::Rgb(255, 255, 255),   // White
+            border_active: Color::Rgb(255, 0, 85),     // Primary Accent
+            border_inactive: Color::Rgb(60, 60, 70),   // Dim Grey
+            header_fg: Color::Rgb(0, 255, 200),        // Secondary Accent
         }
     }
 
@@ -36,8 +37,11 @@ impl DraconTheme {
     }
 
     pub fn text_highlight(&self) -> Style {
-        Style::default().fg(self.accent_primary).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(self.accent_primary)
+            .add_modifier(Modifier::BOLD)
     }
 }
 
-pub static THEME: std::sync::LazyLock<DraconTheme> = std::sync::LazyLock::new(DraconTheme::cyberpunk);
+pub static THEME: std::sync::LazyLock<DraconTheme> =
+    std::sync::LazyLock::new(DraconTheme::cyberpunk);

@@ -1,4 +1,7 @@
-terma is to be a shared terminal manipulation library so if logic can be built into that then do so  
+terma is to be a shared terminal manipulation library so if logic can be built into that then do so 
+
+there was some misunderstanding where teh path should go, it is where Files is in the filelist tab, aslo make it continous and if we hover over a segment we highlight it 
+
 
 make sure files in the file tab can be clicked on, even when we have multiple file tabs
 
@@ -6,7 +9,7 @@ instead of seeing Files at the top of the tab,e we should see the absolute path,
 
 we dont need dedicated big path box, the name of the tabs is what get searched
 
-
+show the active storage(s) on sidebar and later we ould want to show if remove too, so if we have our main disk open and a remoto disk then we see them both highlighted on the sidebar, if we opened antoehr disk then we see both disks, if i only have my main open we only see that 
 
 we navigate with the arrow keys to left right up down, so on the file tab we navigate to the sidebar and to the right file tab, and up and down the file list 
 

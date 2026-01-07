@@ -1,5 +1,7 @@
 pub mod theme;
+use std::path::PathBuf;
 
+use ratatui::text::{Line, Span};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -16,7 +18,7 @@ use terma::compositor::engine::TilePlacement;
 use terma::utils::{format_permissions, format_size, format_time};
 use terma::widgets::TermaButton;
 
-fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
+fn draw_tabs(f: &mut Frame, area: Rect, app: &mut App) {
     let tile_queue = app.tile_queue.clone();
 
     if area.width > 0 && area.height > 0 {
@@ -70,8 +72,6 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
 
     if app.current_view == CurrentView::Files {
         for (i, tab) in app.file_tabs.iter_mut().enumerate() {
-            tab.breadcrumb_bounds.clear();
-
             let is_active = i == app.tab_index;
             let style = if is_active {
                 Style::default()
@@ -88,68 +88,28 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
             );
             current_x_files += 1;
 
-            if is_active && !tab.search_filter.is_empty() {
-                // Show search filter instead of path
-                let label = &tab.search_filter;
-                f.render_widget(
-                    Paragraph::new(label.as_str()).style(style),
-                    Rect::new(current_x_files, area.y, label.len() as u16, 1),
-                );
-                current_x_files += label.len() as u16;
+            let name = if is_active && !tab.search_filter.is_empty() {
+                tab.search_filter.clone()
             } else {
-                // Show path (clickable breadcrumbs)
-                let components: Vec<_> = tab.current_path.components().collect();
-                let mut current_path = PathBuf::new();
+                tab.current_path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "/".to_string())
+            };
 
-                for (comp_idx, comp) in components.iter().enumerate() {
-                    let name = comp.as_os_str().to_string_lossy().to_string();
-                    if name == "/" && comp_idx > 0 {
-                        continue;
-                    } // Avoid double slash if somehow it happens
-
-                    let display_name = if name == "/" {
-                        "/".to_string()
-                    } else {
-                        format!("{} ", name)
-                    };
-
-                    match comp {
-                        std::path::Component::RootDir => current_path.push("/"),
-                        std::path::Component::Normal(p) => current_path.push(p),
-                        _ => {}
-                    }
-
-                    let width = display_name.len() as u16;
-                    if is_active {
-                        tab.breadcrumb_bounds.push((
-                            current_x_files,
-                            current_x_files + width,
-                            current_path.clone(),
-                        ));
-                    }
-
-                    f.render_widget(
-                        Paragraph::new(display_name.as_str()).style(style),
-                        Rect::new(current_x_files, area.y, width, 1),
-                    );
-                    current_x_files += width;
-
-                    if name != "/" && comp_idx < components.len() - 1 {
-                        f.render_widget(
-                            Paragraph::new("/ ").style(style),
-                            Rect::new(current_x_files, area.y, 2, 1),
-                        );
-                        current_x_files += 2;
-                    }
-                }
-            }
+            let width = name.len() as u16;
+            f.render_widget(
+                Paragraph::new(name.as_str()).style(style),
+                Rect::new(current_x_files, area.y, width, 1),
+            );
+            current_x_files += width;
 
             // End bracket
             f.render_widget(
                 Paragraph::new("]").style(style),
                 Rect::new(current_x_files, area.y, 1, 1),
             );
-            current_x_files += 2; // Spacing after closing bracket
+            current_x_files += 2;
         }
     }
 }
@@ -506,10 +466,80 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
                 FileColumn::Extension => Constraint::Length(6),
             })
             .collect();
+        let mut breadcrumb_spans = Vec::new();
+        file_state.breadcrumb_bounds.clear();
+
+        let path = file_state.current_path.clone();
+        let components: Vec<_> = path.components().collect();
+        let mut current_path = PathBuf::new();
+
+        // Calculate actual screen coordinates for segments to enable hover/click
+        // Each segment is " name /" or " name "
+        let mut current_pos_x = area.x + 2; // Approximate start offset inside block title " [breadcrumb] "
+
+        for (i, comp) in components.iter().enumerate() {
+            match comp {
+                std::path::Component::RootDir => {
+                    current_path.push("/");
+                }
+                std::path::Component::Prefix(p) => {
+                    current_path.push(p.as_os_str());
+                }
+                std::path::Component::Normal(name) => {
+                    current_path.push(name);
+                }
+                _ => continue,
+            }
+
+            let name = comp.as_os_str().to_string_lossy().to_string();
+            let display_name = if name == "/" { "".to_string() } else { name };
+
+            if !display_name.is_empty() || i == 0 {
+                let segment_path = current_path.clone();
+                let is_hovered =
+                    file_state.hovered_breadcrumb == Some(file_state.breadcrumb_bounds.len());
+
+                let style = if is_hovered {
+                    Style::default()
+                        .fg(THEME.border_active)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(THEME.fg)
+                };
+
+                let text = format!(" {} ", display_name);
+                let width = text.len() as u16;
+                breadcrumb_spans.push(Span::styled(text, style));
+
+                // Store absolute screen bounds (start_x, end_x, path)
+                file_state.breadcrumb_bounds.push((
+                    current_pos_x,
+                    current_pos_x + width,
+                    segment_path,
+                ));
+                current_pos_x += width;
+
+                if i < components.len() - 1 {
+                    breadcrumb_spans.push(Span::styled("/", Style::default().fg(Color::DarkGray)));
+                    current_pos_x += 1;
+                }
+            }
+        }
+
+        // Add search filter if active
+        if !file_state.search_filter.is_empty() {
+            breadcrumb_spans.push(Span::styled(
+                format!(" [ {} ]", file_state.search_filter),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ));
+        }
+
         let block = Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .title(" Files ")
+            .title(Line::from(breadcrumb_spans))
             .border_style(if is_focused {
                 Style::default().fg(THEME.border_active)
             } else {
