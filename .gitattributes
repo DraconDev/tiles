@@ -1,7 +1,11 @@
-# Arcane Transparent Encryption
-# Auto-committer gitattributes (Managed by Arcane)
-.env filter=git-arcane diff=git-arcane
-.env.* filter=git-arcane diff=git-arcane
+# --- BEGIN DEMON MANAGED BLOCK ---
+# DANGER: Managed by Demon. Manual changes inside this block will be overwritten.
+# Purpose: settings for filters and binary files
+*.env filter=demon diff=demon
+*.toml filter=demon diff=demon
+*.yaml filter=demon diff=demon
+*.yml filter=demon diff=demon
+*.json filter=demon diff=demon
 *.lock binary
 *.png binary
 *.jpg binary
@@ -10,3 +14,4 @@
 *.ico binary
 *.woff binary
 *.woff2 binary
+# --- END DEMON MANAGED BLOCK ---
