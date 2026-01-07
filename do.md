@@ -44,7 +44,7 @@ would it be possible to have drag group select?
 
 not sure how muc interaction we can have with files but we should look into it 
 
-we are looking to persist the 
+we are looking to persist the state of the app, so if we close and open it again we see the same state
 
 ## Done
 
