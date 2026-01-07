@@ -1,6 +1,6 @@
+#![allow(dead_code, unused)]
 use crate::license::check_license;
 use crate::modules::files::update_files;
-use crate::modules::system::SystemModule;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use terma::compositor::engine::TilePlacement;
@@ -30,7 +30,6 @@ pub enum AppMode {
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum CurrentView {
     Files,
-    System,
 }
 pub enum LicenseStatus {
     FreeMode,
@@ -60,6 +59,8 @@ pub struct App {
     pub input: String,
     pub file_tabs: Vec<FileState>,
     pub tab_index: usize,
+    pub split_index: Option<usize>, // If Some, we are in split mode
+    pub focus_right: bool,          // If true, focus is on the right panel
     pub system_state: SystemState,
     pub license: LicenseStatus,
     pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
@@ -115,6 +116,17 @@ pub struct RemoteSession {
     pub session: Arc<Mutex<ssh2::Session>>,
 }
 
+impl std::fmt::Debug for RemoteSession {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RemoteSession")
+            .field("name", &self.name)
+            .field("host", &self.host)
+            .field("user", &self.user)
+            .field("session", &"<ssh2 session>")
+            .finish()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct RemoteBookmark {
     pub name: String,
@@ -147,6 +159,7 @@ impl Default for FileMetadata {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct FileState {
     pub current_path: PathBuf,
     pub remote_session: Option<RemoteSession>, // None = Local, Some = SSH
@@ -163,6 +176,8 @@ pub struct FileState {
     pub history: Vec<PathBuf>,
     pub history_index: usize,
     pub view_height: usize,
+    pub sort_column: FileColumn,
+    pub sort_ascending: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -171,7 +186,6 @@ pub struct SystemData {
     pub mem_usage: f64,
     pub total_mem: f64,
     pub disks: Vec<DiskInfo>,
-    pub processes: Vec<ProcessInfo>,
 }
 
 pub struct SystemState {
@@ -179,9 +193,6 @@ pub struct SystemState {
     pub mem_usage: f64,
     pub total_mem: f64,
     pub disks: Vec<DiskInfo>,
-    pub processes: Vec<ProcessInfo>,
-    pub selected_process_index: usize,
-    pub process_list_state: ratatui::widgets::ListState,
 }
 
 #[derive(Clone, Debug)]
@@ -206,9 +217,6 @@ impl App {
             mem_usage: 0.0,
             total_mem: 0.0,
             disks: Vec::new(),
-            processes: Vec::new(),
-            selected_process_index: 0,
-            process_list_state: ratatui::widgets::ListState::default(),
         };
 
         let initial_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
@@ -228,6 +236,8 @@ impl App {
             history: vec![initial_path],
             history_index: 0,
             view_height: 0,
+            sort_column: FileColumn::Name,
+            sort_ascending: true,
         };
         file_state.table_state.select(Some(0));
         update_files(&mut file_state, None);
@@ -241,6 +251,8 @@ impl App {
             input: String::new(),
             file_tabs: vec![file_state],
             tab_index: 0,
+            split_index: None,
+            focus_right: false,
 
             system_state,
             license,
@@ -256,11 +268,39 @@ impl App {
     }
 
     pub fn current_file_state_mut(&mut self) -> Option<&mut FileState> {
-        self.file_tabs.get_mut(self.tab_index)
+        let idx = if self.focus_right {
+            self.split_index.unwrap_or(self.tab_index)
+        } else {
+            self.tab_index
+        };
+        self.file_tabs.get_mut(idx)
     }
 
     pub fn current_file_state(&self) -> Option<&FileState> {
-        self.file_tabs.get(self.tab_index)
+        let idx = if self.focus_right {
+            self.split_index.unwrap_or(self.tab_index)
+        } else {
+            self.tab_index
+        };
+        self.file_tabs.get(idx)
+    }
+
+    pub fn toggle_split(&mut self) {
+        if self.split_index.is_some() {
+            self.split_index = None;
+            self.focus_right = false;
+        } else {
+            // Create a new tab if we only have one, otherwise use the next one
+            if self.file_tabs.len() == 1 {
+                let current = self.file_tabs[0].clone();
+                self.file_tabs.push(current);
+                self.split_index = Some(1);
+            } else {
+                let next_idx = (self.tab_index + 1) % self.file_tabs.len();
+                self.split_index = Some(next_idx);
+            }
+            self.focus_right = true;
+        }
     }
 
     pub fn update_files_for_state(&mut self, tab_idx: usize) {
@@ -279,10 +319,8 @@ impl App {
     }
 
     pub fn switch_view(&mut self) {
-        self.current_view = match self.current_view {
-            CurrentView::Files => CurrentView::System,
-            CurrentView::System => CurrentView::Files,
-        };
+        // Only Files view now
+        self.current_view = CurrentView::Files;
     }
 
     pub fn toggle_zoom(&mut self) {
@@ -304,7 +342,6 @@ impl App {
                 while (self.sidebar_index == 0
                     || self.sidebar_index == 5
                     || self.sidebar_index == remote_header
-                    || self.sidebar_index == (remote_header - 1)
                     || self.sidebar_index == storage_header
                     || self.sidebar_index == (storage_header - 1))
                     && self.sidebar_index > 1
@@ -315,34 +352,25 @@ impl App {
             return;
         }
 
-        match self.current_view {
-            CurrentView::Files => {
-                if let Some(file_state) = self.current_file_state_mut() {
-                    let new_index = match file_state.selected_index {
-                        Some(i) => {
-                            if i > 0 {
-                                i - 1
-                            } else {
-                                0
-                            }
-                        }
-                        None => file_state.table_state.offset(),
-                    };
-
-                    file_state.selected_index = Some(new_index);
-                    file_state.table_state.select(Some(new_index));
-
-                    // Manual Auto-Scroll (Keep Selection in View)
-                    let offset = file_state.table_state.offset();
-                    if new_index < offset {
-                        *file_state.table_state.offset_mut() = new_index;
+        if let Some(file_state) = self.current_file_state_mut() {
+            let new_index = match file_state.selected_index {
+                Some(i) => {
+                    if i > 0 {
+                        i - 1
+                    } else {
+                        0
                     }
                 }
-            }
-            CurrentView::System => {
-                if self.system_state.selected_process_index > 0 {
-                    self.system_state.selected_process_index -= 1;
-                }
+                None => file_state.table_state.offset(),
+            };
+
+            file_state.selected_index = Some(new_index);
+            file_state.table_state.select(Some(new_index));
+
+            // Manual Auto-Scroll (Keep Selection in View)
+            let offset = file_state.table_state.offset();
+            if new_index < offset {
+                *file_state.table_state.offset_mut() = new_index;
             }
         }
     }
@@ -350,7 +378,8 @@ impl App {
     pub fn move_down(&mut self) {
         if self.sidebar_focus {
             let num_remotes = self.remote_bookmarks.len().max(1);
-            let total_items = 11 + num_remotes;
+            let num_disks = self.system_state.disks.len().max(1);
+            let total_items = 9 + num_remotes + num_disks;
             if self.sidebar_index < total_items.saturating_sub(1) {
                 self.sidebar_index += 1;
                 // Skip headers and spacers
@@ -360,7 +389,6 @@ impl App {
                 while (self.sidebar_index == 0
                     || self.sidebar_index == 5
                     || self.sidebar_index == remote_header
-                    || self.sidebar_index == (remote_header - 1)
                     || self.sidebar_index == storage_header
                     || self.sidebar_index == (storage_header - 1))
                     && self.sidebar_index < total_items.saturating_sub(1)
@@ -371,49 +399,39 @@ impl App {
             return;
         }
 
-        match self.current_view {
-            CurrentView::Files => {
-                if let Some(file_state) = self.current_file_state_mut() {
-                    let max_idx = file_state.files.len().saturating_sub(1);
-                    let new_index = match file_state.selected_index {
-                        Some(i) => {
-                            if i < max_idx {
-                                i + 1
-                            } else {
-                                max_idx
-                            }
-                        }
-                        None => file_state.table_state.offset(),
-                    };
-
-                    file_state.selected_index = Some(new_index);
-                    file_state.table_state.select(Some(new_index));
-
-                    // Manual Auto-Scroll (Keep Selection in View)
-                    if file_state.view_height > 4 {
-                        let offset = file_state.table_state.offset();
-                        // Capacity = Height - 2 (Borders) - 1 (Header) - 1 (Safety Margin) = 4
-                        let capacity = file_state.view_height.saturating_sub(4);
-                        if new_index >= offset + capacity {
-                            *file_state.table_state.offset_mut() =
-                                new_index.saturating_sub(capacity).saturating_add(1);
-                        }
+        if let Some(file_state) = self.current_file_state_mut() {
+            let max_idx = file_state.files.len().saturating_sub(1);
+            let new_index = match file_state.selected_index {
+                Some(i) => {
+                    if i < max_idx {
+                        i + 1
+                    } else {
+                        max_idx
                     }
                 }
-            }
+                None => file_state.table_state.offset(),
+            };
 
-            CurrentView::System => {
-                if self.system_state.selected_process_index
-                    < self.system_state.processes.len().saturating_sub(1)
-                {
-                    self.system_state.selected_process_index += 1;
+            file_state.selected_index = Some(new_index);
+            file_state.table_state.select(Some(new_index));
+
+            // Manual Auto-Scroll (Keep Selection in View)
+            if file_state.view_height > 4 {
+                let offset = file_state.table_state.offset();
+                // Capacity = Height - 2 (Borders) - 1 (Header) - 1 (Safety Margin) = 4
+                let capacity = file_state.view_height.saturating_sub(4);
+                if new_index >= offset + capacity {
+                    *file_state.table_state.offset_mut() =
+                        new_index.saturating_sub(capacity).saturating_add(1);
                 }
             }
         }
     }
 
     pub fn move_left(&mut self) {
-        if !self.sidebar_focus {
+        if self.focus_right {
+            self.focus_right = false;
+        } else if !self.sidebar_focus {
             self.sidebar_focus = true;
         }
     }
@@ -421,6 +439,9 @@ impl App {
     pub fn move_right(&mut self) {
         if self.sidebar_focus {
             self.sidebar_focus = false;
+            self.focus_right = false;
+        } else if self.split_index.is_some() && !self.focus_right {
+            self.focus_right = true;
         }
     }
 }
@@ -461,6 +482,8 @@ mod tests {
             history: vec![],
             history_index: 0,
             view_height: 20,
+            sort_column: FileColumn::Name,
+            sort_ascending: true,
         };
 
         // Initial Selection at 0
@@ -512,6 +535,8 @@ mod tests {
             history: vec![],
             history_index: 0,
             view_height: 20,
+            sort_column: FileColumn::Name,
+            sort_ascending: true,
         };
 
         let capacity = fs.view_height.saturating_sub(2);
