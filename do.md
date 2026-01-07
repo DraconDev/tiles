@@ -1,12 +1,12 @@
 terma is to be a shared terminal manipulation library so if logic can be built into that then do so  
 
-make sure files in the file tab can be clicked on
+make sure files in the file tab can be clicked on, even when we have multiple file tabs
 
-insteadf
+instead of seeing Files at the top of the tab,e we should see the absolute path, and that path should be clickable, when we click on a breadcrumb we should go to that directory, also when we search taht is what we replace for the search term
 
 we dont need dedicated big path box, the name of the tabs is what get searched
 
-when we click on a breadcrumb we should go to that directory
+
 
 we navigate with the arrow keys to left right up down, so on the file tab we navigate to the sidebar and to the right file tab, and up and down the file list 
 
