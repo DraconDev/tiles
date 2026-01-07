@@ -263,24 +263,20 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 pub fn draw(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),
-            Constraint::Min(0),
-            Constraint::Length(1),
-        ])
+        .constraints([Constraint::Min(0), Constraint::Length(1)])
         .split(f.area());
 
-    draw_tabs(f, chunks[0], app);
+    // draw_tabs(f, chunks[0], app); // Removed
 
     let workspace = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(20), Constraint::Min(0)])
-        .split(chunks[1]);
+        .split(chunks[0]); // Was chunks[1]
 
     draw_sidebar(f, workspace[0], app);
     draw_main_stage(f, workspace[1], app);
 
-    draw_footer(f, chunks[2], app);
+    draw_footer(f, chunks[1], app); // Was chunks[2]
 
     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
         draw_context_menu(f, x, y, item_index, app);
@@ -335,8 +331,63 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 use std::time::SystemTime;
 
 fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_focused: bool) {
+    // Split area into Tabs (Top) and Content (Bottom)
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1), // Local Tab Strip
+            Constraint::Min(0),    // Content
+        ])
+        .split(area);
+
+    let tabs_area = chunks[0];
+    let content_area = chunks[1];
+
+    // Draw Local Tabs
+    let titles: Vec<Line> = app
+        .file_tabs
+        .iter()
+        .enumerate()
+        .map(|(i, tab)| {
+            // Simplified title: Folder Name or Search
+            let name = if i == tab_idx && !tab.search_filter.is_empty() {
+                format!("Search: {}", tab.search_filter)
+            } else {
+                tab.current_path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "/".to_string())
+            };
+
+            // Highlight active tab
+            if i == tab_idx {
+                Line::from(Span::styled(
+                    format!(" {} ", name),
+                    Style::default()
+                        .fg(THEME.bg)
+                        .bg(THEME.accent_primary)
+                        .add_modifier(Modifier::BOLD),
+                ))
+            } else {
+                Line::from(Span::styled(
+                    format!(" {} ", name),
+                    Style::default().fg(Color::DarkGray),
+                ))
+            }
+        })
+        .collect();
+
+    // For now, simple horizontal joining with spaces
+    // Since Ratatui Tabs widget expects selected_index to match resizing, we might just render spans manually or use Tabs
+    // Let's use customized manual rendering for tight control or the Tabs widget
+    let tabs = ratatui::widgets::Tabs::new(titles)
+        .select(tab_idx)
+        .highlight_style(Style::default().fg(THEME.accent_primary))
+        .divider(" ");
+    f.render_widget(tabs, tabs_area);
+
     if let Some(file_state) = app.file_tabs.get_mut(tab_idx) {
-        file_state.view_height = area.height as usize;
+        file_state.view_height = content_area.height as usize;
         let mut render_state = ratatui::widgets::TableState::default();
         if let Some(sel) = file_state.selected_index {
             let offset = file_state.table_state.offset();
