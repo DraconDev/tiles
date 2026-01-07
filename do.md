@@ -1,9 +1,36 @@
+terma is to be a shared terminal manipulation library so if logic can be built into that then do so  
+
+make sure files in the file tab can be clicked on
+
+insteadf
+
+we dont need dedicated big path box, the name of the tabs is what get searched
+
+when we click on a breadcrumb we should go to that directory
+
+we navigate with the arrow keys to left right up down, so on the file tab we navigate to the sidebar and to the right file tab, and up and down the file list 
+
+we also have a scroll bar, that dynamically disappears on the file bar
+
+we are not using fancy icons, we use color coding
+
+double click on directory enters, right click opens a context menu, different context menus for clicing on folders, files, sidebar files, empty space, and remotes
+
+on the sidebar we dont have a dedicated favorites section we have them together under the first section, and navigate with the arrow keys too, and click on them, also by clicking on one we can reorder them, and they swap around as we pass them with dragging with m1, 
+
+we can drag files and folders into folders on the file list 
+
+we cant reorder files and folders, but we can select different comumns and click on them to sort by them, asc or desc, 
+
+we dont need indentation on the sidebar or the file list 
+
+we have global search according to local search, after we type in 3 characters we start searching, and we can navigate with arrow keys to the search results, de priorozining longer and private filter, max 100 items search results
+
+no process, jsut some storage, mem, and cpu at the bottom right corner
+
+we need a split tabs
+
+on footer storage is percentage util, on sidebar is available space show with green
 
 
 
-
-## Done
-
-search by typing doesn't work like nautilus 
-
-left side of the files is a good question we can we jsut be like nautilus but perhaps we should have files section, remote section, and storage section, 
