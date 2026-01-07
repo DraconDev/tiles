@@ -236,6 +236,7 @@ pub struct FileState {
     pub sort_column: FileColumn,
     pub sort_ascending: bool,
     pub breadcrumb_bounds: Vec<(u16, u16, PathBuf)>, // (start_x, end_x, path)
+    pub column_bounds: Vec<(u16, u16, FileColumn)>,  // (start_x, end_x, col)
     pub hovered_breadcrumb: Option<usize>,           // Index in breadcrumb_bounds
 }
 
@@ -298,6 +299,7 @@ impl App {
             sort_column: FileColumn::Name,
             sort_ascending: true,
             breadcrumb_bounds: Vec::new(),
+            column_bounds: Vec::new(),
             hovered_breadcrumb: None,
         };
         file_state.table_state.select(Some(0));
@@ -551,6 +553,7 @@ mod tests {
             sort_column: FileColumn::Name,
             sort_ascending: true,
             breadcrumb_bounds: Vec::new(),
+            column_bounds: Vec::new(),
             hovered_breadcrumb: None,
         };
 
@@ -606,6 +609,7 @@ mod tests {
             sort_column: FileColumn::Name,
             sort_ascending: true,
             breadcrumb_bounds: Vec::new(),
+            column_bounds: Vec::new(),
             hovered_breadcrumb: None,
         };
 

@@ -192,6 +192,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                         columns: Vec::new(), history: Vec::new(), history_index: 0,
                                         view_height: 0, sort_column: crate::app::FileColumn::Name, sort_ascending: true,
                                         breadcrumb_bounds: Vec::new(),
+                                        column_bounds: Vec::new(),
                                         hovered_breadcrumb: None,
                                     };
                                     if let Some(s_mutex) = session {
@@ -427,6 +428,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     columns: fs.columns.clone(), history: vec![path], history_index: 0,
                                             view_height: 0, sort_column: fs.sort_column, sort_ascending: fs.sort_ascending,
                                             breadcrumb_bounds: Vec::new(),
+                                            column_bounds: Vec::new(),
                                             hovered_breadcrumb: None,
                                         };
                                         // Open in new tab in current pane
@@ -595,28 +597,16 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 if app.current_view == CurrentView::Files {
                                     // Column header click detection (row 2 is the header row)
                                     if row == 2 {
-                                        let content_start = sidebar_width + 1; // After sidebar
-                                        if column >= content_start {
-                                            let click_x = column - content_start;
-                                            // Determine which column was clicked based on approx widths
-                                            // Name: 50%, Size: 10 chars, Modified: 20 chars
-                                            if let Some(fs) = app.current_file_state_mut() {
-                                                let total_width = 100u16; // Approximate
-                                                let name_width = (total_width * 50 / 100) as u16;
-                                                let size_width = 10u16;
-                                                let mod_width = 20u16;
-                                                
-                                                let clicked_col = if click_x < name_width {
-                                                    Some(crate::app::FileColumn::Name)
-                                                } else if click_x < name_width + size_width {
-                                                    Some(crate::app::FileColumn::Size)
-                                                } else if click_x < name_width + size_width + mod_width {
-                                                    Some(crate::app::FileColumn::Modified)
-                                                } else {
-                                                    None
-                                                };
-                                                
-                                                if let Some(col) = clicked_col {
+                                        if let Some(fs) = app.current_file_state_mut() {
+                                            let mut clicked_col = None;
+                                            for (x_start, x_end, col_type) in &fs.column_bounds {
+                                                if column >= *x_start && column < *x_end {
+                                                    clicked_col = Some(*col_type);
+                                                    break;
+                                                }
+                                            }
+                                            
+                                            if let Some(col) = clicked_col {
                                                     if fs.sort_column == col {
                                                         fs.sort_ascending = !fs.sort_ascending;
                                                     } else {
@@ -628,8 +618,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                     return;
                                                 }
                                             }
-                                        }
-                                    } else if row >= 3 {
+                                        } else if row >= 3 {
                                         // File Row Click
                                         let content_start = sidebar_width + 1;
                                         if column >= content_start {

@@ -21,7 +21,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(" Sidebar ")
+        .title(" Files ")
         .border_style(
             if app.sidebar_focus && app.current_view == CurrentView::Files {
                 Style::default().fg(THEME.border_active)
@@ -76,7 +76,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
 
             // FILES Section
             sidebar_items.push(
-                ListItem::new("[FILES]").style(
+                ListItem::new("[FAVORITES]").style(
                     Style::default()
                         .fg(THEME.accent_secondary)
                         .add_modifier(Modifier::BOLD),
@@ -114,23 +114,27 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                         .add_modifier(Modifier::BOLD),
                 ),
             );
-            // Get current path to check which disk is active
-            let current_path = app
-                .current_file_state()
-                .map(|fs| fs.current_path.to_string_lossy().to_string())
-                .unwrap_or_default();
+            // Collect all current paths from all open panes to check which disks are active
+            let mut active_paths = Vec::new();
+            for pane in &app.panes {
+                if let Some(fs) = pane.current_state() {
+                    active_paths.push(fs.current_path.to_string_lossy().to_string());
+                }
+            }
 
             for disk in &app.system_state.disks {
                 let free = disk.total_space - disk.used_space;
 
-                // Check if this disk contains the current path
-                let is_active = current_path.starts_with(&disk.name)
-                    || (disk.name == "/"
-                        && !app
-                            .system_state
-                            .disks
-                            .iter()
-                            .any(|d| d.name != "/" && current_path.starts_with(&d.name)));
+                // Check if ANY active path starts with this disk's mount point
+                let is_active = active_paths.iter().any(|path| {
+                    path.starts_with(&disk.name)
+                        || (disk.name == "/"
+                            && !app
+                                .system_state
+                                .disks
+                                .iter()
+                                .any(|d| d.name != "/" && path.starts_with(&d.name)))
+                });
 
                 let name_style = if is_active {
                     Style::default()
@@ -205,6 +209,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         .split(chunks[1]);
 
     draw_sidebar(f, workspace[0], app);
+    // Pass the same horizontal layout to main stage
     draw_main_stage(f, workspace[1], app);
 
     draw_footer(f, chunks[2], app);
@@ -250,19 +255,30 @@ fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
     let split_label = "[\u{229e}]";
     let settings_width = 4;
     let split_width = 4;
-    let right_buttons_width = settings_width + split_width + 2;
+    let right_buttons_width = 10;
 
     // Calculate Sidebar using Layout to match perfectly with main view
     let header_layout = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(20), Constraint::Min(0)])
+        .constraints([
+            Constraint::Percentage(20), // Above Sidebar
+            Constraint::Min(0),         // Tabs Area (Full Width)
+        ])
         .split(area);
 
-    // header_layout[0] is above sidebar (Logo area?)
-    // header_layout[1] is above content panes (Tabs area)
+    // header_layout[0] is above sidebar
+    // header_layout[1] is above content panes (Full Width)
     let tabs_area = header_layout[1];
 
-    // Split tabs area if multiple panes
+    // Buttons Area will be overlaid on the far right of the tabs area
+    let buttons_area = Rect::new(
+        area.x + area.width.saturating_sub(right_buttons_width),
+        area.y,
+        right_buttons_width,
+        1,
+    );
+
+    // Split tabs area if multiple panes (Now consuming full width)
     let pane_constraints = vec![Constraint::Ratio(1, pane_count as u32); pane_count];
     let pane_chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -325,14 +341,21 @@ fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     // Render Buttons at Far Right
-    let right_x = area.x + area.width.saturating_sub(right_buttons_width);
+    let split_rect = Rect::new(buttons_area.x, buttons_area.y, split_width, 1);
+    let settings_rect = Rect::new(
+        buttons_area.x + split_width + 1,
+        buttons_area.y,
+        settings_width,
+        1,
+    );
+
     f.render_widget(
         Paragraph::new(split_label).style(Style::default().fg(Color::Cyan)),
-        Rect::new(right_x, area.y, split_width, 1),
+        split_rect,
     );
     f.render_widget(
         Paragraph::new(settings_label).style(Style::default().fg(Color::Yellow)),
-        Rect::new(right_x + split_width + 1, area.y, settings_width, 1),
+        settings_rect,
     );
 }
 
@@ -343,11 +366,13 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             return;
         }
 
+        // Content area is the full area passed in (workspace[1])
+        let content_area = area;
         let constraints = vec![Constraint::Ratio(1, pane_count as u32); pane_count];
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(constraints)
-            .split(area);
+            .split(content_area);
 
         for i in 0..pane_count {
             let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
@@ -371,8 +396,9 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         let mut render_state = ratatui::widgets::TableState::default();
         if let Some(sel) = file_state.selected_index {
             let offset = file_state.table_state.offset();
-            // Capacity = Height - 2 (Borders) - 1 (Header) - 1 (Safety Margin)
-            let capacity = file_state.view_height.saturating_sub(4);
+            // Capacity = Height - 2 (Borders) - 1 (Header)
+            // User reported last row is broken; sub(3) instead of sub(4) to show more.
+            let capacity = file_state.view_height.saturating_sub(3);
 
             // CRITICAL FIX: Only tell Ratatui to select the row if it is PHYSICALLY visible
             // based on our manual offset. Otherwise, Ratatui will auto-scroll the offset
@@ -482,22 +508,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                             .add_modifier(Modifier::BOLD);
                     }
 
-                    // Add red `/` prefix for selected rows
-                    if is_selected {
-                        let line = ratatui::text::Line::from(vec![
-                            ratatui::text::Span::styled(
-                                "/ ",
-                                Style::default().fg(THEME.accent_primary),
-                            ),
-                            ratatui::text::Span::styled(
-                                format!("{}{}", display_name, suffix),
-                                final_style,
-                            ),
-                        ]);
-                        Cell::from(line)
-                    } else {
-                        Cell::from(format!("{}{}", display_name, suffix)).style(final_style)
-                    }
+                    Cell::from(format!("{}{}", display_name, suffix)).style(final_style)
                 }
                 FileColumn::Size => {
                     let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
@@ -544,10 +555,10 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             .columns
             .iter()
             .map(|c| match c {
-                FileColumn::Name => Constraint::Percentage(50),
+                FileColumn::Name => Constraint::Min(20),
                 FileColumn::Size => Constraint::Length(10),
-                FileColumn::Modified => Constraint::Length(20),
-                FileColumn::Created => Constraint::Length(20),
+                FileColumn::Modified => Constraint::Percentage(20),
+                FileColumn::Created => Constraint::Percentage(20),
                 FileColumn::Permissions => Constraint::Length(12),
                 FileColumn::Extension => Constraint::Length(6),
             })
@@ -608,12 +619,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
 
                 // Add separator only if NOT last and NOT RootDir (since RootDir is its own separator visually)
                 if i < components.len() - 1 && text != "/" {
-                    let sep_color = if is_focused {
-                        THEME.accent_primary
-                    } else {
-                        Color::DarkGray
-                    };
-                    breadcrumb_spans.push(Span::styled("/", Style::default().fg(sep_color)));
+                    breadcrumb_spans.push(Span::styled("/", Style::default().fg(Color::DarkGray)));
                     current_pos_x += 1;
                 }
             }
@@ -639,7 +645,9 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                 Style::default().fg(THEME.border_inactive)
             });
 
-        let table = Table::new(rows, constraints).header(header).block(block);
+        let table = Table::new(rows, constraints.clone())
+            .header(header)
+            .block(block.clone());
 
         // Fix: Use content_area instead of area to avoid overlapping with Tabs!
         // Also update height calculation to use content_area.
@@ -658,6 +666,21 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                 display_state.select(None);
             }
         }
+
+        // --- POPULATE COLUMN BOUNDS FOR CLICK DETECTION ---
+        file_state.column_bounds.clear();
+        let column_layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(constraints.clone())
+            .split(block.inner(content_area));
+
+        for (i, col_type) in file_state.columns.iter().enumerate() {
+            let rect = column_layout[i];
+            file_state
+                .column_bounds
+                .push((rect.x, rect.x + rect.width, *col_type));
+        }
+        // --------------------------------------------------
 
         f.render_stateful_widget(table, content_area, &mut display_state);
 
