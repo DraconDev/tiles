@@ -315,9 +315,6 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
         }
     }
 }
-        // Files is the only view now, no other cases
-    }
-}
 
 use std::time::SystemTime;
 
@@ -458,14 +455,12 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
             .border_type(BorderType::Rounded)
             .title(" Files ")
             .border_style(if is_focused {
-                Style::default().fg(THEME.accent)
+                Style::default().fg(THEME.border_active)
             } else {
                 Style::default().fg(THEME.border_inactive)
             });
 
-        let table = Table::new(rows, constraints)
-            .header(header)
-            .block(block);
+        let table = Table::new(rows, constraints).header(header).block(block);
 
         let height = area.height.saturating_sub(2) as usize; // Account for borders
         let offset = render_state.offset();
