@@ -62,6 +62,7 @@ pub struct App {
     pub split_index: Option<usize>, // If Some, we are in split mode
     pub focus_right: bool,          // If true, focus is on the right panel
     pub terminal_size: (u16, u16),  // (width, height)
+    pub mouse_pos: (u16, u16),      // Current mouse (x, y)
     pub system_state: SystemState,
     pub license: LicenseStatus,
     pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
@@ -180,6 +181,7 @@ pub struct FileState {
     pub sort_column: FileColumn,
     pub sort_ascending: bool,
     pub breadcrumb_bounds: Vec<(u16, u16, PathBuf)>, // (start_x, end_x, path)
+    pub hovered_breadcrumb: Option<usize>,           // Index in breadcrumb_bounds
 }
 
 #[derive(Clone, Debug)]
@@ -241,6 +243,7 @@ impl App {
             sort_column: FileColumn::Name,
             sort_ascending: true,
             breadcrumb_bounds: Vec::new(),
+            hovered_breadcrumb: None,
         };
         file_state.table_state.select(Some(0));
         update_files(&mut file_state, None);
@@ -257,6 +260,7 @@ impl App {
             split_index: None,
             focus_right: false,
             terminal_size: (0, 0),
+            mouse_pos: (0, 0),
 
             system_state,
             license,
@@ -489,6 +493,7 @@ mod tests {
             sort_column: FileColumn::Name,
             sort_ascending: true,
             breadcrumb_bounds: Vec::new(),
+            hovered_breadcrumb: None,
         };
 
         // Initial Selection at 0
@@ -543,6 +548,7 @@ mod tests {
             sort_column: FileColumn::Name,
             sort_ascending: true,
             breadcrumb_bounds: Vec::new(),
+            hovered_breadcrumb: None,
         };
 
         let capacity = fs.view_height.saturating_sub(2);
