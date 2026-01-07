@@ -172,11 +172,13 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                 }
                             }
 
-                            AppEvent::RefreshFiles(idx) => {
+                            AppEvent::RefreshFiles(pane_idx) => {
                                 let (path, show_hidden, filter, session) = {
                                     if let Ok(app) = app_bg.lock() {
-                                        if let Some(fs) = app.file_tabs.get(idx) {
-                                            (fs.current_path.clone(), fs.show_hidden, fs.search_filter.clone(), fs.remote_session.as_ref().map(|rs| rs.session.clone()))
+                                        if let Some(pane) = app.panes.get(pane_idx) {
+                                            if let Some(fs) = pane.current_state() {
+                                                (fs.current_path.clone(), fs.show_hidden, fs.search_filter.clone(), fs.remote_session.as_ref().map(|rs| rs.session.clone()))
+                                            } else { continue; }
                                         } else { continue; }
                                     } else { continue; }
                                 };
@@ -195,13 +197,15 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                     if let Some(s_mutex) = session {
                                         if let Ok(s) = s_mutex.lock() { crate::modules::files::update_files(&mut temp_state, Some(&s)); }
                                     } else { crate::modules::files::update_files(&mut temp_state, None); }
-                                    let _ = tx.send(AppEvent::FilesUpdated(idx, temp_state.files, temp_state.metadata, temp_state.git_status)).await;
+                                    let _ = tx.send(AppEvent::FilesUpdated(pane_idx, temp_state.files, temp_state.metadata, temp_state.git_status)).await;
                                 });
                             }
-                            AppEvent::FilesUpdated(idx, files, meta, git) => {
+                            AppEvent::FilesUpdated(pane_idx, files, meta, git) => {
                                 if let Ok(mut app) = app_bg.lock() {
-                                    if let Some(fs) = app.file_tabs.get_mut(idx) {
-                                        fs.files = files; fs.metadata = meta; fs.git_status = git;
+                                    if let Some(pane) = app.panes.get_mut(pane_idx) {
+                                        if let Some(fs) = pane.current_state_mut() {
+                                            fs.files = files; fs.metadata = meta; fs.git_status = git;
+                                        }
                                     }
                                 }
                             }
@@ -215,23 +219,23 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                             }
                                         }
                                     }
-                                    let _ = event_tx_bg.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                    let _ = event_tx_bg.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                 }
                             }
                             AppEvent::CreateFolder(foldername) => {
-                                if let Ok(app) = app_bg.lock() {
-                                    if let Some(fs) = app.current_file_state() {
-                                        let path = fs.current_path.join(&foldername);
-                                        if !path.exists() {
-                                            match std::fs::create_dir(&path) {
-                                                Ok(_) => {}
-                                                Err(_) => {}
+                                    if let Ok(app) = app_bg.lock() {
+                                        if let Some(fs) = app.current_file_state() {
+                                            let path = fs.current_path.join(&foldername);
+                                            if !path.exists() {
+                                                match std::fs::create_dir(&path) {
+                                                    Ok(_) => {}
+                                                    Err(_) => {}
+                                                }
                                             }
                                         }
+                                        let _ = event_tx_bg.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     }
-                                    let _ = event_tx_bg.try_send(AppEvent::RefreshFiles(app.tab_index));
                                 }
-                            }
                         }
                     }
                 }
@@ -274,13 +278,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
         Event::Mouse(me) => {
             let column = me.column;
             let row = me.row;
-            let mut is_double_click = false;
             if let MouseEventKind::Down(button) = me.kind {
                 if button == MouseButton::Left {
                     let now = std::time::Instant::now();
                     if let Some((last_time, last_row, last_col)) = app.last_click {
                         if now.duration_since(last_time) < Duration::from_millis(500) && last_row == row && last_col == column {
-                            is_double_click = true;
+                            // is_double_click = true; // This variable is no longer used
                         }
                     }
                     app.last_click = Some((now, row, column));
@@ -292,24 +295,25 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     if let Some(fs) = app.current_file_state_mut() {
                         if button == MouseButton::Back { navigate_back(fs); }
                         else { navigate_forward(fs); }
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                     return;
                 }
-                MouseEventKind::Moved => {
+                MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                     app.mouse_pos = (column, row);
                     
-                    // Update hovered breadcrumb for all visible file states
-                    let mut tabs_to_check = vec![app.tab_index];
-                    if let Some(split) = app.split_index {
-                        tabs_to_check.push(split);
+                    // Handle Drag State
+                    if let Some((sx, sy)) = app.drag_start_pos {
+                        let dist = ((column as i16 - sx as i16).pow(2) + (row as i16 - sy as i16).pow(2)) as f32;
+                        if dist >= 1.0 { // Any movement activates drag
+                            app.is_dragging = true;
+                        }
                     }
-
-                    for &idx in &tabs_to_check {
-                        if let Some(fs) = app.file_tabs.get_mut(idx) {
+                    
+                    // Update hovered breadcrumb for all panes
+                    for pane in &mut app.panes {
+                        if let Some(fs) = pane.current_state_mut() {
                             fs.hovered_breadcrumb = None;
-                            
-                            // Relocated breadcrumbs are in chunks[1] of main layout, row index is 1
                             if row == 1 {
                                 for (i, (start, end, _)) in fs.breadcrumb_bounds.iter().enumerate() {
                                     if column >= *start && column < *end {
@@ -341,7 +345,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                     fs.search_filter.clear();
                                                     *fs.table_state.offset_mut() = 0;
                                                     push_history(fs, path);
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                                     app.mode = AppMode::Normal;
                                                 }
                                                 1 => { // Star
@@ -376,7 +380,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 match menu_row {
                                     0 => { app.mode = AppMode::NewFolder; app.input.clear(); },
                                     1 => { app.mode = AppMode::NewFile; app.input.clear(); },
-                                    2 => { let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); app.mode = AppMode::Normal; },
+                                    2 => { let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.mode = AppMode::Normal; },
                                     3 => { // Terminal Here
                                         if let Some(fs) = app.current_file_state() {
                                             let _ = std::process::Command::new("xdg-terminal")
@@ -425,8 +429,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             breadcrumb_bounds: Vec::new(),
                                             hovered_breadcrumb: None,
                                         };
-                                        app.file_tabs.push(new_fs);
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.file_tabs.len() - 1));
+                                        // Open in new tab in current pane
+                                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                            pane.open_tab(new_fs);
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                        }
                                     }
                                 }
                             }
@@ -434,68 +441,99 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         return;
                     }
                     if button == MouseButton::Left {
-                        let sidebar_width = 16;
-                        let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
-                        let mid_point = sidebar_width + content_area_width / 2;
-
-                        // Local Tabs Click Detection (Row 0) relative to file view
-                        // Since global layout has removed the top bar, Row 0 is the start of the workspace.
+                        // Row 0: Global Header (Settings / Split / Tabs)
                         if row == 0 {
-                            // Determine if click is in Left or Right panel
-                            let is_right_panel = app.split_index.is_some() && column >= mid_point;
+                            let settings_width = 4;
+                            let split_width = 4;
+                            let right_x = app.terminal_size.0.saturating_sub(settings_width + split_width + 2);
                             
-                            // This logic assumes we want to Switch Tabs if we click on them
-                            // But for now, we just select the panel if we click the header
-                            if is_right_panel {
-                                // If click is in right panel area, focus right split
-                                // TODO: Implement actual tab clicking logic if we had multiple tabs per split
-                                // For now, just focus.
-                                app.current_view = CurrentView::Files;
-                                // If we had logic to switch tabs within a split, it would go here.
-                            } else if column >= sidebar_width {
-                                // Left panel focus
-                                app.current_view = CurrentView::Files;
-                                app.split_index.map(|_| {
-                                    // If split exists, we are focusing left.
-                                    // We don't have a "focused_split" variable, focus is implicit by tab_index vs split_index?
-                                    // Actually, app.tab_index is left, app.split_index is right.
-                                    // To "focus" left, we might need to track active focus if keybindings depend on it.
-                                    // Existing code uses `app.tab_index` as primary. Split is usually secondary.
-                                    // Let's just ensure we capture the click.
-                                });
+                            // Check for Split Button
+                            if column >= right_x && column < right_x + split_width {
+                                app.toggle_split();
+                                return;
                             }
-                        }
 
-                        // Relocated Breadcrumb click detection (Row 1)
-                        if row == 1 {
-                            // Find which panel was clicked
-                            let target_fs = if app.split_index.is_some() && column >= mid_point {
-                                app.split_index.and_then(|idx| app.file_tabs.get_mut(idx))
-                            } else {
-                                app.file_tabs.get_mut(app.tab_index)
-                            };
-
-                            if let Some(fs) = target_fs {
-                                for (start, end, path) in fs.breadcrumb_bounds.clone() {
-                                    if column >= start && column < end {
-                                        fs.current_path = path.clone();
-                                        fs.selected_index = Some(0);
-                                        fs.search_filter.clear();
-                                        push_history(fs, path);
-                                        // Refresh the specific tab
-                                        let idx = if app.split_index.is_some() && column >= mid_point {
-                                            app.split_index.unwrap()
-                                        } else {
-                                            app.tab_index
-                                        };
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(idx));
-                                        return;
+                            // Tab Click Logic
+                            // Use explicit 20% calculation to match Ratatui (integer math)
+                            let sidebar_width = (app.terminal_size.0 * 20) / 100;
+                            
+                            // Check if click is in Tab Area (Right of Sidebar)
+                            if column >= sidebar_width && column < right_x {
+                                let pane_count = app.panes.len();
+                                if pane_count > 0 {
+                                    // Tabs occupy the full content width (buttons overlay rightmost part)
+                                    let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
+                                    let pane_width = content_area_width / pane_count as u16; 
+                                    
+                                    // Relative column inside tab area
+                                    let rel_col_global = column.saturating_sub(sidebar_width);
+                                    
+                                    let clicked_pane_idx = (rel_col_global / pane_width) as usize;
+                                    if clicked_pane_idx < pane_count {
+                                        app.focused_pane_index = clicked_pane_idx;
+                                        
+                                        // Identify Tab within Pane
+                                        // Start x for this pane (relative to tab area start)
+                                        let pane_start_rel_x = (clicked_pane_idx as u16) * pane_width;
+                                        let rel_col = rel_col_global.saturating_sub(pane_start_rel_x);
+                                        
+                                        // We need to iterate tabs to see which one was clicked.
+                                        let mut current_x = 0;
+                                        // Separator offset
+                                        if clicked_pane_idx > 0 { current_x += 2; } 
+                                        
+                                        if let Some(pane) = app.panes.get_mut(clicked_pane_idx) {
+                                            for (t_i, tab) in pane.tabs.iter().enumerate() {
+                                                let name = if !tab.search_filter.is_empty() {
+                                                    format!("Search: {}", tab.search_filter)
+                                                } else {
+                                                    tab.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("/".to_string())
+                                                };
+                                                let text = format!(" {} ", name);
+                                                let width = text.len() as u16;
+                                                
+                                                if rel_col >= current_x && rel_col < current_x + width {
+                                                    pane.active_tab = t_i;
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(clicked_pane_idx));
+                                                    return;
+                                                }
+                                                current_x += width + 1; // +1 for spacer
+                                            }
+                                        }
                                     }
                                 }
                             }
-                            app.current_view = CurrentView::Files;
-                        } else {
-                            let sidebar_width = 16;
+                        }
+
+                        // Row 1: Breadcrumbs
+                        if row == 1 {
+                             let pane_count = app.panes.len();
+                             let sidebar_width = (app.terminal_size.0 * 20) / 100;
+                             
+                             if column >= sidebar_width {
+                                 let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
+                                 let pane_width = if pane_count > 0 { content_area_width / pane_count as u16 } else { content_area_width };
+                                 let rel_col = column.saturating_sub(sidebar_width);
+                                 let clicked_pane_idx = (rel_col / pane_width) as usize;
+                                 
+                                 if let Some(pane) = app.panes.get_mut(clicked_pane_idx) {
+                                     if let Some(fs) = pane.current_state_mut() {
+                                         for (start, end, path) in fs.breadcrumb_bounds.clone() {
+                                             if column >= start && column < end {
+                                                 fs.current_path = path.clone();
+                                                 fs.selected_index = Some(0);
+                                                 fs.search_filter.clear();
+                                                 push_history(fs, path);
+                                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(clicked_pane_idx));
+                                                 return;
+                                             }
+                                         }
+                                     }
+                                 }
+                             }
+                             app.current_view = CurrentView::Files;
+                        } else if row > 1 {
+                            let sidebar_width = (app.terminal_size.0 * 20) / 100;
                             if column < sidebar_width {
                                 app.sidebar_focus = true;
                                 let sidebar_row = row.saturating_sub(2) as usize;
@@ -509,7 +547,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                 *fs.table_state.offset_mut() = 0;
                                                 push_history(fs, p);
                                             }
-                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                             app.sidebar_focus = false;
                                         }
                                     },
@@ -531,7 +569,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                 *fs.table_state.offset_mut() = 0;
                                                 push_history(fs, p);
                                             }
-                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                                 app.sidebar_focus = false;
                                         }
                                     }
@@ -540,12 +578,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             } else {
                                 // Clicking in the files area (column >= sidebar_width)
                                 app.sidebar_focus = false;
-                                if let Some(_split_idx) = app.split_index {
-                                    let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
-                                    let mid_point = sidebar_width + content_area_width / 2;
-                                    app.focus_right = column >= mid_point;
-                                } else {
-                                    app.focus_right = false;
+                                
+                                // Determine focused pane
+                                let pane_count = app.panes.len();
+                                if pane_count > 0 {
+                                     // Sidebar is 20%. The rest is split.
+                                     let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
+                                     let content_col = column.saturating_sub(sidebar_width);
+                                     let pane_width = content_area_width / pane_count as u16;
+                                     let clicked_pane = (content_col / pane_width) as usize;
+                                     if clicked_pane < pane_count {
+                                          app.focused_pane_index = clicked_pane;
+                                     }
                                 }
 
                                 if app.current_view == CurrentView::Files {
@@ -580,42 +624,126 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                         fs.sort_ascending = true;
                                                     }
                                                     // Trigger refresh to re-sort
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                                     return;
                                                 }
                                             }
                                         }
-                                    }
-
-                                    let index = fs_mouse_index(row, app);
-                                    if let Some(fs) = app.current_file_state_mut() {
-                                        if index < fs.files.len() {
-                                            fs.selected_index = Some(index);
-                                            fs.table_state.select(Some(index));
-                                            if let Some(path) = fs.files.get(index).cloned() {
-                                                if is_double_click {
-                                                    if path.is_dir() {
-                                                        // Enter directory
-                                                        fs.current_path = path.clone();
-                                                        fs.selected_index = Some(0);
-                                                        fs.search_filter.clear();
-                                                        *fs.table_state.offset_mut() = 0;
-                                                        push_history(fs, path);
-                                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
-                                                    } else {
-                                                        // Open file with default application
-                                                        let _ = std::process::Command::new("xdg-open")
-                                                            .arg(&path)
-                                                            .spawn();
+                                    } else if row >= 3 {
+                                        // File Row Click
+                                        let content_start = sidebar_width + 1;
+                                        if column >= content_start {
+                                            let index = fs_mouse_index(row, app);
+                                            
+                                            // Validate index and select
+                                            let mut selected_path = None;
+                                            if let Some(fs) = app.current_file_state_mut() {
+                                                if index < fs.files.len() {
+                                                    fs.selected_index = Some(index);
+                                                    fs.table_state.select(Some(index));
+                                                    if let Some(p) = fs.files.get(index) {
+                                                        selected_path = Some(p.clone());
                                                     }
                                                 }
                                             }
+
+                                            // Now that fs is dropped, we can modify app state
+                                            if let Some(path) = selected_path {
+                                                app.drag_source = Some(path.clone());
+                                                app.drag_start_pos = Some((column, row));
+
+                                                // Double Click Check
+                                                if app.mouse_last_click.elapsed() < std::time::Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
+                                                    if path.is_dir() {
+                                                        // Enter Directory
+                                                        if let Some(fs) = app.current_file_state_mut() {
+                                                            fs.current_path = path.clone();
+                                                            fs.selected_index = Some(0);
+                                                            fs.search_filter.clear();
+                                                            *fs.table_state.offset_mut() = 0;
+                                                            push_history(fs, path);
+                                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                                        }
+                                                    } else {
+                                                         // Open File
+                                                        let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
+                                                    }
+                                                }
+                                                app.mouse_last_click = std::time::Instant::now();
+                                                app.mouse_click_pos = (column, row);
+                                            }
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+                MouseEventKind::Up(button) if button == MouseButton::Left => {
+                    if app.is_dragging {
+                        if let Some(source) = app.drag_source.take() {
+                            let mut target_path: Option<std::path::PathBuf> = None;
+                            
+                            // Calculate sidebar width (20%)
+                            let sidebar_width = (app.terminal_size.0 * 20) / 100;
+                            
+                            // Check drop on Breadcrumb (Row 1)
+                            if row == 1 && column >= sidebar_width {
+                                if let Some(fs) = app.current_file_state() {
+                                    for (start, end, path) in &fs.breadcrumb_bounds {
+                                        if column >= *start && column < *end {
+                                            target_path = Some(path.clone());
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Check drop on Sidebar (Column < sidebar_width)
+                            if target_path.is_none() && column < sidebar_width {
+                                // Sidebar items: Row 2=Home, 3=Downloads, 4=Documents, 5=Pictures
+                                // (Offset by 1 for global header)
+                                let sidebar_row = row.saturating_sub(1); // Account for global header
+                                match sidebar_row {
+                                    1 => target_path = dirs::home_dir(),
+                                    2 => target_path = dirs::download_dir(),
+                                    3 => target_path = dirs::document_dir(),
+                                    4 => target_path = dirs::picture_dir(),
+                                    _ => {}
+                                }
+                            }
+                            
+                            // Check drop on Folder in file list (Row >= 3)
+                            if target_path.is_none() && row >= 3 && column >= sidebar_width {
+                                let index = fs_mouse_index(row, app);
+                                if let Some(fs) = app.current_file_state() {
+                                    if let Some(path) = fs.files.get(index) {
+                                        if path.is_dir() {
+                                            target_path = Some(path.clone());
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Execute Move
+                            if let Some(target) = target_path {
+                                if let Some(filename) = source.file_name() {
+                                    let dest = target.join(filename);
+                                    if dest != source && source.parent() != Some(&target) {
+                                        let _ = std::fs::rename(&source, &dest);
+                                        // Refresh all panes
+                                        for i in 0..app.panes.len() {
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                    app.is_dragging = false;
+                    app.drag_source = None;
+                    app.drag_start_pos = None;
                 }
                 MouseEventKind::ScrollUp => {
                     if let Some(fs) = app.current_file_state_mut() {
@@ -651,7 +779,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         KeyCode::Esc => app.mode = AppMode::Normal,
                         KeyCode::Char(c) => app.input.push(c),
                         KeyCode::Backspace => { app.input.pop(); }
-                        KeyCode::Enter => { let path = std::path::PathBuf::from(&app.input); if path.exists() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; push_history(fs, path); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } app.mode = AppMode::Normal; }
+                        KeyCode::Enter => { let path = std::path::PathBuf::from(&app.input); if path.exists() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; push_history(fs, path); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } app.mode = AppMode::Normal; }
                         _ => {}
                     }
                 }
@@ -687,9 +815,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     match key.code {
                         KeyCode::Down => { app.move_down(); }
                         KeyCode::Up => { app.move_up(); }
-                        KeyCode::Left => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } else { app.move_left(); } }
-                        KeyCode::Right => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } else { app.move_right(); } }
-                        KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); } } } } }
+                        KeyCode::Left => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } else { app.move_left(); } }
+                        KeyCode::Right => { if key.modifiers.contains(KeyModifiers::ALT) { if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } else { app.move_right(); } }
+                        KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } }
                         KeyCode::Char('N') => { app.mode = AppMode::NewFolder; app.input.clear(); }
                         KeyCode::Char('n') => { app.mode = AppMode::NewFile; app.input.clear(); }
                         // Nautilus-style search
@@ -698,7 +826,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 fs.search_filter.push(c);
                                 fs.selected_index = Some(0);
                                 *fs.table_state.offset_mut() = 0;
-                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             }
                         }
                         KeyCode::Backspace => {
@@ -707,7 +835,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     fs.search_filter.pop();
                                     fs.selected_index = Some(0);
                                     *fs.table_state.offset_mut() = 0;
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                 } else {
                                     // Go UP one level if search is empty
                                     if let Some(parent) = fs.current_path.parent() {
@@ -716,7 +844,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         fs.selected_index = Some(0);
                                         *fs.table_state.offset_mut() = 0;
                                         push_history(fs, p);
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     }
                                 }
                             }
@@ -727,7 +855,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     fs.search_filter.clear();
                                     fs.selected_index = Some(0);
                                     *fs.table_state.offset_mut() = 0;
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                 }
                             }
                         }

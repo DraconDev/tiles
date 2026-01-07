@@ -52,17 +52,62 @@ pub enum AppEvent {
     SystemUpdated(SystemData),
 }
 
+#[derive(Clone, Debug)]
+pub struct Pane {
+    pub tabs: Vec<FileState>,
+    pub active_tab: usize,
+}
+
+impl Pane {
+    pub fn new(initial_state: FileState) -> Self {
+        Self {
+            tabs: vec![initial_state],
+            active_tab: 0,
+        }
+    }
+
+    pub fn current_state(&self) -> Option<&FileState> {
+        self.tabs.get(self.active_tab)
+    }
+
+    pub fn current_state_mut(&mut self) -> Option<&mut FileState> {
+        self.tabs.get_mut(self.active_tab)
+    }
+
+    /// Open a new tab. If limit (3) is reached, replace the active tab?
+    /// User said: "open the tabs ... limit 3 ... if they open more the last active closes"
+    /// A simple interpretation: If 3 exist, reuse the current one or close the oldest?
+    /// "last active closes" -> might mean LRU or just strictly limiting count.
+    /// Let's implement FIFO for now (close index 0) if user meant "oldest",
+    /// OR simply replace the current one if that's what "last active" implies in context.
+    /// Actually, "last active closes" is ambiguous. Let's assume standard behavior:
+    /// strict limit of 3. If we try to add a 4th, we remove the `active_tab` (the one we are 'on', effectively replacing it?)
+    /// OR we remove the 0th index?
+    /// Let's try: Remove the 0th index (Leftmost) to make room at the end.
+    pub fn open_tab(&mut self, state: FileState) {
+        if self.tabs.len() >= 3 {
+            // Remove the first tab (Leftmost) to make room
+            self.tabs.remove(0);
+            // Adjust active_tab if necessary (if we were at 0, we stay at 0 which is now the next one)
+            // But we probably want to jump to the NEW tab.
+        }
+        self.tabs.push(state);
+        self.active_tab = self.tabs.len() - 1;
+    }
+}
+
 pub struct App {
     pub running: bool,
     pub current_view: CurrentView,
     pub mode: AppMode,
     pub input: String,
-    pub file_tabs: Vec<FileState>,
-    pub tab_index: usize,
-    pub split_index: Option<usize>, // If Some, we are in split mode
-    pub focus_right: bool,          // If true, focus is on the right panel
-    pub terminal_size: (u16, u16),  // (width, height)
-    pub mouse_pos: (u16, u16),      // Current mouse (x, y)
+
+    // NEW: Panes
+    pub panes: Vec<Pane>,
+    pub focused_pane_index: usize,
+
+    pub terminal_size: (u16, u16), // (width, height)
+    pub mouse_pos: (u16, u16),     // Current mouse (x, y)
     pub system_state: SystemState,
     pub license: LicenseStatus,
     pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
@@ -73,6 +118,16 @@ pub struct App {
     pub command_index: usize,
     pub last_click: Option<(std::time::Instant, u16, u16)>, // time, row, col
     pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
+    pub git_status_check_in_progress: bool,
+
+    // Drag and Drop State
+    pub drag_source: Option<PathBuf>,
+    pub is_dragging: bool,
+    pub drag_start_pos: Option<(u16, u16)>,
+
+    // Mouse Validation
+    pub mouse_last_click: std::time::Instant,
+    pub mouse_click_pos: (u16, u16),
 }
 
 #[derive(Clone, Debug)]
@@ -250,15 +305,16 @@ impl App {
 
         let license = check_license();
 
+        let initial_pane = Pane::new(file_state);
+
         Self {
             running: true,
             current_view: CurrentView::Files,
             mode: AppMode::Normal,
             input: String::new(),
-            file_tabs: vec![file_state],
-            tab_index: 0,
-            split_index: None,
-            focus_right: false,
+            panes: vec![initial_pane],
+            focused_pane_index: 0,
+
             terminal_size: (0, 0),
             mouse_pos: (0, 0),
 
@@ -272,57 +328,57 @@ impl App {
             command_index: 0,
             last_click: None,
             tile_queue,
+            git_status_check_in_progress: false,
+
+            drag_source: None,
+            is_dragging: false,
+            drag_start_pos: None,
+
+            mouse_last_click: std::time::Instant::now(),
+            mouse_click_pos: (0, 0),
         }
     }
 
     pub fn current_file_state_mut(&mut self) -> Option<&mut FileState> {
-        let idx = if self.focus_right {
-            self.split_index.unwrap_or(self.tab_index)
-        } else {
-            self.tab_index
-        };
-        self.file_tabs.get_mut(idx)
+        self.panes
+            .get_mut(self.focused_pane_index)
+            .and_then(|p| p.current_state_mut())
     }
 
     pub fn current_file_state(&self) -> Option<&FileState> {
-        let idx = if self.focus_right {
-            self.split_index.unwrap_or(self.tab_index)
-        } else {
-            self.tab_index
-        };
-        self.file_tabs.get(idx)
+        self.panes
+            .get(self.focused_pane_index)
+            .and_then(|p| p.current_state())
     }
 
     pub fn toggle_split(&mut self) {
-        if self.split_index.is_some() {
-            self.split_index = None;
-            self.focus_right = false;
+        if self.panes.len() > 1 {
+            // Close the second pane (and any others)
+            self.panes.truncate(1);
+            self.focused_pane_index = 0;
         } else {
-            // Create a new tab if we only have one, otherwise use the next one
-            if self.file_tabs.len() == 1 {
-                let current = self.file_tabs[0].clone();
-                self.file_tabs.push(current);
-                self.split_index = Some(1);
-            } else {
-                let next_idx = (self.tab_index + 1) % self.file_tabs.len();
-                self.split_index = Some(next_idx);
+            // Split: Create a clone of the current pane's active state
+            if let Some(current_state) = self.current_file_state().cloned() {
+                self.panes.push(Pane::new(current_state));
+                self.focused_pane_index = 1;
             }
-            self.focus_right = true;
         }
     }
 
-    pub fn update_files_for_state(&mut self, tab_idx: usize) {
-        if let Some(fs) = self.file_tabs.get_mut(tab_idx) {
-            if let Some(rs) = &fs.remote_session {
-                let key = format!("{}:{}", rs.host, 22);
-                if let Some(sess_mutex) = self.active_sessions.get(&key) {
-                    if let Ok(sess) = sess_mutex.lock() {
-                        update_files(fs, Some(&sess));
-                        return;
+    pub fn update_files_for_active_tab(&mut self, pane_idx: usize) {
+        if let Some(pane) = self.panes.get_mut(pane_idx) {
+            if let Some(fs) = pane.current_state_mut() {
+                if let Some(rs) = &fs.remote_session {
+                    let key = format!("{}:{}", rs.host, 22);
+                    if let Some(sess_mutex) = self.active_sessions.get(&key) {
+                        if let Ok(sess) = sess_mutex.lock() {
+                            update_files(fs, Some(&sess));
+                            return;
+                        }
                     }
                 }
+                update_files(fs, None);
             }
-            update_files(fs, None);
         }
     }
 
@@ -437,8 +493,8 @@ impl App {
     }
 
     pub fn move_left(&mut self) {
-        if self.focus_right {
-            self.focus_right = false;
+        if self.focused_pane_index > 0 {
+            self.focused_pane_index = 0;
         } else if !self.sidebar_focus {
             self.sidebar_focus = true;
         }
@@ -447,9 +503,11 @@ impl App {
     pub fn move_right(&mut self) {
         if self.sidebar_focus {
             self.sidebar_focus = false;
-            self.focus_right = false;
-        } else if self.split_index.is_some() && !self.focus_right {
-            self.focus_right = true;
+            // Default to keeping current focus or setting to 0?
+            // If we were in sidebar, we move to main stage.
+            // Usually focus 0.
+        } else if self.focused_pane_index < self.panes.len().saturating_sub(1) {
+            self.focused_pane_index += 1;
         }
     }
 }

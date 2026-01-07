@@ -30,9 +30,14 @@ impl WorldState {
             } else {
                 "Main".to_string()
             },
-            active_tab: app.tab_index,
+            active_tab: app.focused_pane_index,
             input_buffer: app.input.clone(),
-            tabs: app.file_tabs.iter().map(|t| TabState::from(t)).collect(),
+            // Map the *active* state of each pane as the visible tabs
+            tabs: app
+                .panes
+                .iter()
+                .filter_map(|p| p.current_state().map(TabState::from))
+                .collect(),
         }
     }
 }

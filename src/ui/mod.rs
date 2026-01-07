@@ -114,10 +114,34 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                         .add_modifier(Modifier::BOLD),
                 ),
             );
+            // Get current path to check which disk is active
+            let current_path = app
+                .current_file_state()
+                .map(|fs| fs.current_path.to_string_lossy().to_string())
+                .unwrap_or_default();
+
             for disk in &app.system_state.disks {
                 let free = disk.total_space - disk.used_space;
+
+                // Check if this disk contains the current path
+                let is_active = current_path.starts_with(&disk.name)
+                    || (disk.name == "/"
+                        && !app
+                            .system_state
+                            .disks
+                            .iter()
+                            .any(|d| d.name != "/" && current_path.starts_with(&d.name)));
+
+                let name_style = if is_active {
+                    Style::default()
+                        .fg(THEME.accent_primary)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default()
+                };
+
                 let disk_item = ratatui::text::Line::from(vec![
-                    ratatui::text::Span::raw(format!("{} - ", disk.name)),
+                    ratatui::text::Span::styled(format!("{} - ", disk.name), name_style),
                     ratatui::text::Span::styled(
                         format!("{:.0}GB Free", free),
                         Style::default().fg(Color::Green),
@@ -188,37 +212,6 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
         draw_context_menu(f, x, y, item_index, app);
     }
-}
-
-fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
-    let mut current_x = area.x;
-    // Files Label
-    let label = " Files ";
-    let width = label.len() as u16;
-    f.render_widget(
-        Paragraph::new(label).style(Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
-        Rect::new(current_x, area.y, width, 1),
-    );
-    current_x += width;
-
-    // Settings and Split buttons on the right
-    let settings_label = "[\u{2699}]";
-    let split_label = "[\u{229e}]";
-    let settings_width = 4;
-    let split_width = 4;
-    
-    // Right align calculation
-    let right_x = area.x + area.width.saturating_sub(settings_width + split_width + 2);
-    
-    f.render_widget(
-        Paragraph::new(split_label).style(Style::default().fg(Color::Cyan)),
-        Rect::new(right_x, area.y, split_width, 1),
-    );
-    f.render_widget(
-        Paragraph::new(settings_label).style(Style::default().fg(Color::Yellow)),
-        Rect::new(right_x + split_width + 1, area.y, settings_width, 1),
-    );
-}
 
     if matches!(app.mode, AppMode::Rename) {
         draw_rename_modal(f, app);
@@ -246,85 +239,134 @@ fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
+fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
+    let pane_count = app.panes.len();
+    if pane_count == 0 {
+        return;
+    }
+
+    // Settings/Split Buttons (Fixed at Right)
+    let settings_label = "[\u{2699}]";
+    let split_label = "[\u{229e}]";
+    let settings_width = 4;
+    let split_width = 4;
+    let right_buttons_width = settings_width + split_width + 2;
+
+    // Calculate Sidebar using Layout to match perfectly with main view
+    let header_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(20), Constraint::Min(0)])
+        .split(area);
+
+    // header_layout[0] is above sidebar (Logo area?)
+    // header_layout[1] is above content panes (Tabs area)
+    let tabs_area = header_layout[1];
+
+    // Split tabs area if multiple panes
+    let pane_constraints = vec![Constraint::Ratio(1, pane_count as u32); pane_count];
+    let pane_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(pane_constraints)
+        .split(tabs_area);
+
+    for (p_i, pane) in app.panes.iter().enumerate() {
+        let chunk = pane_chunks[p_i];
+        let mut current_x = chunk.x;
+
+        // No separator needed between panes
+
+        for (t_i, tab) in pane.tabs.iter().enumerate() {
+            let name = if !tab.search_filter.is_empty() {
+                format!("Search: {}", tab.search_filter)
+            } else {
+                tab.current_path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or("/".to_string())
+            };
+
+            let is_active_tab = t_i == pane.active_tab;
+            let is_focused_pane = p_i == app.focused_pane_index && !app.sidebar_focus;
+
+            // Style: Bold Red if Active Tab. Dim otherwise?
+            // User requested: "highlight it... consistent with our styling" (Red Text).
+            // Active Tab of Focused Pane = Bold Red.
+            // Active Tab of Unfocused Pane = Red? Or Gray?
+            // Let's render ALL tabs. Active one marked.
+            let style = if is_active_tab {
+                if is_focused_pane {
+                    Style::default()
+                        .fg(THEME.accent_primary)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(THEME.accent_primary) // Just Red, no bold? Or keep Bold?
+                }
+            } else {
+                Style::default().fg(Color::DarkGray)
+            };
+
+            let text = format!(" {} ", name);
+            let width = text.len() as u16;
+
+            // Safety check for width overflow
+            if current_x + width > chunk.x + chunk.width {
+                break;
+            }
+
+            f.render_widget(
+                Paragraph::new(text).style(style),
+                Rect::new(current_x, chunk.y, width, 1),
+            );
+            current_x += width;
+
+            // Tab separator? Space?
+            current_x += 1;
+        }
+    }
+
+    // Render Buttons at Far Right
+    let right_x = area.x + area.width.saturating_sub(right_buttons_width);
+    f.render_widget(
+        Paragraph::new(split_label).style(Style::default().fg(Color::Cyan)),
+        Rect::new(right_x, area.y, split_width, 1),
+    );
+    f.render_widget(
+        Paragraph::new(settings_label).style(Style::default().fg(Color::Yellow)),
+        Rect::new(right_x + split_width + 1, area.y, settings_width, 1),
+    );
+}
+
 fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
     if app.current_view == CurrentView::Files {
-        if let Some(split_idx) = app.split_index {
-            let chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-                .split(area);
+        let pane_count = app.panes.len();
+        if pane_count == 0 {
+            return;
+        }
 
-            let left_focused = !app.focus_right && !app.sidebar_focus;
-            let right_focused = app.focus_right && !app.sidebar_focus;
+        let constraints = vec![Constraint::Ratio(1, pane_count as u32); pane_count];
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(constraints)
+            .split(area);
 
-            draw_file_view(f, chunks[0], app, app.tab_index, left_focused);
-            draw_file_view(f, chunks[1], app, split_idx, right_focused);
-        } else {
-            let is_focused = !app.sidebar_focus;
-            draw_file_view(f, area, app, app.tab_index, is_focused);
+        for i in 0..pane_count {
+            let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
+            draw_file_view(f, chunks[i], app, i, is_focused);
         }
     }
 }
 
 use std::time::SystemTime;
 
-fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_focused: bool) {
-    // Split area into Tabs (Top) and Content (Bottom)
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1), // Local Tab Strip
-            Constraint::Min(0),    // Content
-        ])
-        .split(area);
+fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool) {
+    // REMOVED Local Tab Strip. Use full area for content.
+    let content_area = area;
 
-    let tabs_area = chunks[0];
-    let content_area = chunks[1];
-
-    // Draw Local Tabs
-    let titles: Vec<Line> = app
-        .file_tabs
-        .iter()
-        .enumerate()
-        .map(|(i, tab)| {
-            // Simplified title: Folder Name or Search
-            let name = if i == tab_idx && !tab.search_filter.is_empty() {
-                format!("Search: {}", tab.search_filter)
-            } else {
-                tab.current_path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "/".to_string())
-            };
-
-            // Highlight active tab
-            if i == tab_idx {
-                Line::from(Span::styled(
-                    format!(" {} ", name),
-                    Style::default()
-                        .fg(THEME.bg)
-                        .bg(THEME.accent_primary)
-                        .add_modifier(Modifier::BOLD),
-                ))
-            } else {
-                Line::from(Span::styled(
-                    format!(" {} ", name),
-                    Style::default().fg(Color::DarkGray),
-                ))
-            }
-        })
-        .collect();
-
-    // For now, simple horizontal joining with spaces
-    // Since Ratatui Tabs widget expects selected_index to match resizing, we might just render spans manually or use Tabs
-    // Let's use customized manual rendering for tight control or the Tabs widget
-    let tabs = ratatui::widgets::Tabs::new(titles)
-        .select(tab_idx)
-        .highlight_style(Style::default().fg(THEME.accent_primary))
-        .divider(" ");
-    f.render_widget(tabs, tabs_area);
-
-    if let Some(file_state) = app.file_tabs.get_mut(tab_idx) {
+    if let Some(file_state) = app
+        .panes
+        .get_mut(pane_idx)
+        .and_then(|p| p.current_state_mut())
+    {
         file_state.view_height = content_area.height as usize;
         let mut render_state = ratatui::widgets::TableState::default();
         if let Some(sel) = file_state.selected_index {
@@ -374,12 +416,14 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
 
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let metadata = file_state.metadata.get(path);
+            let is_selected = Some(i) == file_state.selected_index && is_focused;
+
             let cells = file_state.columns.iter().map(|c| match c {
                 FileColumn::Name => {
                     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
-                    let mut display_name = name.to_string();
+                    let display_name = name.to_string();
                     let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
-                    let mut style = if is_dir {
+                    let name_style = if is_dir {
                         Style::default()
                             .fg(THEME.accent_secondary)
                             .add_modifier(Modifier::BOLD)
@@ -417,23 +461,43 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
                         };
                         Style::default().fg(ext_color)
                     };
+
+                    // Build display with optional git status and star
+                    let mut suffix = String::new();
+                    let mut final_style = name_style;
                     if let Some(status) = file_state.git_status.get(path) {
-                        display_name.push_str(&format!(" [{}]", status));
+                        suffix.push_str(&format!(" [{}]", status));
                         match status.as_str() {
-                            "M" | "MM" => style = style.fg(Color::Yellow),
-                            "A" | "AM" => style = style.fg(Color::Green),
-                            "??" => style = style.fg(Color::DarkGray),
-                            "D" => style = style.fg(Color::Red),
+                            "M" | "MM" => final_style = final_style.fg(Color::Yellow),
+                            "A" | "AM" => final_style = final_style.fg(Color::Green),
+                            "??" => final_style = final_style.fg(Color::DarkGray),
+                            "D" => final_style = final_style.fg(Color::Red),
                             _ => {}
                         }
                     }
                     if file_state.starred.contains(path) {
-                        display_name.push_str(" [*]");
-                        style = style.fg(THEME.accent_primary).add_modifier(Modifier::BOLD);
+                        suffix.push_str(" [*]");
+                        final_style = final_style
+                            .fg(THEME.accent_primary)
+                            .add_modifier(Modifier::BOLD);
                     }
 
-                    // No indentation - display name directly
-                    Cell::from(display_name).style(style)
+                    // Add red `/` prefix for selected rows
+                    if is_selected {
+                        let line = ratatui::text::Line::from(vec![
+                            ratatui::text::Span::styled(
+                                "/ ",
+                                Style::default().fg(THEME.accent_primary),
+                            ),
+                            ratatui::text::Span::styled(
+                                format!("{}{}", display_name, suffix),
+                                final_style,
+                            ),
+                        ]);
+                        Cell::from(line)
+                    } else {
+                        Cell::from(format!("{}{}", display_name, suffix)).style(final_style)
+                    }
                 }
                 FileColumn::Size => {
                     let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
@@ -465,13 +529,15 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
                         .style(Style::default().fg(THEME.fg))
                 }
             });
-            let style = if Some(i) == file_state.selected_index && is_focused {
+
+            let style = if is_selected {
                 Style::default()
                     .bg(THEME.selection_bg)
                     .fg(THEME.selection_fg)
             } else {
                 Style::default()
             };
+
             Row::new(cells).style(style)
         });
         let constraints: Vec<Constraint> = file_state
@@ -512,22 +578,23 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
             }
 
             let name = comp.as_os_str().to_string_lossy().to_string();
-            let display_name = if name == "/" { "".to_string() } else { name };
+            // Fix: RootDir should be displayed as "/" and have width 1.
+            let display_name = if name == "/" { "/".to_string() } else { name };
 
-            if !display_name.is_empty() || i == 0 {
+            if !display_name.is_empty() {
                 let segment_path = current_path.clone();
                 let is_hovered =
                     file_state.hovered_breadcrumb == Some(file_state.breadcrumb_bounds.len());
 
                 let style = if is_hovered {
                     Style::default()
-                        .fg(THEME.accent_primary)
-                        .add_modifier(Modifier::BOLD)
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
                 } else {
                     Style::default().fg(THEME.fg)
                 };
 
-                let text = display_name;
+                let text = display_name.clone();
                 let width = text.len() as u16;
                 breadcrumb_spans.push(Span::styled(text.clone(), style));
 
@@ -539,7 +606,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
                 ));
                 current_pos_x += width;
 
-                if i < components.len() - 1 {
+                // Add separator only if NOT last and NOT RootDir (since RootDir is its own separator visually)
+                if i < components.len() - 1 && text != "/" {
                     let sep_color = if is_focused {
                         THEME.accent_primary
                     } else {
@@ -573,7 +641,9 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
 
         let table = Table::new(rows, constraints).header(header).block(block);
 
-        let height = area.height.saturating_sub(2) as usize; // Account for borders
+        // Fix: Use content_area instead of area to avoid overlapping with Tabs!
+        // Also update height calculation to use content_area.
+        let height = content_area.height.saturating_sub(2) as usize; // Account for borders
         let offset = render_state.offset();
         let selected = render_state.selected();
 
@@ -589,7 +659,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
             }
         }
 
-        f.render_stateful_widget(table, area, &mut display_state);
+        f.render_stateful_widget(table, content_area, &mut display_state);
 
         // Write back the offset to the persistent state, in case Table adjusted it (e.g. bottom clamp)
         *file_state.table_state.offset_mut() = display_state.offset();
