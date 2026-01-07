@@ -11,6 +11,11 @@ pub struct DraconTheme {
     pub border_active: Color,
     pub border_inactive: Color,
     pub header_fg: Color,
+    pub file_code: Color,
+    pub file_config: Color,
+    pub file_media: Color,
+    pub file_archive: Color,
+    pub file_exec: Color,
 }
 
 impl DraconTheme {
@@ -25,6 +30,11 @@ impl DraconTheme {
             border_active: Color::Rgb(255, 0, 85),     // Primary Accent
             border_inactive: Color::Rgb(60, 60, 70),   // Dim Grey
             header_fg: Color::Rgb(0, 255, 200),        // Secondary Accent
+            file_code: Color::Rgb(255, 128, 0),        // Orange (Code)
+            file_config: Color::Rgb(255, 215, 0),      // Gold (Config)
+            file_media: Color::Rgb(138, 43, 226),      // Violet (Media)
+            file_archive: Color::Rgb(255, 105, 180),   // Hot Pink (Archive)
+            file_exec: Color::Rgb(50, 205, 50),        // Lime Green (Exec)
         }
     }
 
