@@ -434,13 +434,41 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         return;
                     }
                     if button == MouseButton::Left {
-                        // Relocated Breadcrumb click detection (row 1 of the global layout)
+                        let sidebar_width = 16;
+                        let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
+                        let mid_point = sidebar_width + content_area_width / 2;
+
+                        // Local Tabs Click Detection (Row 0) relative to file view
+                        // Since global layout has removed the top bar, Row 0 is the start of the workspace.
+                        if row == 0 {
+                            // Determine if click is in Left or Right panel
+                            let is_right_panel = app.split_index.is_some() && column >= mid_point;
+                            
+                            // This logic assumes we want to Switch Tabs if we click on them
+                            // But for now, we just select the panel if we click the header
+                            if is_right_panel {
+                                // If click is in right panel area, focus right split
+                                // TODO: Implement actual tab clicking logic if we had multiple tabs per split
+                                // For now, just focus.
+                                app.current_view = CurrentView::Files;
+                                // If we had logic to switch tabs within a split, it would go here.
+                            } else if column >= sidebar_width {
+                                // Left panel focus
+                                app.current_view = CurrentView::Files;
+                                app.split_index.map(|_| {
+                                    // If split exists, we are focusing left.
+                                    // We don't have a "focused_split" variable, focus is implicit by tab_index vs split_index?
+                                    // Actually, app.tab_index is left, app.split_index is right.
+                                    // To "focus" left, we might need to track active focus if keybindings depend on it.
+                                    // Existing code uses `app.tab_index` as primary. Split is usually secondary.
+                                    // Let's just ensure we capture the click.
+                                });
+                            }
+                        }
+
+                        // Relocated Breadcrumb click detection (Row 1)
                         if row == 1 {
                             // Find which panel was clicked
-                            let sidebar_width = 16;
-                            let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
-                            let mid_point = sidebar_width + content_area_width / 2;
-                            
                             let target_fs = if app.split_index.is_some() && column >= mid_point {
                                 app.split_index.and_then(|idx| app.file_tabs.get_mut(idx))
                             } else {
@@ -454,7 +482,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         fs.selected_index = Some(0);
                                         fs.search_filter.clear();
                                         push_history(fs, path);
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                        // Refresh the specific tab
+                                        let idx = if app.split_index.is_some() && column >= mid_point {
+                                            app.split_index.unwrap()
+                                        } else {
+                                            app.tab_index
+                                        };
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(idx));
                                         return;
                                     }
                                 }

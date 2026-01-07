@@ -46,7 +46,7 @@ not sure how muc interaction we can have with files but we should look into it
 
 we are looking to persist the state of the app, so if we close and open it again we see the same state
 
-enable to set cols for single file tab and split tabs 
+enable to set cols for single file tab and split tabs, maybe not even the same tabs for each split tab
 
 ## Done
 
