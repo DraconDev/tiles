@@ -395,7 +395,38 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
                             .fg(THEME.accent_secondary)
                             .add_modifier(Modifier::BOLD)
                     } else {
-                        Style::default().fg(THEME.fg)
+                        // Extension-based color coding
+                        let ext = path
+                            .extension()
+                            .and_then(|e| e.to_str())
+                            .unwrap_or("")
+                            .to_lowercase();
+                        let ext_color = match ext.as_str() {
+                            "rs" | "py" | "c" | "cpp" | "h" | "hpp" | "js" | "ts" | "go"
+                            | "java" | "rb" | "php" | "sh" => THEME.file_code,
+                            "toml" | "json" | "yaml" | "yml" | "xml" | "ini" | "conf" | "cfg" => {
+                                THEME.file_config
+                            }
+                            "png" | "jpg" | "jpeg" | "gif" | "bmp" | "svg" | "mp4" | "mkv"
+                            | "avi" | "mp3" | "wav" => THEME.file_media,
+                            "zip" | "tar" | "gz" | "bz2" | "xz" | "7z" | "rar" => {
+                                THEME.file_archive
+                            }
+                            "exe" | "bin" | "elf" => THEME.file_exec,
+                            _ => {
+                                // Check for executable permissions if available
+                                if let Some(meta) = metadata {
+                                    if meta.permissions & 0o100 != 0 {
+                                        THEME.file_exec
+                                    } else {
+                                        THEME.fg
+                                    }
+                                } else {
+                                    THEME.fg
+                                }
+                            }
+                        };
+                        Style::default().fg(ext_color)
                     };
                     if let Some(status) = file_state.git_status.get(path) {
                         display_name.push_str(&format!(" [{}]", status));

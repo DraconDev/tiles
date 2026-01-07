@@ -35,5 +35,7 @@ we need a split tabs
 
 on footer storage is percentage util, on sidebar is available space show with green
 
+would it be possible to have 
+
 
 
