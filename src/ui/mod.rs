@@ -69,33 +69,87 @@ fn draw_tabs(f: &mut Frame, area: Rect, app: &App) {
     current_x_files += sep.len() as u16;
 
     if app.current_view == CurrentView::Files {
-        for (i, tab) in app.file_tabs.iter().enumerate() {
-            let name = tab
-                .current_path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| "/".to_string());
-            let style = if i == app.tab_index {
+        for (i, tab) in app.file_tabs.iter_mut().enumerate() {
+            tab.breadcrumb_bounds.clear();
+
+            let is_active = i == app.tab_index;
+            let style = if is_active {
                 Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::UNDERLINED)
+                    .fg(THEME.border_active)
+                    .add_modifier(Modifier::BOLD)
             } else {
-                Style::default().fg(Color::Gray)
+                Style::default().fg(THEME.fg)
             };
-            let mut label = format!("[{}]", name);
-            if i == app.tab_index {
-                if let Some(fs) = app.current_file_state() {
-                    if !fs.search_filter.is_empty() {
-                        label = format!("[{}: {}]", name, fs.search_filter);
+
+            // Start bracket
+            f.render_widget(
+                Paragraph::new("[").style(style),
+                Rect::new(current_x_files, area.y, 1, 1),
+            );
+            current_x_files += 1;
+
+            if is_active && !tab.search_filter.is_empty() {
+                // Show search filter instead of path
+                let label = &tab.search_filter;
+                f.render_widget(
+                    Paragraph::new(label.as_str()).style(style),
+                    Rect::new(current_x_files, area.y, label.len() as u16, 1),
+                );
+                current_x_files += label.len() as u16;
+            } else {
+                // Show path (clickable breadcrumbs)
+                let components: Vec<_> = tab.current_path.components().collect();
+                let mut current_path = PathBuf::new();
+
+                for (comp_idx, comp) in components.iter().enumerate() {
+                    let name = comp.as_os_str().to_string_lossy().to_string();
+                    if name == "/" && comp_idx > 0 {
+                        continue;
+                    } // Avoid double slash if somehow it happens
+
+                    let display_name = if name == "/" {
+                        "/".to_string()
+                    } else {
+                        format!("{} ", name)
+                    };
+
+                    match comp {
+                        std::path::Component::RootDir => current_path.push("/"),
+                        std::path::Component::Normal(p) => current_path.push(p),
+                        _ => {}
+                    }
+
+                    let width = display_name.len() as u16;
+                    if is_active {
+                        tab.breadcrumb_bounds.push((
+                            current_x_files,
+                            current_x_files + width,
+                            current_path.clone(),
+                        ));
+                    }
+
+                    f.render_widget(
+                        Paragraph::new(display_name.as_str()).style(style),
+                        Rect::new(current_x_files, area.y, width, 1),
+                    );
+                    current_x_files += width;
+
+                    if name != "/" && comp_idx < components.len() - 1 {
+                        f.render_widget(
+                            Paragraph::new("/ ").style(style),
+                            Rect::new(current_x_files, area.y, 2, 1),
+                        );
+                        current_x_files += 2;
                     }
                 }
             }
-            let width = label.len() as u16;
+
+            // End bracket
             f.render_widget(
-                Paragraph::new(ratatui::text::Span::styled(label, style)),
-                Rect::new(current_x_files, area.y, width, 1),
+                Paragraph::new("]").style(style),
+                Rect::new(current_x_files, area.y, 1, 1),
             );
-            current_x_files += width + 1;
+            current_x_files += 2; // Spacing after closing bracket
         }
     }
 }
@@ -107,9 +161,9 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
         .title(" Sidebar ")
         .border_style(
             if app.sidebar_focus && app.current_view == CurrentView::Files {
-                Style::default().fg(Color::Cyan)
+                Style::default().fg(THEME.border_active)
             } else {
-                Style::default()
+                Style::default().fg(THEME.border_inactive)
             },
         );
     f.render_widget(block, area);
@@ -161,7 +215,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             sidebar_items.push(
                 ListItem::new("[FILES]").style(
                     Style::default()
-                        .fg(Color::Yellow)
+                        .fg(THEME.accent_secondary)
                         .add_modifier(Modifier::BOLD),
                 ),
             );
@@ -175,7 +229,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             sidebar_items.push(
                 ListItem::new("[REMOTE]").style(
                     Style::default()
-                        .fg(Color::Yellow)
+                        .fg(THEME.accent_secondary)
                         .add_modifier(Modifier::BOLD),
                 ),
             );
@@ -193,7 +247,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
             sidebar_items.push(
                 ListItem::new("[STORAGE]").style(
                     Style::default()
-                        .fg(Color::Yellow)
+                        .fg(THEME.accent_secondary)
                         .add_modifier(Modifier::BOLD),
                 ),
             );
@@ -229,12 +283,14 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                     if i == app.sidebar_index && app.sidebar_focus {
                         item.clone().style(
                             Style::default()
-                                .fg(Color::Cyan)
-                                .add_modifier(Modifier::BOLD)
-                                .add_modifier(Modifier::REVERSED),
+                                .fg(THEME.border_active)
+                                .add_modifier(Modifier::BOLD),
                         )
-                    } else {
+                    } else if i == app.sidebar_index && !app.sidebar_focus {
                         item.clone()
+                            .style(Style::default().fg(THEME.fg).add_modifier(Modifier::BOLD))
+                    } else {
+                        item.clone().style(Style::default().fg(THEME.fg))
                     }
                 })
                 .collect();
