@@ -154,11 +154,9 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                     app.system_state.mem_usage = data.mem_usage;
                                     app.system_state.total_mem = data.total_mem;
                                     app.system_state.disks = data.disks;
-                                    app.system_state.processes = data.processes;
                                 }
                             }
                             AppEvent::Raw(raw) => {
-                                // println!("DEBUG: Receiver: Got Raw Event: {:?}", raw);
                                 let mut app_guard = app_bg.lock().unwrap();
                                 let app_tx = event_tx_bg.clone();
                                 handle_event(raw, &mut app_guard, app_tx);
@@ -169,9 +167,9 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                         if let Some(path) = fs.files.get(idx) {
                                             let _ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
                                         }
+                                    }
+                                }
                             }
-                        }
-                    }
 
                             AppEvent::RefreshFiles(idx) => {
                                 let (path, show_hidden, filter, session) = {
@@ -189,7 +187,8 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                         metadata: std::collections::HashMap::new(), show_hidden, git_status: std::collections::HashMap::new(),
                                         clipboard: None, search_filter: filter, starred: std::collections::HashSet::new(),
                                         columns: Vec::new(), history: Vec::new(), history_index: 0,
-                                        view_height: 0,
+                                        view_height: 0, sort_column: crate::app::FileColumn::Name, sort_ascending: true,
+                                        breadcrumb_bounds: Vec::new(),
                                     };
                                     if let Some(s_mutex) = session {
                                         if let Ok(s) = s_mutex.lock() { crate::modules::files::update_files(&mut temp_state, Some(&s)); }
@@ -205,7 +204,7 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                 }
                             }
                             AppEvent::CreateFile(filename) => {
-                                if let Ok(mut app) = app_bg.lock() {
+                                if let Ok(app) = app_bg.lock() {
                                     if let Some(fs) = app.current_file_state() {
                                         let path = fs.current_path.join(filename);
                                         if !path.exists() {
@@ -218,21 +217,14 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                 }
                             }
                             AppEvent::CreateFolder(foldername) => {
-                                if let Ok(mut app) = app_bg.lock() {
+                                if let Ok(app) = app_bg.lock() {
                                     if let Some(fs) = app.current_file_state() {
                                         let path = fs.current_path.join(&foldername);
-                                        let _ = std::fs::write("/home/dracon/debug_tiles.log", format!("Attempting to create folder: {:?} in {:?}\n", foldername, fs.current_path));
                                         if !path.exists() {
                                             match std::fs::create_dir(&path) {
-                                                Ok(_) => {
-                                                     let _ = std::fs::write("/home/dracon/debug_tiles_success.log", format!("Created: {:?}\n", path));
-                                                }
-                                                Err(e) => {
-                                                     let _ = std::fs::write("/home/dracon/debug_tiles_error.log", format!("Error creating {:?}: {}\n", path, e));
-                                                }
+                                                Ok(_) => {}
+                                                Err(_) => {}
                                             }
-                                        } else {
-                                             let _ = std::fs::write("/home/dracon/debug_tiles_error.log", format!("Path exists: {:?}\n", path));
                                         }
                                     }
                                     let _ = event_tx_bg.try_send(AppEvent::RefreshFiles(app.tab_index));
@@ -305,21 +297,73 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 MouseEventKind::Down(button) => {
                     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
                         let menu_width = 20;
-                        let menu_height = 5;
+                        let menu_height = if item_index.is_some() { 6 } else { 6 }; // Dynamic based on items
                         if column >= x && column < x + menu_width && row >= y && row < y + menu_height {
                             let menu_row = row.saturating_sub(y + 1) as usize;
-                            if item_index.is_some() {
-                                match menu_row {
-                                    0 => app.mode = AppMode::Rename,
-                                    1 => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = item_index { if let Some(path) = fs.files.get(idx).cloned() { if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); } } } } app.mode = AppMode::Normal; },
-                                    2 => app.mode = AppMode::Delete,
-                                    _ => app.mode = AppMode::Normal,
+                            if let Some(idx) = item_index {
+                                // Item menu: check if folder or file
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    if let Some(path) = fs.files.get(idx).cloned() {
+                                        let is_dir = fs.metadata.get(&path).map(|m| m.is_dir).unwrap_or(false);
+                                        if is_dir {
+                                            // Folder: Open, Star, Rename, Delete
+                                            match menu_row {
+                                                0 => { // Open
+                                                    fs.current_path = path.clone();
+                                                    fs.selected_index = Some(0);
+                                                    fs.search_filter.clear();
+                                                    *fs.table_state.offset_mut() = 0;
+                                                    push_history(fs, path);
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                                    app.mode = AppMode::Normal;
+                                                }
+                                                1 => { // Star
+                                                    if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); }
+                                                    app.mode = AppMode::Normal;
+                                                }
+                                                2 => app.mode = AppMode::Rename, // Rename
+                                                3 => app.mode = AppMode::Delete, // Delete
+                                                _ => app.mode = AppMode::Normal,
+                                            }
+                                        } else {
+                                            // File: Edit, Star, Rename, Delete, Properties
+                                            match menu_row {
+                                                0 => { // Edit (open with xdg-open)
+                                                    let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
+                                                    app.mode = AppMode::Normal;
+                                                }
+                                                1 => { // Star
+                                                    if !fs.starred.insert(path.clone()) { fs.starred.remove(&path); }
+                                                    app.mode = AppMode::Normal;
+                                                }
+                                                2 => app.mode = AppMode::Rename, // Rename
+                                                3 => app.mode = AppMode::Delete, // Delete
+                                                4 => app.mode = AppMode::Properties, // Properties
+                                                _ => app.mode = AppMode::Normal,
+                                            }
+                                        }
+                                    }
                                 }
                             } else {
+                                // Empty space menu: New Folder, New File, Refresh, Terminal Here
                                 match menu_row {
                                     0 => { app.mode = AppMode::NewFolder; app.input.clear(); },
                                     1 => { app.mode = AppMode::NewFile; app.input.clear(); },
                                     2 => { let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index)); app.mode = AppMode::Normal; },
+                                    3 => { // Terminal Here
+                                        if let Some(fs) = app.current_file_state() {
+                                            let _ = std::process::Command::new("xdg-terminal")
+                                                .current_dir(&fs.current_path)
+                                                .spawn()
+                                                .or_else(|_| std::process::Command::new("gnome-terminal")
+                                                    .current_dir(&fs.current_path)
+                                                    .spawn())
+                                                .or_else(|_| std::process::Command::new("xterm")
+                                                    .current_dir(&fs.current_path)
+                                                    .spawn());
+                                        }
+                                        app.mode = AppMode::Normal;
+                                    }
                                     _ => app.mode = AppMode::Normal,
                                 }
                             }
@@ -350,7 +394,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             show_hidden: fs.show_hidden, git_status: std::collections::HashMap::new(),
                                             clipboard: None, search_filter: String::new(), starred: fs.starred.clone(),
                                             columns: fs.columns.clone(), history: vec![path], history_index: 0,
-                                            view_height: 0,
+                                            view_height: 0, sort_column: fs.sort_column, sort_ascending: fs.sort_ascending,
                                         };
                                         app.file_tabs.push(new_fs);
                                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.file_tabs.len() - 1));
@@ -362,8 +406,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                     if button == MouseButton::Left {
                         if row == 0 {
-                            if column < 11 { app.current_view = CurrentView::Files; }
-                            else if column < 22 { app.current_view = CurrentView::System; }
+                            // Header area - could add settings/split buttons here
+                            app.current_view = CurrentView::Files;
                         } else {
                             let sidebar_width = 16;
                             if column < sidebar_width {
@@ -393,11 +437,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     r if r >= 9 + num_remotes => {
                                         let storage_idx = r - (9 + num_remotes);
                                         app.sidebar_index = r;
-                                        let path = match storage_idx {
-                                            0 => Some(std::path::PathBuf::from("/")),
-                                            1 => Some(std::path::PathBuf::from("/run/media")),
-                                            _ => None,
-                                        };
+                                        let path = app.system_state.disks.get(storage_idx)
+                                            .map(|d| std::path::PathBuf::from(&d.name));
                                         if let Some(p) = path {
                                             if let Some(fs) = app.current_file_state_mut() {
                                                 fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear();
@@ -405,48 +446,48 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                 push_history(fs, p);
                                             }
                                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
-                                            app.sidebar_focus = false;
+                                                app.sidebar_focus = false;
                                         }
                                     }
                                     _ => {}
                                 }
+                            } else {
+                                // Clicking in the files area (column >= sidebar_width)
                                 app.sidebar_focus = false;
                                 if app.current_view == CurrentView::Files {
-                                    // Row 2 is the content of the Path Bar (breadcrumbs)
+                                    // Column header click detection (row 2 is the header row)
                                     if row == 2 {
-                                        if let Some(fs) = app.current_file_state_mut() {
-                                            if fs.search_filter.is_empty() {
-                                                let text_start = sidebar_width + 7; // Sidebar + "Path: " (6) + border
-                                                if column >= text_start {
-                                                    let mut click_offset = column - text_start;
-                                                    let components: Vec<_> = fs.current_path.components().collect();
-                                                    let mut current_pos = 0;
-                                                    let mut target_path = std::path::PathBuf::new();
-                                                    
-                                                    for (i, comp) in components.iter().enumerate() {
-                                                        let part = match comp {
-                                                            std::path::Component::RootDir => "/".to_string(),
-                                                            std::path::Component::Normal(s) => s.to_string_lossy().to_string(),
-                                                            _ => continue,
-                                                        };
-                                                        let part_len = part.len() as u16;
-                                                        target_path.push(comp);
-                                                        
-                                                        if click_offset >= current_pos && click_offset < current_pos + part_len {
-                                                            // Clicked on this component
-                                                            fs.current_path = target_path;
-                                                            fs.selected_index = Some(0);
-                                                            *fs.table_state.offset_mut() = 0;
-                                                            push_history(fs, fs.current_path.clone());
-                                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
-                                                            return;
-                                                        }
-                                                        
-                                                        current_pos += part_len;
-                                                        if i < components.len() - 1 && i > 0 {
-                                                            current_pos += 1; // for "/"
-                                                        }
+                                        let content_start = sidebar_width + 1; // After sidebar
+                                        if column >= content_start {
+                                            let click_x = column - content_start;
+                                            // Determine which column was clicked based on approx widths
+                                            // Name: 50%, Size: 10 chars, Modified: 20 chars
+                                            if let Some(fs) = app.current_file_state_mut() {
+                                                let total_width = 100u16; // Approximate
+                                                let name_width = (total_width * 50 / 100) as u16;
+                                                let size_width = 10u16;
+                                                let mod_width = 20u16;
+                                                
+                                                let clicked_col = if click_x < name_width {
+                                                    Some(crate::app::FileColumn::Name)
+                                                } else if click_x < name_width + size_width {
+                                                    Some(crate::app::FileColumn::Size)
+                                                } else if click_x < name_width + size_width + mod_width {
+                                                    Some(crate::app::FileColumn::Modified)
+                                                } else {
+                                                    None
+                                                };
+                                                
+                                                if let Some(col) = clicked_col {
+                                                    if fs.sort_column == col {
+                                                        fs.sort_ascending = !fs.sort_ascending;
+                                                    } else {
+                                                        fs.sort_column = col;
+                                                        fs.sort_ascending = true;
                                                     }
+                                                    // Trigger refresh to re-sort
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                                    return;
                                                 }
                                             }
                                         }
@@ -458,14 +499,22 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             fs.selected_index = Some(index);
                                             fs.table_state.select(Some(index));
                                             if let Some(path) = fs.files.get(index).cloned() {
-                                            if path.is_dir() && is_double_click {
-                                                fs.current_path = path.clone();
-                                                fs.selected_index = Some(0);
-                                                fs.search_filter.clear();
-                                                *fs.table_state.offset_mut() = 0;
-                                                push_history(fs, path);
-                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
-                                            }
+                                                if is_double_click {
+                                                    if path.is_dir() {
+                                                        // Enter directory
+                                                        fs.current_path = path.clone();
+                                                        fs.selected_index = Some(0);
+                                                        fs.search_filter.clear();
+                                                        *fs.table_state.offset_mut() = 0;
+                                                        push_history(fs, path);
+                                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.tab_index));
+                                                    } else {
+                                                        // Open file with default application
+                                                        let _ = std::process::Command::new("xdg-open")
+                                                            .arg(&path)
+                                                            .spawn();
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -475,34 +524,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                 }
                 MouseEventKind::ScrollUp => {
-                    match app.current_view {
-                        CurrentView::Files => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                let new_offset = fs.table_state.offset().saturating_sub(3);
-                                *fs.table_state.offset_mut() = new_offset;
-                            }
-                        }
-                        CurrentView::System => {
-                            let new_offset = app.system_state.process_list_state.offset().saturating_sub(3);
-                            *app.system_state.process_list_state.offset_mut() = new_offset;
-                        }
+                    if let Some(fs) = app.current_file_state_mut() {
+                        let new_offset = fs.table_state.offset().saturating_sub(3);
+                        *fs.table_state.offset_mut() = new_offset;
                     }
                 }
                 MouseEventKind::ScrollDown => {
-                    match app.current_view {
-                        CurrentView::Files => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                let capacity = fs.view_height.saturating_sub(4);
-                                let effective_capacity = capacity.saturating_sub(2); // Margin
-                                let max_offset = fs.files.len().saturating_sub(effective_capacity);
-                                let new_offset = (fs.table_state.offset() + 3).min(max_offset);
-                                *fs.table_state.offset_mut() = new_offset;
-                            }
-                        }
-                        CurrentView::System => {
-                            let new_offset = app.system_state.process_list_state.offset().saturating_add(3);
-                            *app.system_state.process_list_state.offset_mut() = new_offset;
-                        }
+                    if let Some(fs) = app.current_file_state_mut() {
+                        let capacity = fs.view_height.saturating_sub(4);
+                        let effective_capacity = capacity.saturating_sub(2); // Margin
+                        let max_offset = fs.files.len().saturating_sub(effective_capacity);
+                        let new_offset = (fs.table_state.offset() + 3).min(max_offset);
+                        *fs.table_state.offset_mut() = new_offset;
                     }
                 }
                 _ => {}
@@ -550,9 +583,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     if key.modifiers.contains(KeyModifiers::CONTROL) {
                         match key.code {
                             KeyCode::Char('q') => app.running = false,
+                            KeyCode::Char('s') => app.toggle_split(),
                             KeyCode::Char('.') => { app.mode = AppMode::CommandPalette; update_commands(app); }
                             KeyCode::Char('f') => app.current_view = CurrentView::Files,
-                            KeyCode::Char('p') => app.current_view = CurrentView::System,
                             _ => {}
                         }
                         return;
@@ -614,7 +647,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
 }
 
 fn fs_mouse_index(row: u16, app: &App) -> usize {
-    let mouse_row_offset = row.saturating_sub(5) as usize;
+    let mouse_row_offset = row.saturating_sub(3) as usize;
     if let Some(fs) = app.current_file_state() { fs.table_state.offset() + mouse_row_offset }
     else { 0 }
 }
@@ -622,9 +655,6 @@ fn fs_mouse_index(row: u16, app: &App) -> usize {
 fn update_commands(app: &mut App) {
     let commands = vec![
         CommandItem { label: "Quit".to_string(), action: crate::app::CommandAction::Quit },
-        CommandItem { label: "View: Files".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Files) },
-        CommandItem { label: "View: System".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::System) },
-
         CommandItem { label: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
     ];
     let mut filtered = commands;
