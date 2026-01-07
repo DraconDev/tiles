@@ -61,6 +61,7 @@ pub struct App {
     pub tab_index: usize,
     pub split_index: Option<usize>, // If Some, we are in split mode
     pub focus_right: bool,          // If true, focus is on the right panel
+    pub terminal_size: (u16, u16),  // (width, height)
     pub system_state: SystemState,
     pub license: LicenseStatus,
     pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
@@ -178,6 +179,7 @@ pub struct FileState {
     pub view_height: usize,
     pub sort_column: FileColumn,
     pub sort_ascending: bool,
+    pub breadcrumb_bounds: Vec<(u16, u16, PathBuf)>, // (start_x, end_x, path)
 }
 
 #[derive(Clone, Debug)]
@@ -238,6 +240,7 @@ impl App {
             view_height: 0,
             sort_column: FileColumn::Name,
             sort_ascending: true,
+            breadcrumb_bounds: Vec::new(),
         };
         file_state.table_state.select(Some(0));
         update_files(&mut file_state, None);
@@ -253,6 +256,7 @@ impl App {
             tab_index: 0,
             split_index: None,
             focus_right: false,
+            terminal_size: (0, 0),
 
             system_state,
             license,
@@ -484,6 +488,7 @@ mod tests {
             view_height: 20,
             sort_column: FileColumn::Name,
             sort_ascending: true,
+            breadcrumb_bounds: Vec::new(),
         };
 
         // Initial Selection at 0
@@ -537,6 +542,7 @@ mod tests {
             view_height: 20,
             sort_column: FileColumn::Name,
             sort_ascending: true,
+            breadcrumb_bounds: Vec::new(),
         };
 
         let capacity = fs.view_height.saturating_sub(2);
