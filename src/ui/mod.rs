@@ -533,14 +533,14 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
                 let style = if is_hovered {
                     Style::default()
                         .fg(THEME.border_active)
-                        .add_modifier(Modifier::BOLD)
+                        .add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
                 } else {
                     Style::default().fg(THEME.fg)
                 };
 
-                let text = format!(" {} ", display_name);
+                let text = display_name;
                 let width = text.len() as u16;
-                breadcrumb_spans.push(Span::styled(text, style));
+                breadcrumb_spans.push(Span::styled(text.clone(), style));
 
                 // Store absolute screen bounds (start_x, end_x, path)
                 file_state.breadcrumb_bounds.push((
