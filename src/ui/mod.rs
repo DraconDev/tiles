@@ -508,15 +508,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
         // Each segment is "name" (no spaces)
         let mut current_pos_x = area.x + 2; // Approximate start offset inside block title " [breadcrumb] "
 
-        let breadcrumb_colors = [
-            THEME.accent_secondary, // Cyan
-            THEME.file_code,        // Orange
-            THEME.file_config,      // Gold
-            THEME.file_exec,        // Green
-            THEME.file_media,       // Violet
-            THEME.file_archive,     // Pink
-        ];
-
         for (i, comp) in components.iter().enumerate() {
             match comp {
                 std::path::Component::RootDir => {
@@ -539,15 +530,12 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
                 let is_hovered =
                     file_state.hovered_breadcrumb == Some(file_state.breadcrumb_bounds.len());
 
-                let base_color = breadcrumb_colors[i % breadcrumb_colors.len()];
-
                 let style = if is_hovered {
                     Style::default()
-                        .bg(base_color)
-                        .fg(THEME.bg)
+                        .fg(THEME.accent_primary)
                         .add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(base_color)
+                    Style::default().fg(THEME.fg)
                 };
 
                 let text = display_name;
@@ -563,7 +551,12 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, tab_idx: usize, is_f
                 current_pos_x += width;
 
                 if i < components.len() - 1 {
-                    breadcrumb_spans.push(Span::styled("/", Style::default().fg(Color::DarkGray)));
+                    let sep_color = if is_focused {
+                        THEME.accent_primary
+                    } else {
+                        Color::DarkGray
+                    };
+                    breadcrumb_spans.push(Span::styled("/", Style::default().fg(sep_color)));
                     current_pos_x += 1;
                 }
             }
