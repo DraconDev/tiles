@@ -2,6 +2,7 @@ terma is to be a shared terminal manipulation library so if logic can be built i
 
 there was some misunderstanding where teh path should go, it is where Files is in the filelist tab, aslo make it continous and if we hover over a segment we highlight it 
 
+make sure we are 
 
 make sure files in the file tab can be clicked on, even when we have multiple file tabs
 
