@@ -25,7 +25,7 @@ shift up or down keep selecting
 
 shift left or right copy over
 
-ctrl left or right move over
+ctrl left or right move over in f
 
 alt + m1 / m2 or left / right to move back and forth in history
 
