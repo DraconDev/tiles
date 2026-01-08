@@ -76,7 +76,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
 
-            let sidebar_width = (app.terminal_size.0 * 20) / 100;
             // Removed FAVORITES header - top section is implicitly favorites
 
             // Render Starred Folders (No sorting to allow reordering)
@@ -583,10 +582,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                         .style(Style::default().fg(THEME.fg))
                 }
             });
-
-            let is_dragging_this = app.is_dragging && app.drag_source.as_ref() == Some(path);
-            let is_drop_target =
-                matches!(app.hovered_drop_target, Some(DropTarget::Folder(ref p)) if p == path);
 
             Row::new(cells).style(if is_active_selection {
                 Style::default().bg(THEME.accent_primary).fg(Color::Black)
