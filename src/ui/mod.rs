@@ -76,10 +76,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
 
-            if app.is_dragging
-                && (matches!(app.hovered_drop_target, Some(DropTarget::SidebarArea))
-                    || matches!(app.hovered_drop_target, Some(DropTarget::Favorites)))
-            {
+            let sidebar_width = (app.terminal_size.0 * 20) / 100;
+            if app.is_dragging && app.mouse_pos.0 < sidebar_width {
                 sidebar_items.push(
                     ListItem::new("  🔻 FAVORITES")
                         .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
