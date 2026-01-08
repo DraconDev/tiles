@@ -940,8 +940,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
 
                     match key.code {
-                        KeyCode::Down => { app.move_down(); }
-                        KeyCode::Up => { app.move_up(); }
+                        KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); }
+                        KeyCode::Up => { app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); }
                         KeyCode::Left => { app.move_left(); }
                         KeyCode::Right => { app.move_right(); }
                         KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } }
