@@ -919,21 +919,23 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             app.starred.swap(fav_idx, fav_idx - 1);
                                             app.sidebar_index -= 1;
                                         }
-                                    }
-                                }
-                            }
-                            KeyCode::Down => {
-                                if app.sidebar_focus && !app.starred.is_empty() {
-                                    if app.sidebar_index >= 1 && app.sidebar_index < app.starred.len() {
-                                        let fav_idx = app.sidebar_index - 1;
-                                        if fav_idx < app.starred.len() - 1 {
-                                            app.starred.swap(fav_idx, fav_idx + 1);
-                                            app.sidebar_index += 1;
-                                        }
-                                    }
-                                }
-                            }
                             _ => {}
+                        }
+                        if app.sidebar_focus {
+                            let sidebar_items_count = app.sidebar_bounds.len();
+                            match key.code {
+                                KeyCode::Down => {
+                                    if app.sidebar_index < sidebar_items_count.saturating_sub(1) {
+                                        app.sidebar_index += 1;
+                                    }
+                                }
+                                KeyCode::Up => {
+                                    if app.sidebar_index > 0 {
+                                        app.sidebar_index -= 1;
+                                    }
+                                }
+                                _ => {}
+                            }
                         }
                         return;
                     }
