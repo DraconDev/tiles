@@ -92,6 +92,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 );
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
+                    index: sidebar_items.len() + 1,
                     target: SidebarTarget::Header("FAVORITES".to_string()), // Not selectable
                 });
                 current_y += 1;
@@ -133,6 +134,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 sidebar_items.push(label);
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
+                    index: sidebar_items.len(),
                     target: SidebarTarget::Favorite(path.clone()),
                 });
                 current_y += 1;
@@ -152,6 +154,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             );
             app.sidebar_bounds.push(SidebarBounds {
                 y: current_y,
+                index: sidebar_items.len(), // elementary logic says index should be sidebar_items.len() since it was just pushed
                 target: SidebarTarget::Header("REMOTES".to_string()),
             });
             current_y += 1;
@@ -169,6 +172,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 sidebar_items.push(label);
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
+                    index: sidebar_items.len(),
                     target: SidebarTarget::Remote(i),
                 });
                 current_y += 1;
@@ -192,6 +196,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             );
             app.sidebar_bounds.push(SidebarBounds {
                 y: current_y,
+                index: sidebar_items.len(), // elementary logic says index should be sidebar_items.len() since it was just pushed
                 target: SidebarTarget::Header("STORAGES".to_string()),
             });
             current_y += 1;
@@ -237,6 +242,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 sidebar_items.push(ListItem::new(label.clone()).style(name_style));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
+                    index: sidebar_items.len(),
                     target: SidebarTarget::Storage(i),
                 });
                 current_y += 1;
