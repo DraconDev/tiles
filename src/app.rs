@@ -183,6 +183,8 @@ pub struct FileState {
     pub current_path: PathBuf,
     pub remote_session: Option<RemoteSession>,
     pub selected_index: Option<usize>,
+    pub selection_anchor: Option<usize>,
+    pub multi_select: std::collections::HashSet<usize>,
     pub table_state: TableState,
     pub files: Vec<PathBuf>,
     pub metadata: HashMap<PathBuf, FileMetadata>,
