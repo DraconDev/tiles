@@ -73,6 +73,7 @@ pub struct SidebarBounds {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SidebarTarget {
+    Header(String),
     Favorite(PathBuf),
     Remote(usize),
     Storage(usize),
