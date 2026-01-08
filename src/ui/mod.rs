@@ -76,24 +76,17 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
             let sidebar_width = (app.terminal_size.0 * 20) / 100;
-            let is_dragging_to_star = app.is_dragging
-                && app.mouse_pos.0 < sidebar_width
-                && app
-                    .drag_source
-                    .as_ref()
-                    .map(|s| !app.starred.contains(s))
-                    .unwrap_or(true)
-                && !matches!(app.hovered_drop_target, Some(DropTarget::Folder(_)));
+            let is_dragging_over_sidebar = app.is_dragging && app.mouse_pos.0 < sidebar_width;
 
-            if is_dragging_to_star {
+            if is_dragging_over_sidebar {
                 sidebar_items.push(
                     ListItem::new("> FAVORITES")
                         .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
                 );
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
-                    index: sidebar_items.len() + 1,
-                    target: SidebarTarget::Header("FAVORITES".to_string()), // Not selectable
+                    index: sidebar_items.len(),
+                    target: SidebarTarget::Header("FAVORITES".to_string()),
                 });
                 current_y += 1;
             } else {
@@ -108,14 +101,9 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     .unwrap_or("?".to_string());
 
                 // sidebar_index is the 1-indexed position in the sidebar_items list.
-                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len() + 1;
-                let is_hovered = matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path)
-                    || (app.is_dragging
-                        && app.mouse_pos.0 < sidebar_width
-                        && app.sidebar_bounds.iter().any(|b| {
-                            b.y == app.mouse_pos.1
-                                && matches!(b.target, SidebarTarget::Favorite(ref fp) if fp == path)
-                        }));
+                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len();
+                let is_hovered =
+                    matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
 
                 let mut label = ListItem::new(name);
                 if is_focused {
@@ -125,7 +113,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                             .fg(Color::White)
                             .add_modifier(Modifier::BOLD),
                     );
-                } else if is_hovered {
+                } else if is_hovered && app.is_dragging {
                     label = label.style(
                         Style::default()
                             .fg(Color::White)
@@ -167,7 +155,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             });
             current_y += 1;
             for (i, bookmark) in app.remote_bookmarks.iter().enumerate() {
-                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len() + 1;
+                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len();
                 let mut label = ListItem::new(bookmark.name.clone());
                 if is_focused {
                     label = label.style(
@@ -230,7 +218,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                                 .any(|d| d.name != "/" && path.starts_with(&d.name)))
                 });
 
-                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len() + 1;
+                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len();
                 let mut name_style = if is_active {
                     Style::default()
                         .fg(THEME.accent_primary)
@@ -757,15 +745,9 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         let table = Table::new(rows, constraints.clone())
             .header(header)
             .block(block.clone())
-            .highlight_style(
-                Style::default()
-                    .bg(Color::Red)
-                    .fg(Color::White)
-                    .add_modifier(Modifier::BOLD),
-            );
-
-        // Fix: Use content_area instead of area to avoid overlapping with Tabs!
-        // Also update height calculation to use content_area.
+            .highlight_style(Style::default()); // Disable default teal highlighting
+                                                // Fix: Use content_area instead of area to avoid overlapping with Tabs!
+                                                // Also update height calculation to use content_area.
         let height = content_area.height.saturating_sub(2) as usize; // Account for borders
         let offset = render_state.offset();
         let selected = render_state.selected();
