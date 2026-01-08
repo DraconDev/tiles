@@ -645,8 +645,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                 }
             });
 
-            let is_multi_selected = file_state.multi_select.contains(&i) && is_focused;
-
             let mut row_style = Style::default();
             if is_active_selection {
                 row_style = row_style
@@ -657,6 +655,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                 row_style = row_style.bg(Color::Rgb(150, 0, 0)).fg(Color::White);
                 // Darker red for range selection
             }
+            // elementary logic says multi_select should be distinguishable red
             Row::new(cells).style(row_style)
         });
         let constraints: Vec<Constraint> = file_state
