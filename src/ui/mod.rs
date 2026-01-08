@@ -213,7 +213,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         app.sidebar_bounds.iter().any(|b| b.y == inner.y + i as u16);
 
                     if !is_selectable {
-                        return item.style(Style::default().fg(Color::DarkGray));
+                        return item;
                     }
 
                     if i == app.sidebar_index && app.sidebar_focus {
