@@ -79,13 +79,14 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let is_dragging_over_sidebar = app.is_dragging && app.mouse_pos.0 < sidebar_width;
 
             if is_dragging_over_sidebar {
+                let current_idx = sidebar_items.len();
                 sidebar_items.push(
                     ListItem::new("> FAVORITES")
                         .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
                 );
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
-                    index: sidebar_items.len(),
+                    index: current_idx, // Use 0-index
                     target: SidebarTarget::Header("FAVORITES".to_string()),
                 });
                 current_y += 1;
@@ -101,7 +102,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     .unwrap_or("?".to_string());
 
                 // sidebar_index is the 1-indexed position in the sidebar_items list.
-                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len();
+                let current_idx = sidebar_items.len();
+                let is_focused = app.sidebar_focus && app.sidebar_index == current_idx;
                 let is_hovered =
                     matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
 
@@ -131,7 +133,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 sidebar_items.push(label);
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
-                    index: sidebar_items.len(),
+                    index: current_idx,
                     target: SidebarTarget::Favorite(path.clone()),
                 });
                 current_y += 1;
@@ -141,6 +143,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             sidebar_items.push(ListItem::new(""));
             current_y += 1;
 
+            let current_header_idx = sidebar_items.len();
             sidebar_items.push(
                 ListItem::new("󰒍 REMOTES").style(
                     Style::default()
@@ -150,12 +153,13 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             );
             app.sidebar_bounds.push(SidebarBounds {
                 y: current_y,
-                index: sidebar_items.len(), // elementary logic says index should be sidebar_items.len() since it was just pushed
+                index: current_header_idx,
                 target: SidebarTarget::Header("REMOTES".to_string()),
             });
             current_y += 1;
             for (i, bookmark) in app.remote_bookmarks.iter().enumerate() {
-                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len();
+                let current_bookmark_idx = sidebar_items.len();
+                let is_focused = app.sidebar_focus && app.sidebar_index == current_bookmark_idx;
                 let mut label = ListItem::new(bookmark.name.clone());
                 if is_focused {
                     label = label.style(
@@ -168,7 +172,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 sidebar_items.push(label);
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
-                    index: sidebar_items.len(),
+                    index: current_bookmark_idx, // elementary logic says focus check should use current_bookmark_idx
                     target: SidebarTarget::Remote(i),
                 });
                 current_y += 1;
@@ -183,6 +187,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             // STORAGE Section
             sidebar_items.push(ListItem::new(""));
             current_y += 1;
+            let current_storage_header_idx = sidebar_items.len();
             sidebar_items.push(
                 ListItem::new("󰋊 STORAGES").style(
                     Style::default()
@@ -192,7 +197,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             );
             app.sidebar_bounds.push(SidebarBounds {
                 y: current_y,
-                index: sidebar_items.len(), // elementary logic says index should be sidebar_items.len() since it was just pushed
+                index: current_storage_header_idx, // elementary logic says index should match sidebar_items.len()
                 target: SidebarTarget::Header("STORAGES".to_string()),
             });
             current_y += 1;
@@ -218,7 +223,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                                 .any(|d| d.name != "/" && path.starts_with(&d.name)))
                 });
 
-                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len();
+                let current_disk_idx = sidebar_items.len();
+                let is_focused = app.sidebar_focus && app.sidebar_index == current_disk_idx;
                 let mut name_style = if is_active {
                     Style::default()
                         .fg(THEME.accent_primary)
@@ -238,7 +244,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 sidebar_items.push(ListItem::new(label.clone()).style(name_style));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
-                    index: sidebar_items.len(),
+                    index: current_disk_idx, // elementary logic says sidebar_index should be compared with current_disk_idx
                     target: SidebarTarget::Storage(i),
                 });
                 current_y += 1;
