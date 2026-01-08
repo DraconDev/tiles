@@ -1,6 +1,6 @@
 terma is to be a shared terminal manipulation library so if logic can be built into that then do so 
 
-
+also the detection should be dragging over the entire sidebar, not just the favorites text
 
 show the active storage(s) on sidebar and later we ould want to show if remote too, so if we have our main disk open and a remote disk then we see them both highlighted on the sidebar, if we opened antoehr disk then we see both disks, if i only have my main open on left panel and right panel or we just have panel that has it then we only see that, 
 
@@ -49,3 +49,5 @@ we navigate with the arrow keys to left right up down, so on the file tab we nav
 instead of seeing Files at the top of the tab,e we should see the absolute path, and that path should be clickable, when we click on a breadcrumb we should go to that directory, also when we search taht is what we replace for the search term
 
 we gont and odd bug on the test1 tab we see the right file lists elements that is on the saw row as the panels1 same elements breaking the containers and is off to the left by 4? cells
+
+show active git branch after the path on the file tab

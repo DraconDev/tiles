@@ -120,9 +120,26 @@ fn update_local_files(state: &mut FileState) {
             }
         });
 
-        // Git Integration (Disabled/Backlog)
+        // Git Integration
         state.git_status.clear();
+        state.git_branch = get_git_branch(&state.current_path);
     }
+}
+
+fn get_git_branch(path: &std::path::Path) -> Option<String> {
+    let output = std::process::Command::new("git")
+        .args(["rev-parse", "--abbrev-ref", "HEAD"])
+        .current_dir(path)
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !branch.is_empty() {
+            return Some(branch);
+        }
+    }
+    None
 }
 
 fn update_remote_files(state: &mut FileState, session: &ssh2::Session) {
@@ -185,6 +202,23 @@ pub fn copy_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::
         }
     } else {
         std::fs::copy(src, dst)?;
+    }
+    Ok(())
+}
+
+pub fn move_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+    if let Err(e) = std::fs::rename(src, dst) {
+        if e.kind() == std::io::ErrorKind::Other || e.raw_os_error() == Some(18) {
+            // EXDEV (Cross-device link)
+            copy_recursive(src, dst)?;
+            if src.is_dir() {
+                std::fs::remove_dir_all(src)?;
+            } else {
+                std::fs::remove_file(src)?;
+            }
+        } else {
+            return Err(e);
+        }
     }
     Ok(())
 }

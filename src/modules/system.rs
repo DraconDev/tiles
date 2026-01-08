@@ -46,11 +46,9 @@ impl SystemModule {
             })
             .map(|disk: &sysinfo::Disk| crate::app::DiskInfo {
                 name: disk.mount_point().to_string_lossy().to_string(),
-                used_space: (disk.total_space() - disk.available_space()) as f64
-                    / 1024.0
-                    / 1024.0
-                    / 1024.0, // GB
-                total_space: disk.total_space() as f64 / 1024.0 / 1024.0 / 1024.0, // GB
+                used_space: (disk.total_space() - disk.available_space()) as f64,
+                available_space: disk.available_space() as f64,
+                total_space: disk.total_space() as f64,
             })
             .collect();
 
@@ -59,6 +57,7 @@ impl SystemModule {
             mem_usage,
             total_mem,
             disks,
+            processes: Vec::new(), // Placeholder for now
         }
     }
 }

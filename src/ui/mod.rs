@@ -1,6 +1,8 @@
 pub mod theme;
 use std::path::PathBuf;
 
+use crate::app::{App, AppMode, CurrentView, DropTarget, FileColumn, SidebarBounds, SidebarTarget};
+use crate::ui::theme::THEME;
 use ratatui::text::{Line, Span};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -12,12 +14,10 @@ use ratatui::{
     Frame,
 };
 
-use crate::app::{App, AppMode, CurrentView, FileColumn};
-use crate::ui::theme::THEME;
 use terma::compositor::engine::TilePlacement;
 use terma::utils::{format_permissions, format_size, format_time};
 
-fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
+fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -73,6 +73,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
     match app.current_view {
         CurrentView::Files => {
             let mut sidebar_items = Vec::new();
+            app.sidebar_bounds.clear();
+            let mut current_y = inner.y;
 
             // FILES Section
             sidebar_items.push(
@@ -82,13 +84,36 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                         .add_modifier(Modifier::BOLD),
                 ),
             );
-            sidebar_items.push(ListItem::new("Home"));
-            sidebar_items.push(ListItem::new("Downloads"));
-            sidebar_items.push(ListItem::new("Documents"));
-            sidebar_items.push(ListItem::new("Pictures"));
+            current_y += 1;
+
+            if let Some(DropTarget::Favorites) = app.hovered_drop_target {
+                sidebar_items.push(
+                    ListItem::new("+ [Drop to Star]").style(
+                        Style::default()
+                            .fg(THEME.accent_primary)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                );
+                current_y += 1;
+            }
+
+            // Render Starred Folders
+            let mut sorted_starred: Vec<_> = app.starred.iter().collect();
+            sorted_starred.sort();
+
+            for path in sorted_starred {
+                let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("/");
+                sidebar_items.push(ListItem::new(name));
+                app.sidebar_bounds.push(SidebarBounds {
+                    y: current_y,
+                    target: SidebarTarget::Favorite(path.clone()),
+                });
+                current_y += 1;
+            }
 
             // REMOTE Section
             sidebar_items.push(ListItem::new(""));
+            current_y += 1;
             sidebar_items.push(
                 ListItem::new("[REMOTE]").style(
                     Style::default()
@@ -96,17 +121,25 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                         .add_modifier(Modifier::BOLD),
                 ),
             );
-            for bookmark in &app.remote_bookmarks {
+            current_y += 1;
+            for (i, bookmark) in app.remote_bookmarks.iter().enumerate() {
                 sidebar_items.push(ListItem::new(bookmark.name.clone()));
+                app.sidebar_bounds.push(SidebarBounds {
+                    y: current_y,
+                    target: SidebarTarget::Remote(i),
+                });
+                current_y += 1;
             }
             if app.remote_bookmarks.is_empty() {
                 sidebar_items.push(
                     ListItem::new("(No remotes)").style(Style::default().fg(Color::DarkGray)),
                 );
+                current_y += 1;
             }
 
             // STORAGE Section
             sidebar_items.push(ListItem::new(""));
+            current_y += 1;
             sidebar_items.push(
                 ListItem::new("[STORAGE]").style(
                     Style::default()
@@ -114,6 +147,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                         .add_modifier(Modifier::BOLD),
                 ),
             );
+            current_y += 1;
             // Collect all current paths from all open panes to check which disks are active
             let mut active_paths = Vec::new();
             for pane in &app.panes {
@@ -122,8 +156,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                 }
             }
 
-            for disk in &app.system_state.disks {
-                let free = disk.total_space - disk.used_space;
+            for (i, disk) in app.system_state.disks.iter().enumerate() {
+                // let free = disk.total_space - disk.used_space;
 
                 // Check if ANY active path starts with this disk's mount point
                 let is_active = active_paths.iter().any(|path| {
@@ -141,17 +175,17 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                         .fg(THEME.accent_primary)
                         .add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default()
+                    Style::default().fg(Color::Green)
                 };
 
-                let disk_item = ratatui::text::Line::from(vec![
-                    ratatui::text::Span::styled(format!("{} - ", disk.name), name_style),
-                    ratatui::text::Span::styled(
-                        format!("{:.0}GB Free", free),
-                        Style::default().fg(Color::Green),
-                    ),
-                ]);
-                sidebar_items.push(ListItem::new(disk_item));
+                let available = (disk.available_space as f64 / 1_073_741_824.0).round() as u64; // GB
+                let label = format!("{}: {}G Free", disk.name, available);
+                sidebar_items.push(ListItem::new(label.clone()).style(name_style));
+                app.sidebar_bounds.push(SidebarBounds {
+                    y: current_y,
+                    target: SidebarTarget::Storage(i),
+                });
+                current_y += 1;
             }
             if app.system_state.disks.is_empty() {
                 sidebar_items.push(ListItem::new("Root (/)"));
@@ -187,6 +221,9 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &App) {
                 .collect();
 
             f.render_widget(List::new(items), inner);
+        }
+        CurrentView::Processes => {
+            // Placeholder for Processes sidebar
         }
     }
 }
@@ -292,7 +329,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
         // No separator needed between panes
 
         for (t_i, tab) in pane.tabs.iter().enumerate() {
-            let name = if !tab.search_filter.is_empty() {
+            let mut name = if !tab.search_filter.is_empty() {
                 format!("Search: {}", tab.search_filter)
             } else {
                 tab.current_path
@@ -301,7 +338,11 @@ fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
                     .unwrap_or("/".to_string())
             };
 
-            let is_active_tab = t_i == pane.active_tab;
+            if let Some(branch) = &tab.git_branch {
+                name = format!("{} ({})", name, branch);
+            }
+
+            let is_active_tab = t_i == pane.active_tab_index;
             let is_focused_pane = p_i == app.focused_pane_index && !app.sidebar_focus;
 
             // Style: Bold Red if Active Tab. Dim otherwise?
@@ -501,7 +542,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                             _ => {}
                         }
                     }
-                    if file_state.starred.contains(path) {
+                    if app.starred.contains(path) {
                         suffix.push_str(" [*]");
                         final_style = final_style
                             .fg(THEME.accent_primary)
@@ -541,7 +582,20 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                 }
             });
 
-            let style = if is_selected {
+            let is_dragging_this = app.is_dragging && app.drag_source.as_ref() == Some(path);
+            let is_drop_target =
+                matches!(app.hovered_drop_target, Some(DropTarget::Folder(ref p)) if p == path);
+
+            let style = if is_dragging_this {
+                Style::default()
+                    .bg(Color::Rgb(80, 80, 0)) // Dark Gold for Dragging
+                    .fg(Color::White)
+            } else if is_drop_target {
+                Style::default()
+                    .bg(THEME.accent_primary)
+                    .fg(THEME.selection_fg)
+                    .add_modifier(Modifier::BOLD)
+            } else if is_selected {
                 Style::default()
                     .bg(THEME.selection_bg)
                     .fg(THEME.selection_fg)
@@ -594,8 +648,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
 
             if !display_name.is_empty() {
                 let segment_path = current_path.clone();
-                let is_hovered =
-                    file_state.hovered_breadcrumb == Some(file_state.breadcrumb_bounds.len());
+                let is_hovered = file_state.hovered_breadcrumb.as_ref() == Some(&segment_path);
 
                 let style = if is_hovered {
                     Style::default()
@@ -609,10 +662,9 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                 let width = text.len() as u16;
                 breadcrumb_spans.push(Span::styled(text.clone(), style));
 
-                // Store absolute screen bounds (start_x, end_x, path)
+                // Store absolute screen bounds (Rect, path)
                 file_state.breadcrumb_bounds.push((
-                    current_pos_x,
-                    current_pos_x + width,
+                    Rect::new(current_pos_x, area.y, width, 1), // Exact row of the border title
                     segment_path,
                 ));
                 current_pos_x += width;
@@ -676,9 +728,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
 
         for (i, col_type) in file_state.columns.iter().enumerate() {
             let rect = column_layout[i];
-            file_state
-                .column_bounds
-                .push((rect.x, rect.x + rect.width, *col_type));
+            file_state.column_bounds.push((rect, *col_type));
         }
         // --------------------------------------------------
 
@@ -836,7 +886,7 @@ fn draw_command_palette(f: &mut Frame, app: &App) {
             } else {
                 Style::default()
             };
-            ListItem::new(cmd.label.clone()).style(style)
+            ListItem::new(cmd.desc.clone()).style(style)
         })
         .collect();
     f.render_widget(List::new(items), chunks[1]);
@@ -909,6 +959,7 @@ fn draw_delete_modal(f: &mut Frame, app: &App) {
                 "Delete? (y/n)".to_string()
             }
         }
+        CurrentView::Processes => "Delete Process? (y/n)".to_string(),
     };
     f.render_widget(
         Paragraph::new(text).block(
@@ -956,6 +1007,7 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
                 "No file selected".to_string()
             }
         }
+        CurrentView::Processes => "Process Info".to_string(),
     };
     f.render_widget(
         Paragraph::new(info).block(

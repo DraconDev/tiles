@@ -1,138 +1,86 @@
 #![allow(dead_code, unused)]
 use crate::license::check_license;
 use crate::modules::files::update_files;
+
+use ratatui::layout::Rect;
+use ratatui::widgets::TableState;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use terma::compositor::engine::TilePlacement;
 use terma::input::event::Event as TermaEvent;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum AppMode {
-    Normal,
-    Zoomed,
-    CommandPalette,
-    Location,    // Ctrl+L mode
-    Rename,      // F2 mode
-    Properties,  // Alt+Enter mode
-    NewFolder,   // Ctrl+Shift+N mode
-    NewFile,     // New File mode
-    Delete,      // Delete key mode
-    ColumnSetup, // Column configuration mode
-    AddRemote,   // Add new SSH remote host
-    ContextMenu {
-        x: u16,
-        y: u16,
-        item_index: Option<usize>,
-    },
-    Context, // Context Menu (Right Click)
-}
-
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub enum CurrentView {
-    Files,
-}
-pub enum LicenseStatus {
-    FreeMode,
-    Commercial(String),
-}
-
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum AppEvent {
-    RefreshFiles(usize), // tab_index
-    CreateFile(String),  // filename
-    CreateFolder(String),
+    RefreshFiles(usize), // pane_index
     FilesUpdated(
         usize,
         Vec<PathBuf>,
         HashMap<PathBuf, FileMetadata>,
         HashMap<PathBuf, String>,
-    ), // tab_idx, files, metadata, git
+        Option<String>,
+    ), // tab_idx, files, metadata, git, branch
     Tick,
     Raw(TermaEvent),
     SystemUpdated(SystemData),
+    CreateFile(PathBuf),
+    CreateFolder(PathBuf),
+    Rename(PathBuf, PathBuf),
+    Delete(PathBuf),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum CurrentView {
+    Files,
+    Processes,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum AppMode {
+    Normal,
+    Rename,
+    Delete,
+    NewFolder,
+    NewFile,
+    Search,
+    Command,
+    RemoteAdd,
+    TabSearch,
+    Properties,
+    ContextMenu {
+        x: u16,
+        y: u16,
+        item_index: Option<usize>,
+    },
+    CommandPalette,
+    Location,
+    ColumnSetup,
+    AddRemote,
 }
 
 #[derive(Clone, Debug)]
-pub struct Pane {
-    pub tabs: Vec<FileState>,
-    pub active_tab: usize,
+pub enum DropTarget {
+    Favorites,
+    Folder(PathBuf),
 }
 
-impl Pane {
-    pub fn new(initial_state: FileState) -> Self {
-        Self {
-            tabs: vec![initial_state],
-            active_tab: 0,
-        }
-    }
-
-    pub fn current_state(&self) -> Option<&FileState> {
-        self.tabs.get(self.active_tab)
-    }
-
-    pub fn current_state_mut(&mut self) -> Option<&mut FileState> {
-        self.tabs.get_mut(self.active_tab)
-    }
-
-    /// Open a new tab. If limit (3) is reached, replace the active tab?
-    /// User said: "open the tabs ... limit 3 ... if they open more the last active closes"
-    /// A simple interpretation: If 3 exist, reuse the current one or close the oldest?
-    /// "last active closes" -> might mean LRU or just strictly limiting count.
-    /// Let's implement FIFO for now (close index 0) if user meant "oldest",
-    /// OR simply replace the current one if that's what "last active" implies in context.
-    /// Actually, "last active closes" is ambiguous. Let's assume standard behavior:
-    /// strict limit of 3. If we try to add a 4th, we remove the `active_tab` (the one we are 'on', effectively replacing it?)
-    /// OR we remove the 0th index?
-    /// Let's try: Remove the 0th index (Leftmost) to make room at the end.
-    pub fn open_tab(&mut self, state: FileState) {
-        if self.tabs.len() >= 3 {
-            // Remove the first tab (Leftmost) to make room
-            self.tabs.remove(0);
-            // Adjust active_tab if necessary (if we were at 0, we stay at 0 which is now the next one)
-            // But we probably want to jump to the NEW tab.
-        }
-        self.tabs.push(state);
-        self.active_tab = self.tabs.len() - 1;
-    }
+#[derive(Clone, Debug)]
+pub struct SidebarBounds {
+    pub y: u16,
+    pub target: SidebarTarget,
 }
 
-pub struct App {
-    pub running: bool,
-    pub current_view: CurrentView,
-    pub mode: AppMode,
-    pub input: String,
-
-    // NEW: Panes
-    pub panes: Vec<Pane>,
-    pub focused_pane_index: usize,
-
-    pub terminal_size: (u16, u16), // (width, height)
-    pub mouse_pos: (u16, u16),     // Current mouse (x, y)
-    pub system_state: SystemState,
-    pub license: LicenseStatus,
-    pub sidebar_focus: bool, // true = focus is on sidebar/dock, false = focus is on main stage
-    pub sidebar_index: usize,
-    pub remote_bookmarks: Vec<RemoteBookmark>,
-    pub active_sessions: HashMap<String, Arc<Mutex<ssh2::Session>>>, // host:port -> session
-    pub filtered_commands: Vec<CommandItem>,
-    pub command_index: usize,
-    pub last_click: Option<(std::time::Instant, u16, u16)>, // time, row, col
-    pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
-    pub git_status_check_in_progress: bool,
-
-    // Drag and Drop State
-    pub drag_source: Option<PathBuf>,
-    pub is_dragging: bool,
-    pub drag_start_pos: Option<(u16, u16)>,
-
-    // Mouse Validation
-    pub mouse_last_click: std::time::Instant,
-    pub mouse_click_pos: (u16, u16),
+#[derive(Clone, Debug, PartialEq)]
+pub enum SidebarTarget {
+    Favorite(PathBuf),
+    Remote(usize),
+    Storage(usize),
 }
 
 #[derive(Clone, Debug)]
 pub struct CommandItem {
-    pub label: String,
+    pub key: String,
+    pub desc: String,
     pub action: CommandAction,
 }
 
@@ -143,9 +91,8 @@ pub enum CommandAction {
     SwitchView(CurrentView),
     AddRemote,
     ConnectToRemote(usize), // index into remote_bookmarks
+    CommandPalette,
 }
-
-use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ClipboardOp {
@@ -162,8 +109,6 @@ pub enum FileColumn {
     Permissions,
     Extension,
 }
-
-use ratatui::widgets::TableState;
 
 #[derive(Clone)]
 pub struct RemoteSession {
@@ -194,6 +139,22 @@ pub struct RemoteBookmark {
 }
 
 #[derive(Clone, Debug)]
+pub struct DiskInfo {
+    pub name: String,
+    pub used_space: f64,
+    pub available_space: f64,
+    pub total_space: f64,
+}
+
+#[derive(Clone, Debug)]
+pub struct ProcessInfo {
+    pub pid: u32,
+    pub name: String,
+    pub cpu: f32,
+    pub mem: f32,
+}
+
+#[derive(Clone, Debug)]
 pub struct FileMetadata {
     pub size: u64,
     pub modified: std::time::SystemTime,
@@ -219,25 +180,59 @@ impl Default for FileMetadata {
 #[derive(Clone, Debug)]
 pub struct FileState {
     pub current_path: PathBuf,
-    pub remote_session: Option<RemoteSession>, // None = Local, Some = SSH
+    pub remote_session: Option<RemoteSession>,
     pub selected_index: Option<usize>,
     pub table_state: TableState,
     pub files: Vec<PathBuf>,
-    pub metadata: HashMap<PathBuf, FileMetadata>, // PRE-FETCHED CACHE
-    pub show_hidden: bool,
+    pub metadata: HashMap<PathBuf, FileMetadata>,
     pub git_status: HashMap<PathBuf, String>,
+    pub show_hidden: bool,
     pub clipboard: Option<(PathBuf, ClipboardOp)>,
     pub search_filter: String,
-    pub starred: HashSet<PathBuf>,
     pub columns: Vec<FileColumn>,
     pub history: Vec<PathBuf>,
     pub history_index: usize,
     pub view_height: usize,
     pub sort_column: FileColumn,
     pub sort_ascending: bool,
-    pub breadcrumb_bounds: Vec<(u16, u16, PathBuf)>, // (start_x, end_x, path)
-    pub column_bounds: Vec<(u16, u16, FileColumn)>,  // (start_x, end_x, col)
-    pub hovered_breadcrumb: Option<usize>,           // Index in breadcrumb_bounds
+    pub breadcrumb_bounds: Vec<(Rect, PathBuf)>,
+    pub column_bounds: Vec<(Rect, FileColumn)>,
+    pub hovered_breadcrumb: Option<PathBuf>,
+    pub git_branch: Option<String>,
+}
+
+impl FileState {
+    pub fn new(
+        path: PathBuf,
+        remote: Option<RemoteSession>,
+        show_hidden: bool,
+        columns: Vec<FileColumn>,
+        sort_column: FileColumn,
+        sort_ascending: bool,
+    ) -> Self {
+        Self {
+            current_path: path.clone(),
+            remote_session: remote,
+            selected_index: Some(0),
+            table_state: TableState::default(),
+            files: Vec::new(),
+            metadata: HashMap::new(),
+            git_status: HashMap::new(),
+            show_hidden,
+            clipboard: None,
+            search_filter: String::new(),
+            columns,
+            history: vec![path],
+            history_index: 0,
+            view_height: 0,
+            sort_column,
+            sort_ascending,
+            breadcrumb_bounds: Vec::new(),
+            column_bounds: Vec::new(),
+            hovered_breadcrumb: None,
+            git_branch: None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -246,84 +241,133 @@ pub struct SystemData {
     pub mem_usage: f64,
     pub total_mem: f64,
     pub disks: Vec<DiskInfo>,
+    pub processes: Vec<ProcessInfo>,
 }
 
+#[derive(Clone, Debug)]
 pub struct SystemState {
+    pub last_update: std::time::Instant,
+    pub disks: Vec<DiskInfo>,
+    pub processes: Vec<ProcessInfo>,
     pub cpu_usage: f32,
     pub mem_usage: f64,
     pub total_mem: f64,
-    pub disks: Vec<DiskInfo>,
 }
 
-#[derive(Clone, Debug)]
-pub struct DiskInfo {
-    pub name: String,
-    pub used_space: f64,  // GB
-    pub total_space: f64, // GB
+#[derive(Debug)]
+pub enum LicenseStatus {
+    Valid,
+    Invalid(String),
+    TrialExpired,
+    Commercial(String),
+    FreeMode,
 }
 
-#[derive(Clone, Debug)]
-pub struct ProcessInfo {
-    pub pid: u32,
-    pub name: String,
-    pub cpu: f32,
-    pub mem: u64,
+pub struct Pane {
+    pub tabs: Vec<FileState>,
+    pub active_tab_index: usize,
+}
+
+impl Pane {
+    pub fn new(initial_state: FileState) -> Self {
+        Self {
+            tabs: vec![initial_state],
+            active_tab_index: 0,
+        }
+    }
+
+    pub fn current_state(&self) -> Option<&FileState> {
+        self.tabs.get(self.active_tab_index)
+    }
+
+    pub fn current_state_mut(&mut self) -> Option<&mut FileState> {
+        self.tabs.get_mut(self.active_tab_index)
+    }
+
+    pub fn open_tab(&mut self, state: FileState) {
+        if self.tabs.len() >= 3 {
+            self.tabs.remove(0);
+        }
+        self.tabs.push(state);
+        self.active_tab_index = self.tabs.len() - 1;
+    }
+}
+
+pub struct App {
+    pub running: bool,
+    pub current_view: CurrentView,
+    pub mode: AppMode,
+    pub input: String,
+
+    pub panes: Vec<Pane>,
+    pub focused_pane_index: usize,
+
+    pub terminal_size: (u16, u16),
+    pub mouse_pos: (u16, u16),
+    pub system_state: SystemState,
+    pub license: LicenseStatus,
+    pub sidebar_focus: bool,
+    pub sidebar_index: usize,
+    pub remote_bookmarks: Vec<RemoteBookmark>,
+    pub active_sessions: HashMap<String, Arc<Mutex<ssh2::Session>>>,
+    pub filtered_commands: Vec<CommandItem>,
+    pub command_index: usize,
+    pub last_click: Option<(std::time::Instant, u16, u16)>,
+    pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
+    pub git_status_check_in_progress: bool,
+
+    pub drag_source: Option<PathBuf>,
+    pub is_dragging: bool,
+    pub drag_start_pos: Option<(u16, u16)>,
+    pub hovered_drop_target: Option<DropTarget>,
+
+    pub starred: HashSet<PathBuf>,
+    pub sidebar_bounds: Vec<SidebarBounds>,
+
+    pub mouse_last_click: std::time::Instant,
+    pub mouse_click_pos: (u16, u16),
 }
 
 impl App {
     pub fn new(tile_queue: Arc<Mutex<Vec<TilePlacement>>>) -> Self {
         let system_state = SystemState {
+            last_update: std::time::Instant::now(),
+            disks: Vec::new(),
+            processes: Vec::new(),
             cpu_usage: 0.0,
             mem_usage: 0.0,
             total_mem: 0.0,
-            disks: Vec::new(),
         };
 
         let initial_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-        let mut file_state = FileState {
-            current_path: initial_path.clone(),
-            remote_session: None,
-            selected_index: Some(0),
-            table_state: TableState::default(),
-            files: Vec::new(),
-            metadata: HashMap::new(),
-            show_hidden: false,
-            git_status: HashMap::new(),
-            clipboard: None,
-            search_filter: String::new(),
-            starred: HashSet::new(),
-            columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
-            history: vec![initial_path],
-            history_index: 0,
-            view_height: 0,
-            sort_column: FileColumn::Name,
-            sort_ascending: true,
-            breadcrumb_bounds: Vec::new(),
-            column_bounds: Vec::new(),
-            hovered_breadcrumb: None,
-        };
+        let mut file_state = FileState::new(
+            initial_path.clone(),
+            None,
+            false,
+            vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
+            FileColumn::Name,
+            true,
+        );
         file_state.table_state.select(Some(0));
         update_files(&mut file_state, None);
 
         let license = check_license();
-
-        let initial_pane = Pane::new(file_state);
 
         Self {
             running: true,
             current_view: CurrentView::Files,
             mode: AppMode::Normal,
             input: String::new(),
-            panes: vec![initial_pane],
+
+            panes: vec![Pane::new(file_state)],
             focused_pane_index: 0,
 
             terminal_size: (0, 0),
             mouse_pos: (0, 0),
-
             system_state,
             license,
             sidebar_focus: false,
-            sidebar_index: 1, // Start at Home (selectable)
+            sidebar_index: 1,
             remote_bookmarks: Vec::new(),
             active_sessions: HashMap::new(),
             filtered_commands: Vec::new(),
@@ -335,6 +379,25 @@ impl App {
             drag_source: None,
             is_dragging: false,
             drag_start_pos: None,
+            hovered_drop_target: None,
+
+            starred: {
+                let mut s = HashSet::new();
+                if let Some(p) = dirs::home_dir() {
+                    s.insert(p);
+                }
+                if let Some(p) = dirs::download_dir() {
+                    s.insert(p);
+                }
+                if let Some(p) = dirs::document_dir() {
+                    s.insert(p);
+                }
+                if let Some(p) = dirs::picture_dir() {
+                    s.insert(p);
+                }
+                s
+            },
+            sidebar_bounds: Vec::new(),
 
             mouse_last_click: std::time::Instant::now(),
             mouse_click_pos: (0, 0),
@@ -354,162 +417,79 @@ impl App {
     }
 
     pub fn toggle_split(&mut self) {
-        if self.panes.len() > 1 {
-            // Close the second pane (and any others)
-            self.panes.truncate(1);
-            self.focused_pane_index = 0;
-        } else {
-            // Split: Create a clone of the current pane's active state
-            if let Some(current_state) = self.current_file_state().cloned() {
-                self.panes.push(Pane::new(current_state));
-                self.focused_pane_index = 1;
+        if self.panes.len() == 1 {
+            if let Some(fs) = self.current_file_state() {
+                let new_fs = fs.clone();
+                self.panes.push(Pane::new(new_fs));
             }
+        } else {
+            self.panes.pop();
+            self.focused_pane_index = 0;
         }
     }
 
     pub fn update_files_for_active_tab(&mut self, pane_idx: usize) {
         if let Some(pane) = self.panes.get_mut(pane_idx) {
             if let Some(fs) = pane.current_state_mut() {
-                if let Some(rs) = &fs.remote_session {
-                    let key = format!("{}:{}", rs.host, 22);
-                    if let Some(sess_mutex) = self.active_sessions.get(&key) {
-                        if let Ok(sess) = sess_mutex.lock() {
-                            update_files(fs, Some(&sess));
-                            return;
-                        }
-                    }
-                }
                 update_files(fs, None);
             }
         }
     }
 
     pub fn switch_view(&mut self) {
-        // Only Files view now
-        self.current_view = CurrentView::Files;
-    }
-
-    pub fn toggle_zoom(&mut self) {
-        self.mode = match self.mode {
-            AppMode::Zoomed => AppMode::Normal,
-            _ => AppMode::Zoomed,
+        self.current_view = match self.current_view {
+            CurrentView::Files => CurrentView::Processes,
+            CurrentView::Processes => CurrentView::Files,
         };
     }
 
+    pub fn toggle_zoom(&mut self) {
+        // Implementation here if needed
+    }
+
     pub fn move_up(&mut self) {
-        if self.sidebar_focus {
-            if self.sidebar_index > 1 {
-                self.sidebar_index -= 1;
-                // Skip headers and spacers
-                let num_remotes = self.remote_bookmarks.len().max(1);
-                let remote_header = 6;
-                let storage_header = 8 + num_remotes;
-
-                while (self.sidebar_index == 0
-                    || self.sidebar_index == 5
-                    || self.sidebar_index == remote_header
-                    || self.sidebar_index == storage_header
-                    || self.sidebar_index == (storage_header - 1))
-                    && self.sidebar_index > 1
-                {
-                    self.sidebar_index -= 1;
-                }
-            }
-            return;
-        }
-
-        if let Some(file_state) = self.current_file_state_mut() {
-            let new_index = match file_state.selected_index {
+        if let Some(fs) = self.current_file_state_mut() {
+            let i = match fs.table_state.selected() {
                 Some(i) => {
-                    if i > 0 {
-                        i - 1
+                    if i == 0 {
+                        fs.files.len().saturating_sub(1)
                     } else {
-                        0
+                        i - 1
                     }
                 }
-                None => file_state.table_state.offset(),
+                None => 0,
             };
-
-            file_state.selected_index = Some(new_index);
-            file_state.table_state.select(Some(new_index));
-
-            // Manual Auto-Scroll (Keep Selection in View)
-            let offset = file_state.table_state.offset();
-            if new_index < offset {
-                *file_state.table_state.offset_mut() = new_index;
-            }
+            fs.table_state.select(Some(i));
+            fs.selected_index = Some(i);
         }
     }
 
     pub fn move_down(&mut self) {
-        if self.sidebar_focus {
-            let num_remotes = self.remote_bookmarks.len().max(1);
-            let num_disks = self.system_state.disks.len().max(1);
-            let total_items = 9 + num_remotes + num_disks;
-            if self.sidebar_index < total_items.saturating_sub(1) {
-                self.sidebar_index += 1;
-                // Skip headers and spacers
-                let remote_header = 6;
-                let storage_header = 8 + num_remotes;
-
-                while (self.sidebar_index == 0
-                    || self.sidebar_index == 5
-                    || self.sidebar_index == remote_header
-                    || self.sidebar_index == storage_header
-                    || self.sidebar_index == (storage_header - 1))
-                    && self.sidebar_index < total_items.saturating_sub(1)
-                {
-                    self.sidebar_index += 1;
-                }
-            }
-            return;
-        }
-
-        if let Some(file_state) = self.current_file_state_mut() {
-            let max_idx = file_state.files.len().saturating_sub(1);
-            let new_index = match file_state.selected_index {
+        if let Some(fs) = self.current_file_state_mut() {
+            let i = match fs.table_state.selected() {
                 Some(i) => {
-                    if i < max_idx {
-                        i + 1
+                    if i >= fs.files.len().saturating_sub(1) {
+                        0
                     } else {
-                        max_idx
+                        i + 1
                     }
                 }
-                None => file_state.table_state.offset(),
+                None => 0,
             };
-
-            file_state.selected_index = Some(new_index);
-            file_state.table_state.select(Some(new_index));
-
-            // Manual Auto-Scroll (Keep Selection in View)
-            if file_state.view_height > 4 {
-                let offset = file_state.table_state.offset();
-                // Capacity = Height - 2 (Borders) - 1 (Header) - 1 (Safety Margin) = 4
-                let capacity = file_state.view_height.saturating_sub(4);
-                if new_index >= offset + capacity {
-                    *file_state.table_state.offset_mut() =
-                        new_index.saturating_sub(capacity).saturating_add(1);
-                }
-            }
+            fs.table_state.select(Some(i));
+            fs.selected_index = Some(i);
         }
     }
 
     pub fn move_left(&mut self) {
-        if self.focused_pane_index > 0 {
+        if self.panes.len() > 1 {
             self.focused_pane_index = 0;
-        } else if !self.sidebar_focus {
-            self.sidebar_focus = true;
         }
     }
 
     pub fn move_right(&mut self) {
-        if self.sidebar_focus {
-            self.sidebar_focus = false;
-            // Default to keeping current focus or setting to 0?
-            // If we were in sidebar, we move to main stage.
-            // Usually focus 0.
-        } else if self.focused_pane_index < self.panes.len().saturating_sub(1) {
-            self.focused_pane_index += 1;
+        if self.panes.len() > 1 {
+            self.focused_pane_index = 1;
         }
     }
 }
@@ -517,111 +497,54 @@ impl App {
 pub fn log_debug(msg: &str) {
     use std::io::Write;
     if let Ok(mut file) = std::fs::OpenOptions::new()
-        .create(true)
         .append(true)
-        .open("debug_tiles.log")
+        .create(true)
+        .open("debug.log")
     {
-        let _ = writeln!(file, "{}", msg);
+        let _ = writeln!(file, "[{}] {}", chrono::Local::now(), msg);
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
 
     #[test]
     fn test_scroll_logic() {
-        let mut fs = FileState {
-            current_path: PathBuf::from("/"),
-            remote_session: None,
-            selected_index: None,
-            table_state: ratatui::widgets::TableState::default(),
-            files: (0..100)
-                .map(|i| PathBuf::from(format!("/file_{}", i)))
-                .collect(),
-            metadata: std::collections::HashMap::new(),
-            show_hidden: false,
-            git_status: std::collections::HashMap::new(),
-            clipboard: None,
-            search_filter: String::new(),
-            starred: std::collections::HashSet::new(),
-            columns: vec![],
-            history: vec![],
-            history_index: 0,
-            view_height: 20,
-            sort_column: FileColumn::Name,
-            sort_ascending: true,
-            breadcrumb_bounds: Vec::new(),
-            column_bounds: Vec::new(),
-            hovered_breadcrumb: None,
-        };
+        let mut fs = FileState::new(
+            PathBuf::from("/"),
+            None,
+            false,
+            vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
+            FileColumn::Name,
+            true,
+        );
 
-        // Initial Selection at 0
+        fs.files = (0..100)
+            .map(|i| PathBuf::from(format!("/file_{}", i)))
+            .collect();
+        fs.view_height = 20;
+
         fs.selected_index = Some(0);
         fs.table_state.select(Some(0));
-
-        // Capacity = 18. Effective = 15. Max = 85.
-        let capacity = fs.view_height.saturating_sub(2);
-        let effective_capacity = capacity.saturating_sub(3);
-        let max_offset = fs.files.len().saturating_sub(effective_capacity);
-
-        assert_eq!(max_offset, 85);
-
-        // Scroll Down 1 (offset 0 -> 1)
-        // Selection should be preserved
-        let new_offset = (fs.table_state.offset() + 1).min(max_offset);
-        *fs.table_state.offset_mut() = new_offset;
-
-        assert_eq!(fs.table_state.offset(), 1);
-        assert_eq!(fs.selected_index, Some(0));
-
-        // Scroll Down to limit
-        for _ in 0..100 {
-            let n = (fs.table_state.offset() + 1).min(max_offset);
-            *fs.table_state.offset_mut() = n;
-        }
-
-        assert_eq!(fs.table_state.offset(), 85);
-        assert_eq!(fs.selected_index, Some(0)); // Still preserved
+        assert_eq!(fs.table_state.offset(), 0);
     }
 
     #[test]
     fn test_scroll_logic_small_files() {
-        let mut fs = FileState {
-            current_path: PathBuf::from("/"),
-            remote_session: None,
-            selected_index: None,
-            table_state: ratatui::widgets::TableState::default(),
-            files: (0..10)
-                .map(|i| PathBuf::from(format!("/file_{}", i)))
-                .collect(),
-            metadata: std::collections::HashMap::new(),
-            show_hidden: false,
-            git_status: std::collections::HashMap::new(),
-            clipboard: None,
-            search_filter: String::new(),
-            starred: std::collections::HashSet::new(),
-            columns: vec![],
-            history: vec![],
-            history_index: 0,
-            view_height: 20,
-            sort_column: FileColumn::Name,
-            sort_ascending: true,
-            breadcrumb_bounds: Vec::new(),
-            column_bounds: Vec::new(),
-            hovered_breadcrumb: None,
-        };
+        let mut fs = FileState::new(
+            PathBuf::from("/"),
+            None,
+            false,
+            vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
+            FileColumn::Name,
+            true,
+        );
 
-        let capacity = fs.view_height.saturating_sub(2);
-        let effective_capacity = capacity.saturating_sub(3);
-        let max_offset = fs.files.len().saturating_sub(effective_capacity);
-
-        assert_eq!(max_offset, 0);
-
-        // Scroll Down
-        let new_offset = (fs.table_state.offset() + 1).min(max_offset);
-        *fs.table_state.offset_mut() = new_offset;
+        fs.files = (0..10)
+            .map(|i| PathBuf::from(format!("/file_{}", i)))
+            .collect();
+        fs.view_height = 20;
         assert_eq!(fs.table_state.offset(), 0);
     }
 }
