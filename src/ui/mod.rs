@@ -78,14 +78,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
             let sidebar_width = (app.terminal_size.0 * 20) / 100;
             // Removed FAVORITES header - top section is implicitly favorites
-            let is_dragging_to_star = app.is_dragging
-                && app.mouse_pos.0 < sidebar_width
-                && app
-                    .drag_source
-                    .as_ref()
-                    .map(|s| !app.starred.contains(s))
-                    .unwrap_or(true)
-                && !matches!(app.hovered_drop_target, Some(DropTarget::Folder(_)));
 
             // Render Starred Folders (No sorting to allow reordering)
             for path in &app.starred {
@@ -492,7 +484,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
 
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let metadata = file_state.metadata.get(path);
-            let is_selected = Some(i) == file_state.selected_index && is_focused;
+            let is_active_selection = Some(i) == file_state.selected_index && is_focused;
+            let is_multi_selected = file_state.multi_select.contains(&i) && is_focused;
 
             let cells = file_state.columns.iter().map(|c| match c {
                 FileColumn::Name => {
@@ -595,24 +588,13 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             let is_drop_target =
                 matches!(app.hovered_drop_target, Some(DropTarget::Folder(ref p)) if p == path);
 
-            let style = if is_dragging_this {
-                Style::default()
-                    .bg(Color::Rgb(80, 80, 0)) // Dark Gold for Dragging
-                    .fg(Color::White)
-            } else if is_drop_target {
-                Style::default()
-                    .bg(THEME.accent_primary)
-                    .fg(THEME.selection_fg)
-                    .add_modifier(Modifier::BOLD)
-            } else if is_selected {
-                Style::default()
-                    .bg(THEME.selection_bg)
-                    .fg(THEME.selection_fg)
+            Row::new(cells).style(if is_active_selection {
+                Style::default().bg(THEME.accent_primary).fg(Color::Black)
+            } else if is_multi_selected {
+                Style::default().bg(THEME.accent_secondary).fg(Color::Black)
             } else {
-                Style::default()
-            };
-
-            Row::new(cells).style(style)
+                Style::default().bg(Color::Reset)
+            })
         });
         let constraints: Vec<Constraint> = file_state
             .columns
