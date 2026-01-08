@@ -77,7 +77,15 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let mut current_y = inner.y;
 
             let sidebar_width = (app.terminal_size.0 * 20) / 100;
-            if app.is_dragging && app.mouse_pos.0 < sidebar_width {
+            let is_dragging_to_star = app.is_dragging
+                && app.mouse_pos.0 < sidebar_width
+                && app
+                    .drag_source
+                    .as_ref()
+                    .map(|s| !app.starred.contains(s))
+                    .unwrap_or(true);
+
+            if is_dragging_to_star {
                 sidebar_items.push(
                     ListItem::new("> FAVORITES")
                         .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
@@ -109,6 +117,13 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         Style::default()
                             .fg(Color::Black)
                             .bg(Color::Green)
+                            .add_modifier(Modifier::BOLD),
+                    );
+                } else if matches!(&app.drag_source, Some(s) if s == path) && app.is_dragging {
+                    // Highlight the item being dragged if it's in the list
+                    label = label.style(
+                        Style::default()
+                            .fg(Color::Green)
                             .add_modifier(Modifier::BOLD),
                     );
                 }
