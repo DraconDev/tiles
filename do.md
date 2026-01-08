@@ -29,7 +29,7 @@ ctrl left or right move over
 
 alt + m1 / m2 or left / right to move back and forth in history
 
-alt + up or down to reorder favorites or by mouse dragging has a swap like effect, both work but mouse version doens't keep the highlighting
+alt + up or down to reorder favorites or by mouse dragging has a swap like effect, both work but mouse version doesn't keep the highlighting
 
 ## ? 
 
