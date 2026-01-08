@@ -107,11 +107,14 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             }
 
             // Render Starred Folders (No sorting to allow reordering)
-            let favorites = app.starred.clone();
-
-            for path in favorites {
-                let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("/");
-                let is_hovered = matches!(app.hovered_drop_target, Some(DropTarget::Folder(ref p)) if p == &path);
+            for path in &app.starred {
+                let name = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("/")
+                    .to_string();
+                let is_hovered =
+                    matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
                 let mut label = ListItem::new(name);
                 if is_hovered {
                     label = label.style(
