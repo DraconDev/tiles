@@ -286,6 +286,20 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                     return;
                 }
+                MouseEventKind::Down(button) if button == MouseButton::Left && me.modifiers.contains(KeyModifiers::ALT) => {
+                    if let Some(fs) = app.current_file_state_mut() {
+                        navigate_back(fs);
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                    }
+                    return;
+                }
+                MouseEventKind::Down(button) if button == MouseButton::Right && me.modifiers.contains(KeyModifiers::ALT) => {
+                    if let Some(fs) = app.current_file_state_mut() {
+                        navigate_forward(fs);
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                    }
+                    return;
+                }
                 MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                     app.mouse_pos = (column, row);
                     
