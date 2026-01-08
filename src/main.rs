@@ -613,6 +613,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
 
                                 if let Some(target) = clicked_target {
                                     match target {
+                                        SidebarTarget::Header(_) => {} // Do nothing for headers
                                         SidebarTarget::Favorite(p) => {
                                             // Set drag source for reordering
                                             app.drag_source = Some(p.clone());
