@@ -635,16 +635,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                 fs.selected_index = Some(0);
                                                 fs.search_filter.clear();
                                                 *fs.table_state.offset_mut() = 0;
-                                                push_history(fs, p);
+                                                push_history(fs, p.clone());
                                             }
                                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                            app.sidebar_focus = true; // Focus sidebar on click
-                                            // Set sidebar_index based on row?
-                                            // Actually, find which favorite this is
-                                            if let Some(pos) = app.starred.iter().position(|x| x == &target_path_logic_placeholder) {
-                                                // Wait, I need the actual path 'p'
+                                            
+                                            // Focus sidebar and find index
+                                            app.sidebar_focus = true;
+                                            if let Some(pos) = app.starred.iter().position(|x| x == &p) {
+                                                app.sidebar_index = pos + 1; // +1 for [FAVORITES] header
                                             }
-                                            // I'll update sidebar_index properly
                                         }
                                         SidebarTarget::Storage(idx) => {
                                             if let Some(disk) = app.system_state.disks.get(idx) {
