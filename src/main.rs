@@ -941,8 +941,17 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     match key.code {
                         KeyCode::Esc => {
                             if let Some(fs) = app.current_file_state_mut() {
+                                // Clear multi-selection
                                 fs.multi_select.clear();
                                 fs.selection_anchor = None;
+                                
+                                // Clear search
+                                if !fs.search_filter.is_empty() {
+                                    fs.search_filter.clear();
+                                    fs.selected_index = Some(0);
+                                    *fs.table_state.offset_mut() = 0;
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                }
                             }
                         }
                         KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); }
@@ -991,16 +1000,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         push_history(fs, p);
                                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     }
-                                }
-                            }
-                        }
-                        KeyCode::Esc => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                if !fs.search_filter.is_empty() {
-                                    fs.search_filter.clear();
-                                    fs.selected_index = Some(0);
-                                    *fs.table_state.offset_mut() = 0;
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                 }
                             }
                         }
