@@ -907,6 +907,30 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         match key.code {
                             KeyCode::Left => { if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
                             KeyCode::Right => { if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
+                            KeyCode::Up => {
+                                if app.sidebar_focus && !app.starred.is_empty() {
+                                    // sidebar_index starts after [FAVORITES] header (index 0)
+                                    // if sidebar_index is between 1 and starred.len()
+                                    if app.sidebar_index > 1 && app.sidebar_index <= app.starred.len() {
+                                        let fav_idx = app.sidebar_index - 1;
+                                        if fav_idx > 0 {
+                                            app.starred.swap(fav_idx, fav_idx - 1);
+                                            app.sidebar_index -= 1;
+                                        }
+                                    }
+                                }
+                            }
+                            KeyCode::Down => {
+                                if app.sidebar_focus && !app.starred.is_empty() {
+                                    if app.sidebar_index >= 1 && app.sidebar_index < app.starred.len() {
+                                        let fav_idx = app.sidebar_index - 1;
+                                        if fav_idx < app.starred.len() - 1 {
+                                            app.starred.swap(fav_idx, fav_idx + 1);
+                                            app.sidebar_index += 1;
+                                        }
+                                    }
+                                }
+                            }
                             _ => {}
                         }
                         return;
