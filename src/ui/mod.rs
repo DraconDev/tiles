@@ -85,11 +85,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 current_y += 1;
             } else {
                 sidebar_items.push(
-                    ListItem::new("[FAVORITES]").style(
-                        Style::default()
-                            .fg(THEME.accent_secondary)
-                            .add_modifier(Modifier::BOLD),
-                    ),
+                    ListItem::new("> FAVORITES")
+                        .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
                 );
                 current_y += 1;
             }
