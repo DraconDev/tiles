@@ -76,22 +76,12 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
 
-            // FILES Section
-            sidebar_items.push(
-                ListItem::new("[FAVORITES]").style(
-                    Style::default()
-                        .fg(THEME.accent_secondary)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            );
-            current_y += 1;
-
             if app.is_dragging
                 && (matches!(app.hovered_drop_target, Some(DropTarget::SidebarArea))
                     || matches!(app.hovered_drop_target, Some(DropTarget::Favorites)))
             {
                 sidebar_items.push(
-                    ListItem::new("  🔻 FAVORITES (DROP TO STAR)")
+                    ListItem::new("  🔻 FAVORITES")
                         .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
                 );
                 current_y += 1;
