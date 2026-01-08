@@ -612,7 +612,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                  }
 
                                  if let Some(bound) = clicked_bound {
-                                     app.sidebar_index = bound.index;
+                                     app.sidebar_index = bound.index; // Standardized to 0-indexed in UI
                                      match bound.target {
                                         SidebarTarget::Header(_) => {} // Do nothing for headers
                                         SidebarTarget::Favorite(p) => {
