@@ -460,37 +460,63 @@ impl App {
         // Implementation here if needed
     }
 
-    pub fn move_up(&mut self) {
+    pub fn move_up(&mut self, shift: bool) {
         if let Some(fs) = self.current_file_state_mut() {
-            let i = match fs.table_state.selected() {
-                Some(i) => {
-                    if i == 0 {
-                        fs.files.len().saturating_sub(1)
-                    } else {
-                        i - 1
-                    }
-                }
-                None => 0,
+            let old_idx = fs.selected_index.unwrap_or(0);
+            let i = if old_idx == 0 {
+                fs.files.len().saturating_sub(1)
+            } else {
+                old_idx - 1
             };
-            fs.table_state.select(Some(i));
+
             fs.selected_index = Some(i);
+            fs.table_state.select(Some(i));
+
+            if shift {
+                if fs.selection_anchor.is_none() {
+                    fs.selection_anchor = Some(old_idx);
+                }
+                let anchor = fs.selection_anchor.unwrap();
+                fs.multi_select.clear();
+                let start = std::cmp::min(anchor, i);
+                let end = std::cmp::max(anchor, i);
+                for idx in start..=end {
+                    fs.multi_select.insert(idx);
+                }
+            } else {
+                fs.selection_anchor = None;
+                fs.multi_select.clear();
+            }
         }
     }
 
-    pub fn move_down(&mut self) {
+    pub fn move_down(&mut self, shift: bool) {
         if let Some(fs) = self.current_file_state_mut() {
-            let i = match fs.table_state.selected() {
-                Some(i) => {
-                    if i >= fs.files.len().saturating_sub(1) {
-                        0
-                    } else {
-                        i + 1
-                    }
-                }
-                None => 0,
+            let old_idx = fs.selected_index.unwrap_or(0);
+            let i = if old_idx >= fs.files.len().saturating_sub(1) {
+                0
+            } else {
+                old_idx + 1
             };
-            fs.table_state.select(Some(i));
+
             fs.selected_index = Some(i);
+            fs.table_state.select(Some(i));
+
+            if shift {
+                if fs.selection_anchor.is_none() {
+                    fs.selection_anchor = Some(old_idx);
+                }
+                let anchor = fs.selection_anchor.unwrap();
+                fs.multi_select.clear();
+                let start = std::cmp::min(anchor, i);
+                let end = std::cmp::max(anchor, i);
+                for idx in start..=end {
+                    fs.multi_select.insert(idx);
+                }
+            } else {
+                fs.selection_anchor = None;
+                fs.multi_select.clear();
+            }
         }
     }
 
