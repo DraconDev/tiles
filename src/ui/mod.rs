@@ -207,23 +207,25 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 .enumerate()
                 .map(|(i, item): (usize, ListItem)| {
                     // Check if this row is actually selectable (not a header or empty)
-                    let is_selectable = i > 0 && i < 5
-                        || (i > 7 && i < 7 + app.remote_bookmarks.len())
-                        || i >= 9 + app.remote_bookmarks.len().max(1);
+                    // This logic is complex due to dynamic headers and empty lines.
+                    // A more robust approach would be to store selectable indices in sidebar_bounds.
+                    let is_selectable =
+                        app.sidebar_bounds.iter().any(|b| b.y == inner.y + i as u16);
 
                     if !is_selectable {
                         return item.style(Style::default().fg(Color::DarkGray));
                     }
 
                     if i == app.sidebar_index && app.sidebar_focus {
-                        item = item.style(
+                        item.style(
                             Style::default()
                                 .fg(Color::Black)
                                 .bg(THEME.accent_primary)
                                 .add_modifier(Modifier::BOLD),
-                        );
+                        )
+                    } else {
+                        item.style(Style::default().fg(THEME.fg))
                     }
-                    item.style(Style::default().fg(THEME.fg))
                 })
                 .collect();
 
