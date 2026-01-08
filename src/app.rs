@@ -374,7 +374,7 @@ impl App {
             system_state,
             license,
             sidebar_focus: false,
-            sidebar_index: 1,
+            sidebar_index: 0,
             remote_bookmarks: Vec::new(),
             active_sessions: HashMap::new(),
             filtered_commands: Vec::new(),
