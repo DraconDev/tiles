@@ -86,11 +86,15 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             );
             current_y += 1;
 
-            if let Some(DropTarget::Favorites) = app.hovered_drop_target {
+            if app.is_dragging
+                && (matches!(app.hovered_drop_target, Some(DropTarget::SidebarArea))
+                    || matches!(app.hovered_drop_target, Some(DropTarget::Favorites)))
+            {
                 sidebar_items.push(
-                    ListItem::new("+ [Drop to Star]").style(
+                    ListItem::new(" ➜ DROP ANYWHERE HERE TO STAR ").style(
                         Style::default()
-                            .fg(THEME.accent_primary)
+                            .fg(Color::Black)
+                            .bg(Color::Green)
                             .add_modifier(Modifier::BOLD),
                     ),
                 );
@@ -103,7 +107,18 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
             for path in sorted_starred {
                 let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("/");
-                sidebar_items.push(ListItem::new(name));
+                let is_hovered =
+                    matches!(app.hovered_drop_target, Some(DropTarget::Folder(ref p)) if p == path);
+                let mut label = ListItem::new(name);
+                if is_hovered {
+                    label = label.style(
+                        Style::default()
+                            .fg(Color::Black)
+                            .bg(Color::Green)
+                            .add_modifier(Modifier::BOLD),
+                    );
+                }
+                sidebar_items.push(label);
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     target: SidebarTarget::Favorite(path.clone()),
@@ -187,6 +202,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 });
                 current_y += 1;
             }
+
             if app.system_state.disks.is_empty() {
                 sidebar_items.push(ListItem::new("Root (/)"));
                 sidebar_items.push(ListItem::new("Media"));

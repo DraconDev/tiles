@@ -207,9 +207,27 @@ pub fn copy_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::
 }
 
 pub fn move_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+    if src == dst {
+        return Ok(());
+    }
+
+    // Attempt atomic rename first
     if let Err(e) = std::fs::rename(src, dst) {
-        if e.kind() == std::io::ErrorKind::Other || e.raw_os_error() == Some(18) {
-            // EXDEV (Cross-device link)
+        // Fallback for cross-device moves (EXDEV = 18)
+        let err_code = e.raw_os_error();
+        if err_code == Some(18) || e.kind() == std::io::ErrorKind::Other {
+            // Safety: Ensure source exists
+            if !src.exists() {
+                return Err(e);
+            }
+            // Safety: Don't move into self
+            if dst.starts_with(src) {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "Cannot move into self",
+                ));
+            }
+
             copy_recursive(src, dst)?;
             if src.is_dir() {
                 std::fs::remove_dir_all(src)?;

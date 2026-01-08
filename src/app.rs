@@ -61,6 +61,7 @@ pub enum AppMode {
 #[derive(Clone, Debug)]
 pub enum DropTarget {
     Favorites,
+    SidebarArea,
     Folder(PathBuf),
 }
 
@@ -321,7 +322,7 @@ pub struct App {
     pub drag_start_pos: Option<(u16, u16)>,
     pub hovered_drop_target: Option<DropTarget>,
 
-    pub starred: HashSet<PathBuf>,
+    pub starred: Vec<PathBuf>,
     pub sidebar_bounds: Vec<SidebarBounds>,
 
     pub mouse_last_click: std::time::Instant,
@@ -382,18 +383,26 @@ impl App {
             hovered_drop_target: None,
 
             starred: {
-                let mut s = HashSet::new();
+                let mut s = Vec::new();
                 if let Some(p) = dirs::home_dir() {
-                    s.insert(p);
+                    if !s.contains(&p) {
+                        s.push(p);
+                    }
                 }
                 if let Some(p) = dirs::download_dir() {
-                    s.insert(p);
+                    if !s.contains(&p) {
+                        s.push(p);
+                    }
                 }
                 if let Some(p) = dirs::document_dir() {
-                    s.insert(p);
+                    if !s.contains(&p) {
+                        s.push(p);
+                    }
                 }
                 if let Some(p) = dirs::picture_dir() {
-                    s.insert(p);
+                    if !s.contains(&p) {
+                        s.push(p);
+                    }
                 }
                 s
             },

@@ -1,6 +1,6 @@
 terma is to be a shared terminal manipulation library so if logic can be built into that then do so 
 
-also the detection should be dragging over the entire sidebar, not just the favorites text
+we cant reorder files and folders, but we can select different comumns and click on them to sort by them, asc or desc, 
 
 show the active storage(s) on sidebar and later we ould want to show if remote too, so if we have our main disk open and a remote disk then we see them both highlighted on the sidebar, if we opened antoehr disk then we see both disks, if i only have my main open on left panel and right panel or we just have panel that has it then we only see that, 
 
@@ -8,17 +8,8 @@ different context menus for clicing on folders, files, sidebar files, empty spac
 
 on the sidebar we dont have a dedicated favorites section we have them together under the first section, and navigate with the arrow keys too, and click on them, also by clicking on one we can reorder them, and they swap around as we pass them with dragging with m1, 
 
-dragging seems to be work on file panel but we need to highlig the item we are dragging
-
-we can drag files and folders into folders on the file list, and we can drag files and folders into the sidebar, and drop them on breadcrumbs to move them to that folder
-
-we cant reorder files and folders, but we can select different comumns and click on them to sort by them, asc or desc, 
-
-we dont need indentation on the sidebar or the file list 
 
 we have global search according to local search, after we type in 3 characters we start searching, and we can navigate with arrow keys to the search results, de priorozining longer and private filter, max 100 items search results
-
-no process, jsut some storage, mem, and cpu at the bottom right corner
 
 would it be possible to have drag group select?, then allow to drag that onto folder or breadcrumbs to move them to that folder, or if holding shift then copy them to that folder
 
@@ -35,6 +26,10 @@ shift up or down keep selecting
 shift left or right copy over
 
 ctrl left or right move over
+
+alt + m1 / m2 or left / right to move back and forth in history
+
+alt + up or down to reorder favorites or by mouse dragging has a swap like effect
 
 ## ? 
 
