@@ -216,7 +216,9 @@ impl FileState {
         Self {
             current_path: path.clone(),
             remote_session: remote,
-            selected_index: Some(0),
+            selected_index: None,
+            selection_anchor: None,
+            multi_select: std::collections::HashSet::new(),
             table_state: TableState::default(),
             files: Vec::new(),
             metadata: HashMap::new(),
