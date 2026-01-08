@@ -19,7 +19,7 @@ we are looking to persist the state of the app, so if we close and open it again
 
 enable to set cols for single file tab and split tabs, maybe not even the same tabs for each split tab
 
-on the sidebar should have a Remote
+on the sidebar should have a Remotes, Storage
 
 shift up or down keep selecting in file tab
 
