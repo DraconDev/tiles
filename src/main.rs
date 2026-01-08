@@ -906,7 +906,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
 
                     if key.modifiers.contains(KeyModifiers::ALT) {
-                        let sidebar_items_count = app.sidebar_bounds.len();
                         match key.code {
                             KeyCode::Left => { if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
                             KeyCode::Right => { if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
