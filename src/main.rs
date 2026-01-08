@@ -316,17 +316,19 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                     let target_idx = app.starred.iter().position(|x| x == p);
                                                     if let (Some(s), Some(t)) = (source_idx, target_idx) {
                                                         app.starred.swap(s, t);
-                                                        // Update bounds immediately to prevent double-swap before re-render
-                                                        for b in &mut app.sidebar_bounds {
-                                                            if b.y == row {
-                                                                b.target = SidebarTarget::Favorite(source.clone());
-                                                            }
-                                                        }
+                                                        // After swap, source is now under the mouse. 
+                                                        // Stop highlight for this frame to avoid flicker
+                                                        app.hovered_drop_target = Some(DropTarget::SidebarArea);
+                                                        hit_link = true;
                                                     }
+                                                } else {
+                                                    app.hovered_drop_target = Some(DropTarget::Folder(p.clone()));
+                                                    hit_link = true;
                                                 }
+                                            } else {
+                                                app.hovered_drop_target = Some(DropTarget::Folder(p.clone()));
+                                                hit_link = true;
                                             }
-                                            app.hovered_drop_target = Some(DropTarget::Folder(p.clone()));
-                                            hit_link = true;
                                         }
                                         _ => {}
                                     }
@@ -751,14 +753,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                 }
                 MouseEventKind::Up(_) => {
-                    if app.is_dragging {
-                        app.is_dragging = false;
-                        app.drag_start_pos = None;
-                        
-                        let source_clone = app.drag_source.clone();
-                        app.drag_source = None;
+                    let was_dragging = app.is_dragging;
+                    app.is_dragging = false;
+                    app.drag_start_pos = None;
+                    let source_opt = app.drag_source.clone();
+                    app.drag_source = None;
 
-                        if let Some(source) = source_clone {
+                    if was_dragging {
+                        if let Some(source) = source_opt {
                             let mut target_path: Option<std::path::PathBuf> = None;
                             let sidebar_width = (app.terminal_size.0 * 20) / 100;
                             
