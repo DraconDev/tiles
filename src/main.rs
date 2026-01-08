@@ -278,14 +278,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
             }
 
             match me.kind {
-                MouseEventKind::Down(button) if button == MouseButton::Back || button == MouseButton::Forward => {
-                    if let Some(fs) = app.current_file_state_mut() {
-                        if button == MouseButton::Back { navigate_back(fs); }
-                        else { navigate_forward(fs); }
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                    }
-                    return;
-                }
                 MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                     app.mouse_pos = (column, row);
                     
@@ -369,7 +361,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                 }
                 MouseEventKind::Down(button) => {
-                    // Always try to focus pane first on any click
+                    // 1. Focus Pane First (so Alt+Click affects the clicked pane)
                     let sidebar_width = (app.terminal_size.0 * 20) / 100;
                     if column >= sidebar_width {
                         let pane_count = app.panes.len();
@@ -384,11 +376,21 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                     }
 
-                    // Alt + Left Click = Back, Alt + Right Click = Forward
+                    // 2. Alt + Click Shortcuts (Back/Forward)
                     if me.modifiers.contains(KeyModifiers::ALT) {
                         if let Some(fs) = app.current_file_state_mut() {
                             if button == MouseButton::Left { navigate_back(fs); }
                             else if button == MouseButton::Right { navigate_forward(fs); }
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        }
+                        return;
+                    }
+
+                    // 3. Mouse Back/Forward Buttons
+                    if button == MouseButton::Back || button == MouseButton::Forward {
+                        if let Some(fs) = app.current_file_state_mut() {
+                            if button == MouseButton::Back { navigate_back(fs); }
+                            else { navigate_forward(fs); }
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                         }
                         return;

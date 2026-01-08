@@ -25,7 +25,7 @@ shift up or down keep selecting
 
 shift left or right copy over
 
-ctrl left or right move over in f
+ctrl left or right move over in file tab, between panes
 
 alt + m1 / m2 or left / right to move back and forth in history
 
