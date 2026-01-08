@@ -92,7 +92,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 );
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
-                    target: SidebarTarget::None, // Not selectable
+                    target: SidebarTarget::Header("FAVORITES".to_string()), // Not selectable
                 });
                 current_y += 1;
             } else {
@@ -106,10 +106,11 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or("?".to_string());
 
-                // Adjust index check: if header is shown, items start at 1. If not, they start at 0.
-                // Actually, let's keep it consistent: sidebar_bounds.y is the source of truth for clicks.
-                // We just need to make sure the focus highlight matches.
-                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len();
+                // Adjust index check: sidebar_index is 0-indexed internally for selection?
+                // Actually app.sidebar_index in New() is 1.
+                // So if sidebar_index is 1-indexed:
+                // First item (len=0) should match sidebar_index=1.
+                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len() + 1;
                 let is_hovered =
                     matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
 
@@ -140,6 +141,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             // REMOTE Section
             sidebar_items.push(ListItem::new(""));
             current_y += 1;
+
+            let header_idx = sidebar_items.len();
             sidebar_items.push(
                 ListItem::new("󰒍 REMOTES").style(
                     Style::default()
@@ -147,9 +150,23 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .add_modifier(Modifier::BOLD),
                 ),
             );
+            app.sidebar_bounds.push(SidebarBounds {
+                y: current_y,
+                target: SidebarTarget::Header("REMOTES".to_string()),
+            });
             current_y += 1;
             for (i, bookmark) in app.remote_bookmarks.iter().enumerate() {
-                sidebar_items.push(ListItem::new(bookmark.name.clone()));
+                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len() + 1;
+                let mut label = ListItem::new(bookmark.name.clone());
+                if is_focused {
+                    label = label.style(
+                        Style::default()
+                            .bg(THEME.accent_primary)
+                            .fg(Color::Black)
+                            .add_modifier(Modifier::BOLD),
+                    );
+                }
+                sidebar_items.push(label);
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     target: SidebarTarget::Remote(i),
@@ -173,6 +190,10 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .add_modifier(Modifier::BOLD),
                 ),
             );
+            app.sidebar_bounds.push(SidebarBounds {
+                y: current_y,
+                target: SidebarTarget::Header("STORAGES".to_string()),
+            });
             current_y += 1;
             // Collect all current paths from all open panes to check which disks are active
             let mut active_paths = Vec::new();
@@ -196,13 +217,20 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                                 .any(|d| d.name != "/" && path.starts_with(&d.name)))
                 });
 
-                let name_style = if is_active {
+                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len() + 1;
+                let mut name_style = if is_active {
                     Style::default()
                         .fg(THEME.accent_primary)
                         .add_modifier(Modifier::BOLD)
                 } else {
                     Style::default().fg(Color::Green)
                 };
+                if is_focused {
+                    name_style = name_style
+                        .bg(THEME.accent_primary)
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD);
+                }
 
                 let available = (disk.available_space as f64 / 1_073_741_824.0).round() as u64; // GB
                 let label = format!("{}: {}G Free", disk.name, available);
