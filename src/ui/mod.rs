@@ -645,16 +645,19 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                 }
             });
 
-            Row::new(cells).style(if is_active_selection {
-                Style::default()
+            let is_multi_selected = file_state.multi_select.contains(&i) && is_focused;
+
+            let mut row_style = Style::default();
+            if is_active_selection {
+                row_style = row_style
                     .bg(Color::Red)
                     .fg(Color::White)
-                    .add_modifier(Modifier::BOLD)
+                    .add_modifier(Modifier::BOLD);
             } else if is_multi_selected {
-                Style::default().bg(THEME.accent_secondary).fg(Color::Black)
-            } else {
-                Style::default().bg(Color::Reset)
-            })
+                row_style = row_style.bg(Color::Rgb(150, 0, 0)).fg(Color::White);
+                // Darker red for range selection
+            }
+            Row::new(cells).style(row_style)
         });
         let constraints: Vec<Constraint> = file_state
             .columns
@@ -751,7 +754,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         let table = Table::new(rows, constraints.clone())
             .header(header)
             .block(block.clone())
-            .highlight_style(
+            .row_highlight_style(
                 Style::default()
                     .bg(Color::Red)
                     .fg(Color::White)
