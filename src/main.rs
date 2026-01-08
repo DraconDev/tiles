@@ -940,6 +940,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
 
                     match key.code {
+                        KeyCode::Esc => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                fs.multi_select.clear();
+                                fs.selection_anchor = None;
+                            }
+                        }
                         KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); }
                         KeyCode::Up => { app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); }
                         KeyCode::Left => { app.move_left(); }
