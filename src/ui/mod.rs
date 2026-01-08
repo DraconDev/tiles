@@ -79,14 +79,17 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let sidebar_width = (app.terminal_size.0 * 20) / 100;
             if app.is_dragging && app.mouse_pos.0 < sidebar_width {
                 sidebar_items.push(
-                    ListItem::new("  🔻 FAVORITES")
+                    ListItem::new("> FAVORITES")
                         .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
                 );
                 current_y += 1;
             } else {
                 sidebar_items.push(
-                    ListItem::new("> FAVORITES")
-                        .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+                    ListItem::new("[FAVORITES]").style(
+                        Style::default()
+                            .fg(THEME.accent_secondary)
+                            .add_modifier(Modifier::BOLD),
+                    ),
                 );
                 current_y += 1;
             }
@@ -209,21 +212,18 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         || i >= 9 + app.remote_bookmarks.len().max(1);
 
                     if !is_selectable {
-                        return item.clone().style(Style::default().fg(Color::DarkGray));
+                        return item.style(Style::default().fg(Color::DarkGray));
                     }
 
                     if i == app.sidebar_index && app.sidebar_focus {
-                        item.clone().style(
+                        item = item.style(
                             Style::default()
-                                .fg(THEME.border_active)
+                                .fg(Color::Black)
+                                .bg(THEME.accent_primary)
                                 .add_modifier(Modifier::BOLD),
-                        )
-                    } else if i == app.sidebar_index && !app.sidebar_focus {
-                        item.clone()
-                            .style(Style::default().fg(THEME.fg).add_modifier(Modifier::BOLD))
-                    } else {
-                        item.clone().style(Style::default().fg(THEME.fg))
+                        );
                     }
+                    item.style(Style::default().fg(THEME.fg))
                 })
                 .collect();
 
