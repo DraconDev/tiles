@@ -603,16 +603,17 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             let sidebar_width = (app.terminal_size.0 * 20) / 100;
                             if column < sidebar_width {
                                 app.sidebar_focus = true;
-                                let mut clicked_target = None;
-                                for bound in &app.sidebar_bounds {
-                                    if bound.y == row {
-                                        clicked_target = Some(bound.target.clone());
-                                        break;
-                                    }
-                                }
+                                 let mut clicked_bound = None;
+                                 for bound in &app.sidebar_bounds {
+                                     if bound.y == row {
+                                         clicked_bound = Some(bound.clone());
+                                         break;
+                                     }
+                                 }
 
-                                if let Some(target) = clicked_target {
-                                    match target {
+                                 if let Some(bound) = clicked_bound {
+                                     app.sidebar_index = bound.index;
+                                     match bound.target {
                                         SidebarTarget::Header(_) => {} // Do nothing for headers
                                         SidebarTarget::Favorite(p) => {
                                             // Set drag source for reordering
@@ -626,14 +627,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                 *fs.table_state.offset_mut() = 0;
                                                 push_history(fs, p.clone());
                                             }
-                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                            
-                                            // Focus sidebar and find index
-                                            app.sidebar_focus = true;
-                                            if let Some(pos) = app.starred.iter().position(|x| x == &p) {
-                                                app.sidebar_index = pos + 1; // +1 for [FAVORITES] header
-                                            }
-                                        }
+                                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                             
+                                             // Focus sidebar
+                                             app.sidebar_focus = true;
+                                         }
                                         SidebarTarget::Storage(idx) => {
                                             if let Some(disk) = app.system_state.disks.get(idx) {
                                                 let p = PathBuf::from(&disk.name);
