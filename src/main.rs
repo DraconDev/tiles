@@ -363,29 +363,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 MouseEventKind::Down(button) => {
                     let sidebar_width = (app.terminal_size.0 * 20) / 100;
 
-                    // 1. Alt + Click Shortcuts (Back/Forward) - Highest Priority
-                    if me.modifiers.contains(KeyModifiers::ALT) {
-                        // Focus pane first if clicking files area
-                        if column >= sidebar_width {
-                             let pane_count = app.panes.len();
-                             if pane_count > 0 {
-                                  let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
-                                  let content_col = column.saturating_sub(sidebar_width);
-                                  let pane_width = content_area_width / pane_count as u16;
-                                  let clicked_pane = (content_col / pane_width) as usize;
-                                  if clicked_pane < pane_count {
-                                       app.focused_pane_index = clicked_pane;
-                                  }
-                             }
-                        }
-
-                        if let Some(fs) = app.current_file_state_mut() {
-                            if button == MouseButton::Left { navigate_back(fs); }
-                            else if button == MouseButton::Right { navigate_forward(fs); }
-                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                        }
-                        return;
-                    }
 
                     // 2. Mouse Back/Forward Buttons
                     if button == MouseButton::Back || button == MouseButton::Forward {
