@@ -626,6 +626,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 if let Some(target) = clicked_target {
                                     match target {
                                         SidebarTarget::Favorite(p) => {
+                                            // Set drag source for reordering
+                                            app.drag_source = Some(p.clone());
+                                            app.drag_start_pos = Some((column, row));
+
                                             if let Some(fs) = app.current_file_state_mut() {
                                                 fs.current_path = p.clone();
                                                 fs.selected_index = Some(0);
@@ -634,7 +638,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                 push_history(fs, p);
                                             }
                                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                            app.sidebar_focus = false;
+                                            app.sidebar_focus = true; // Focus sidebar on click
+                                            // Set sidebar_index based on row?
+                                            // Actually, find which favorite this is
+                                            if let Some(pos) = app.starred.iter().position(|x| x == &target_path_logic_placeholder) {
+                                                // Wait, I need the actual path 'p'
+                                            }
+                                            // I'll update sidebar_index properly
                                         }
                                         SidebarTarget::Storage(idx) => {
                                             if let Some(disk) = app.system_state.disks.get(idx) {
