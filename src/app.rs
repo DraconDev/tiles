@@ -68,6 +68,7 @@ pub enum DropTarget {
 #[derive(Clone, Debug)]
 pub struct SidebarBounds {
     pub y: u16,
+    pub index: usize,
     pub target: SidebarTarget,
 }
 
