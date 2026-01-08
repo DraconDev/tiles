@@ -107,19 +107,29 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or("?".to_string());
 
-                // Adjust index check: sidebar_index is 0-indexed internally for selection?
-                // Actually app.sidebar_index in New() is 1.
-                // So if sidebar_index is 1-indexed:
-                // First item (len=0) should match sidebar_index=1.
-                let is_hovered =
-                    matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
+                // sidebar_index is the 1-indexed position in the sidebar_items list.
+                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len() + 1;
+                let is_hovered = matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path)
+                    || (app.is_dragging
+                        && app.mouse_pos.0 < sidebar_width
+                        && app.sidebar_bounds.iter().any(|b| {
+                            b.y == app.mouse_pos.1
+                                && matches!(b.target, SidebarTarget::Favorite(ref fp) if fp == path)
+                        }));
 
                 let mut label = ListItem::new(name);
-                if is_hovered {
+                if is_focused {
                     label = label.style(
                         Style::default()
-                            .fg(Color::Black)
-                            .bg(Color::Green)
+                            .bg(Color::Red)
+                            .fg(Color::White)
+                            .add_modifier(Modifier::BOLD),
+                    );
+                } else if is_hovered {
+                    label = label.style(
+                        Style::default()
+                            .fg(Color::White)
+                            .bg(Color::Red)
                             .add_modifier(Modifier::BOLD),
                     );
                 } else if matches!(&app.drag_source, Some(s) if s == path) && app.is_dragging {
@@ -162,8 +172,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 if is_focused {
                     label = label.style(
                         Style::default()
-                            .bg(THEME.accent_primary)
-                            .fg(Color::Black)
+                            .bg(Color::Red)
+                            .fg(Color::White)
                             .add_modifier(Modifier::BOLD),
                     );
                 }
@@ -230,8 +240,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 };
                 if is_focused {
                     name_style = name_style
-                        .bg(THEME.accent_primary)
-                        .fg(Color::Black)
+                        .bg(Color::Red)
+                        .fg(Color::White)
                         .add_modifier(Modifier::BOLD);
                 }
 
@@ -746,7 +756,13 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
 
         let table = Table::new(rows, constraints.clone())
             .header(header)
-            .block(block.clone());
+            .block(block.clone())
+            .highlight_style(
+                Style::default()
+                    .bg(Color::Red)
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            );
 
         // Fix: Use content_area instead of area to avoid overlapping with Tabs!
         // Also update height calculation to use content_area.
