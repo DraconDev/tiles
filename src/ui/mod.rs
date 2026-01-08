@@ -77,6 +77,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let mut current_y = inner.y;
 
             let sidebar_width = (app.terminal_size.0 * 20) / 100;
+            // Removed FAVORITES header - top section is implicitly favorites
             let is_dragging_to_star = app.is_dragging
                 && app.mouse_pos.0 < sidebar_width
                 && app
@@ -85,23 +86,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     .map(|s| !app.starred.contains(s))
                     .unwrap_or(true)
                 && !matches!(app.hovered_drop_target, Some(DropTarget::Folder(_)));
-
-            if is_dragging_to_star {
-                sidebar_items.push(
-                    ListItem::new("> FAVORITES")
-                        .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
-                );
-                current_y += 1;
-            } else {
-                sidebar_items.push(
-                    ListItem::new("[FAVORITES]").style(
-                        Style::default()
-                            .fg(THEME.accent_secondary)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                );
-                current_y += 1;
-            }
 
             // Render Starred Folders (No sorting to allow reordering)
             for path in &app.starred {
@@ -140,7 +124,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             sidebar_items.push(ListItem::new(""));
             current_y += 1;
             sidebar_items.push(
-                ListItem::new("[REMOTE]").style(
+                ListItem::new("󰒍 REMOTES").style(
                     Style::default()
                         .fg(THEME.accent_secondary)
                         .add_modifier(Modifier::BOLD),
@@ -166,7 +150,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             sidebar_items.push(ListItem::new(""));
             current_y += 1;
             sidebar_items.push(
-                ListItem::new("[STORAGE]").style(
+                ListItem::new("󰋊 STORAGES").style(
                     Style::default()
                         .fg(THEME.accent_secondary)
                         .add_modifier(Modifier::BOLD),
@@ -869,7 +853,21 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, item_index: Option<usize>, a
         items.push(ListItem::new(" 󰑐 Refresh"));
         items.push(ListItem::new(" 󰆍 Terminal Here"));
     }
-    let area = Rect::new(x, y, 20, items.len() as u16 + 2);
+    let width = 20;
+    let height = items.len() as u16 + 2;
+
+    // Boundary check to prevent crash near edges
+    let mut safe_x = x;
+    let mut safe_y = y;
+
+    if safe_x + width > f.area().width {
+        safe_x = f.area().width.saturating_sub(width);
+    }
+    if safe_y + height > f.area().height {
+        safe_y = f.area().height.saturating_sub(height);
+    }
+
+    let area = Rect::new(safe_x, safe_y, width, height);
     f.render_widget(Clear, area);
     f.render_widget(
         List::new(items).block(
