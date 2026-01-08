@@ -101,7 +101,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             }
 
             // Render Starred Folders (No sorting to allow reordering)
-            for (i, path) in app.starred.iter().enumerate() {
+            for path in &app.starred {
                 let name = path
                     .file_name()
                     .map(|n| n.to_string_lossy().to_string())
@@ -111,7 +111,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 // Actually app.sidebar_index in New() is 1.
                 // So if sidebar_index is 1-indexed:
                 // First item (len=0) should match sidebar_index=1.
-                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len() + 1;
                 let is_hovered =
                     matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
 
@@ -144,7 +143,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             sidebar_items.push(ListItem::new(""));
             current_y += 1;
 
-            let header_idx = sidebar_items.len();
             sidebar_items.push(
                 ListItem::new("󰒍 REMOTES").style(
                     Style::default()
