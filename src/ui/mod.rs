@@ -75,18 +75,44 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let mut sidebar_items = Vec::new();
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
+            let sidebar_width = (app.terminal_size.0 * 20) / 100;
+            let is_dragging_to_star = app.is_dragging
+                && app.mouse_pos.0 < sidebar_width
+                && app
+                    .drag_source
+                    .as_ref()
+                    .map(|s| !app.starred.contains(s))
+                    .unwrap_or(true)
+                && !matches!(app.hovered_drop_target, Some(DropTarget::Folder(_)));
 
-            // Removed FAVORITES header - top section is implicitly favorites
+            if is_dragging_to_star {
+                sidebar_items.push(
+                    ListItem::new("> FAVORITES")
+                        .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+                );
+                app.sidebar_bounds.push(SidebarBounds {
+                    y: current_y,
+                    target: SidebarTarget::None, // Not selectable
+                });
+                current_y += 1;
+            } else {
+                // Removed FAVORITES header - top section is implicitly favorites
+            }
 
             // Render Starred Folders (No sorting to allow reordering)
-            for path in &app.starred {
+            for (i, path) in app.starred.iter().enumerate() {
                 let name = path
                     .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("/")
-                    .to_string();
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or("?".to_string());
+
+                // Adjust index check: if header is shown, items start at 1. If not, they start at 0.
+                // Actually, let's keep it consistent: sidebar_bounds.y is the source of truth for clicks.
+                // We just need to make sure the focus highlight matches.
+                let is_focused = app.sidebar_focus && app.sidebar_index == sidebar_items.len();
                 let is_hovered =
                     matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
+
                 let mut label = ListItem::new(name);
                 if is_hovered {
                     label = label.style(
@@ -584,7 +610,10 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             });
 
             Row::new(cells).style(if is_active_selection {
-                Style::default().bg(THEME.accent_primary).fg(Color::Black)
+                Style::default()
+                    .bg(Color::Red)
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD)
             } else if is_multi_selected {
                 Style::default().bg(THEME.accent_secondary).fg(Color::Black)
             } else {
