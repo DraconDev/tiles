@@ -23,7 +23,7 @@ on the sidebar we should not have sidebar at the top but path too, lets say by d
 
 shift up or down keep selecting 
 
-shift left or right copy over
+shift left or right copy over 
 
 ctrl left or right move over in file tab, between panes
 
