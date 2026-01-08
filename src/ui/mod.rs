@@ -83,7 +83,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     .drag_source
                     .as_ref()
                     .map(|s| !app.starred.contains(s))
-                    .unwrap_or(true);
+                    .unwrap_or(true)
+                && !matches!(app.hovered_drop_target, Some(DropTarget::Folder(_)));
 
             if is_dragging_to_star {
                 sidebar_items.push(
@@ -120,7 +121,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                             .add_modifier(Modifier::BOLD),
                     );
                 } else if matches!(&app.drag_source, Some(s) if s == path) && app.is_dragging {
-                    // Highlight the item being dragged if it's in the list
+                    // Always show the item being dragged in Green text
                     label = label.style(
                         Style::default()
                             .fg(Color::Green)
