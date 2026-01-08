@@ -21,9 +21,9 @@ enable to set cols for single file tab and split tabs, maybe not even the same t
 
 on the sidebar we should not have sidebar at the top but path too, lets say by default we show home
 
-shift up or down keep selecting 
+shift up or down keep selecting in file tab
 
-shift left or right copy over 
+shift left or right copy over in file tab, between panes
 
 ctrl left or right move over in file tab, between panes
 
