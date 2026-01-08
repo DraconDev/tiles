@@ -751,9 +751,14 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         let table = Table::new(rows, constraints.clone())
             .header(header)
             .block(block.clone())
-            .highlight_style(Style::default()); // Disable default teal highlighting
-                                                // Fix: Use content_area instead of area to avoid overlapping with Tabs!
-                                                // Also update height calculation to use content_area.
+            .highlight_style(
+                Style::default()
+                    .bg(Color::Red)
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            ); // Disable default teal highlighting
+               // Fix: Use content_area instead of area to avoid overlapping with Tabs!
+               // Also update height calculation to use content_area.
         let height = content_area.height.saturating_sub(2) as usize; // Account for borders
         let offset = render_state.offset();
         let selected = render_state.selected();
