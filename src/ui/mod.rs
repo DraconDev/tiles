@@ -91,21 +91,25 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     || matches!(app.hovered_drop_target, Some(DropTarget::Favorites)))
             {
                 sidebar_items.push(
-                    ListItem::new(" ➜ DROP ANYWHERE HERE TO STAR ").style(
+                    ListItem::new("  🔻 FAVORITES (DROP TO STAR)")
+                        .style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+                );
+                current_y += 1;
+            } else {
+                sidebar_items.push(
+                    ListItem::new("[FAVORITES]").style(
                         Style::default()
-                            .fg(Color::Black)
-                            .bg(Color::Green)
+                            .fg(THEME.accent_secondary)
                             .add_modifier(Modifier::BOLD),
                     ),
                 );
                 current_y += 1;
             }
 
-            // Render Starred Folders
-            let mut sorted_starred: Vec<_> = app.starred.iter().collect();
-            sorted_starred.sort();
+            // Render Starred Folders (No sorting to allow reordering)
+            let favorites = app.starred.clone();
 
-            for path in sorted_starred {
+            for path in favorites {
                 let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("/");
                 let is_hovered =
                     matches!(app.hovered_drop_target, Some(DropTarget::Folder(ref p)) if p == path);
