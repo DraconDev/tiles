@@ -286,20 +286,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                     return;
                 }
-                MouseEventKind::Down(button) if button == MouseButton::Left && me.modifiers.contains(KeyModifiers::ALT) => {
-                    if let Some(fs) = app.current_file_state_mut() {
-                        navigate_back(fs);
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                    }
-                    return;
-                }
-                MouseEventKind::Down(button) if button == MouseButton::Right && me.modifiers.contains(KeyModifiers::ALT) => {
-                    if let Some(fs) = app.current_file_state_mut() {
-                        navigate_forward(fs);
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                    }
-                    return;
-                }
                 MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                     app.mouse_pos = (column, row);
                     
@@ -330,6 +316,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                     let target_idx = app.starred.iter().position(|x| x == p);
                                                     if let (Some(s), Some(t)) = (source_idx, target_idx) {
                                                         app.starred.swap(s, t);
+                                                        // Update bounds immediately to prevent double-swap before re-render
+                                                        for b in &mut app.sidebar_bounds {
+                                                            if b.y == row {
+                                                                b.target = SidebarTarget::Favorite(source.clone());
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
@@ -758,9 +750,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                     }
                 }
-                MouseEventKind::Up(MouseButton::Left) => {
+                MouseEventKind::Up(_) => {
                     if app.is_dragging {
-                        if let Some(source) = app.drag_source.clone() {
+                        app.is_dragging = false;
+                        app.drag_start_pos = None;
+                        
+                        let source_clone = app.drag_source.clone();
+                        app.drag_source = None;
+
+                        if let Some(source) = source_clone {
                             let mut target_path: Option<std::path::PathBuf> = None;
                             let sidebar_width = (app.terminal_size.0 * 20) / 100;
                             
