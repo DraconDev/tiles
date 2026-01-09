@@ -20,7 +20,8 @@ pub enum AppEvent {
         HashMap<PathBuf, FileMetadata>,
         HashMap<PathBuf, String>,
         Option<String>,
-    ), // tab_idx, files, metadata, git, branch
+        usize, // local_count
+    ), // tab_idx, files, metadata, git, branch, local_count
     Tick,
     Raw(TermaEvent),
     SystemUpdated(SystemData),
