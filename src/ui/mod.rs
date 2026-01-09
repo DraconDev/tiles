@@ -1123,12 +1123,10 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
     // Let's show the focused tab's current state as the baseline.
     if let Some(fs) = app.current_file_state() {
         let options = vec![
-            (FileColumn::Name, "Name (n)"),
             (FileColumn::Size, "Size (s)"),
             (FileColumn::Modified, "Modified (m)"),
             (FileColumn::Created, "Created (c)"),
             (FileColumn::Permissions, "Permissions (p)"),
-            (FileColumn::Extension, "Extension (e)"),
         ];
         
         let target_fs = match app.settings_target {
@@ -1138,9 +1136,7 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
         let items: Vec<ListItem> = options
             .iter()
             .map(|(col, label)| {
-                let prefix = if *col == FileColumn::Name || *col == FileColumn::Extension {
-                    "[M] " // Mandatory
-                } else if target_fs.columns.contains(col) {
+                let prefix = if target_fs.columns.contains(col) {
                     "[x] "
                 } else {
                     "[ ] "
