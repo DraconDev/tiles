@@ -264,16 +264,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 .into_iter()
                 .enumerate()
                 .map(|(i, item): (usize, ListItem)| {
-                    // Check if this row is actually selectable (not a header or empty)
-                    // This logic is complex due to dynamic headers and empty lines.
-                    // A more robust approach would be to store selectable indices in sidebar_bounds.
-                    let is_selectable =
-                        app.sidebar_bounds.iter().any(|b| b.y == inner.y + i as u16);
-
-                    if !is_selectable {
-                        return item;
-                    }
-
                     if i == app.sidebar_index && app.sidebar_focus {
                         item.style(
                             Style::default()
@@ -282,7 +272,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                                 .add_modifier(Modifier::BOLD),
                         )
                     } else {
-                        item.style(Style::default().fg(THEME.fg))
+                        // Keep the style already set on the item (for active highlighting)
+                        item
                     }
                 })
                 .collect();
