@@ -661,7 +661,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 return;
                             }
                         } else {
-                            let index = if app.current_view == CurrentView::Files {
+                            let index = if app.current_view == CurrentView::Files && row >= 4 {
                                 let idx = fs_mouse_index(row, app);
                                 if let Some(fs) = app.current_file_state() { if idx < fs.files.len() { Some(idx) } else { None } } else { None }
                             } else { None };
@@ -907,7 +907,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 if app.current_view == CurrentView::Files {
                                     // Column header click is now handled above globally for all panes.
                                     // We just check content rows here.
-                                    if row >= 3 {
+                                    if row >= 4 {
                                         // File Row Click
                                         let content_start = sidebar_width + 1;
                                         if column >= content_start {
