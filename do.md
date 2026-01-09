@@ -17,25 +17,19 @@ would it be possible to have drag group select?, then allow to drag that onto fo
 
 not sure how muc interaction we can have with files but we should look into it 
 
-we are looking to persist the state of the app, so if we close and open it again we see the same state
-
-
-
-on the sidebar should have a Remotes, Storages, section and they all long like the Files on top, no favorite section top section is auto favorites
-
 shift up or down keep selecting in file tab
+
+## ? 
+
+## Done
+
+we are looking to persist the state of the app, so if we close and open it again we see the same state
 
 shift left or right copy over in file tab, between panes
 
 ctrl left or right move over in file tab, between panes
 
-alt + up or down to reorder favorites or by mouse dragging has a swap like effect, both work but mouse version doesn't keep the highlighting
-
-## ? 
-
 buttom right cpu and storage should be yellow, just like memory, it signifies use 
-
-## Done
 
 we are not using fancy icons, we use color coding
 
