@@ -666,7 +666,9 @@ impl App {
             for src in paths_to_move {
                 if let Some(filename) = src.file_name() {
                     let dest = dest_path.join(filename);
-                    let _ = crate::modules::files::move_recursive(&src, &dest);
+                    if let Err(e) = crate::modules::files::move_recursive(&src, &dest) {
+                        log_debug(&format!("Move failed from {:?} to {:?}: {}", src, dest, e));
+                    }
                 }
             }
         }
