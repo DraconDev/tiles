@@ -425,7 +425,7 @@ impl App {
                     mouse_last_click: std::time::Instant::now(),
                     mouse_click_pos: (0, 0),
                     settings_section: SettingsSection::Columns,
-                    settings_target: SettingsTarget::AllPanes,
+                    settings_target: SettingsTarget::Pane(0),
                     default_show_hidden: false,
                     confirm_delete: true,
                     preferred_terminal: None,
