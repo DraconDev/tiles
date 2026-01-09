@@ -508,46 +508,43 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         return;
                     }
                     if button == MouseButton::Left {
-                        // Row 0: Global Header (Settings / Split / Tabs)
+                        // Row 0: Global Header (Menu / Tabs / Split)
                         if row == 0 {
-                            let settings_width = 4;
-                            let split_width = 4;
-                            let right_x = app.terminal_size.0.saturating_sub(settings_width + split_width + 2);
-                            
-                            // Check for Split Button
-                            if column >= right_x && column < right_x + split_width {
+                            // 1. Menu Button (Top Left)
+                            if column < 3 {
+                                app.mode = AppMode::ColumnSetup;
+                                return;
+                            }
+
+                            // 2. Split Button (Top Right)
+                            let split_width = 3;
+                            let right_x = app.terminal_size.0.saturating_sub(split_width);
+                            if column >= right_x {
                                 app.toggle_split();
                                 return;
                             }
 
-                            // Tab Click Logic
-                            // Use explicit 20% calculation to match Ratatui (integer math)
-                            let sidebar_width = (app.terminal_size.0 * 20) / 100;
-                            
-                            // Check if click is in Tab Area (Right of Sidebar)
-                            if column >= sidebar_width && column < right_x {
+                            // 3. Tab Click Logic
+                            let menu_width = 3;
+                            if column >= menu_width && column < right_x {
                                 let pane_count = app.panes.len();
                                 if pane_count > 0 {
-                                    // Tabs occupy the full content width (buttons overlay rightmost part)
-                                    let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
-                                    let pane_width = content_area_width / pane_count as u16; 
+                                    // Tabs occupy area between Menu and Split
+                                    let tabs_width = right_x.saturating_sub(menu_width);
+                                    let pane_width = tabs_width / pane_count as u16;
                                     
                                     // Relative column inside tab area
-                                    let rel_col_global = column.saturating_sub(sidebar_width);
+                                    let rel_col_global = column.saturating_sub(menu_width);
                                     
                                     let clicked_pane_idx = (rel_col_global / pane_width) as usize;
                                     if clicked_pane_idx < pane_count {
                                         app.focused_pane_index = clicked_pane_idx;
                                         
                                         // Identify Tab within Pane
-                                        // Start x for this pane (relative to tab area start)
                                         let pane_start_rel_x = (clicked_pane_idx as u16) * pane_width;
                                         let rel_col = rel_col_global.saturating_sub(pane_start_rel_x);
                                         
-                                        // We need to iterate tabs to see which one was clicked.
                                         let mut current_x = 0;
-                                        // Separator offset
-                                        if clicked_pane_idx > 0 { current_x += 2; } 
                                         
                                         if let Some(pane) = app.panes.get_mut(clicked_pane_idx) {
                                             for (t_i, tab) in pane.tabs.iter().enumerate() {
@@ -564,7 +561,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                     let _ = event_tx.try_send(AppEvent::RefreshFiles(clicked_pane_idx));
                                                     return;
                                                 }
-                                                current_x += width + 1; // +1 for spacer
+                                                current_x += width + 1; 
                                             }
                                         }
                                     }
