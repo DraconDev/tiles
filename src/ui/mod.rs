@@ -630,7 +630,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             let mut row_style = Style::default();
             if is_active_selection {
                 row_style = row_style
-                    .bg(Color::Red)
+                    .bg(THEME.accent_primary)
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD);
             } else if is_multi_selected {
