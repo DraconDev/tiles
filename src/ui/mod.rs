@@ -113,7 +113,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     false
                 };
 
-                let mut label = ListItem::new(name);
+                let label = ListItem::new(name);
                 let mut style = if is_active {
                     Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
                 } else {
@@ -1188,7 +1188,7 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
         _ => 0,
     };
     
-    let tabs = ratatui::widgets::Tabs::new(titles)
+    let tabs = Tabs::new(titles)
         .block(Block::default().borders(Borders::BOTTOM).title(" Configure Target "))
         .select(sel)
         .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
