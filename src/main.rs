@@ -926,12 +926,20 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 AppMode::NewFile => {
                     match key.code {
                         KeyCode::Esc => { crate::app::log_debug("Esc in NewFile"); app.mode = AppMode::Normal; app.input.clear(); }
-                        KeyCode::Char(c) => app.input.push(c),
+                        KeyCode::Char(c) => {
+                            // Filter out potential escape sequence garbage (e.g. from mouse events)
+                            if !c.is_control() && c != '\x1b' && c != '[' {
+                                app.input.push(c);
+                            }
+                        }
                         KeyCode::Backspace => { app.input.pop(); }
                         KeyCode::Enter => {
                             if let Some(fs) = app.current_file_state() {
-                                let path = fs.current_path.join(app.input.clone());
-                                let _ = event_tx.try_send(AppEvent::CreateFile(path));
+                                let name = app.input.trim();
+                                if !name.is_empty() {
+                                    let path = fs.current_path.join(name);
+                                    let _ = event_tx.try_send(AppEvent::CreateFile(path));
+                                }
                             }
                             app.mode = AppMode::Normal;
                         }
@@ -941,12 +949,19 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 AppMode::NewFolder => {
                     match key.code {
                         KeyCode::Esc => { crate::app::log_debug("Esc in NewFolder"); app.mode = AppMode::Normal; app.input.clear(); }
-                        KeyCode::Char(c) => app.input.push(c),
+                        KeyCode::Char(c) => {
+                            if !c.is_control() && c != '\x1b' && c != '[' {
+                                app.input.push(c);
+                            }
+                        }
                         KeyCode::Backspace => { app.input.pop(); }
                         KeyCode::Enter => {
                             if let Some(fs) = app.current_file_state() {
-                                let path = fs.current_path.join(app.input.clone());
-                                let _ = event_tx.try_send(AppEvent::CreateFolder(path));
+                                let name = app.input.trim();
+                                if !name.is_empty() {
+                                    let path = fs.current_path.join(name);
+                                    let _ = event_tx.try_send(AppEvent::CreateFolder(path));
+                                }
                             }
                             app.mode = AppMode::Normal;
                         }
