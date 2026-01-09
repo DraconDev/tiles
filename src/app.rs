@@ -331,7 +331,8 @@ impl Pane {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SettingsTarget {
-    Pane(usize),
+    SingleMode,
+    SplitMode,
 }
 
 pub struct App {
@@ -374,6 +375,9 @@ pub struct App {
     pub default_show_hidden: bool,
     pub confirm_delete: bool,
     pub preferred_terminal: Option<String>,
+
+    pub single_columns: Vec<FileColumn>,
+    pub split_columns: Vec<FileColumn>,
 }
 
 impl App {
