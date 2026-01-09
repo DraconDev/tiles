@@ -1181,7 +1181,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                         KeyCode::Enter => {
                             if app.sidebar_focus {
-                                if let Some(bound) = app.sidebar_bounds.iter().find(|b| b.index == app.sidebar_index) {
+                                if let Some(bound) = app.sidebar_bounds.iter().find(|b| b.index == app.sidebar_index).cloned() {
                                     match &bound.target {
                                         SidebarTarget::Favorite(p) => {
                                             if let Some(fs) = app.current_file_state_mut() {
