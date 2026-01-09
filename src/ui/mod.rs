@@ -501,16 +501,20 @@ fn draw_tasks_view(f: &mut Frame, area: Rect, app: &App) {
     let inner = block.inner(area);
     
     let items: Vec<ListItem> = app.tasks.iter().enumerate().map(|(i, task)| {
-        let status = if task.completed { "[x] " } else { "[ ] " };
+        let status = if task.completed { "󰄲 " } else { "󰄱 " };
         let content = format!("{}{}", status, task.description);
+        let is_selected = i == app.task_index;
+
         let mut style = if task.completed {
              Style::default().fg(Color::DarkGray)
         } else {
              Style::default().fg(Color::White)
         };
         
-        // Highlight logic (placeholder, we might need selected_task_index in App)
-        // For now, no selection logic in UI yet, just list
+        if is_selected {
+            style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+        }
+        
         ListItem::new(content).style(style)
     }).collect();
     
