@@ -1169,6 +1169,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         terminals.push(env_t);
                                     }
                                     terminals.extend(vec![
+                                        "kgx".to_string(),
                                         "gnome-terminal".to_string(),
                                         "konsole".to_string(),
                                         "xdg-terminal-exec".to_string(),
