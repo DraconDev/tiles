@@ -835,6 +835,27 @@ fn draw_file_view(
 }
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+        .split(area);
+
+    // Left: Shortcuts
+    let shortcuts = vec![
+        Span::styled(" ^Q ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::raw("Quit "),
+        Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::raw("Split "),
+        Span::styled(" ^. ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::raw("Cmd "),
+        Span::styled(" Esc ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::raw("Back "),
+        Span::styled(" Alt+Arrow ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::raw("Nav "),
+    ];
+    f.render_widget(Paragraph::new(Line::from(shortcuts)), chunks[0]);
+
+    // Right: System Stats
     let mut spans = Vec::new();
 
     // CPU
@@ -880,7 +901,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let line = ratatui::text::Line::from(spans);
     f.render_widget(
         Paragraph::new(line).alignment(ratatui::layout::Alignment::Right),
-        area,
+        chunks[1],
     );
 }
 
