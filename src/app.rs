@@ -544,6 +544,12 @@ impl App {
     }
 
     pub fn move_up(&mut self, shift: bool) {
+        if self.sidebar_focus {
+            if self.sidebar_index > 0 {
+                self.sidebar_index -= 1;
+            }
+            return;
+        }
         if let Some(fs) = self.current_file_state_mut() {
             let old_idx = fs.selected_index.unwrap_or(0);
             let i = if old_idx == 0 {
@@ -574,6 +580,12 @@ impl App {
     }
 
     pub fn move_down(&mut self, shift: bool) {
+        if self.sidebar_focus {
+            if self.sidebar_index < self.sidebar_bounds.len().saturating_sub(1) {
+                self.sidebar_index += 1;
+            }
+            return;
+        }
         if let Some(fs) = self.current_file_state_mut() {
             let old_idx = fs.selected_index.unwrap_or(0);
             let i = if old_idx >= fs.files.len().saturating_sub(1) {
@@ -604,14 +616,20 @@ impl App {
     }
 
     pub fn move_left(&mut self) {
-        if self.panes.len() > 1 {
-            self.focused_pane_index = 0;
+        if self.focused_pane_index == 0 && !self.sidebar_focus {
+            self.sidebar_focus = true;
+        } else if self.focused_pane_index > 0 {
+            self.focused_pane_index -= 1;
+            self.sidebar_focus = false;
         }
     }
 
     pub fn move_right(&mut self) {
-        if self.panes.len() > 1 {
-            self.focused_pane_index = 1;
+        if self.sidebar_focus {
+            self.sidebar_focus = false;
+            self.focused_pane_index = 0;
+        } else if self.focused_pane_index < self.panes.len().saturating_sub(1) {
+            self.focused_pane_index += 1;
         }
     }
 
