@@ -1077,10 +1077,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         KeyCode::Up => { app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); }
                         KeyCode::Left => {
                             if key.modifiers.contains(KeyModifiers::SHIFT) {
+                                crate::app::log_debug("Triggering copy_to_other_pane (Left)");
                                 app.copy_to_other_pane();
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
                             } else if key.modifiers.contains(KeyModifiers::CONTROL) {
+                                crate::app::log_debug("Triggering move_to_other_pane (Left)");
                                 app.move_to_other_pane();
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
@@ -1090,10 +1092,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                         KeyCode::Right => {
                             if key.modifiers.contains(KeyModifiers::SHIFT) {
+                                crate::app::log_debug("Triggering copy_to_other_pane (Right)");
                                 app.copy_to_other_pane();
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
                             } else if key.modifiers.contains(KeyModifiers::CONTROL) {
+                                crate::app::log_debug("Triggering move_to_other_pane (Right)");
                                 app.move_to_other_pane();
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
