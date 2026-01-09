@@ -428,7 +428,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                     }
 
-                    if let AppMode::ContextMenu { x, y, ref target } = app.mode {
+                    if let AppMode::ContextMenu { x, y, target } = app.mode.clone() {
                         let menu_width = 20;
                         let menu_height = match target {
                             ContextMenuTarget::File(_) => 6,
