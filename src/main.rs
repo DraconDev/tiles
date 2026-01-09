@@ -1128,7 +1128,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 let pane_idx = app.toggle_hidden();
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
                             }
-                            KeyCode::Char('.') | KeyCode::Char('p') => {
+                            KeyCode::Char('.') | KeyCode::Char('p') | KeyCode::Char('P') | KeyCode::Char('t') => {
                                 if let Some(fs) = app.current_file_state() {
                                     let _ = std::process::Command::new("xdg-terminal")
                                         .current_dir(&fs.current_path)
