@@ -380,7 +380,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                         
                         // Check Folder Hover in content panes
-                        if app.hovered_drop_target.is_none() && row >= 3 && column >= sidebar_width {
+                        if app.hovered_drop_target.is_none() && row >= 4 && column >= sidebar_width {
                             let index = fs_mouse_index(row, app);
                             if let Some(fs) = app.current_file_state() {
                                 if let Some(path) = fs.files.get(index) {
@@ -1479,7 +1479,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
 }
 
 fn fs_mouse_index(row: u16, app: &App) -> usize {
-    let mouse_row_offset = row.saturating_sub(3) as usize;
+    let mouse_row_offset = row.saturating_sub(4) as usize;
     if let Some(fs) = app.current_file_state() { fs.table_state.offset() + mouse_row_offset }
     else { 0 }
 }
