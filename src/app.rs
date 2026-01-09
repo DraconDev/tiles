@@ -593,6 +593,15 @@ impl App {
         }
     }
 
+    pub fn sidebar_width(&self) -> u16 {
+        use ratatui::layout::{Constraint, Direction, Layout, Rect};
+        let layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(20), Constraint::Min(0)])
+            .split(Rect::new(0, 0, self.terminal_size.0, self.terminal_size.1));
+        layout[0].width
+    }
+
     pub fn copy_to_other_pane(&mut self) {
         if self.panes.len() < 2 {
             return;
