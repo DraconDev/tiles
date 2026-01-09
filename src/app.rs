@@ -498,6 +498,7 @@ impl App {
             mouse_last_click: std::time::Instant::now(),
             mouse_click_pos: (0, 0),
             tasks: Vec::new(),
+            task_index: 0,
         };
         log_debug("App::new finished successfully");
         app
