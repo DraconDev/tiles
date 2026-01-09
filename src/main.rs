@@ -24,6 +24,18 @@ mod license;
 
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
+
+    std::panic::set_hook(Box::new(|panic_info| {
+        let msg = if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+            s.to_string()
+        } else if let Some(s) = panic_info.payload().downcast_ref::<String>() {
+            s.clone()
+        } else {
+            "Unknown panic".to_string()
+        };
+        let location = panic_info.location().map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column())).unwrap_or_else(|| "unknown location".to_string());
+        crate::app::log_debug(&format!("PANIC at {}: {}", location, msg));
+    }));
     
     // Always run in TTY Mode
     run_tty()
