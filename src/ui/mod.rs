@@ -33,6 +33,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
     let tile_queue = app.tile_queue.clone();
 
+    /*
     if area.width > 0 && area.height > 0 {
         // Background Gradient
         let tile = TilePlacement {
@@ -65,6 +66,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             queue.push(tile);
         }
     }
+    */
 
     let inner = area.inner(ratatui::layout::Margin {
         vertical: 1,
