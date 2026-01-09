@@ -447,10 +447,12 @@ impl App {
                     mouse_last_click: std::time::Instant::now(),
                     mouse_click_pos: (0, 0),
                     settings_section: SettingsSection::Columns,
-                    settings_target: SettingsTarget::Pane(0),
+                    settings_target: SettingsTarget::SingleMode,
                     default_show_hidden: false,
                     confirm_delete: true,
                     preferred_terminal: None,
+                    single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Created, FileColumn::Permissions],
+                    split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
                 };
             }
         }
@@ -536,10 +538,12 @@ impl App {
             mouse_last_click: std::time::Instant::now(),
             mouse_click_pos: (0, 0),
             settings_section: SettingsSection::Columns,
-            settings_target: SettingsTarget::Pane(0),
+            settings_target: SettingsTarget::SingleMode,
             default_show_hidden: false,
             confirm_delete: true,
             preferred_terminal: None,
+            single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Created, FileColumn::Permissions],
+            split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
         };
         log_debug("App::new finished successfully");
         app
