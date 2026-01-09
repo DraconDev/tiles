@@ -792,7 +792,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     if was_dragging {
                         if let Some(source) = source_opt {
                             let mut target_path: Option<std::path::PathBuf> = None;
-                            let sidebar_width = (app.terminal_size.0 * 20) / 100;
+                            let sidebar_width = app.sidebar_width();
                             
                             // Check drop on Breadcrumb (Row 1)
                             if row == 1 && column >= sidebar_width {
