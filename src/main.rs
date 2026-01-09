@@ -1162,7 +1162,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 let pane_idx = app.toggle_hidden();
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
                             }
-                            KeyCode::Char('.') => {
+                            KeyCode::Char('t') | KeyCode::Char('.') => {
                                 if let Some(fs) = app.current_file_state() {
                                     // Priority list: try generic "default" wrappers first, then specific ones
                                     let terminals = [
