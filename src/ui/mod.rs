@@ -101,36 +101,34 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or("?".to_string());
 
-                // sidebar_index is the 1-indexed position in the sidebar_items list.
                 let current_idx = sidebar_items.len();
                 let is_focused = app.sidebar_focus && app.sidebar_index == current_idx;
                 let is_hovered =
                     matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
+                
+                // Active highlighting: Is this path open in the focused pane?
+                let is_active = if let Some(fs) = app.current_file_state() {
+                    fs.current_path == *path
+                } else {
+                    false
+                };
 
                 let mut label = ListItem::new(name);
+                let mut style = if is_active {
+                    Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(THEME.fg)
+                };
+
                 if is_focused {
-                    label = label.style(
-                        Style::default()
-                            .bg(THEME.accent_primary)
-                            .fg(Color::Black)
-                            .add_modifier(Modifier::BOLD),
-                    );
+                    style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
                 } else if is_hovered && app.is_dragging {
-                    label = label.style(
-                        Style::default()
-                            .fg(Color::Black)
-                            .bg(THEME.accent_primary)
-                            .add_modifier(Modifier::BOLD),
-                    );
+                    style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
                 } else if matches!(&app.drag_source, Some(s) if s == path) && app.is_dragging {
-                    // Always show the item being dragged in Green text
-                    label = label.style(
-                        Style::default()
-                            .fg(Color::Green)
-                            .add_modifier(Modifier::BOLD),
-                    );
+                    style = style.fg(Color::Green).add_modifier(Modifier::BOLD);
                 }
-                sidebar_items.push(label);
+                
+                sidebar_items.push(label.style(style));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     index: current_idx,
@@ -161,11 +159,11 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let current_bookmark_idx = sidebar_items.len();
                 let is_focused = app.sidebar_focus && app.sidebar_index == current_bookmark_idx;
                 
-                let is_active = app.panes.iter().any(|p| {
-                    p.tabs.iter().any(|t| {
-                        t.remote_session.as_ref().map(|s| s.host == bookmark.host).unwrap_or(false)
-                    })
-                });
+                let is_active = if let Some(fs) = app.current_file_state() {
+                    fs.remote_session.as_ref().map(|s| s.host == bookmark.host).unwrap_or(false)
+                } else {
+                    false
+                };
 
                 let mut style = if is_active {
                     Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
@@ -212,19 +210,13 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 target: SidebarTarget::Header("STORAGES".to_string()),
             });
             current_y += 1;
-            // Collect all current paths from all open panes to check which disks are active
-            let mut active_paths = Vec::new();
-            for pane in &app.panes {
-                if let Some(fs) = pane.current_state() {
-                    active_paths.push(fs.current_path.to_string_lossy().to_string());
-                }
-            }
+            
+            // Collect current path from focused pane
+            let active_path = app.current_file_state().map(|fs| fs.current_path.to_string_lossy().to_string());
 
             for (i, disk) in app.system_state.disks.iter().enumerate() {
-                // let free = disk.total_space - disk.used_space;
-
-                // Check if ANY active path starts with this disk's mount point
-                let is_active = active_paths.iter().any(|path| {
+                // Check if focused pane path starts with this disk's mount point
+                let is_active = if let Some(ref path) = active_path {
                     path.starts_with(&disk.name)
                         || (disk.name == "/"
                             && !app
@@ -232,7 +224,9 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                                 .disks
                                 .iter()
                                 .any(|d| d.name != "/" && path.starts_with(&d.name)))
-                });
+                } else {
+                    false
+                };
 
                 let current_disk_idx = sidebar_items.len();
                 let is_focused = app.sidebar_focus && app.sidebar_index == current_disk_idx;
