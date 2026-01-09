@@ -212,11 +212,18 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                 let _ = event_tx_bg.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             }
                             AppEvent::RefreshFiles(pane_idx) => {
-                                let (path, show_hidden, filter, session) = {
+                                let (path, show_hidden, filter, session, sort_column, sort_ascending) = {
                                     if let Ok(app) = app_bg.lock() {
                                         if let Some(pane) = app.panes.get(pane_idx) {
                                             if let Some(fs) = pane.current_state() {
-                                                (fs.current_path.clone(), fs.show_hidden, fs.search_filter.clone(), fs.remote_session.as_ref().map(|rs| rs.session.clone()))
+                                                (
+                                                    fs.current_path.clone(),
+                                                    fs.show_hidden,
+                                                    fs.search_filter.clone(),
+                                                    fs.remote_session.as_ref().map(|rs| rs.session.clone()),
+                                                    fs.sort_column,
+                                                    fs.sort_ascending
+                                                )
                                             } else { continue; }
                                         } else { continue; }
                                     } else { continue; }
@@ -228,8 +235,8 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                                         None,
                                         show_hidden,
                                         vec![crate::app::FileColumn::Name, crate::app::FileColumn::Size, crate::app::FileColumn::Modified],
-                                        crate::app::FileColumn::Name,
-                                        true,
+                                        sort_column,
+                                        sort_ascending,
                                     );
                                     temp_state.search_filter = filter;
                                     if let Some(s_mutex) = session {
