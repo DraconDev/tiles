@@ -46,7 +46,7 @@ pub enum ContextMenuTarget {
     SidebarStorage(usize),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum AppMode {
     Normal,
     Rename,

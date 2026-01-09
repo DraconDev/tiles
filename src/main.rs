@@ -10,7 +10,7 @@ use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifi
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent, DropTarget, SidebarTarget};
+use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent, DropTarget, SidebarTarget, ContextMenuTarget};
 use std::path::PathBuf;
 
 
