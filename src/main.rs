@@ -98,7 +98,10 @@ fn run_tty() -> color_eyre::Result<()> {
         // Draw
         {
             let mut app_guard = app.lock().unwrap();
-            if !app_guard.running { break; }
+            if !app_guard.running { 
+                let _ = crate::config::save_state(&app_guard);
+                break; 
+            }
             terminal.draw(|f| {
                 app_guard.terminal_size = (f.area().width, f.area().height);
                 ui::draw(f, &mut app_guard);

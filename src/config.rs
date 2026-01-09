@@ -1,4 +1,4 @@
-use crate::app::{App, FileState, Pane, RemoteBookmark, CurrentView};
+use crate::app::{App, Pane, RemoteBookmark, CurrentView};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::fs;
