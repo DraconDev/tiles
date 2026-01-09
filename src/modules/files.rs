@@ -182,8 +182,14 @@ fn update_local_files(state: &mut FileState) {
     }
 
     // Combine: Local results followed by Global results
+    state.local_count = local_files.len();
     state.files = local_files;
-    state.files.extend(global_files);
+    
+    if !global_files.is_empty() {
+        // Insert a sentinel path to represent the divider
+        state.files.push(std::path::PathBuf::from("__DIVIDER__"));
+        state.files.extend(global_files);
+    }
 
     // Git Integration
     state.git_status.clear();
