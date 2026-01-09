@@ -435,6 +435,41 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                     }
 
+                    if app.mode == AppMode::ColumnSetup {
+                        let (w, h) = app.terminal_size;
+                        if w > 0 && h > 0 {
+                            // Replicate centered_rect(40, 40) logic from ui/mod.rs
+                            let area_w = (w as f32 * 0.4) as u16;
+                            let area_h = (h as f32 * 0.4) as u16;
+                            let area_x = (w - area_w) / 2;
+                            let area_y = (h - area_h) / 2;
+
+                            // Check if click is inside modal
+                            if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
+                                let inner_x = area_x + 1;
+                                let inner_y = area_y + 1; // Border + Title
+                                // Options list starts at inner_y.
+                                // Items: Name, Size, Modified, Created, Permissions, Extension
+                                let rel_y = row.saturating_sub(inner_y);
+                                
+                                match rel_y {
+                                    0 => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                    1 => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                    2 => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                    3 => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                    4 => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                    5 => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                    _ => {}
+                                }
+                                return;
+                            } else {
+                                // Click outside modal closes it
+                                app.mode = AppMode::Normal;
+                                return;
+                            }
+                        }
+                    }
+
                     if let AppMode::ContextMenu { x, y, target } = app.mode.clone() {
                         let menu_width = 20;
                         let menu_height = match target {
