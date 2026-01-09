@@ -545,17 +545,8 @@ impl App {
 
     pub fn toggle_split(&mut self) {
         if self.panes.len() == 1 {
-            // Adjust current pane columns to fit split view
-            if let Some(pane) = self.panes.get_mut(0) {
-                for tab in &mut pane.tabs {
-                    tab.columns.retain(|&c| c != FileColumn::Created && c != FileColumn::Permissions);
-                }
-            }
-
             if let Some(fs) = self.current_file_state() {
-                let mut new_fs = fs.clone();
-                // Ensure new pane also has trimmed columns
-                new_fs.columns.retain(|&c| c != FileColumn::Created && c != FileColumn::Permissions);
+                let new_fs = fs.clone();
                 self.panes.push(Pane::new(new_fs));
             }
         } else {
