@@ -22,7 +22,10 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
             for p in &app.panes {
                 let mut tabs = Vec::new();
                 for t in &p.tabs {
-                    tabs.push(t.clone());
+                    let mut tab_clone = t.clone();
+                    tab_clone.search_filter.clear();
+                    tab_clone.local_count = 0;
+                    tabs.push(tab_clone);
                 }
                 panes.push(Pane {
                     tabs,
