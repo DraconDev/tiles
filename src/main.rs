@@ -287,16 +287,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                     1 => if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
                                                     _ => {}
                                                 }
-                                            } else if row >= inner.y + 4 {
-                                        // Column list selection: "one row lower" fix -> subtract inner.y + 5
-                                        let rel_y = row.saturating_sub(inner.y + 5);
+                                    } else if row >= inner.y + 4 {
+                                        // Column list selection (Size, Modified, Created, Permissions)
+                                        let rel_y = row.saturating_sub(inner.y + 4);
                                         match rel_y {
-                                            0 => app.toggle_column(crate::app::FileColumn::Name),
-                                            1 => app.toggle_column(crate::app::FileColumn::Size),
-                                            2 => app.toggle_column(crate::app::FileColumn::Modified),
-                                            3 => app.toggle_column(crate::app::FileColumn::Created),
-                                            4 => app.toggle_column(crate::app::FileColumn::Permissions),
-                                            5 => app.toggle_column(crate::app::FileColumn::Extension),
+                                            0 => app.toggle_column(crate::app::FileColumn::Size),
+                                            1 => app.toggle_column(crate::app::FileColumn::Modified),
+                                            2 => app.toggle_column(crate::app::FileColumn::Created),
+                                            3 => app.toggle_column(crate::app::FileColumn::Permissions),
                                             _ => {}
                                         }
                                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
