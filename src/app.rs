@@ -400,11 +400,6 @@ impl App {
                         if !tab.columns.contains(&FileColumn::Name) {
                             tab.columns.insert(0, FileColumn::Name);
                         }
-                        if !tab.columns.contains(&FileColumn::Extension) {
-                            // Find index of Name and insert after it, or just push
-                            let name_idx = tab.columns.iter().position(|&c| c == FileColumn::Name).unwrap_or(0);
-                            tab.columns.insert(name_idx + 1, FileColumn::Extension);
-                        }
                     }
                 }
 
@@ -455,7 +450,6 @@ impl App {
             false,
             vec![
                 FileColumn::Name,
-                FileColumn::Extension,
                 FileColumn::Size,
                 FileColumn::Modified,
                 FileColumn::Created,
