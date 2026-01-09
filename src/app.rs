@@ -426,6 +426,10 @@ impl App {
                     mouse_last_click: std::time::Instant::now(),
                     mouse_click_pos: (0, 0),
                     settings_section: SettingsSection::Columns,
+                    settings_target: SettingsTarget::AllPanes,
+                    default_show_hidden: false,
+                    confirm_delete: true,
+                    preferred_terminal: None,
                 };
             }
         }
@@ -505,6 +509,10 @@ impl App {
             mouse_last_click: std::time::Instant::now(),
             mouse_click_pos: (0, 0),
             settings_section: SettingsSection::Columns,
+            settings_target: SettingsTarget::AllPanes,
+            default_show_hidden: false,
+            confirm_delete: true,
+            preferred_terminal: None,
         };
         log_debug("App::new finished successfully");
         app
