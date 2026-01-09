@@ -295,9 +295,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     if row >= inner.y && row < inner.y + 3 {
                                         let content_x = column.saturating_sub(inner.x + 15);
                                         if content_x < 12 {
-                                            app.settings_target = SettingsTarget::Pane(0);
+                                            app.settings_target = SettingsTarget::SingleMode;
                                         } else if content_x < 25 {
-                                            if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
+                                            app.settings_target = SettingsTarget::SplitMode;
                                         }
                                     } else if row >= inner.y + 4 {
                                         let rel_y = row.saturating_sub(inner.y + 4);
