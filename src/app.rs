@@ -527,6 +527,13 @@ impl App {
         };
     }
 
+    pub fn toggle_hidden(&mut self) -> usize {
+        if let Some(fs) = self.current_file_state_mut() {
+            fs.show_hidden = !fs.show_hidden;
+        }
+        self.focused_pane_index
+    }
+
     pub fn toggle_zoom(&mut self) {
         // Implementation here if needed
     }
