@@ -278,18 +278,16 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 _ => {}
                             }
                         } else {
-                            match app.settings_section {
-                                SettingsSection::Columns => {
-                                    // Target selection: working correctly, keeping as is
-                                    if row >= inner.y && row < inner.y + 3 {
-                                        let content_x = column.saturating_sub(inner.x + 16);
-                                        match content_x / 12 {
-                                            0 => app.settings_target = SettingsTarget::AllPanes,
-                                            1 => app.settings_target = SettingsTarget::Pane(0),
-                                            2 => if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
-                                            _ => {} 
-                                        }
-                                    } else if row >= inner.y + 4 {
+                                    match app.settings_section {
+                                        SettingsSection::Columns => {
+                                            if row >= inner.y && row < inner.y + 3 {
+                                                let content_x = column.saturating_sub(inner.x + 16);
+                                                match content_x / 12 {
+                                                    0 => app.settings_target = SettingsTarget::Pane(0),
+                                                    1 => if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
+                                                    _ => {}
+                                                }
+                                            } else if row >= inner.y + 4 {
                                         // Column list selection: "one row lower" fix -> subtract inner.y + 5
                                         let rel_y = row.saturating_sub(inner.y + 5);
                                         match rel_y {
