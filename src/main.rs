@@ -280,28 +280,28 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
                         
                         if column < inner.x + 15 {
-                            // Sidebar selection: subtract inner.y + 1
-                            let rel_y = row.saturating_sub(inner.y + 1);
+                            // Sidebar selection: "one above" fix -> subtract inner.y - 1 (or add 1 to rel_y)
+                            let rel_y = row.saturating_sub(inner.y.saturating_sub(1));
                             match rel_y {
                                 0 => app.settings_section = SettingsSection::Columns,
                                 1 => app.settings_section = SettingsSection::Tabs,
                                 2 => app.settings_section = SettingsSection::General,
-                                _ => {} 
+                                _ => {}
                             }
                         } else {
                             match app.settings_section {
                                 SettingsSection::Columns => {
-                                    // Target selection: visually at inner.y + 1 (the middle row of the 3-row tab area)
-                                    if row == inner.y + 1 {
+                                    // Target selection: visually at inner.y to inner.y + 2
+                                    if row >= inner.y && row < inner.y + 3 {
                                         let content_x = column.saturating_sub(inner.x + 15);
                                         if content_x < 12 {
                                             app.settings_target = SettingsTarget::Pane(0);
-                                        } else if content_x >= 12 && content_x < 25 {
+                                        } else if content_x < 25 {
                                             if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
                                         }
                                     } else if row >= inner.y + 4 {
-                                        // Column list selection: subtract inner.y + 5 (account for tabs block and title)
-                                        let rel_y = row.saturating_sub(inner.y + 5);
+                                        // Column list selection: first is correct, rest selects one over -> try sub(inner.y + 4)
+                                        let rel_y = row.saturating_sub(inner.y + 4);
                                         match rel_y {
                                             0 => app.toggle_column(crate::app::FileColumn::Size),
                                             1 => app.toggle_column(crate::app::FileColumn::Modified),
@@ -313,8 +313,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                                 SettingsSection::General => {
-                                    // General selection: subtract inner.y + 2 (account for title)
-                                    let rel_y = row.saturating_sub(inner.y + 2);
+                                    // General selection: "2 higher" fix -> subtract inner.y - 1
+                                    let rel_y = row.saturating_sub(inner.y.saturating_sub(1));
                                     match rel_y {
                                         0 => app.default_show_hidden = !app.default_show_hidden,
                                         1 => app.confirm_delete = !app.confirm_delete,
