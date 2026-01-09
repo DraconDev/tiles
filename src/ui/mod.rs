@@ -1,7 +1,7 @@
 pub mod theme;
 use std::path::PathBuf;
 
-use crate::app::{App, AppMode, CurrentView, DropTarget, FileColumn, SidebarBounds, SidebarTarget};
+use crate::app::{App, AppMode, CurrentView, DropTarget, FileColumn, SidebarBounds, SidebarTarget, SettingsSection};
 use crate::ui::theme::THEME;
 use ratatui::text::{Line, Span};
 use ratatui::{

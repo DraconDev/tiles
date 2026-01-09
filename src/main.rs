@@ -1119,6 +1119,20 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 AppMode::Settings => {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
+                        KeyCode::Left | KeyCode::BackTab => {
+                            app.settings_section = match app.settings_section {
+                                crate::app::SettingsSection::Columns => crate::app::SettingsSection::General,
+                                crate::app::SettingsSection::Tabs => crate::app::SettingsSection::Columns,
+                                crate::app::SettingsSection::General => crate::app::SettingsSection::Tabs,
+                            };
+                        }
+                        KeyCode::Right | KeyCode::Tab => {
+                            app.settings_section = match app.settings_section {
+                                crate::app::SettingsSection::Columns => crate::app::SettingsSection::Tabs,
+                                crate::app::SettingsSection::Tabs => crate::app::SettingsSection::General,
+                                crate::app::SettingsSection::General => crate::app::SettingsSection::Columns,
+                            };
+                        }
                         KeyCode::Char('n') => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
                         KeyCode::Char('s') => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
                         KeyCode::Char('m') => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
