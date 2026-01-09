@@ -1126,13 +1126,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         match key.code {
                             KeyCode::Char('q') => app.running = false,
                             KeyCode::Char('s') => app.toggle_split(),
-                            KeyCode::Char('p') => { app.mode = AppMode::CommandPalette; update_commands(app); }
-                            KeyCode::Char('f') => app.current_view = CurrentView::Files,
-                            KeyCode::Char('h') => {
-                                let pane_idx = app.toggle_hidden();
-                                let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
-                            }
-                            KeyCode::Char('t') | KeyCode::Char('.') => {
+                            KeyCode::Char('p') => {
                                 if let Some(fs) = app.current_file_state() {
                                     let _ = std::process::Command::new("xdg-terminal")
                                         .current_dir(&fs.current_path)
@@ -1145,12 +1139,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             .spawn());
                                 }
                             }
+                            KeyCode::Char(' ') => { app.mode = AppMode::CommandPalette; update_commands(app); }
                             _ => {}
                         }
                         return;
                     }
 
                     if key.modifiers.contains(KeyModifiers::ALT) {
+                        let mut handled_reorder = false;
                         match key.code {
                             KeyCode::Left => { if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
                             KeyCode::Right => { if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
@@ -1165,6 +1161,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                     if fav_idx > 0 {
                                                         app.starred.swap(fav_idx, fav_idx - 1);
                                                         app.sidebar_index -= 1;
+                                                        handled_reorder = true;
                                                     }
                                                 }
                                             }
@@ -1182,6 +1179,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                     if fav_idx < app.starred.len() - 1 {
                                                         app.starred.swap(fav_idx, fav_idx + 1);
                                                         app.sidebar_index += 1;
+                                                        handled_reorder = true;
                                                     }
                                                 }
                                             }
@@ -1191,7 +1189,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                             _ => {}
                         }
-                        if app.sidebar_focus {
+                        if app.sidebar_focus && !handled_reorder {
                             let sidebar_items_count = app.sidebar_bounds.len();
                             match key.code {
                                 KeyCode::Down => {
