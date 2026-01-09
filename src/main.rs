@@ -380,6 +380,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     let sidebar_width = app.sidebar_width();
                     let (w, h) = app.terminal_size;
 
+                    // 0. Global Header Handling (Row 0)
+                    if row == 0 {
+                        // Settings Button (0..10)
+                        if column < 10 {
+                            app.mode = AppMode::Settings;
+                            return;
+                        }
+                        // Split Button (far right, width 3)
+                        if column >= w.saturating_sub(3) {
+                            app.toggle_split();
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                            return;
+                        }
+                    }
+
+                    // 1. Modal / Exclusive Handling
+
                     if app.mode == AppMode::Settings {
                         if w > 0 && h > 0 {
                             let area_w = (w as f32 * 0.8) as u16;
