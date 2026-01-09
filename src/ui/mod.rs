@@ -757,7 +757,7 @@ fn draw_file_view(
             ); // Disable default teal highlighting
                // Fix: Use content_area instead of area to avoid overlapping with Tabs!
                // Also update height calculation to use content_area.
-        let height = content_area.height.saturating_sub(2) as usize; // Account for borders
+        let height = content_area.height.saturating_sub(4) as usize; 
         let offset = render_state.offset();
         let selected = render_state.selected();
 
