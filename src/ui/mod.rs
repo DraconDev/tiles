@@ -163,8 +163,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 if is_focused {
                     label = label.style(
                         Style::default()
-                            .bg(Color::Red)
-                            .fg(Color::White)
+                            .bg(THEME.accent_primary)
+                            .fg(Color::Black)
                             .add_modifier(Modifier::BOLD),
                     );
                 }
@@ -233,8 +233,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 };
                 if is_focused {
                     name_style = name_style
-                        .bg(Color::Red)
-                        .fg(Color::White)
+                        .bg(THEME.accent_primary)
+                        .fg(Color::Black)
                         .add_modifier(Modifier::BOLD);
                 }
 
