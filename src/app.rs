@@ -563,13 +563,29 @@ impl App {
 
     pub fn toggle_split(&mut self) {
         if self.panes.len() == 1 {
+            // Entering Split Mode
             if let Some(fs) = self.current_file_state() {
-                let new_fs = fs.clone();
+                let mut new_fs = fs.clone();
                 self.panes.push(Pane::new(new_fs));
             }
+            
+            // Apply Split Mode columns to all panes/tabs
+            for pane in &mut self.panes {
+                for tab in &mut pane.tabs {
+                    tab.columns = self.split_columns.clone();
+                }
+            }
         } else {
+            // Entering Single Mode
             self.panes.pop();
             self.focused_pane_index = 0;
+            
+            // Apply Single Mode columns to the remaining pane/tabs
+            if let Some(pane) = self.panes.get_mut(0) {
+                for tab in &mut pane.tabs {
+                    tab.columns = self.single_columns.clone();
+                }
+            }
         }
     }
 
@@ -604,32 +620,40 @@ impl App {
         if col == FileColumn::Name {
             return;
         }
-        match self.settings_target {
-            SettingsTarget::Pane(idx) => {
-                if let Some(pane) = self.panes.get_mut(idx) {
-                    for tab in &mut pane.tabs {
-                        if tab.columns.contains(&col) {
-                            tab.columns.retain(|c| c != &col);
-                        } else {
-                            tab.columns.push(col);
-                        }
 
-                        // Maintain a consistent default order
-                        let order = [
-                            FileColumn::Name,
-                            FileColumn::Size,
-                            FileColumn::Modified,
-                            FileColumn::Created,
-                            FileColumn::Permissions,
-                        ];
-                        let mut sorted = Vec::new();
-                        for &c in &order {
-                            if tab.columns.contains(&c) {
-                                sorted.push(c);
-                            }
-                        }
-                        tab.columns = sorted;
-                    }
+        let target_cols = match self.settings_target {
+            SettingsTarget::SingleMode => &mut self.single_columns,
+            SettingsTarget::SplitMode => &mut self.split_columns,
+        };
+
+        if target_cols.contains(&col) {
+            target_cols.retain(|c| c != &col);
+        } else {
+            target_cols.push(col);
+        }
+
+        // Maintain consistent order in the template
+        let order = [
+            FileColumn::Name,
+            FileColumn::Size,
+            FileColumn::Modified,
+            FileColumn::Created,
+            FileColumn::Permissions,
+        ];
+        let mut sorted = Vec::new();
+        for &c in &order {
+            if target_cols.contains(&c) {
+                sorted.push(c);
+            }
+        }
+        *target_cols = sorted;
+
+        // Apply to active panes immediately if the target matches the current view mode
+        let current_mode = if self.panes.len() == 1 { SettingsTarget::SingleMode } else { SettingsTarget::SplitMode };
+        if self.settings_target == current_mode {
+            for pane in &mut self.panes {
+                for tab in &mut pane.tabs {
+                    tab.columns = target_cols.clone();
                 }
             }
         }
