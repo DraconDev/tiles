@@ -534,37 +534,3 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
     }
 }
 
-fn fs_mouse_index(row: u16, app: &App) -> usize {
-    let mouse_row_offset = row.saturating_sub(3) as usize;
-    if let Some(fs) = app.current_file_state() { fs.table_state.offset() + mouse_row_offset }
-    else { 0 }
-}
-
-fn update_commands(app: &mut App) {
-    let commands = vec![
-        CommandItem { key: "quit".to_string(), desc: "Quit".to_string(), action: crate::app::CommandAction::Quit },
-        CommandItem { key: "remote".to_string(), desc: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
-    ];
-    let mut filtered = commands;
-    for bookmark_idx in 0..app.remote_bookmarks.len() {
-        let bookmark = &app.remote_bookmarks[bookmark_idx];
-        filtered.push(CommandItem { key: format!("connect_{}", bookmark_idx), desc: format!("Connect to: {}", bookmark.name), action: crate::app::CommandAction::ConnectToRemote(bookmark_idx) });
-    }
-    app.filtered_commands = filtered.into_iter().filter(|cmd| cmd.desc.to_lowercase().contains(&app.input.to_lowercase())).collect();
-    app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
-}
-
-fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: mpsc::Sender<AppEvent>) {
-    match action {
-        crate::app::CommandAction::Quit => { app.running = false; },
-        crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
-        crate::app::CommandAction::SwitchView(view) => app.current_view = view,
-        crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); },
-        crate::app::CommandAction::ConnectToRemote(idx) => {
-            if let Some(_bookmark) = app.remote_bookmarks.get(idx).cloned() {
-                // Connection logic would go here
-            }
-        },
-        crate::app::CommandAction::CommandPalette => { app.mode = AppMode::CommandPalette; },
-    }
-}
