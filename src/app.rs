@@ -36,6 +36,16 @@ pub enum CurrentView {
     Processes,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum ContextMenuTarget {
+    File(usize),
+    Folder(usize),
+    EmptySpace,
+    SidebarFavorite(PathBuf),
+    SidebarRemote(usize),
+    SidebarStorage(usize),
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AppMode {
     Normal,
@@ -51,7 +61,7 @@ pub enum AppMode {
     ContextMenu {
         x: u16,
         y: u16,
-        item_index: Option<usize>,
+        target: ContextMenuTarget,
     },
     CommandPalette,
     Location,
