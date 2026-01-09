@@ -435,10 +435,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                     break;
                 }
 
-                f.render_widget(
-                    Paragraph::new(text).style(style),
-                    Rect::new(current_x, chunk.y, width, 1),
-                );
+                f.render_widget(Paragraph::new(text), Rect::new(current_x, area.y, width, 1).style(style));
                 current_x += width + 1;
             }
         }
@@ -546,58 +543,13 @@ fn draw_file_view(
                     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
                     let display_name = name.to_string();
                     let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
-                    let name_style = if is_dir {
-                        Style::default()
-                            .fg(THEME.accent_secondary)
-                            .add_modifier(Modifier::BOLD)
+                    let mut final_style = if is_dir {
+                        Style::default().fg(THEME.accent_secondary)
                     } else {
-                        // Extension-based color coding
-                        let ext = path
-                            .extension()
-                            .and_then(|e| e.to_str())
-                            .unwrap_or("")
-                            .to_lowercase();
-                        let ext_color = match ext.as_str() {
-                            "rs" | "py" | "c" | "cpp" | "h" | "hpp" | "js" | "ts" | "go"
-                            | "java" | "rb" | "php" | "sh" => THEME.file_code,
-                            "toml" | "json" | "yaml" | "yml" | "xml" | "ini" | "conf" | "cfg" => {
-                                THEME.file_config
-                            }
-                            "png" | "jpg" | "jpeg" | "gif" | "bmp" | "svg" | "mp4" | "mkv"
-                            | "avi" | "mp3" | "wav" => THEME.file_media,
-                            "zip" | "tar" | "gz" | "bz2" | "xz" | "7z" | "rar" => {
-                                THEME.file_archive
-                            }
-                            "exe" | "bin" | "elf" => THEME.file_exec,
-                            _ => {
-                                // Check for executable permissions if available
-                                if let Some(meta) = metadata {
-                                    if meta.permissions & 0o100 != 0 {
-                                        THEME.file_exec
-                                    } else {
-                                        THEME.fg
-                                    }
-                                } else {
-                                    THEME.fg
-                                }
-                            }
-                        };
-                        Style::default().fg(ext_color)
+                        Style::default().fg(THEME.fg)
                     };
 
-                    // Build display with optional git status and star
                     let mut suffix = String::new();
-                    let mut final_style = name_style;
-                    if let Some(status) = file_state.git_status.get(path) {
-                        suffix.push_str(&format!(" [{}]", status));
-                        match status.as_str() {
-                            "M" | "MM" => final_style = final_style.fg(Color::Yellow),
-                            "A" | "AM" => final_style = final_style.fg(Color::Green),
-                            "??" => final_style = final_style.fg(Color::DarkGray),
-                            "D" => final_style = final_style.fg(Color::Red),
-                            _ => {}
-                        }
-                    }
                     if app.starred.contains(path) {
                         suffix.push_str(" [*]");
                         final_style = final_style
@@ -799,22 +751,10 @@ fn draw_file_view(
             let scrollbar = Scrollbar::default()
                 .orientation(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(Some("▲"))
-                .end_symbol(Some("▼"))
-                .track_symbol(Some("│"))
-                .thumb_symbol("█")
-                .style(Style::default().fg(Color::Yellow));
-
-            let mut scrollbar_state = ScrollbarState::new(file_state.files.len())
+                .end_symbol(Some("▼"));
+            let mut scroll_state = ScrollbarState::new(file_state.files.len())
                 .position(file_state.table_state.offset());
-
-            // Render on the right border
-            let scrollbar_area = Rect {
-                x: area.x + area.width.saturating_sub(1),
-                y: area.y + 1,
-                width: 1,
-                height: area.height.saturating_sub(2),
-            };
-            f.render_stateful_widget(scrollbar, scrollbar_area, &mut scrollbar_state);
+            f.render_stateful_widget(scrollbar, area, &mut scroll_state);
         }
     }
 }
@@ -1064,12 +1004,12 @@ fn draw_delete_modal(f: &mut Frame, app: &App) {
                 "Delete? (y/n)".to_string()
             }
         }
-        CurrentView::Processes => "Delete Process? (y/n)".to_string(),
+        CurrentView::Processes => "Kill Process? (y/n)".to_string(),
     };
     f.render_widget(
         Paragraph::new(text).block(
             Block::default()
-                .title(" Confirm Action ")
+                .title(" Confirm Delete ")
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Red)),
@@ -1079,51 +1019,36 @@ fn draw_delete_modal(f: &mut Frame, app: &App) {
 }
 
 fn draw_properties_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(50, 30, f.area());
+    let area = centered_rect(50, 50, f.area());
     f.render_widget(Clear, area);
-    let info = match app.current_view {
-        CurrentView::Files => {
-            if let Some(fs) = app.current_file_state() {
-                if let Some(idx) = fs.selected_index {
-                    if let Some(p) = fs.files.get(idx) {
-                        let metadata = std::fs::metadata(p);
-                        let mut s = format!(
-                            "Name: {}\n",
-                            p.file_name().unwrap_or_default().to_string_lossy()
-                        );
-                        s.push_str(&format!(
-                            "Type: {}\n",
-                            if p.is_dir() { "Directory" } else { "File" }
-                        ));
-                        if let Ok(m) = metadata {
-                            s.push_str(&format!("Size: {} bytes\n", m.len()));
-                            if let Ok(modi) = m.modified() {
-                                s.push_str(&format!("Modified: {:?}\n", modi));
-                            }
-                        }
-                        s
-                    } else {
-                        "No file selected".to_string()
-                    }
-                } else {
-                    "No file selected".to_string()
+    if let Some(fs) = app.current_file_state() {
+        if let Some(idx) = fs.selected_index {
+            if let Some(path) = fs.files.get(idx) {
+                let meta = fs.metadata.get(path);
+                let mut lines = Vec::new();
+                lines.push(Line::from(format!("Name: {}", path.display())));
+                if let Some(m) = meta {
+                    lines.push(Line::from(format!("Size: {}", format_size(m.size))));
+                    lines.push(Line::from(format!("Modified: {}", format_time(m.modified))));
+                    lines.push(Line::from(format!("Created: {}", format_time(m.created))));
+                    lines.push(Line::from(format!(
+                        "Permissions: {}",
+                        format_permissions(m.permissions)
+                    )));
                 }
-            } else {
-                "No file selected".to_string()
+                f.render_widget(
+                    Paragraph::new(lines).block(
+                        Block::default()
+                            .title(" Properties ")
+                            .borders(Borders::ALL)
+                            .border_type(BorderType::Rounded)
+                            .border_style(Style::default().fg(Color::Blue)),
+                    ),
+                    area,
+                );
             }
         }
-        CurrentView::Processes => "Process Info".to_string(),
-    };
-    f.render_widget(
-        Paragraph::new(info).block(
-            Block::default()
-                .title(" Properties ")
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(Color::Cyan)),
-        ),
-        area,
-    );
+    }
 }
 
 fn draw_settings_modal(f: &mut Frame, app: &App) {
@@ -1268,19 +1193,15 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_add_remote_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(50, 20, f.area());
+    let area = centered_rect(60, 40, f.area());
     f.render_widget(Clear, area);
-    let text = format!(
-        "Enter connection string (user@host:port):\n> {}\n\n(Press Enter to add, Esc to cancel)",
-        app.input
-    );
     f.render_widget(
-        Paragraph::new(text).block(
+        Paragraph::new(app.input.as_str()).block(
             Block::default()
-                .title(" Add Remote Host ")
+                .title(" Add Remote Host (user@host:port) ")
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(Color::Green)),
+                .border_style(Style::default().fg(Color::Cyan)),
         ),
         area,
     );
@@ -1295,6 +1216,7 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
             Constraint::Percentage((100 - percent_y) / 2),
         ])
         .split(r);
+
     Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
