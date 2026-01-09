@@ -503,25 +503,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         _ => app.mode = AppMode::Normal,
                                     }
                                 }
-                                ContextMenuTarget::SidebarFavorite(path) => {
-                                    let path = path.clone();
+                                ContextMenuTarget::SidebarRemote(idx) => {
                                     match menu_row {
-                                        0 => { // Unstar
-                                            app.starred.retain(|x| x != &path);
+                                        0 => { // Connect
+                                            execute_command(crate::app::CommandAction::ConnectToRemote(*idx), app, event_tx.clone());
                                             app.mode = AppMode::Normal;
                                         }
-                                        1 => { // Open in new tab
-                                            if let Some(fs) = app.current_file_state() {
-                                                let new_fs = crate::app::FileState::new(path, fs.remote_session.clone(), fs.show_hidden, fs.columns.clone(), fs.sort_column, fs.sort_ascending);
-                                                if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                                                    pane.open_tab(new_fs);
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                                }
+                                        1 => { // Remove
+                                            if *idx < app.remote_bookmarks.len() {
+                                                app.remote_bookmarks.remove(*idx);
                                             }
                                             app.mode = AppMode::Normal;
                                         }
                                         _ => app.mode = AppMode::Normal,
                                     }
+                                }
+                                ContextMenuTarget::SidebarStorage(_idx) => {
+                                    // Mount/Unmount are placeholders for now
+                                    app.mode = AppMode::Normal;
                                 }
                                 _ => app.mode = AppMode::Normal,
                             }
