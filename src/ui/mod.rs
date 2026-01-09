@@ -733,6 +733,14 @@ fn draw_file_view(
             }
         }
 
+        // Add git branch if available
+        if let Some(branch) = &file_state.git_branch {
+            breadcrumb_spans.push(Span::styled(
+                format!(" ({})", branch),
+                Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD),
+            ));
+        }
+
         // Add search filter if active
         if !file_state.search_filter.is_empty() {
             breadcrumb_spans.push(Span::styled(
