@@ -348,7 +348,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         draw_new_file_modal(f, app);
     }
     if matches!(app.mode, AppMode::Settings) {
-        draw_column_setup_modal(f, app);
+        draw_settings_modal(f, app);
     }
     if matches!(app.mode, AppMode::CommandPalette) {
         draw_command_palette(f, app);
