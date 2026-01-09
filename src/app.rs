@@ -462,6 +462,18 @@ impl App {
         // Implementation here if needed
     }
 
+    pub fn toggle_column(&mut self, col: FileColumn) {
+        if let Some(fs) = self.current_file_state_mut() {
+            if fs.columns.contains(&col) {
+                fs.columns.retain(|c| c != &col);
+            } else {
+                fs.columns.push(col);
+                // Optional: Maintain a standard order? Or let user order?
+                // For now, let's just append.
+            }
+        }
+    }
+
     pub fn move_up(&mut self, shift: bool) {
         if let Some(fs) = self.current_file_state_mut() {
             let old_idx = fs.selected_index.unwrap_or(0);

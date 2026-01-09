@@ -572,6 +572,42 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                         }
 
+                        // Check Column Headers (Dynamic Row)
+                        if app.current_view == CurrentView::Files {
+                            let mut clicked_pane_index = None;
+                            let mut clicked_col = None;
+
+                            for (i, pane) in app.panes.iter().enumerate() {
+                                if let Some(fs) = pane.current_state() {
+                                    for (rect, col_type) in &fs.column_bounds {
+                                        // Check if click is strictly on the header row (rect.y)
+                                        if rect.contains(ratatui::layout::Position { x: column, y: row }) && row == rect.y {
+                                            clicked_pane_index = Some(i);
+                                            clicked_col = Some(*col_type);
+                                            break;
+                                        }
+                                    }
+                                }
+                                if clicked_pane_index.is_some() { break; }
+                            }
+
+                            if let (Some(pane_idx), Some(col)) = (clicked_pane_index, clicked_col) {
+                                app.focused_pane_index = pane_idx;
+                                if let Some(pane) = app.panes.get_mut(pane_idx) {
+                                    if let Some(fs) = pane.current_state_mut() {
+                                        if fs.sort_column == col {
+                                            fs.sort_ascending = !fs.sort_ascending;
+                                        } else {
+                                            fs.sort_column = col;
+                                            fs.sort_ascending = true;
+                                        }
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+
                         // Row 1: Breadcrumbs
                         if row == 1 {
                              let pane_count = app.panes.len();
@@ -671,30 +707,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 }
 
                                 if app.current_view == CurrentView::Files {
-                                    // Column header click detection (row 2 is the header row)
-                                    if row == 2 {
-                                        if let Some(fs) = app.current_file_state_mut() {
-                                            let mut clicked_col = None;
-                                            for (rect, col_type) in &fs.column_bounds {
-                                                if rect.contains(ratatui::layout::Position { x: column, y: row }) {
-                                                    clicked_col = Some(*col_type);
-                                                    break;
-                                                }
-                                            }
-                                            
-                                            if let Some(col) = clicked_col {
-                                                    if fs.sort_column == col {
-                                                        fs.sort_ascending = !fs.sort_ascending;
-                                                    } else {
-                                                        fs.sort_column = col;
-                                                        fs.sort_ascending = true;
-                                                    }
-                                                    // Trigger refresh to re-sort
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                                    return;
-                                                }
-                                            }
-                                        } else if row >= 3 {
+                                    // Column header click is now handled above globally for all panes.
+                                    // We just check content rows here.
+                                    if row >= 3 {
                                         // File Row Click
                                         let content_start = sidebar_width + 1;
                                         if column >= content_start {
@@ -890,6 +905,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                             app.mode = AppMode::Normal;
                         }
+                        _ => {}
+                    }
+                }
+                AppMode::ColumnSetup => {
+                    match key.code {
+                        KeyCode::Esc => app.mode = AppMode::Normal,
+                        KeyCode::Char('n') => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                        KeyCode::Char('s') => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                        KeyCode::Char('m') => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                        KeyCode::Char('c') => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                        KeyCode::Char('p') => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                        KeyCode::Char('e') => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
                         _ => {}
                     }
                 }

@@ -2,6 +2,8 @@ terma is to be a shared terminal manipulation library so if logic can be built i
 
 we cant reorder files and folders, but we can select different comumns and click on them to sort by them, asc or desc, 
 
+enable to set cols for single file tab and split tabs, maybe not even the same tabs for each split tab
+
 show the active storage(s) on sidebar and later we ould want to show if remote too, so if we have our main disk open and a remote disk then we see them both highlighted on the sidebar, if we opened antoehr disk then we see both disks, if i only have my main open on left panel and right panel or we just have panel that has it then we only see that, 
 
 different context menus for clicing on folders, files, sidebar files, empty space, and remotes
@@ -17,7 +19,7 @@ not sure how muc interaction we can have with files but we should look into it
 
 we are looking to persist the state of the app, so if we close and open it again we see the same state
 
-enable to set cols for single file tab and split tabs, maybe not even the same tabs for each split tab
+
 
 on the sidebar should have a Remotes, Storages, section and they all long like the Files on top, no favorite section top section is auto favorites
 
