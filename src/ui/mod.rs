@@ -1099,54 +1099,49 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
         .split(area);
 
     // Target Selection
-    let titles = vec![" [Pane 1] ", " [Pane 2] "];
+    let titles = vec![" [Single] ", " [Split] "];
     let sel = match app.settings_target {
-        SettingsTarget::Pane(0) => 0,
-        SettingsTarget::Pane(1) => 1,
-        _ => 0,
+        SettingsTarget::SingleMode => 0,
+        SettingsTarget::SplitMode => 1,
     };
     
     let tabs = Tabs::new(titles)
-        .block(Block::default().borders(Borders::BOTTOM).title(" Configure Target "))
+        .block(Block::default().borders(Borders::BOTTOM).title(" Configure Mode "))
         .select(sel)
         .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
     f.render_widget(tabs, chunks[0]);
 
-    // Show columns for the selected target
-    // If Global, show intersection or just a template? 
-    // Let's show the focused tab's current state as the baseline.
-    if let Some(fs) = app.current_file_state() {
-        let options = vec![
-            (FileColumn::Size, "Size (s)"),
-            (FileColumn::Modified, "Modified (m)"),
-            (FileColumn::Created, "Created (c)"),
-            (FileColumn::Permissions, "Permissions (p)"),
-        ];
-        
-        let target_fs = match app.settings_target {
-            SettingsTarget::Pane(idx) => app.panes.get(idx).and_then(|p: &crate::app::Pane| p.current_state()).unwrap_or(fs),
-        };
+    let options = vec![
+        (FileColumn::Size, "Size (s)"),
+        (FileColumn::Modified, "Modified (m)"),
+        (FileColumn::Created, "Created (c)"),
+        (FileColumn::Permissions, "Permissions (p)"),
+    ];
+    
+    let target_cols = match app.settings_target {
+        SettingsTarget::SingleMode => &app.single_columns,
+        SettingsTarget::SplitMode => &app.split_columns,
+    };
 
-        let items: Vec<ListItem> = options
-            .iter()
-            .map(|(col, label)| {
-                let prefix = if target_fs.columns.contains(col) {
-                    "[x] "
-                } else {
-                    "[ ] "
-                };
-                ListItem::new(format!("{}{}", prefix, label))
-            })
-            .collect();
-        f.render_widget(
-            List::new(items).block(
-                Block::default()
-                    .title(" Visible Columns ")
-                    .borders(Borders::NONE),
-            ),
-            chunks[1],
-        );
-    }
+    let items: Vec<ListItem> = options
+        .iter()
+        .map(|(col, label)| {
+            let prefix = if target_cols.contains(col) {
+                "[x] "
+            } else {
+                "[ ] "
+            };
+            ListItem::new(format!("{}{}", prefix, label))
+        })
+        .collect();
+    f.render_widget(
+        List::new(items).block(
+            Block::default()
+                .title(" Visible Columns ")
+                .borders(Borders::NONE),
+        ),
+        chunks[1],
+    );
 }
 
 fn draw_tab_settings(f: &mut Frame, area: Rect, app: &App) {
