@@ -589,6 +589,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
 
                             if let (Some(pane_idx), Some(col)) = (clicked_pane_index, clicked_col) {
+                                crate::log_debug(&format!("Header Clicked: Pane {}, Col {:?}", pane_idx, col));
                                 app.focused_pane_index = pane_idx;
                                 if let Some(pane) = app.panes.get_mut(pane_idx) {
                                     if let Some(fs) = pane.current_state_mut() {
