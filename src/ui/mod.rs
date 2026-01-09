@@ -160,19 +160,30 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             for (i, bookmark) in app.remote_bookmarks.iter().enumerate() {
                 let current_bookmark_idx = sidebar_items.len();
                 let is_focused = app.sidebar_focus && app.sidebar_index == current_bookmark_idx;
-                let mut label = ListItem::new(bookmark.name.clone());
+                
+                let is_active = app.panes.iter().any(|p| {
+                    p.tabs.iter().any(|t| {
+                        t.remote_session.as_ref().map(|s| s.host == bookmark.host).unwrap_or(false)
+                    })
+                });
+
+                let mut style = if is_active {
+                    Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(THEME.fg)
+                };
+
                 if is_focused {
-                    label = label.style(
-                        Style::default()
-                            .bg(THEME.accent_primary)
-                            .fg(Color::Black)
-                            .add_modifier(Modifier::BOLD),
-                    );
+                    style = style
+                        .bg(THEME.accent_primary)
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD);
                 }
-                sidebar_items.push(label);
+
+                sidebar_items.push(ListItem::new(bookmark.name.clone()).style(style));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
-                    index: current_bookmark_idx, // elementary logic says focus check should use current_bookmark_idx
+                    index: current_bookmark_idx,
                     target: SidebarTarget::Remote(i),
                 });
                 current_y += 1;
@@ -821,7 +832,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     // CPU
     spans.push(ratatui::text::Span::styled(
         format!("CPU: {:.0}%", app.system_state.cpu_usage),
-        Style::default().fg(Color::Green),
+        Style::default().fg(Color::Yellow),
     ));
     spans.push(ratatui::text::Span::raw(" | "));
 
@@ -847,13 +858,13 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
         let storage_percent = (total_used / total_space) * 100.0;
         spans.push(ratatui::text::Span::styled(
             format!("Storage: {:.0}%", storage_percent),
-            Style::default().fg(Color::Cyan),
+            Style::default().fg(Color::Yellow),
         ));
     } else if let Some(disk) = app.system_state.disks.first() {
         let free = disk.total_space - disk.used_space;
         spans.push(ratatui::text::Span::styled(
             format!("Storage: {:.1}GB", free),
-            Style::default().fg(Color::Cyan),
+            Style::default().fg(Color::Yellow),
         ));
     }
 
