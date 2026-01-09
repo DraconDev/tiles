@@ -362,35 +362,37 @@ impl App {
         let license = check_license();
 
         if let Some(state) = crate::config::load_state() {
-            return Self {
-                running: true,
-                current_view: state.current_view,
-                mode: AppMode::Normal,
-                input: String::new(),
-                panes: state.panes,
-                focused_pane_index: state.focused_pane_index,
-                terminal_size: (0, 0),
-                mouse_pos: (0, 0),
-                system_state,
-                license,
-                sidebar_focus: false,
-                sidebar_index: 0,
-                remote_bookmarks: state.remote_bookmarks,
-                active_sessions: HashMap::new(),
-                filtered_commands: Vec::new(),
-                command_index: 0,
-                last_click: None,
-                tile_queue,
-                git_status_check_in_progress: false,
-                drag_source: None,
-                is_dragging: false,
-                drag_start_pos: None,
-                hovered_drop_target: None,
-                starred: state.starred,
-                sidebar_bounds: Vec::new(),
-                mouse_last_click: std::time::Instant::now(),
-                mouse_click_pos: (0, 0),
-            };
+            if !state.panes.is_empty() {
+                return Self {
+                    running: true,
+                    current_view: state.current_view,
+                    mode: AppMode::Normal,
+                    input: String::new(),
+                    panes: state.panes,
+                    focused_pane_index: state.focused_pane_index,
+                    terminal_size: (0, 0),
+                    mouse_pos: (0, 0),
+                    system_state,
+                    license,
+                    sidebar_focus: false,
+                    sidebar_index: 0,
+                    remote_bookmarks: state.remote_bookmarks,
+                    active_sessions: HashMap::new(),
+                    filtered_commands: Vec::new(),
+                    command_index: 0,
+                    last_click: None,
+                    tile_queue,
+                    git_status_check_in_progress: false,
+                    drag_source: None,
+                    is_dragging: false,
+                    drag_start_pos: None,
+                    hovered_drop_target: None,
+                    starred: state.starred,
+                    sidebar_bounds: Vec::new(),
+                    mouse_last_click: std::time::Instant::now(),
+                    mouse_click_pos: (0, 0),
+                };
+            }
         }
 
         let initial_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
