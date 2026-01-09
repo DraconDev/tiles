@@ -332,7 +332,6 @@ impl Pane {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SettingsTarget {
-    AllPanes,
     Pane(usize),
 }
 
