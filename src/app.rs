@@ -650,7 +650,9 @@ impl App {
     }
 
     pub fn move_to_other_pane(&mut self) {
+        log_debug("move_to_other_pane start");
         if self.panes.len() < 2 {
+            log_debug("Not enough panes for move");
             return;
         }
         let other_pane_idx = if self.focused_pane_index == 0 { 1 } else { 0 };
@@ -658,6 +660,7 @@ impl App {
         let dest_path = if let Some(other_fs) = self.panes[other_pane_idx].current_state() {
             other_fs.current_path.clone()
         } else {
+            log_debug("Target pane has no state");
             return;
         };
 
@@ -675,14 +678,22 @@ impl App {
                 }
             }
 
+            log_debug(&format!("Found {} paths to move to {:?}", paths_to_move.len(), dest_path));
+
             for src in paths_to_move {
                 if let Some(filename) = src.file_name() {
                     let dest = dest_path.join(filename);
+                    log_debug(&format!("Moving {:?} to {:?}", src, dest));
                     if let Err(e) = crate::modules::files::move_recursive(&src, &dest) {
                         log_debug(&format!("Move failed from {:?} to {:?}: {}", src, dest, e));
                     }
                 }
             }
+            // Clear multi-select after move
+            fs.multi_select.clear();
+            fs.selection_anchor = None;
+        } else {
+            log_debug("Current pane has no state");
         }
     }
 }
