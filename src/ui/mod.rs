@@ -299,17 +299,17 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         ])
         .split(f.area());
 
-    draw_global_header(f, chunks[0], app);
-
     let workspace = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(20), Constraint::Min(0)])
         .split(chunks[1]);
 
-    draw_sidebar(f, workspace[0], app);
-    // Pass the same horizontal layout to main stage
-    draw_main_stage(f, workspace[1], app);
+    let sidebar_area = workspace[0];
+    let main_stage_area = workspace[1];
 
+    draw_global_header(f, chunks[0], sidebar_area.width, app);
+    draw_sidebar(f, sidebar_area, app);
+    draw_main_stage(f, main_stage_area, app);
     draw_footer(f, chunks[2], app);
 
     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
@@ -342,7 +342,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     }
 }
 
-fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
+fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
     let pane_count = app.panes.len();
     
     // Burger Menu (Settings) at Top-Left
@@ -375,8 +375,6 @@ fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
 
     // Tabs Area
     // Align Tabs with the Panes (skip Sidebar)
-    let sidebar_width = (app.terminal_size.0 * 20) / 100;
-    
     // Ensure tabs start AFTER sidebar, but also don't overlap menu if sidebar is tiny (unlikely)
     let start_x = std::cmp::max(area.x + sidebar_width, area.x + menu_width + 1);
     
