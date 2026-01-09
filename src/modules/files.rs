@@ -10,120 +10,163 @@ pub fn update_files(state: &mut FileState, session: Option<&ssh2::Session>) {
 }
 
 fn update_local_files(state: &mut FileState) {
-    if let Ok(entries) = std::fs::read_dir(&state.current_path) {
-        state.files.clear();
-        state.metadata.clear();
+    state.files.clear();
+    state.metadata.clear();
 
-        for entry in entries.filter_map(|e| e.ok()) {
-            let path = entry.path();
+    if state.search_filter.len() >= 3 {
+        // Global Search (Recursive)
+        let mut count = 0;
+        let walker = walkdir::WalkDir::new(&state.current_path)
+            .follow_links(false)
+            .into_iter()
+            .filter_entry(|e| {
+                let name = e.file_name().to_string_lossy();
+                if !state.show_hidden && name.starts_with('.') { return false; }
+                true
+            });
 
-            // Filtering
+        for entry in walker.filter_map(|e| e.ok()) {
+            if count >= 100 { break; }
+            let path = entry.path().to_path_buf();
+            if path == state.current_path { continue; }
+
             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if !state.show_hidden && name.starts_with('.') {
-                continue;
+            if name.to_lowercase().contains(&state.search_filter.to_lowercase()) {
+                if let Ok(m) = entry.metadata() {
+                    let meta = crate::app::FileMetadata {
+                        size: m.len(),
+                        modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                        created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                        #[cfg(unix)]
+                        permissions: {
+                            use std::os::unix::fs::PermissionsExt;
+                            m.permissions().mode()
+                        },
+                        #[cfg(not(unix))]
+                        permissions: 0,
+                        extension: path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string(),
+                        is_dir: m.is_dir(),
+                    };
+                    state.metadata.insert(path.clone(), meta);
+                    state.files.push(path);
+                    count += 1;
+                }
             }
-            if !state.search_filter.is_empty()
-                && !name
-                    .to_lowercase()
-                    .contains(&state.search_filter.to_lowercase())
-            {
-                continue;
-            }
+        }
+    } else {
+        // Local Search (Current Dir Only)
+        if let Ok(entries) = std::fs::read_dir(&state.current_path) {
+            for entry in entries.filter_map(|e| e.ok()) {
+                let path = entry.path();
 
-            // Metadata Cache (The Fix)
-            // Use std::fs::metadata to ensure we follow symlinks to get the REAL file size.
-            // Fallback to entry.metadata() (symlink itself) if target is broken.
-            let metadata_result = std::fs::metadata(&path).or_else(|_| entry.metadata());
+                // Filtering
+                let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                if !state.show_hidden && name.starts_with('.') {
+                    continue;
+                }
+                if !state.search_filter.is_empty()
+                    && !name
+                        .to_lowercase()
+                        .contains(&state.search_filter.to_lowercase())
+                {
+                    continue;
+                }
 
-            if let Ok(m) = metadata_result {
-                let meta = crate::app::FileMetadata {
-                    size: m.len(),
-                    modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-                    created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-                    #[cfg(unix)]
-                    permissions: {
-                        use std::os::unix::fs::PermissionsExt;
-                        m.permissions().mode()
-                    },
-                    #[cfg(not(unix))]
-                    permissions: 0,
-                    extension: path
-                        .extension()
-                        .and_then(|e| e.to_str())
-                        .unwrap_or("")
-                        .to_string(),
-                    is_dir: m.is_dir(),
-                };
-                state.metadata.insert(path.clone(), meta);
+                // Metadata Cache (The Fix)
+                // Use std::fs::metadata to ensure we follow symlinks to get the REAL file size.
+                // Fallback to entry.metadata() (symlink itself) if target is broken.
+                let metadata_result = std::fs::metadata(&path).or_else(|_| entry.metadata());
+
+                if let Ok(m) = metadata_result {
+                    let meta = crate::app::FileMetadata {
+                        size: m.len(),
+                        modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                        created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                        #[cfg(unix)]
+                        permissions: {
+                            use std::os::unix::fs::PermissionsExt;
+                            m.permissions().mode()
+                        },
+                        #[cfg(not(unix))]
+                        permissions: 0,
+                        extension: path
+                            .extension()
+                            .and_then(|e| e.to_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        is_dir: m.is_dir(),
+                    };
+                    state.metadata.insert(path.clone(), meta);
+                }
+                state.files.push(path);
             }
-            state.files.push(path);
+        }
+    }
+
+    // Sort files: directories first, then by selected column
+    let sort_col = state.sort_column;
+    let sort_asc = state.sort_ascending;
+    state.files.sort_by(|a, b| {
+        let a_meta = state.metadata.get(a);
+        let b_meta = state.metadata.get(b);
+        let a_is_dir = a_meta.map(|m| m.is_dir).unwrap_or(false);
+        let b_is_dir = b_meta.map(|m| m.is_dir).unwrap_or(false);
+
+        // Directories always come first
+        if a_is_dir && !b_is_dir {
+            return std::cmp::Ordering::Less;
+        } else if !a_is_dir && b_is_dir {
+            return std::cmp::Ordering::Greater;
         }
 
-        // Sort files: directories first, then by selected column
-        let sort_col = state.sort_column;
-        let sort_asc = state.sort_ascending;
-        state.files.sort_by(|a, b| {
-            let a_meta = state.metadata.get(a);
-            let b_meta = state.metadata.get(b);
-            let a_is_dir = a_meta.map(|m| m.is_dir).unwrap_or(false);
-            let b_is_dir = b_meta.map(|m| m.is_dir).unwrap_or(false);
-
-            // Directories always come first
-            if a_is_dir && !b_is_dir {
-                return std::cmp::Ordering::Less;
-            } else if !a_is_dir && b_is_dir {
-                return std::cmp::Ordering::Greater;
+        // Within same type, sort by selected column
+        let ord = match sort_col {
+            crate::app::FileColumn::Name => a.file_name().cmp(&b.file_name()),
+            crate::app::FileColumn::Size => {
+                let a_size = a_meta.map(|m| m.size).unwrap_or(0);
+                let b_size = b_meta.map(|m| m.size).unwrap_or(0);
+                a_size.cmp(&b_size)
             }
-
-            // Within same type, sort by selected column
-            let ord = match sort_col {
-                crate::app::FileColumn::Name => a.file_name().cmp(&b.file_name()),
-                crate::app::FileColumn::Size => {
-                    let a_size = a_meta.map(|m| m.size).unwrap_or(0);
-                    let b_size = b_meta.map(|m| m.size).unwrap_or(0);
-                    a_size.cmp(&b_size)
-                }
-                crate::app::FileColumn::Modified => {
-                    let a_mod = a_meta
-                        .map(|m| m.modified)
-                        .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-                    let b_mod = b_meta
-                        .map(|m| m.modified)
-                        .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-                    a_mod.cmp(&b_mod)
-                }
-                crate::app::FileColumn::Created => {
-                    let a_cr = a_meta
-                        .map(|m| m.created)
-                        .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-                    let b_cr = b_meta
-                        .map(|m| m.created)
-                        .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-                    a_cr.cmp(&b_cr)
-                }
-                crate::app::FileColumn::Permissions => {
-                    let a_perm = a_meta.map(|m| m.permissions).unwrap_or(0);
-                    let b_perm = b_meta.map(|m| m.permissions).unwrap_or(0);
-                    a_perm.cmp(&b_perm)
-                }
-                crate::app::FileColumn::Extension => {
-                    let a_ext = a.extension().and_then(|e| e.to_str()).unwrap_or("");
-                    let b_ext = b.extension().and_then(|e| e.to_str()).unwrap_or("");
-                    a_ext.cmp(b_ext)
-                }
-            };
-
-            if sort_asc {
-                ord
-            } else {
-                ord.reverse()
+            crate::app::FileColumn::Modified => {
+                let a_mod = a_meta
+                    .map(|m| m.modified)
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                let b_mod = b_meta
+                    .map(|m| m.modified)
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                a_mod.cmp(&b_mod)
             }
-        });
+            crate::app::FileColumn::Created => {
+                let a_cr = a_meta
+                    .map(|m| m.created)
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                let b_cr = b_meta
+                    .map(|m| m.created)
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                a_cr.cmp(&b_cr)
+            }
+            crate::app::FileColumn::Permissions => {
+                let a_perm = a_meta.map(|m| m.permissions).unwrap_or(0);
+                let b_perm = b_meta.map(|m| m.permissions).unwrap_or(0);
+                a_perm.cmp(&b_perm)
+            }
+            crate::app::FileColumn::Extension => {
+                let a_ext = a.extension().and_then(|e| e.to_str()).unwrap_or("");
+                let b_ext = b.extension().and_then(|e| e.to_str()).unwrap_or("");
+                a_ext.cmp(b_ext)
+            }
+        };
 
-        // Git Integration
-        state.git_status.clear();
-        state.git_branch = get_git_branch(&state.current_path);
-    }
+        if sort_asc {
+            ord
+        } else {
+            ord.reverse()
+        }
+    });
+
+    // Git Integration
+    state.git_status.clear();
+    state.git_branch = get_git_branch(&state.current_path);
 }
 
 fn get_git_branch(path: &std::path::Path) -> Option<String> {
