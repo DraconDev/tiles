@@ -625,7 +625,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         // Row 0: Global Header (Menu / Tabs / Split)
                         if row == 0 {
                             // 1. Menu Button (Top Left)
-                            if column < 3 {
+                            if column < 10 {
                                 app.mode = AppMode::ColumnSetup;
                                 return;
                             }
@@ -639,7 +639,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
 
                             // 3. Tab Click Logic
-                            let menu_width = 3;
+                            let menu_width = 10;
                             if column >= menu_width && column < right_x {
                                 let pane_count = app.panes.len();
                                 if pane_count > 0 {
