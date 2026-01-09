@@ -1130,15 +1130,38 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                             KeyCode::Char('.') | KeyCode::Char('p') | KeyCode::Char('P') | KeyCode::Char('t') => {
                                 if let Some(fs) = app.current_file_state() {
-                                    let _ = std::process::Command::new("xdg-terminal")
+                                    crate::app::log_debug(&format!("Attempting to open terminal in: {:?}", fs.current_path));
+                                    
+                                    let result = std::process::Command::new("xdg-terminal")
                                         .current_dir(&fs.current_path)
-                                        .spawn()
-                                        .or_else(|_| std::process::Command::new("gnome-terminal")
-                                            .current_dir(&fs.current_path)
-                                            .spawn())
-                                        .or_else(|_| std::process::Command::new("xterm")
-                                            .current_dir(&fs.current_path)
-                                            .spawn());
+                                        .spawn();
+                                        
+                                    match result {
+                                        Ok(_) => crate::app::log_debug("Successfully spawned xdg-terminal"),
+                                        Err(e) => {
+                                            crate::app::log_debug(&format!("Failed to spawn xdg-terminal: {}", e));
+                                            
+                                            let result = std::process::Command::new("gnome-terminal")
+                                                .current_dir(&fs.current_path)
+                                                .spawn();
+                                                
+                                            match result {
+                                                Ok(_) => crate::app::log_debug("Successfully spawned gnome-terminal"),
+                                                Err(e) => {
+                                                    crate::app::log_debug(&format!("Failed to spawn gnome-terminal: {}", e));
+                                                    
+                                                    let result = std::process::Command::new("xterm")
+                                                        .current_dir(&fs.current_path)
+                                                        .spawn();
+                                                        
+                                                    match result {
+                                                        Ok(_) => crate::app::log_debug("Successfully spawned xterm"),
+                                                        Err(e) => crate::app::log_debug(&format!("Failed to spawn xterm: {}", e)),
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             KeyCode::Char(' ') => { app.mode = AppMode::CommandPalette; update_commands(app); }
