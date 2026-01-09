@@ -23,20 +23,4 @@ shift up or down keep selecting in file tab
 
 ## Done
 
-we are looking to persist the state of the app, so if we close and open it again we see the same state
 
-shift left or right copy over in file tab, between panes
-
-ctrl left or right move over in file tab, between panes
-
-buttom right cpu and storage should be yellow, just like memory, it signifies use 
-
-we are not using fancy icons, we use color coding
-
-we navigate with the arrow keys to left right up down, so on the file tab we navigate to the sidebar and to the right file tab, and up and down the file list 
-
-instead of seeing Files at the top of the tab,e we should see the absolute path, and that path should be clickable, when we click on a breadcrumb we should go to that directory, also when we search taht is what we replace for the search term
-
-we gont and odd bug on the test1 tab we see the right file lists elements that is on the saw row as the panels1 same elements breaking the containers and is off to the left by 4? cells
-
-show active git branch after the path on the file tab
