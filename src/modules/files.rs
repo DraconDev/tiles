@@ -181,9 +181,67 @@ fn update_remote_files(state: &mut FileState, session: &ssh2::Session) {
                 state.metadata.insert(path.clone(), meta);
                 state.files.push(path);
             }
-            state
-                .files
-                .sort_by(|a, b| a.file_name().cmp(&b.file_name()));
+
+            // Sort files: directories first, then by selected column
+            let sort_col = state.sort_column;
+            let sort_asc = state.sort_ascending;
+            state.files.sort_by(|a, b| {
+                let a_meta = state.metadata.get(a);
+                let b_meta = state.metadata.get(b);
+                let a_is_dir = a_meta.map(|m| m.is_dir).unwrap_or(false);
+                let b_is_dir = b_meta.map(|m| m.is_dir).unwrap_or(false);
+
+                // Directories always come first
+                if a_is_dir && !b_is_dir {
+                    return std::cmp::Ordering::Less;
+                } else if !a_is_dir && b_is_dir {
+                    return std::cmp::Ordering::Greater;
+                }
+
+                // Within same type, sort by selected column
+                let ord = match sort_col {
+                    crate::app::FileColumn::Name => a.file_name().cmp(&b.file_name()),
+                    crate::app::FileColumn::Size => {
+                        let a_size = a_meta.map(|m| m.size).unwrap_or(0);
+                        let b_size = b_meta.map(|m| m.size).unwrap_or(0);
+                        a_size.cmp(&b_size)
+                    }
+                    crate::app::FileColumn::Modified => {
+                        let a_mod = a_meta
+                            .map(|m| m.modified)
+                            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                        let b_mod = b_meta
+                            .map(|m| m.modified)
+                            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                        a_mod.cmp(&b_mod)
+                    }
+                    crate::app::FileColumn::Created => {
+                        let a_cr = a_meta
+                            .map(|m| m.created)
+                            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                        let b_cr = b_meta
+                            .map(|m| m.created)
+                            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                        a_cr.cmp(&b_cr)
+                    }
+                    crate::app::FileColumn::Permissions => {
+                        let a_perm = a_meta.map(|m| m.permissions).unwrap_or(0);
+                        let b_perm = b_meta.map(|m| m.permissions).unwrap_or(0);
+                        a_perm.cmp(&b_perm)
+                    }
+                    crate::app::FileColumn::Extension => {
+                        let a_ext = a.extension().and_then(|e| e.to_str()).unwrap_or("");
+                        let b_ext = b.extension().and_then(|e| e.to_str()).unwrap_or("");
+                        a_ext.cmp(b_ext)
+                    }
+                };
+
+                if sort_asc {
+                    ord
+                } else {
+                    ord.reverse()
+                }
+            });
         }
     }
 }
