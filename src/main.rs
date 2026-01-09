@@ -884,7 +884,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 }
                 AppMode::NewFile => {
                     match key.code {
-                        KeyCode::Esc => app.mode = AppMode::Normal,
+                        KeyCode::Esc => { crate::app::log_debug("Esc in NewFile"); app.mode = AppMode::Normal; app.input.clear(); }
                         KeyCode::Char(c) => app.input.push(c),
                         KeyCode::Backspace => { app.input.pop(); }
                         KeyCode::Enter => {
@@ -899,7 +899,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 }
                 AppMode::NewFolder => {
                     match key.code {
-                        KeyCode::Esc => app.mode = AppMode::Normal,
+                        KeyCode::Esc => { crate::app::log_debug("Esc in NewFolder"); app.mode = AppMode::Normal; app.input.clear(); }
                         KeyCode::Char(c) => app.input.push(c),
                         KeyCode::Backspace => { app.input.pop(); }
                         KeyCode::Enter => {
