@@ -309,8 +309,11 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     let main_stage_area = workspace[1];
 
     draw_global_header(f, chunks[0], sidebar_area.width, app);
+    crate::app::log_debug("Header done");
     draw_sidebar(f, sidebar_area, app);
+    crate::app::log_debug("Sidebar done");
     draw_main_stage(f, main_stage_area, app);
+    crate::app::log_debug("Main stage done");
     draw_footer(f, chunks[2], app);
     crate::app::log_debug("Draw complete");
 
