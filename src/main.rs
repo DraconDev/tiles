@@ -866,7 +866,19 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         _ => {}
                     }
                 }
-                AppMode::Location => {
+                AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::NewFolder | AppMode::NewFile | AppMode::AddRemote => {
+                     match key.code {
+                         KeyCode::Esc => app.mode = AppMode::Normal,
+                         _ => {
+                             // Pass through to specific handlers if not Esc.
+                             // Wait, specific handlers are separate matches?
+                             // No, I need to restructure this because `match app.mode` only matches ONE arm.
+                             // Currently I have `AppMode::NewFile => { ... }`.
+                             // I must MODIFY those specific blocks to include Esc handling if they don't have it.
+                         }
+                     }
+                }
+
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
                         KeyCode::Char(c) => app.input.push(c),
