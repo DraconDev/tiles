@@ -45,8 +45,10 @@ fn main() -> color_eyre::Result<()> {
 //                                    TTY MODE
 // ==================================================================================
 fn run_tty() -> color_eyre::Result<()> {
+    crate::app::log_debug("run_tty start");
     // Initialize TermaBackend (Raw Mode, etc.)
     let backend = TermaBackend::new(std::io::stdout())?;
+    crate::app::log_debug("TermaBackend created");
     let tile_queue = backend.tile_queue();
     let mut terminal = Terminal::new(backend)?;
 

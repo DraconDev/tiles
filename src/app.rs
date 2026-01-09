@@ -473,7 +473,9 @@ impl App {
 
             mouse_last_click: std::time::Instant::now(),
             mouse_click_pos: (0, 0),
-        }
+        };
+        log_debug("App::new finished successfully");
+        app
     }
 
     pub fn current_file_state_mut(&mut self) -> Option<&mut FileState> {
