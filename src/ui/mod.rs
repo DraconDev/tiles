@@ -535,10 +535,11 @@ fn draw_file_view(
 
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             if path.to_string_lossy() == "__DIVIDER__" {
+                // Return a solid row with the theme's primary accent background
                 let cells = file_state.columns.iter().map(|_| {
-                    Cell::from("────────────").style(Style::default().fg(Color::DarkGray))
+                    Cell::from("").style(Style::default().bg(THEME.accent_primary))
                 });
-                return Row::new(cells).style(Style::default().fg(Color::DarkGray));
+                return Row::new(cells).style(Style::default().bg(THEME.accent_primary));
             }
 
             let metadata = file_state.metadata.get(path);
