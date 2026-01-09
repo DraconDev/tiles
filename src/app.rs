@@ -568,6 +568,10 @@ impl App {
     }
 
     pub fn toggle_column(&mut self, col: FileColumn) {
+        // Name and Extension are mandatory
+        if col == FileColumn::Name || col == FileColumn::Extension {
+            return;
+        }
         match self.settings_target {
             SettingsTarget::Pane(idx) => {
                 if let Some(pane) = self.panes.get_mut(idx) {
