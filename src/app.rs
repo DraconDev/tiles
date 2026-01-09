@@ -330,6 +330,12 @@ impl Pane {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum SettingsTarget {
+    AllPanes,
+    Pane(usize),
+}
+
 pub struct App {
     pub running: bool,
     pub current_view: CurrentView,
@@ -364,6 +370,12 @@ pub struct App {
     pub mouse_last_click: std::time::Instant,
     pub mouse_click_pos: (u16, u16),
     pub settings_section: SettingsSection,
+    pub settings_target: SettingsTarget,
+    
+    // Global Preferences
+    pub default_show_hidden: bool,
+    pub confirm_delete: bool,
+    pub preferred_terminal: Option<String>,
 }
 
 impl App {
