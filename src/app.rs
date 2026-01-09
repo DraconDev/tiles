@@ -419,6 +419,7 @@ impl App {
                     mouse_last_click: std::time::Instant::now(),
                     mouse_click_pos: (0, 0),
                     tasks: state.tasks,
+                    task_index: 0,
                 };
             }
         }
