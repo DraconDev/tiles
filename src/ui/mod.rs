@@ -381,8 +381,8 @@ fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
     // Ensure tabs start AFTER sidebar, but also don't overlap menu if sidebar is tiny (unlikely)
     let start_x = std::cmp::max(area.x + sidebar_width, area.x + menu_width + 1);
     
-    // End before Split button
-    let end_x = area.x + area.width.saturating_sub(split_width + 1);
+    // Use full width to ensure alignment with panes
+    let end_x = area.x + area.width;
     
     let tabs_width = end_x.saturating_sub(start_x);
     
