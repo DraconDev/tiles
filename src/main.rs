@@ -380,7 +380,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                         
                         // Check Folder Hover in content panes
-                        if app.hovered_drop_target.is_none() && row >= 4 && column >= sidebar_width {
+                        if app.hovered_drop_target.is_none() && row >= 3 && column >= sidebar_width {
                             let index = fs_mouse_index(row, app);
                             if let Some(fs) = app.current_file_state() {
                                 if let Some(path) = fs.files.get(index) {
@@ -424,55 +424,58 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
                                 let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
                                 
-                                // Left sidebar is 15 wide
-                                if column < inner.x + 15 {
-                                    let rel_y = row.saturating_sub(inner.y);
-                                    match rel_y {
-                                        0 => app.settings_section = crate::app::SettingsSection::Columns,
-                                        1 => app.settings_section = crate::app::SettingsSection::Tabs,
-                                        2 => app.settings_section = crate::app::SettingsSection::General,
-                                        _ => {}
-                                    }
-                                } else {
-                                    // Main content area
-                                    match app.settings_section {
-                                        crate::app::SettingsSection::Columns => {
-                                            // Tabs at the top of content (inner.y to inner.y + 2)
-                                            if row >= inner.y && row < inner.y + 3 {
-                                                let content_x = column.saturating_sub(inner.x + 16);
-                                                let tab_width = 12; // Approximation
-                                                match content_x / tab_width {
-                                                    0 => app.settings_target = crate::app::SettingsTarget::AllPanes,
-                                                    1 => app.settings_target = crate::app::SettingsTarget::Pane(0),
-                                                    2 => if app.panes.len() > 1 { app.settings_target = crate::app::SettingsTarget::Pane(1); },
-                                                    _ => {}
-                                                }
-                                            } else {
-                                                // Column list
-                                                let rel_y = row.saturating_sub(inner.y + 4);
-                                                match rel_y {
-                                                    0 => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    1 => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    2 => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    3 => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    4 => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    5 => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    _ => {}
-                                                }
-                                            }
-                                        }
-                                        crate::app::SettingsSection::General => {
-                                            let rel_y = row.saturating_sub(inner.y);
-                                            match rel_y {
-                                                0 => app.default_show_hidden = !app.default_show_hidden,
-                                                1 => app.confirm_delete = !app.confirm_delete,
-                                                _ => {}
-                                            }
-                                        }
-                                        _ => {}
-                                    }
-                                }
-                                return;
+                                                                    // Left sidebar is 15 wide
+                                                                    if column < inner.x + 15 {
+                                                                        let rel_y = row.saturating_sub(inner.y);
+                                                                        match rel_y {
+                                                                            0 => app.settings_section = crate::app::SettingsSection::Columns,
+                                                                            1 => app.settings_section = crate::app::SettingsSection::Tabs,
+                                                                            2 => app.settings_section = crate::app::SettingsSection::General,
+                                                                            _ => {}
+                                                                        }
+                                                                    } else {
+                                                                        // Main content area
+                                                                        match app.settings_section {
+                                                                            crate::app::SettingsSection::Columns => {
+                                                                                // Tabs at the top of content (inner.y to inner.y + 2)
+                                                                                if row >= inner.y && row < inner.y + 3 {
+                                                                                    let content_x = column.saturating_sub(inner.x + 16);
+                                                                                    let tab_width = 12; // Approximation
+                                                                                    match content_x / tab_width {
+                                                                                        0 => app.settings_target = crate::app::SettingsTarget::AllPanes,
+                                                                                        1 => app.settings_target = crate::app::SettingsTarget::Pane(0),
+                                                                                        2 => if app.panes.len() > 1 { app.settings_target = crate::app::SettingsTarget::Pane(1); },
+                                                                                        _ => {}
+                                                                                    }
+                                                                                } else {
+                                                                                    // Column list
+                                                                                    // inner.y is the top of the content area.
+                                                                                    // Tabs take 3 rows (0, 1, 2).
+                                                                                    // List starts at inner.y + 3.
+                                                                                    let rel_y = row.saturating_sub(inner.y + 3);
+                                                                                    match rel_y {
+                                                                                        0 => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                        1 => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                        2 => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                        3 => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                        4 => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                        5 => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                        _ => {}
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            crate::app::SettingsSection::General => {
+                                                                                // General prefs start at inner.y
+                                                                                let rel_y = row.saturating_sub(inner.y);
+                                                                                match rel_y {
+                                                                                    0 => app.default_show_hidden = !app.default_show_hidden,
+                                                                                    1 => app.confirm_delete = !app.confirm_delete,
+                                                                                    _ => {}
+                                                                                }
+                                                                            }
+                                                                            _ => {}
+                                                                        }
+                                                                    }                                return;
                             } else {
                                 // Click outside modal closes it
                                 app.mode = AppMode::Normal;
@@ -661,7 +664,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 return;
                             }
                         } else {
-                            let index = if app.current_view == CurrentView::Files && row >= 4 {
+                            let index = if app.current_view == CurrentView::Files && row >= 3 {
                                 let idx = fs_mouse_index(row, app);
                                 if let Some(fs) = app.current_file_state() { if idx < fs.files.len() { Some(idx) } else { None } } else { None }
                             } else { None };
@@ -907,7 +910,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 if app.current_view == CurrentView::Files {
                                     // Column header click is now handled above globally for all panes.
                                     // We just check content rows here.
-                                    if row >= 4 {
+                                    if row >= 3 {
                                         // File Row Click
                                         let content_start = sidebar_width + 1;
                                         if column >= content_start {

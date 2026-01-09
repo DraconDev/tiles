@@ -493,8 +493,9 @@ fn draw_file_view(
         let mut render_state = ratatui::widgets::TableState::default();
         if let Some(sel) = file_state.selected_index {
             let offset = file_state.table_state.offset();
-            // Capacity = Height - 2 (Borders) - 1 (Header) - 1 (Alignment padding)
-            let capacity = file_state.view_height.saturating_sub(4);
+            // Capacity = Height - 2 (Borders) - 1 (Header)
+            // User reported last row is broken; sub(3) instead of sub(4) to show more.
+            let capacity = file_state.view_height.saturating_sub(3);
 
             // CRITICAL FIX: Only tell Ratatui to select the row if it is PHYSICALLY visible
             // based on our manual offset. Otherwise, Ratatui will auto-scroll the offset
@@ -757,7 +758,7 @@ fn draw_file_view(
             ); // Disable default teal highlighting
                // Fix: Use content_area instead of area to avoid overlapping with Tabs!
                // Also update height calculation to use content_area.
-        let height = content_area.height.saturating_sub(4) as usize; 
+        let height = content_area.height.saturating_sub(2) as usize; // Account for borders
         let offset = render_state.offset();
         let selected = render_state.selected();
 
