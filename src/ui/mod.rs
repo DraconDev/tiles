@@ -76,7 +76,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let mut sidebar_items = Vec::new();
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
-            let is_dragging_over_sidebar = app.is_dragging && app.mouse_pos.0 < area.width;
+            let is_dragging_over_sidebar = app.is_dragging && app.drag_source.is_some() && app.mouse_pos.0 < area.width;
 
             if is_dragging_over_sidebar {
                 let current_idx = sidebar_items.len();
