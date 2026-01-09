@@ -139,14 +139,61 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     app_guard.system_state.disks = data.disks;
                 }
                 AppEvent::RefreshFiles(pane_idx) => {
-                    let mut app_guard = app.lock().unwrap();
-                    app_guard.update_files_for_active_tab(pane_idx);
+                    let (path, show_hidden, filter, session, sort_column, sort_ascending) = {
+                        let app_guard = app.lock().unwrap();
+                        if let Some(pane) = app_guard.panes.get(pane_idx) {
+                            if let Some(fs) = pane.current_state() {
+                                (
+                                    fs.current_path.clone(),
+                                    fs.show_hidden,
+                                    fs.search_filter.clone(),
+                                    fs.remote_session.as_ref().map(|rs| rs.session.clone()),
+                                    fs.sort_column,
+                                    fs.sort_ascending
+                                )
+                            } else { continue; }
+                        } else { continue; }
+                    };
+                    
+                    let tx = event_tx.clone();
+                    tokio::spawn(async move {
+                        let mut temp_state = crate::app::FileState::new(
+                            path,
+                            None,
+                            show_hidden,
+                            vec![], // Columns don't matter for the logic task
+                            sort_column,
+                            sort_ascending,
+                        );
+                        temp_state.search_filter = filter;
+                        
+                        if let Some(s_mutex) = session {
+                            if let Ok(s) = s_mutex.lock() { 
+                                crate::modules::files::update_files(&mut temp_state, Some(&s)); 
+                            }
+                        } else {
+                            crate::modules::files::update_local_files(&mut temp_state);
+                        }
+                        
+                        let _ = tx.send(AppEvent::FilesUpdated(
+                            pane_idx, 
+                            temp_state.files, 
+                            temp_state.metadata, 
+                            temp_state.git_status, 
+                            temp_state.git_branch,
+                            temp_state.local_count
+                        )).await;
+                    });
                 }
-                AppEvent::FilesUpdated(pane_idx, files, meta, git, branch) => {
+                AppEvent::FilesUpdated(pane_idx, files, meta, git, branch, local_count) => {
                     let mut app_guard = app.lock().unwrap();
                     if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
                         if let Some(fs) = pane.current_state_mut() {
-                            fs.files = files; fs.metadata = meta; fs.git_status = git; fs.git_branch = branch;
+                            fs.files = files; 
+                            fs.metadata = meta; 
+                            fs.git_status = git; 
+                            fs.git_branch = branch;
+                            fs.local_count = local_count;
                         }
                     }
                 }

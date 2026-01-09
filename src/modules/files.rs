@@ -128,31 +128,34 @@ fn update_local_files(state: &mut FileState) {
             .into_iter()
             .filter_entry(|e| {
                 let name = e.file_name().to_string_lossy();
-                // De-prioritize hidden but also don't traverse them if show_hidden is off
                 if !state.show_hidden && name.starts_with('.') { return false; }
                 true
             });
 
         for entry in walker.filter_map(|e| e.ok()) {
-            if scored_global.len() >= 500 { break; } // Traverse enough to find good matches
+            if scored_global.len() >= 2000 { break; } // Traverse more to find better matches
             let path = entry.path().to_path_buf();
             
-            // Skip the current dir and anything already found in local search
             if path == state.current_path || local_files.contains(&path) { continue; }
 
-            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            let name_lower = name.to_lowercase();
+            // Match against the RELATIVE path from current root
+            let rel_path = path.strip_prefix(&state.current_path).unwrap_or(&path);
+            let search_target = rel_path.to_string_lossy().to_lowercase();
             
-            if name_lower.contains(&filter_lower) {
+            if search_target.contains(&filter_lower) {
                 if let Ok(m) = entry.metadata() {
                     // SCORING: lower is better
                     let depth = entry.depth();
                     let path_len = path.to_string_lossy().len();
-                    let is_exact = if name_lower == filter_lower { 0 } else { 1 };
-                    // Penalty for hidden files if they are shown
-                    let hidden_penalty = if name.starts_with('.') { 50 } else { 0 };
                     
-                    let score = depth * 20 + path_len + is_exact * 100 + hidden_penalty;
+                    // Priority: if filename matches, it's better than just path matching
+                    let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
+                    let filename_bonus = if filename.contains(&filter_lower) { 0 } else { 200 };
+                    let is_exact = if filename == filter_lower { 0 } else { 50 };
+                    
+                    let hidden_penalty = if path.to_string_lossy().contains("/.") { 50 } else { 0 };
+                    
+                    let score = depth * 10 + path_len + filename_bonus + is_exact + hidden_penalty;
                     
                     let meta = crate::app::FileMetadata {
                         size: m.len(),
@@ -173,9 +176,9 @@ fn update_local_files(state: &mut FileState) {
             }
         }
         
-        // Sort by score and take top 100
+        // Sort by score and take top 200
         scored_global.sort_by_key(|(s, _, _)| *s);
-        for (_, path, meta) in scored_global.into_iter().take(100) {
+        for (_, path, meta) in scored_global.into_iter().take(200) {
             state.metadata.insert(path.clone(), meta);
             global_files.push(path);
         }
