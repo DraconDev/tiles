@@ -1130,37 +1130,40 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                             KeyCode::Char('.') | KeyCode::Char('p') | KeyCode::Char('P') | KeyCode::Char('t') => {
                                 if let Some(fs) = app.current_file_state() {
-                                    crate::app::log_debug(&format!("Attempting to open terminal in: {:?}", fs.current_path));
+                                    // Priority list of terminals to try
+                                    let terminals = ["alacritty", "kitty", "wezterm", "gnome-terminal", "konsole", "xterm", "xdg-terminal"];
+                                    let mut spawned = false;
                                     
-                                    let result = std::process::Command::new("xdg-terminal")
-                                        .current_dir(&fs.current_path)
-                                        .spawn();
-                                        
-                                    match result {
-                                        Ok(_) => crate::app::log_debug("Successfully spawned xdg-terminal"),
-                                        Err(e) => {
-                                            crate::app::log_debug(&format!("Failed to spawn xdg-terminal: {}", e));
+                                    for t in terminals {
+                                        // Check if binary exists in PATH using 'which'
+                                        let exists = std::process::Command::new("which")
+                                            .arg(t)
+                                            .stdout(std::process::Stdio::null())
+                                            .stderr(std::process::Stdio::null())
+                                            .status()
+                                            .map(|s| s.success())
+                                            .unwrap_or(false);
                                             
-                                            let result = std::process::Command::new("gnome-terminal")
+                                        if exists {
+                                            crate::app::log_debug(&format!("Found terminal candidate: {}", t));
+                                            match std::process::Command::new(t)
                                                 .current_dir(&fs.current_path)
-                                                .spawn();
-                                                
-                                            match result {
-                                                Ok(_) => crate::app::log_debug("Successfully spawned gnome-terminal"),
+                                                .spawn() 
+                                            {
+                                                Ok(_) => {
+                                                    crate::app::log_debug(&format!("Successfully spawned {}", t));
+                                                    spawned = true;
+                                                    break;
+                                                }
                                                 Err(e) => {
-                                                    crate::app::log_debug(&format!("Failed to spawn gnome-terminal: {}", e));
-                                                    
-                                                    let result = std::process::Command::new("xterm")
-                                                        .current_dir(&fs.current_path)
-                                                        .spawn();
-                                                        
-                                                    match result {
-                                                        Ok(_) => crate::app::log_debug("Successfully spawned xterm"),
-                                                        Err(e) => crate::app::log_debug(&format!("Failed to spawn xterm: {}", e)),
-                                                    }
+                                                    crate::app::log_debug(&format!("Failed to spawn {}: {}", t, e));
                                                 }
                                             }
                                         }
+                                    }
+                                    
+                                    if !spawned {
+                                        crate::app::log_debug("No suitable terminal emulator found in PATH.");
                                     }
                                 }
                             }
