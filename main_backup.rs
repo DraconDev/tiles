@@ -408,7 +408,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                 }
                 MouseEventKind::Down(button) => {
-                MouseEventKind::Down(button) => {
                     let sidebar_width = app.sidebar_width();
                     let (w, h) = app.terminal_size;
 
@@ -425,60 +424,142 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
                                 let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
                                 
-                                // Left sidebar is 15 wide
-                                if column < inner.x + 15 {
-                                    let rel_y = row.saturating_sub(inner.y);
-                                    match rel_y {
-                                        0 => app.settings_section = crate::app::SettingsSection::Columns,
-                                        1 => app.settings_section = crate::app::SettingsSection::Tabs,
-                                        2 => app.settings_section = crate::app::SettingsSection::General,
-                                        _ => {}
-                                    }
-                                } else {
-                                    // Main content area
-                                    match app.settings_section {
-                                        crate::app::SettingsSection::Columns => {
-                                            // Tabs at the top of content (inner.y to inner.y + 2)
-                                            if row >= inner.y && row < inner.y + 3 {
-                                                let content_x = column.saturating_sub(inner.x + 16);
-                                                let tab_width = 12; 
-                                                match content_x / tab_width {
-                                                    0 => app.settings_target = crate::app::SettingsTarget::AllPanes,
-                                                    1 => app.settings_target = crate::app::SettingsTarget::Pane(0),
-                                                    2 => if app.panes.len() > 1 { app.settings_target = crate::app::SettingsTarget::Pane(1); },
-                                                    _ => {}
-                                                }
-                                            } else if row >= inner.y + 4 {
-                                                // Column list
-                                                let rel_y = row.saturating_sub(inner.y + 4);
-                                                match rel_y {
-                                                    0 => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    1 => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    2 => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    3 => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    4 => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    5 => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
-                                                    _ => {}
-                                                }
-                                            }
-                                        }
-                                        crate::app::SettingsSection::General => {
-                                            let rel_y = row.saturating_sub(inner.y);
-                                            match rel_y {
-                                                0 => app.default_show_hidden = !app.default_show_hidden,
-                                                1 => app.confirm_delete = !app.confirm_delete,
-                                                _ => {}
-                                            }
-                                        }
-                                        _ => {}
-                                    }
-                                }
-                                return;
+                                                                                                                                    // Left sidebar is 15 wide
+                                
+                                                                                                                                    if column < inner.x + 15 {
+                                
+                                                                                                                                        let rel_y = row.saturating_sub(inner.y);
+                                
+                                                                                                                                        match rel_y {
+                                
+                                                                                                                                            0 => app.settings_section = crate::app::SettingsSection::Columns,
+                                
+                                                                                                                                            1 => app.settings_section = crate::app::SettingsSection::Tabs,
+                                
+                                                                                                                                            2 => app.settings_section = crate::app::SettingsSection::General,
+                                
+                                                                                                                                            _ => {}
+                                
+                                                                                                                                        }
+                                
+                                                                                                                                    } else {
+                                
+                                                                                                                                        // Main content area
+                                
+                                                                                                                                        match app.settings_section {
+                                
+                                                                                                                                            crate::app::SettingsSection::Columns => {
+                                
+                                                                                                                                                // Tabs at the top of content (inner.y to inner.y + 2)
+                                
+                                                                                                                                                if row >= inner.y && row < inner.y + 3 {
+                                
+                                                                                                                                                    let content_x = column.saturating_sub(inner.x + 16);
+                                
+                                                                                                                                                    let tab_width = 12; 
+                                
+                                                                                                                                                    match content_x / tab_width {
+                                
+                                                                                                                                                        0 => app.settings_target = crate::app::SettingsTarget::AllPanes,
+                                
+                                                                                                                                                        1 => app.settings_target = crate::app::SettingsTarget::Pane(0),
+                                
+                                                                                                                                                        2 => if app.panes.len() > 1 { app.settings_target = crate::app::SettingsTarget::Pane(1); },
+                                
+                                                                                                                                                        _ => {}
+                                
+                                                                                                                                                    }
+                                
+                                                                                                                                                } else if row >= inner.y + 4 {
+                                
+                                                                                                                                                    // Column list
+                                
+                                                                                                                                                    // inner.y is the top of content.
+                                
+                                                                                                                                                    // Tabs take 3 rows (0,1,2). List title is row 3. Items start row 4.
+                                
+                                                                                                                                                    let rel_y = row.saturating_sub(inner.y + 4);
+                                
+                                                                                                                                                    match rel_y {
+                                
+                                                                                                                                                        0 => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                
+                                                                                                                                                        1 => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                
+                                                                                                                                                        2 => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                
+                                                                                                                                                        3 => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                
+                                                                                                                                                        4 => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                
+                                                                                                                                                        5 => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                
+                                                                                                                                                        _ => {}
+                                
+                                                                                                                                                    }
+                                
+                                                                                                                                                }
+                                
+                                                                                                                                            }
+                                
+                                                                                                                                            crate::app::SettingsSection::General => {
+                                
+                                                                                                                                                // General prefs start at inner.y
+                                
+                                                                                                                                                let rel_y = row.saturating_sub(inner.y);
+                                
+                                                                                                                                                match rel_y {
+                                
+                                                                                                                                                    0 => app.default_show_hidden = !app.default_show_hidden,
+                                
+                                                                                                                                                    1 => app.confirm_delete = !app.confirm_delete,
+                                
+                                                                                                                                                    _ => {}
+                                
+                                                                                                                                                }
+                                
+                                                                                                                                            }
+                                
+                                                                                                                                            _ => {}
+                                
+                                                                                                                                        }
+                                
+                                                                                                                                    }                                return;
                             } else {
+                                // Click outside modal closes it
                                 app.mode = AppMode::Normal;
                                 return;
                             }
                         }
+                    }
+
+                    // 2. Mouse Back/Forward Buttons
+                    if button == MouseButton::Back || button == MouseButton::Forward {
+                        if let Some(fs) = app.current_file_state_mut() {
+                            if button == MouseButton::Back { navigate_back(fs); }
+                            else { navigate_forward(fs); }
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        }
+                        return;
+                    }
+
+                    // 3. Normal Focus logic (happens for all other clicks)
+                    if column >= sidebar_width {
+                        let pane_count = app.panes.len();
+                        if pane_count > 0 {
+                             let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
+                             let content_col = column.saturating_sub(sidebar_width);
+                             let pane_width = content_area_width / pane_count as u16;
+                             let clicked_pane = (content_col / pane_width) as usize;
+                             if clicked_pane < pane_count {
+                                  app.focused_pane_index = clicked_pane;
+                             }
+                        }
+                    }
+
+                    if app.mode == AppMode::Settings {
+                        // Already handled above
+                        return;
                     }
 
                     if let AppMode::ContextMenu { x, y, target } = app.mode.clone() {
@@ -577,16 +658,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             app.mode = AppMode::Normal;
                                         }
                                         1 => { // Open in new tab
-                                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                                                let mut new_fs = pane.tabs[pane.active_tab_index].clone();
-                                                new_fs.current_path = p_fav.clone();
-                                                new_fs.selected_index = Some(0);
-                                                new_fs.search_filter.clear();
-                                                *new_fs.table_state.offset_mut() = 0;
-                                                new_fs.history = vec![p_fav];
-                                                new_fs.history_index = 0;
-                                                pane.open_tab(new_fs);
-                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                            if let Some(fs) = app.current_file_state() {
+                                                let new_fs = crate::app::FileState::new(p_fav, fs.remote_session.clone(), fs.show_hidden, fs.columns.clone(), fs.sort_column, fs.sort_ascending);
+                                                if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                                    pane.open_tab(new_fs);
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                                }
                                             }
                                             app.mode = AppMode::Normal;
                                         }
@@ -596,162 +673,339 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 ContextMenuTarget::SidebarRemote(idx) => {
                                     match menu_row {
                                         0 => { // Connect
-                                            let bookmark_idx = *idx;
-                                            crate::app::log_debug(&format!("Connecting to remote bookmark index: {}", bookmark_idx));
-                                            execute_command(crate::app::CommandAction::ConnectToRemote(bookmark_idx), app, event_tx.clone());
+                                            execute_command(crate::app::CommandAction::ConnectToRemote(idx), app, event_tx.clone());
                                             app.mode = AppMode::Normal;
                                         }
                                         1 => { // Remove
-                                            app.remote_bookmarks.remove(*idx);
+                                            if idx < app.remote_bookmarks.len() {
+                                                app.remote_bookmarks.remove(idx);
+                                            }
                                             app.mode = AppMode::Normal;
                                         }
                                         _ => app.mode = AppMode::Normal,
                                     }
                                 }
-                                ContextMenuTarget::SidebarStorage(idx) => {
-                                    match menu_row {
-                                        0 => { // Mount
-                                            app.mode = AppMode::Normal;
-                                        }
-                                        1 => { // Unmount
-                                            app.mode = AppMode::Normal;
-                                        }
-                                        _ => app.mode = AppMode::Normal,
-                                    }
+                                ContextMenuTarget::SidebarStorage(_idx) => {
+                                    // Mount/Unmount are placeholders for now
+                                    app.mode = AppMode::Normal;
                                 }
                             }
                             return;
+                        }
+                        app.mode = AppMode::Normal;
+                        return;
+                    }
+                    if button == MouseButton::Right {
+                        let sidebar_width = app.sidebar_width();
+                        if column < sidebar_width {
+                            let mut clicked_bound = None;
+                            for bound in &app.sidebar_bounds {
+                                if bound.y == row { clicked_bound = Some(bound.clone()); break; }
+                            }
+                            if let Some(bound) = clicked_bound {
+                                let target = match bound.target {
+                                    SidebarTarget::Favorite(p) => ContextMenuTarget::SidebarFavorite(p),
+                                    SidebarTarget::Remote(idx) => ContextMenuTarget::SidebarRemote(idx),
+                                    SidebarTarget::Storage(idx) => ContextMenuTarget::SidebarStorage(idx),
+                                    SidebarTarget::Header(_) => ContextMenuTarget::EmptySpace,
+                                };
+                                app.mode = AppMode::ContextMenu { x: column, y: row, target };
+                                return;
+                            }
                         } else {
-                            app.mode = AppMode::Normal;
+                            let index = if app.current_view == CurrentView::Files && row >= 3 {
+                                let idx = fs_mouse_index(row, app);
+                                if let Some(fs) = app.current_file_state() { if idx < fs.files.len() { Some(idx) } else { None } } else { None }
+                            } else { None };
+                            
+                            let target = if let Some(idx) = index {
+                                let is_dir = if let Some(fs) = app.current_file_state() {
+                                    fs.metadata.get(&fs.files[idx]).map(|m| m.is_dir).unwrap_or(false)
+                                } else { false };
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    fs.selected_index = Some(idx);
+                                    fs.table_state.select(Some(idx));
+                                }
+                                if is_dir { ContextMenuTarget::Folder(idx) } else { ContextMenuTarget::File(idx) }
+                            } else {
+                                ContextMenuTarget::EmptySpace
+                            };
+                            app.mode = AppMode::ContextMenu { x: column, y: row, target };
                             return;
                         }
                     }
-
-                    if app.mode != AppMode::Normal {
-                        return;
-                    }
-
-                    // 2. Mouse Back/Forward Buttons
-                    if button == MouseButton::Back || button == MouseButton::Forward {
-                        if let Some(fs) = app.current_file_state_mut() {
-                            if button == MouseButton::Back { navigate_back(fs); }
-                            else { navigate_forward(fs); }
-                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                        }
-                        return;
-                    }
-
-                    // 3. Normal Focus logic (happens for all other clicks)
-                    if column >= sidebar_width {
-                        let pane_count = app.panes.len();
-                        if pane_count > 0 {
-                             let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
-                             let content_col = column.saturating_sub(sidebar_width);
-                             let pane_width = content_area_width / pane_count as u16;
-                             let clicked_pane = (content_col / pane_width) as usize;
-                             if clicked_pane < pane_count {
-                                  app.focused_pane_index = clicked_pane;
-                             }
-                        }
-                    }
-
-                    if app.current_view == CurrentView::Files {
-                        // Header click
-                        let mut clicked_pane_index = None;
-                        let mut clicked_col = None;
-                        for (i, pane) in app.panes.iter().enumerate() {
-                            if let Some(fs) = pane.current_state() {
-                                for (rect, col_type) in &fs.column_bounds {
-                                    if rect.contains(ratatui::layout::Position { x: column, y: row }) && row == rect.y {
-                                        clicked_pane_index = Some(i); clicked_col = Some(*col_type); break;
+                    if button == MouseButton::Middle {
+                        if app.current_view == CurrentView::Files {
+                            let index = fs_mouse_index(row, app);
+                            if let Some(fs) = app.current_file_state() {
+                                if let Some(path) = fs.files.get(index).cloned() {
+                                    if path.is_dir() {
+                                        let new_fs = crate::app::FileState::new(
+                                            path.clone(),
+                                            fs.remote_session.clone(),
+                                            fs.show_hidden,
+                                            fs.columns.clone(),
+                                            fs.sort_column,
+                                            fs.sort_ascending,
+                                        );
+                                        // Open in new tab in current pane
+                                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                            pane.open_tab(new_fs);
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                        }
                                     }
                                 }
                             }
-                            if clicked_pane_index.is_some() { break; }
                         }
-                        if let (Some(pane_idx), Some(col)) = (clicked_pane_index, clicked_col) {
-                            app.focused_pane_index = pane_idx;
-                            if let Some(pane) = app.panes.get_mut(pane_idx) {
-                                if let Some(fs) = pane.current_state_mut() {
-                                    if fs.sort_column == col { fs.sort_ascending = !fs.sort_ascending; }
-                                    else { fs.sort_column = col; fs.sort_ascending = true; }
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
-                                    return;
+                        return;
+                    }
+                    if button == MouseButton::Left {
+                        // Row 0: Global Header (Menu / Tabs / Split)
+                        if row == 0 {
+                            // 1. Menu Button (Top Left)
+                            if column < 10 {
+                                app.mode = AppMode::Settings;
+                                return;
+                            }
+
+                            // 2. Split Button (Top Right)
+                            let split_width = 3;
+                            let right_x = app.terminal_size.0.saturating_sub(split_width);
+                            if column >= right_x {
+                                app.toggle_split();
+                                return;
+                            }
+
+                            // 3. Tab Click Logic
+                            let menu_width = 10;
+                            if column >= menu_width && column < right_x {
+                                let pane_count = app.panes.len();
+                                if pane_count > 0 {
+                                    // Tabs occupy area between Menu and Split
+                                    let tabs_width = right_x.saturating_sub(menu_width);
+                                    let pane_width = tabs_width / pane_count as u16;
+                                    
+                                    // Relative column inside tab area
+                                    let rel_col_global = column.saturating_sub(menu_width);
+                                    
+                                    let clicked_pane_idx = (rel_col_global / pane_width) as usize;
+                                    if clicked_pane_idx < pane_count {
+                                        app.focused_pane_index = clicked_pane_idx;
+                                        
+                                        // Identify Tab within Pane
+                                        let pane_start_rel_x = (clicked_pane_idx as u16) * pane_width;
+                                        let rel_col = rel_col_global.saturating_sub(pane_start_rel_x);
+                                        
+                                        let mut current_x = 0;
+                                        
+                                        if let Some(pane) = app.panes.get_mut(clicked_pane_idx) {
+                                            for (t_i, tab) in pane.tabs.iter().enumerate() {
+                                                let name = if !tab.search_filter.is_empty() {
+                                                    format!("Search: {}", tab.search_filter)
+                                                } else {
+                                                    tab.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("/".to_string())
+                                                };
+                                                let text = format!(" {} ", name);
+                                                let width = text.len() as u16;
+                                                
+                                                if rel_col >= current_x && rel_col < current_x + width {
+                                                    pane.active_tab_index = t_i;
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(clicked_pane_idx));
+                                                    return;
+                                                }
+                                                current_x += width + 1; 
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        // Breadcrumbs
+                        // Check Column Headers (Dynamic Row)
+                        if app.current_view == CurrentView::Files {
+                            let mut clicked_pane_index = None;
+                            let mut clicked_col = None;
+
+                            for (i, pane) in app.panes.iter().enumerate() {
+                                if let Some(fs) = pane.current_state() {
+                                    for (rect, col_type) in &fs.column_bounds {
+                                        // Check if click is strictly on the header row (rect.y)
+                                        if rect.contains(ratatui::layout::Position { x: column, y: row }) && row == rect.y {
+                                            clicked_pane_index = Some(i);
+                                            clicked_col = Some(*col_type);
+                                            break;
+                                        }
+                                    }
+                                }
+                                if clicked_pane_index.is_some() { break; }
+                            }
+
+                            if let (Some(pane_idx), Some(col)) = (clicked_pane_index, clicked_col) {
+                                crate::app::log_debug(&format!("Header Clicked: Pane {}, Col {:?}", pane_idx, col));
+                                app.focused_pane_index = pane_idx;
+                                if let Some(pane) = app.panes.get_mut(pane_idx) {
+                                    if let Some(fs) = pane.current_state_mut() {
+                                        if fs.sort_column == col {
+                                            fs.sort_ascending = !fs.sort_ascending;
+                                        } else {
+                                            fs.sort_column = col;
+                                            fs.sort_ascending = true;
+                                        }
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Row 1: Breadcrumbs
                         if row == 1 {
                              let pane_count = app.panes.len();
                              let sidebar_width = app.sidebar_width();
+                             
                              if column >= sidebar_width {
                                  let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
                                  let pane_width = if pane_count > 0 { content_area_width / pane_count as u16 } else { content_area_width };
                                  let rel_col = column.saturating_sub(sidebar_width);
                                  let clicked_pane_idx = (rel_col / pane_width) as usize;
+                                 
                                  if let Some(pane) = app.panes.get_mut(clicked_pane_idx) {
                                      if let Some(fs) = pane.current_state_mut() {
                                          for (rect, path) in fs.breadcrumb_bounds.clone() {
                                              if rect.contains(ratatui::layout::Position { x: column, y: row }) {
-                                                 fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); push_history(fs, path);
-                                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(clicked_pane_idx)); return;
+                                                 fs.current_path = path.clone();
+                                                 fs.selected_index = Some(0);
+                                                 fs.search_filter.clear();
+                                                 push_history(fs, path);
+                                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(clicked_pane_idx));
+                                                 return;
                                              }
                                          }
                                      }
                                  }
                              }
+                             app.current_view = CurrentView::Files;
                         } else if row > 1 {
                             let sidebar_width = app.sidebar_width();
                             if column < sidebar_width {
                                 app.sidebar_focus = true;
                                  let mut clicked_bound = None;
-                                 for bound in &app.sidebar_bounds { if bound.y == row { clicked_bound = Some(bound.clone()); break; } }
-                                 if let Some(bound) = clicked_bound {
-                                     app.sidebar_index = bound.index;
-                                     match bound.target {
-                                         SidebarTarget::Favorite(p) => {
-                                             if let Some(fs) = app.current_file_state_mut() {
-                                                 fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p);
-                                             }
-                                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false;
-                                         }
-                                         SidebarTarget::Storage(idx) => {
-                                             if let Some(disk) = app.system_state.disks.get(idx) {
-                                                 let p = std::path::PathBuf::from(&disk.name);
-                                                 if let Some(fs) = app.current_file_state_mut() {
-                                                     fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p);
-                                                 }
-                                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false;
-                                             }
-                                         }
-                                         _ => {}
+                                 for bound in &app.sidebar_bounds {
+                                     if bound.y == row {
+                                         clicked_bound = Some(bound.clone());
+                                         break;
                                      }
                                  }
-                            } else if row >= 3 {
-                                let content_start = sidebar_width + 1;
-                                if column >= content_start {
-                                    let index = fs_mouse_index(row, app);
-                                    let mut selected_path = None;
-                                    if let Some(fs) = app.current_file_state_mut() {
-                                        if index < fs.files.len() {
-                                            fs.selected_index = Some(index); fs.table_state.select(Some(index));
-                                            if let Some(p) = fs.files.get(index) { selected_path = Some(p.clone()); }
-                                        }
-                                    }
-                                    if let Some(path) = selected_path {
-                                        app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
-                                        if app.mouse_last_click.elapsed() < std::time::Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
-                                            if path.is_dir() {
+
+                                 if let Some(bound) = clicked_bound {
+                                     app.sidebar_index = bound.index; // Standardized to 0-indexed in UI
+                                     match bound.target {
+                                        SidebarTarget::Header(_) => {} // Do nothing for headers
+                                        SidebarTarget::Favorite(p) => {
+                                            // Set drag source for reordering
+                                            app.drag_source = Some(p.clone());
+                                            app.drag_start_pos = Some((column, row));
+
+                                            if let Some(fs) = app.current_file_state_mut() {
+                                                fs.current_path = p.clone();
+                                                fs.selected_index = Some(0);
+                                                fs.search_filter.clear();
+                                                *fs.table_state.offset_mut() = 0;
+                                                push_history(fs, p.clone());
+                                            }
+                                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                             
+                                             // Focus sidebar
+                                             app.sidebar_focus = true;
+                                         }
+                                        SidebarTarget::Storage(idx) => {
+                                            if let Some(disk) = app.system_state.disks.get(idx) {
+                                                let p = PathBuf::from(&disk.name);
                                                 if let Some(fs) = app.current_file_state_mut() {
-                                                    fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path);
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                                    fs.current_path = p.clone();
+                                                    fs.selected_index = Some(0);
+                                                    fs.search_filter.clear();
+                                                    *fs.table_state.offset_mut() = 0;
+                                                    push_history(fs, p);
                                                 }
-                                            } else { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); }
+                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                                app.sidebar_focus = false;
+                                            }
                                         }
-                                        app.mouse_last_click = std::time::Instant::now(); app.mouse_click_pos = (column, row);
+                                        SidebarTarget::Remote(idx) => {
+                                            if idx < app.remote_bookmarks.len() {
+                                                execute_command(crate::app::CommandAction::ConnectToRemote(idx), app, event_tx.clone());
+                                            }
+                                        }
                                     }
                                 }
+                            } else {
+                                // Clicking in the files area (column >= sidebar_width)
+                                app.sidebar_focus = false;
+                                
+                                // Determine focused pane
+                                let pane_count = app.panes.len();
+                                if pane_count > 0 {
+                                     // Sidebar is 20%. The rest is split.
+                                     let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
+                                     let content_col = column.saturating_sub(sidebar_width);
+                                     let pane_width = content_area_width / pane_count as u16;
+                                     let clicked_pane = (content_col / pane_width) as usize;
+                                     if clicked_pane < pane_count {
+                                          app.focused_pane_index = clicked_pane;
+                                     }
+                                }
+
+                                if app.current_view == CurrentView::Files {
+                                    // Column header click is now handled above globally for all panes.
+                                    // We just check content rows here.
+                                    if row >= 3 {
+                                        // File Row Click
+                                        let content_start = sidebar_width + 1;
+                                        if column >= content_start {
+                                            let index = fs_mouse_index(row, app);
+                                            
+                                            // Validate index and select
+                                            let mut selected_path = None;
+                                            if let Some(fs) = app.current_file_state_mut() {
+                                                if index < fs.files.len() {
+                                                    fs.selected_index = Some(index);
+                                                    fs.table_state.select(Some(index));
+                                                    if let Some(p) = fs.files.get(index) {
+                                                        selected_path = Some(p.clone());
+                                                    }
+                                                }
+                                            }
+
+                                            // Now that fs is dropped, we can modify app state
+                                            if let Some(path) = selected_path {
+                                                app.drag_source = Some(path.clone());
+                                                app.drag_start_pos = Some((column, row));
+
+                                                // Double Click Check
+                                                if app.mouse_last_click.elapsed() < std::time::Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
+                                                    if path.is_dir() {
+                                                        // Enter Directory
+                                                        if let Some(fs) = app.current_file_state_mut() {
+                                                            fs.current_path = path.clone();
+                                                            fs.selected_index = Some(0);
+                                                            fs.search_filter.clear();
+                                                            *fs.table_state.offset_mut() = 0;
+                                                            push_history(fs, path);
+                                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                                        }
+                                                    } else {
+                                                         // Open File
+                                                        let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
+                                                    }
+                                                }
+                                                app.mouse_last_click = std::time::Instant::now();
+                                                app.mouse_click_pos = (column, row);
+                                            }
+                                        }
+                                    }
+                                }
+
                             }
                         }
                     }
