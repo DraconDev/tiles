@@ -1138,7 +1138,9 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
         let items: Vec<ListItem> = options
             .iter()
             .map(|(col, label)| {
-                let prefix = if target_fs.columns.contains(col) {
+                let prefix = if *col == FileColumn::Name || *col == FileColumn::Extension {
+                    "[M] " // Mandatory
+                } else if target_fs.columns.contains(col) {
                     "[x] "
                 } else {
                     "[ ] "
