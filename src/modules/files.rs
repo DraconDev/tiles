@@ -82,6 +82,7 @@ fn update_local_files(state: &mut FileState) {
     if state.search_filter.len() >= 3 {
         // Global Search (Recursive)
         let mut count = 0;
+        let mut scored_files = Vec::new();
         let walker = walkdir::WalkDir::new(&state.current_path)
             .follow_links(false)
             .into_iter()
@@ -91,14 +92,25 @@ fn update_local_files(state: &mut FileState) {
                 true
             });
 
+        let filter_lower = state.search_filter.to_lowercase();
+
         for entry in walker.filter_map(|e| e.ok()) {
-            if count >= 100 { break; }
+            if count >= 1000 { break; } // Increase limit for scoring
             let path = entry.path().to_path_buf();
             if path == state.current_path { continue; }
 
             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if name.to_lowercase().contains(&state.search_filter.to_lowercase()) {
+            let name_lower = name.to_lowercase();
+            
+            if name_lower.contains(&filter_lower) {
                 if let Ok(m) = entry.metadata() {
+                    // Simple score: shorter paths and closer depth are better
+                    // Subtract from a large number so we can sort descending or just use it as is
+                    let depth = entry.depth();
+                    let path_len = path.to_string_lossy().len();
+                    let is_exact = if name_lower == filter_lower { 0 } else { 1 };
+                    let score = depth * 10 + path_len + is_exact * 100;
+                    
                     let meta = crate::app::FileMetadata {
                         size: m.len(),
                         modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
@@ -113,11 +125,18 @@ fn update_local_files(state: &mut FileState) {
                         extension: path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string(),
                         is_dir: m.is_dir(),
                     };
-                    state.metadata.insert(path.clone(), meta);
-                    state.files.push(path);
+                    scored_files.push((score, path, meta));
                     count += 1;
                 }
             }
+        }
+        
+        // Sort by score (ascending: smaller score = better)
+        scored_files.sort_by_key(|(s, _, _)| *s);
+        
+        for (_, path, meta) in scored_files.into_iter().take(100) {
+            state.metadata.insert(path.clone(), meta);
+            state.files.push(path);
         }
     } else {
         // Local Search (Current Dir Only)
