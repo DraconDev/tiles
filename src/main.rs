@@ -1040,8 +1040,32 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                         KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); }
                         KeyCode::Up => { app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); }
-                        KeyCode::Left => { app.move_left(); }
-                        KeyCode::Right => { app.move_right(); }
+                        KeyCode::Left => {
+                            if key.modifiers.contains(KeyModifiers::SHIFT) {
+                                app.copy_to_other_pane();
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                            } else if key.modifiers.contains(KeyModifiers::CONTROL) {
+                                app.move_to_other_pane();
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                            } else {
+                                app.move_left();
+                            }
+                        }
+                        KeyCode::Right => {
+                            if key.modifiers.contains(KeyModifiers::SHIFT) {
+                                app.copy_to_other_pane();
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                            } else if key.modifiers.contains(KeyModifiers::CONTROL) {
+                                app.move_to_other_pane();
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                            } else {
+                                app.move_right();
+                            }
+                        }
                         KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } }
                         KeyCode::Char('N') => { app.mode = AppMode::NewFolder; app.input.clear(); }
                         KeyCode::Char('n') => { app.mode = AppMode::NewFile; app.input.clear(); }
