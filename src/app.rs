@@ -232,6 +232,8 @@ pub struct FileState {
     pub hovered_breadcrumb: Option<PathBuf>,
     #[serde(skip)]
     pub git_branch: Option<String>,
+    #[serde(skip)]
+    pub local_count: usize,
 }
 
 impl FileState {
@@ -266,6 +268,7 @@ impl FileState {
             column_bounds: Vec::new(),
             hovered_breadcrumb: None,
             git_branch: None,
+            local_count: 0,
         }
     }
 }
