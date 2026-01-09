@@ -417,7 +417,7 @@ impl App {
 
         let license = check_license();
 
-        Self {
+        let app = Self {
             running: true,
             current_view: CurrentView::Files,
             mode: AppMode::Normal,
