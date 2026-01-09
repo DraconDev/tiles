@@ -853,7 +853,28 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     app.drag_source = None;
 
                     if was_dragging {
-                        if let Some(source) = source_opt {
+                        let mut paths_to_act = Vec::new();
+                        let mut source_pane_idx = None;
+
+                        // Identify which files are being dragged
+                        if let Some(fs) = app.current_file_state() {
+                            if !fs.multi_select.is_empty() {
+                                for &idx in &fs.multi_select {
+                                    if let Some(p) = fs.files.get(idx) {
+                                        paths_to_act.push(p.clone());
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // If no multi-selection, use the single dragged item
+                        if paths_to_act.is_empty() {
+                            if let Some(source) = source_opt {
+                                paths_to_act.push(source);
+                            }
+                        }
+
+                        if !paths_to_act.is_empty() {
                             let mut target_path: Option<std::path::PathBuf> = None;
                             let sidebar_width = app.sidebar_width();
                             
@@ -901,21 +922,29 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             
                             if let Some(target) = target_path {
                                 if target.is_dir() {
-                                    if let Some(filename) = source.file_name() {
-                                        let dest = target.join(filename);
-                                        if dest != source && source.parent() != Some(&target) {
-                                            let _ = crate::modules::files::move_recursive(&source, &dest);
-                                            for i in 0..app.panes.len() {
-                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
+                                    for source in paths_to_act {
+                                        if let Some(filename) = source.file_name() {
+                                            let dest = target.join(filename);
+                                            if dest != source && source.parent() != Some(&target) {
+                                                // TODO: Check if SHIFT is held for Copy instead of Move
+                                                // Since we don't have access to modifiers in MouseUp event easily here 
+                                                // (MouseEvent doesn't carry them in all backends, but terma's might)
+                                                // Let's assume Move for now as per current logic.
+                                                let _ = crate::modules::files::move_recursive(&source, &dest);
                                             }
                                         }
+                                    }
+                                    for i in 0..app.panes.len() {
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
                                     }
                                 }
                             } else if column < sidebar_width {
                                 // Dropped on sidebar but no specific move target hit -> Add to Favorites
-                                if source.is_dir() {
-                                    if !app.starred.contains(&source) {
-                                        app.starred.push(source.clone());
+                                for source in paths_to_act {
+                                    if source.is_dir() {
+                                        if !app.starred.contains(&source) {
+                                            app.starred.push(source.clone());
+                                        }
                                     }
                                 }
                             }
