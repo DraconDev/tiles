@@ -848,12 +848,12 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
         Span::raw("Split "),
         Span::styled(" ^P ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
         Span::raw("Cmd "),
-        Span::styled(" ^T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(" ^. ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
         Span::raw("Term "),
+        Span::styled(" ^H ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::raw("Hidden "),
         Span::styled(" Esc ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
         Span::raw("Back "),
-        Span::styled(" Alt+Arrow ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Span::raw("Nav "),
     ];
     f.render_widget(Paragraph::new(Line::from(shortcuts)), chunks[0]);
 
