@@ -1164,24 +1164,33 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                             KeyCode::Char('t') | KeyCode::Char('.') => {
                                 if let Some(fs) = app.current_file_state() {
-                                    // Priority list: try common reliable terminals first, then wrappers
-                                    let terminals = [
-                                        "alacritty",
-                                        "kitty",
-                                        "wezterm",
-                                        "gnome-terminal",
-                                        "konsole",
-                                        "xfce4-terminal",
-                                        "xdg-terminal-exec",
-                                        "xdg-terminal",
-                                        "x-terminal-emulator",
-                                        "xterm"
-                                    ];
+                                    // Build priority list
+                                    let mut terminals = Vec::new();
+                                    
+                                    // 1. Check TERMINAL env var
+                                    if let Ok(env_t) = std::env::var("TERMINAL") {
+                                        terminals.push(env_t);
+                                    }
+                                    
+                                    // 2. Standard common reliable terminals
+                                    terminals.extend(vec![
+                                        "alacritty".to_string(),
+                                        "kitty".to_string(),
+                                        "wezterm".to_string(),
+                                        "gnome-terminal".to_string(),
+                                        "konsole".to_string(),
+                                        "xfce4-terminal".to_string(),
+                                        "xdg-terminal-exec".to_string(),
+                                        "xdg-terminal".to_string(),
+                                        "x-terminal-emulator".to_string(),
+                                        "xterm".to_string()
+                                    ]);
+
                                     let mut spawned = false;
                                     
                                     for t in terminals {
                                         let exists = std::process::Command::new("which")
-                                            .arg(t)
+                                            .arg(&t)
                                             .stdout(std::process::Stdio::null())
                                             .stderr(std::process::Stdio::null())
                                             .status()
@@ -1191,13 +1200,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         if exists {
                                             crate::app::log_debug(&format!("Attempting to spawn terminal: {}", t));
                                             
-                                            // Build the command. We use setsid to detach it from the current process group
-                                            // so it doesn't close when 'tiles' exits or get interrupted by our signals.
                                             let mut cmd = std::process::Command::new("setsid");
-                                            cmd.arg(t);
+                                            cmd.arg(&t);
                                             
-                                            // Add window-forcing flags for known terminals
-                                            match t {
+                                            match t.as_str() {
                                                 "gnome-terminal" => { cmd.arg("--window"); }
                                                 "konsole" => { cmd.arg("--new-window"); }
                                                 _ => {}
