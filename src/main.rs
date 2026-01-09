@@ -443,7 +443,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             match target {
                                 ContextMenuTarget::File(idx) => {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        if let Some(path) = fs.files.get(*idx).cloned() {
+                                        if let Some(path) = fs.files.get(idx).cloned() {
                                             match menu_row {
                                                 0 => { // Edit
                                                     let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
@@ -464,14 +464,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 }
                                 ContextMenuTarget::Folder(idx) => {
                                     if let Some(fs) = app.current_file_state_mut() {
-                                        if let Some(path) = fs.files.get(*idx).cloned() {
+                                        if let Some(path) = fs.files.get(idx).cloned() {
                                             match menu_row {
                                                 0 => { // Open
                                                     fs.current_path = path.clone();
                                                     fs.selected_index = Some(0);
                                                     fs.search_filter.clear();
                                                     *fs.table_state.offset_mut() = 0;
-                                                    push_history(fs, path);
+                                                    let p = path.clone();
+                                                    push_history(fs, p);
                                                     let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                                     app.mode = AppMode::Normal;
                                                 }
@@ -503,15 +504,35 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         _ => app.mode = AppMode::Normal,
                                     }
                                 }
+                                ContextMenuTarget::SidebarFavorite(path) => {
+                                    let p_fav = path.clone();
+                                    match menu_row {
+                                        0 => { // Unstar
+                                            app.starred.retain(|x| x != &p_fav);
+                                            app.mode = AppMode::Normal;
+                                        }
+                                        1 => { // Open in new tab
+                                            if let Some(fs) = app.current_file_state() {
+                                                let new_fs = crate::app::FileState::new(p_fav, fs.remote_session.clone(), fs.show_hidden, fs.columns.clone(), fs.sort_column, fs.sort_ascending);
+                                                if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                                    pane.open_tab(new_fs);
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                                }
+                                            }
+                                            app.mode = AppMode::Normal;
+                                        }
+                                        _ => app.mode = AppMode::Normal,
+                                    }
+                                }
                                 ContextMenuTarget::SidebarRemote(idx) => {
                                     match menu_row {
                                         0 => { // Connect
-                                            execute_command(crate::app::CommandAction::ConnectToRemote(*idx), app, event_tx.clone());
+                                            execute_command(crate::app::CommandAction::ConnectToRemote(idx), app, event_tx.clone());
                                             app.mode = AppMode::Normal;
                                         }
                                         1 => { // Remove
-                                            if *idx < app.remote_bookmarks.len() {
-                                                app.remote_bookmarks.remove(*idx);
+                                            if idx < app.remote_bookmarks.len() {
+                                                app.remote_bookmarks.remove(idx);
                                             }
                                             app.mode = AppMode::Normal;
                                         }
