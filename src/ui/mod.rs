@@ -636,12 +636,7 @@ fn draw_file_view(
             });
 
             let mut row_style = Style::default();
-            if is_active_selection {
-                row_style = row_style
-                    .bg(THEME.accent_primary)
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD);
-            } else if is_multi_selected {
+            if is_multi_selected {
                 row_style = row_style.bg(Color::Rgb(150, 0, 0)).fg(Color::White);
                 // Darker red for range selection
             }
@@ -801,10 +796,9 @@ fn draw_file_view(
             let mut scrollbar_state = ScrollbarState::new(file_state.files.len())
                 .position(file_state.table_state.offset());
 
-            // Render with 1-char gutter from border (width-3)
-            // This ensures it is always visible and doesn't clash with borders.
+            // Render on the right border
             let scrollbar_area = Rect {
-                x: area.x + area.width.saturating_sub(3),
+                x: area.x + area.width.saturating_sub(1),
                 y: area.y + 1,
                 width: 1,
                 height: area.height.saturating_sub(2),
