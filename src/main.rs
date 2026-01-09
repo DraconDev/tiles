@@ -268,7 +268,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
                         
                         if column < inner.x + 15 {
-                            // Sidebar selection: "one row lower" fix -> rel_y starts at 0 for row inner.y
+                            // Sidebar selection fix -> subtraction by 1 was reported as one lower, so try sub(inner.y)
                             let rel_y = row.saturating_sub(inner.y);
                             match rel_y {
                                 0 => app.settings_section = SettingsSection::Columns,
@@ -279,7 +279,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         } else {
                             match app.settings_section {
                                 SettingsSection::Columns => {
-                                    // Tabs selection: "2 higher than should be" fix -> visual is inner.y+1, so check range
+                                    // Target selection: reported as 2 rows higher, range check visually
                                     if row >= inner.y && row < inner.y + 3 {
                                         let content_x = column.saturating_sub(inner.x + 16);
                                         match content_x / 12 {
@@ -289,7 +289,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             _ => {}
                                         }
                                     } else if row >= inner.y + 4 {
-                                        // Column list selection: "one row lower" fix -> subtract 4
+                                        // Column list selection: reported as 1 lower, sub(4)
                                         let rel_y = row.saturating_sub(inner.y + 4);
                                         match rel_y {
                                             0 => app.toggle_column(crate::app::FileColumn::Name),
@@ -304,7 +304,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                                 SettingsSection::General => {
-                                    // General selection: "one lower than should be" fix -> subtract 1
+                                    // General selection: reported as one lower, sub(1)
                                     let rel_y = row.saturating_sub(inner.y + 1);
                                     match rel_y {
                                         0 => app.default_show_hidden = !app.default_show_hidden,
@@ -526,5 +526,40 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
             }
         }
         _ => {}
+    }
+}
+
+fn fs_mouse_index(row: u16, app: &App) -> usize {
+    let mouse_row_offset = row.saturating_sub(3) as usize;
+    if let Some(fs) = app.current_file_state() { fs.table_state.offset() + mouse_row_offset }
+    else { 0 }
+}
+
+fn update_commands(app: &mut App) {
+    let commands = vec![
+        CommandItem { key: "quit".to_string(), desc: "Quit".to_string(), action: crate::app::CommandAction::Quit },
+        CommandItem { key: "remote".to_string(), desc: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
+    ];
+    let mut filtered = commands;
+    for bookmark_idx in 0..app.remote_bookmarks.len() {
+        let bookmark = &app.remote_bookmarks[bookmark_idx];
+        filtered.push(CommandItem { key: format!("connect_{}", bookmark_idx), desc: format!("Connect to: {}", bookmark.name), action: crate::app::CommandAction::ConnectToRemote(bookmark_idx) });
+    }
+    app.filtered_commands = filtered.into_iter().filter(|cmd| cmd.desc.to_lowercase().contains(&app.input.to_lowercase())).collect();
+    app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
+}
+
+fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: mpsc::Sender<AppEvent>) {
+    match action {
+        crate::app::CommandAction::Quit => { app.running = false; },
+        crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
+        crate::app::CommandAction::SwitchView(view) => app.current_view = view,
+        crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); },
+        crate::app::CommandAction::ConnectToRemote(idx) => {
+            if let Some(_bookmark) = app.remote_bookmarks.get(idx).cloned() {
+                // Connection logic would go here
+            }
+        },
+        crate::app::CommandAction::CommandPalette => { app.mode = AppMode::CommandPalette; },
     }
 }
