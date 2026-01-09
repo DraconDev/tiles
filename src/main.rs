@@ -1150,6 +1150,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 _ => {
                     if key.modifiers.contains(KeyModifiers::CONTROL) {
                         match key.code {
+                            KeyCode::Char('q') => {
+                                app.running = false;
+                            }
+                            KeyCode::Char('s') => {
+                                app.toggle_split();
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                            }
                             KeyCode::Char('h') => {
                                 let pane_idx = app.toggle_hidden();
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
