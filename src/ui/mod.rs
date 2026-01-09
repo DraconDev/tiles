@@ -298,9 +298,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         CurrentView::Processes => {
             // Placeholder for Processes sidebar
         }
-        CurrentView::Tasks => {
-            // Placeholder for Tasks sidebar (can add stats or filtering later)
-        }
     }
 }
 
@@ -358,9 +355,6 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     }
     if matches!(app.mode, AppMode::AddRemote) {
         draw_add_remote_modal(f, app);
-    }
-    if matches!(app.mode, AppMode::NewTask) {
-        draw_new_task_modal(f, app);
     }
 }
 
@@ -489,39 +483,7 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             let borders = Borders::ALL;
             draw_file_view(f, chunks[i], app, i, is_focused, borders);
         }
-    } else if app.current_view == CurrentView::Tasks {
-        draw_tasks_view(f, area, app);
     }
-}
-
-fn draw_tasks_view(f: &mut Frame, area: Rect, app: &App) {
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .title(" Tasks ");
-    
-    f.render_widget(block.clone(), area);
-    let inner = block.inner(area);
-    
-    let items: Vec<ListItem> = app.tasks.iter().enumerate().map(|(i, task)| {
-        let status = if task.completed { "󰄲 " } else { "󰄱 " };
-        let content = format!("{}{}", status, task.description);
-        let is_selected = i == app.task_index;
-
-        let mut style = if task.completed {
-             Style::default().fg(Color::DarkGray)
-        } else {
-             Style::default().fg(Color::White)
-        };
-        
-        if is_selected {
-            style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
-        }
-        
-        ListItem::new(content).style(style)
-    }).collect();
-    
-    f.render_widget(List::new(items), inner);
 }
 
 use std::time::SystemTime;
@@ -1118,7 +1080,6 @@ fn draw_delete_modal(f: &mut Frame, app: &App) {
             }
         }
         CurrentView::Processes => "Delete Process? (y/n)".to_string(),
-        CurrentView::Tasks => "Delete Task? (y/n)".to_string(),
     };
     f.render_widget(
         Paragraph::new(text).block(
