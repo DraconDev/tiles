@@ -350,6 +350,7 @@ pub struct App {
 
 impl App {
     pub fn new(tile_queue: Arc<Mutex<Vec<TilePlacement>>>) -> Self {
+        log_debug("App::new start");
         let system_state = SystemState {
             last_update: std::time::Instant::now(),
             disks: Vec::new(),
@@ -360,9 +361,12 @@ impl App {
         };
 
         let license = check_license();
+        log_debug("License checked");
 
         if let Some(state) = crate::config::load_state() {
+            log_debug("State loaded from config");
             if !state.panes.is_empty() {
+                log_debug("Returning early with loaded state");
                 return Self {
                     running: true,
                     current_view: state.current_view,
