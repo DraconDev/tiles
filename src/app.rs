@@ -417,6 +417,7 @@ impl App {
                     sidebar_bounds: Vec::new(),
                     mouse_last_click: std::time::Instant::now(),
                     mouse_click_pos: (0, 0),
+                    tasks: state.tasks,
                 };
             }
         }
