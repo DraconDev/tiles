@@ -1164,26 +1164,23 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                             KeyCode::Char('t') | KeyCode::Char('.') => {
                                 if let Some(fs) = app.current_file_state() {
-                                    // Build priority list focused on system defaults
                                     let mut terminals = Vec::new();
-                                    
                                     if let Ok(env_t) = std::env::var("TERMINAL") {
                                         terminals.push(env_t);
                                     }
-                                    
                                     terminals.extend(vec![
-                                        "xdg-terminal-exec".to_string(),
-                                        "xdg-terminal".to_string(),
                                         "gnome-terminal".to_string(),
                                         "konsole".to_string(),
+                                        "xdg-terminal-exec".to_string(),
                                         "x-terminal-emulator".to_string(),
                                         "alacritty".to_string(),
                                         "kitty".to_string(),
+                                        "xfce4-terminal".to_string(),
                                         "xterm".to_string(),
+                                        "xdg-terminal".to_string(),
                                     ]);
 
                                     let mut spawned = false;
-                                    
                                     for t in terminals {
                                         let exists = std::process::Command::new("which")
                                             .arg(&t)
@@ -1194,23 +1191,20 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             .unwrap_or(false);
                                             
                                         if exists {
-                                            crate::app::log_debug(&format!("Launching default terminal: {}", t));
+                                            crate::app::log_debug(&format!("Trying to spawn terminal: {}", t));
+                                            let mut cmd = std::process::Command::new(&t);
+                                            cmd.current_dir(&fs.current_path);
                                             
-                                            // Simple backgrounding via shell to ensure it opens a fresh window
-                                            // and doesn't block the TUI.
-                                            let cmd_str = format!("{} &", t);
+                                            match t.as_str() {
+                                                "gnome-terminal" => { cmd.arg("--window"); }
+                                                "konsole" => { cmd.arg("--new-window"); }
+                                                _ => {}
+                                            }
 
-                                            match std::process::Command::new("sh")
-                                                .arg("-c")
-                                                .arg(&cmd_str)
-                                                .current_dir(&fs.current_path)
-                                                .spawn() 
-                                            {
-                                                Ok(_) => {
-                                                    spawned = true;
-                                                    break;
-                                                }
-                                                Err(_) => {}
+                                            if let Ok(_) = cmd.spawn() {
+                                                crate::app::log_debug(&format!("Spawned {} successfully", t));
+                                                spawned = true;
+                                                break;
                                             }
                                         }
                                     }
