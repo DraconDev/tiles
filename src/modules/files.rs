@@ -60,11 +60,6 @@ fn sort_files(state: &mut FileState) {
                 let b_perm = b_meta.map(|m| m.permissions).unwrap_or(0);
                 a_perm.cmp(&b_perm)
             }
-            crate::app::FileColumn::Extension => {
-                let a_ext = a.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-                let b_ext = b.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-                a_ext.cmp(&b_ext)
-            }
         };
 
         if sort_asc {
