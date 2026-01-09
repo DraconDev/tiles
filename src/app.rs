@@ -404,6 +404,10 @@ impl App {
                 // FORCE RESTORE mandatory columns and sensible defaults if missing or corrupted in saved state
                 for pane in &mut state.panes {
                     for tab in &mut pane.tabs {
+                        // Clear any search state that might have been saved
+                        tab.search_filter.clear();
+                        tab.local_count = 0;
+
                         // Ensure Name is always there
                         if !tab.columns.contains(&FileColumn::Name) {
                             tab.columns.insert(0, FileColumn::Name);

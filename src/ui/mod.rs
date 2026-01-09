@@ -535,10 +535,9 @@ fn draw_file_view(
 
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             if path.to_string_lossy() == "__DIVIDER__" {
-                // Display a clear textual label instead of a solid color
                 let cells = file_state.columns.iter().enumerate().map(|(col_idx, _)| {
                     if col_idx == 0 {
-                        Cell::from("── GLOBAL RESULTS ──").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+                        Cell::from("> Global results").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
                     } else {
                         Cell::from("──────────────────").style(Style::default().fg(Color::DarkGray))
                     }
