@@ -316,7 +316,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     // Update hovered drop target if dragging
                     app.hovered_drop_target = None;
                     if app.is_dragging {
-                        let sidebar_width = (app.terminal_size.0 * 20) / 100;
+                        let sidebar_width = app.sidebar_width();
                         
                         // Check Favorites Hover (Sidebar top)
                         if column < sidebar_width {
