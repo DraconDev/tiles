@@ -584,7 +584,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     // Mount/Unmount are placeholders for now
                                     app.mode = AppMode::Normal;
                                 }
-                                _ => app.mode = AppMode::Normal,
                             }
                             return;
                         }
