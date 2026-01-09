@@ -368,6 +368,7 @@ pub struct App {
     pub mouse_click_pos: (u16, u16),
     
     pub tasks: Vec<Task>,
+    pub task_index: usize,
 }
 
 impl App {
