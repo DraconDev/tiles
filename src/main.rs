@@ -1162,10 +1162,21 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 let pane_idx = app.toggle_hidden();
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
                             }
-                            KeyCode::Char('.') | KeyCode::Char('p') | KeyCode::Char('P') | KeyCode::Char('t') => {
+                            KeyCode::Char('.') => {
                                 if let Some(fs) = app.current_file_state() {
-                                    // Priority list of terminals to try
-                                    let terminals = ["alacritty", "kitty", "wezterm", "gnome-terminal", "konsole", "xfce4-terminal", "xterm", "xdg-terminal", "x-terminal-emulator"];
+                                    // Priority list: try generic "default" wrappers first, then specific ones
+                                    let terminals = [
+                                        "xdg-terminal-exec", 
+                                        "xdg-terminal", 
+                                        "x-terminal-emulator",
+                                        "alacritty", 
+                                        "kitty", 
+                                        "wezterm", 
+                                        "gnome-terminal", 
+                                        "konsole", 
+                                        "xfce4-terminal", 
+                                        "xterm"
+                                    ];
                                     let mut spawned = false;
                                     
                                     for t in terminals {
