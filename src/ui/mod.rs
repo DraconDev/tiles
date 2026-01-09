@@ -1264,10 +1264,20 @@ fn draw_tab_settings(f: &mut Frame, area: Rect, app: &App) {
     );
 }
 
-fn draw_general_settings(f: &mut Frame, area: Rect, _app: &App) {
-    let info = "General preferences will be added here.";
+fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
+    let mut lines = Vec::new();
+    
+    let hidden_state = if app.default_show_hidden { "[x]" } else { "[ ]" };
+    lines.push(Line::from(format!("{} Show Hidden by Default (h)", hidden_state)));
+    
+    let confirm_state = if app.confirm_delete { "[x]" } else { "[ ]" };
+    lines.push(Line::from(format!("{} Confirm on Delete (d)", confirm_state)));
+    
+    lines.push(Line::from(""));
+    lines.push(Line::from("Terminal: ".to_string() + app.preferred_terminal.as_deref().unwrap_or("System Default")));
+    
     f.render_widget(
-        Paragraph::new(info).block(Block::default().title(" General ").borders(Borders::NONE)),
+        Paragraph::new(lines).block(Block::default().title(" General Preferences ").borders(Borders::NONE)),
         area,
     );
 }
