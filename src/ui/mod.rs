@@ -638,7 +638,7 @@ fn draw_file_view(
 
             let mut row_style = Style::default();
             if is_multi_selected {
-                row_style = row_style.bg(Color::Rgb(150, 0, 0)).fg(Color::White);
+                row_style = row_style.bg(Color::Rgb(100, 0, 0)).fg(Color::White);
                 // Darker red for range selection
             }
             // elementary logic says multi_select should be distinguishable red
