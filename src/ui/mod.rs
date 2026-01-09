@@ -884,9 +884,9 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     );
 }
 
-fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::ContextMenuTarget, app: &App) {
+fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::ContextMenuTarget, _app: &App) {
     let mut items = Vec::new();
-    let mut title = " Menu ";
+    let mut title;
     
     match target {
         crate::app::ContextMenuTarget::File(_) => {

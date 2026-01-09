@@ -853,7 +853,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
 
                     if was_dragging {
                         let mut paths_to_act = Vec::new();
-                        let mut source_pane_idx = None;
 
                         // Identify which files are being dragged
                         if let Some(fs) = app.current_file_state() {
