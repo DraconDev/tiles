@@ -317,8 +317,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_footer(f, chunks[2], app);
     crate::app::log_debug("Draw complete");
 
-    if let AppMode::ContextMenu { x, y, item_index } = app.mode {
-        draw_context_menu(f, x, y, item_index, app);
+    if let AppMode::ContextMenu { x, y, ref target } = app.mode {
+        draw_context_menu(f, x, y, target, app);
     }
 
     if matches!(app.mode, AppMode::Rename) {
@@ -865,35 +865,48 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     );
 }
 
-fn draw_context_menu(f: &mut Frame, x: u16, y: u16, item_index: Option<usize>, app: &App) {
+fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::ContextMenuTarget, app: &App) {
     let mut items = Vec::new();
     let mut title = " Menu ";
-    if let Some(idx) = item_index {
-        if let Some(fs) = app.current_file_state() {
-            if let Some(path) = fs.files.get(idx) {
-                let is_dir = fs.metadata.get(path).map(|m| m.is_dir).unwrap_or(false);
-                if is_dir {
-                    title = " Folder ";
-                    items.push(ListItem::new(" 󰉋 Open"));
-                    items.push(ListItem::new(" 󰓎 Star"));
-                    items.push(ListItem::new(" 󰏫 Rename"));
-                    items.push(ListItem::new(" 󰆴 Delete"));
-                } else {
-                    title = " File ";
-                    items.push(ListItem::new(" 󰚩 Edit (Demon)"));
-                    items.push(ListItem::new(" 󰓎 Star"));
-                    items.push(ListItem::new(" 󰏫 Rename"));
-                    items.push(ListItem::new(" 󰆴 Delete"));
-                    items.push(ListItem::new(" 󰈙 Properties"));
-                }
-            }
+    
+    match target {
+        crate::app::ContextMenuTarget::File(_) => {
+            title = " File ";
+            items.push(ListItem::new(" 󰚩 Edit (Demon)"));
+            items.push(ListItem::new(" 󰓎 Star"));
+            items.push(ListItem::new(" 󰏫 Rename"));
+            items.push(ListItem::new(" 󰆴 Delete"));
+            items.push(ListItem::new(" 󰈙 Properties"));
         }
-    } else {
-        title = " Actions ";
-        items.push(ListItem::new(" 󰉋 New Folder"));
-        items.push(ListItem::new(" 󰈔 New File"));
-        items.push(ListItem::new(" 󰑐 Refresh"));
-        items.push(ListItem::new(" 󰆍 Terminal Here"));
+        crate::app::ContextMenuTarget::Folder(_) => {
+            title = " Folder ";
+            items.push(ListItem::new(" 󰉋 Open"));
+            items.push(ListItem::new(" 󰓎 Star"));
+            items.push(ListItem::new(" 󰏫 Rename"));
+            items.push(ListItem::new(" 󰆴 Delete"));
+        }
+        crate::app::ContextMenuTarget::EmptySpace => {
+            title = " Actions ";
+            items.push(ListItem::new(" 󰉋 New Folder"));
+            items.push(ListItem::new(" 󰈔 New File"));
+            items.push(ListItem::new(" 󰑐 Refresh"));
+            items.push(ListItem::new(" 󰆍 Terminal Here"));
+        }
+        crate::app::ContextMenuTarget::SidebarFavorite(_) => {
+            title = " Favorite ";
+            items.push(ListItem::new(" 󰓏 Unstar"));
+            items.push(ListItem::new(" 󰉋 Open in new tab"));
+        }
+        crate::app::ContextMenuTarget::SidebarRemote(_) => {
+            title = " Remote ";
+            items.push(ListItem::new(" 󰒍 Connect"));
+            items.push(ListItem::new(" 󰆴 Remove"));
+        }
+        crate::app::ContextMenuTarget::SidebarStorage(_) => {
+            title = " Storage ";
+            items.push(ListItem::new(" 󰋊 Mount"));
+            items.push(ListItem::new(" 󰋊 Unmount"));
+        }
     }
     let width = 20;
     let height = items.len() as u16 + 2;
