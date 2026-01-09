@@ -46,24 +46,42 @@ fn run_tty() -> color_eyre::Result<()> {
         let tx = event_tx.clone();
         std::thread::spawn(move || {
             use std::io::Read;
+            use std::os::fd::AsRawFd;
+            
             // Native terma parser
             let mut parser = terma::input::parser::Parser::new();
             let mut stdin = std::io::stdin();
+            let fd = stdin.as_raw_fd();
             let mut buffer = [0; 1];
+            
             loop {
-                match stdin.read(&mut buffer) {
-                    Ok(0) => break, // EOF
-                    Ok(_) => {
-                        if let Some(evt) = parser.advance(buffer[0]) {
+                // Poll for input with short timeout (10ms) to detect Esc key
+                match terma::backend::tty::poll_input(std::os::fd::BorrowedFd::borrow_raw(fd), 10) {
+                    Ok(true) => {
+                        // Data available
+                         match stdin.read(&mut buffer) {
+                            Ok(0) => break, // EOF
+                            Ok(_) => {
+                                if let Some(evt) = parser.advance(buffer[0]) {
+                                     if let Some(converted) = crate::event::convert_event(evt) {
+                                         let is_spam = if let Event::Mouse(ref me) = converted {
+                                              matches!(me.kind, MouseEventKind::Moved)
+                                         } else { false };
+                                         
+                                         if !is_spam {
+                                             let _ = tx.blocking_send(AppEvent::Raw(converted));
+                                         }
+                                     }
+                                }
+                            }
+                            Err(_) => break,
+                        }
+                    }
+                    Ok(false) => {
+                        // Timeout - check if parser has pending bare Esc
+                        if let Some(evt) = parser.check_timeout() {
                              if let Some(converted) = crate::event::convert_event(evt) {
-                                 // Filter Move events in TTY mode too
-                                 let is_spam = if let Event::Mouse(ref me) = converted {
-                                      matches!(me.kind, MouseEventKind::Moved)
-                                 } else { false };
-                                 
-                                 if !is_spam {
-                                     let _ = tx.blocking_send(AppEvent::Raw(converted));
-                                 }
+                                 let _ = tx.blocking_send(AppEvent::Raw(converted));
                              }
                         }
                     }
