@@ -40,6 +40,7 @@ fn run_tty() -> color_eyre::Result<()> {
 
     // Setup App & Async
     let (app, event_tx, mut _event_rx) = setup_app(tile_queue);
+    crate::app::log_debug("App state and event loop initialized");
 
     // TTY Event Loop
     {
@@ -94,6 +95,7 @@ fn run_tty() -> color_eyre::Result<()> {
         });
     }
 
+    crate::app::log_debug("Entering main loop");
     loop {
         // Draw
         {
@@ -102,8 +104,8 @@ fn run_tty() -> color_eyre::Result<()> {
                 let _ = crate::config::save_state(&app_guard);
                 break; 
             }
+            app_guard.terminal_size = (terminal.size()?.width, terminal.size()?.height);
             terminal.draw(|f| {
-                app_guard.terminal_size = (f.area().width, f.area().height);
                 ui::draw(f, &mut app_guard);
             })?;
         }
