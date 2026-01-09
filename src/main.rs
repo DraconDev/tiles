@@ -484,8 +484,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 AppMode::Settings => {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
-                        KeyCode::Char('1') => app.settings_target = SettingsTarget::Pane(0),
-                        KeyCode::Char('2') => if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
+                        KeyCode::Char('1') => app.settings_target = SettingsTarget::SingleMode,
+                        KeyCode::Char('2') => app.settings_target = SettingsTarget::SplitMode,
                         KeyCode::Left | KeyCode::BackTab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::General, SettingsSection::Tabs => SettingsSection::Columns, SettingsSection::General => SettingsSection::Tabs }; }
                         KeyCode::Right | KeyCode::Tab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Tabs, SettingsSection::Tabs => SettingsSection::General, SettingsSection::General => SettingsSection::Columns }; }
                         KeyCode::Char('n') => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
