@@ -97,6 +97,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
+    // Initial Refresh
+    {
+        let pane_count = {
+            let app_guard = app.lock().unwrap();
+            app_guard.panes.len()
+        };
+        for i in 0..pane_count {
+            let _ = event_tx.send(AppEvent::RefreshFiles(i)).await;
+        }
+    }
+
     // Main UI & Event Handling Loop
     crate::app::log_debug("Entering main loop");
     loop {
