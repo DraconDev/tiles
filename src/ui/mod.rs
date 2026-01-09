@@ -312,6 +312,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_sidebar(f, sidebar_area, app);
     draw_main_stage(f, main_stage_area, app);
     draw_footer(f, chunks[2], app);
+    crate::app::log_debug("Draw complete");
 
     if let AppMode::ContextMenu { x, y, item_index } = app.mode {
         draw_context_menu(f, x, y, item_index, app);
