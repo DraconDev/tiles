@@ -435,7 +435,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                     break;
                 }
 
-                f.render_widget(Paragraph::new(text), Rect::new(current_x, area.y, width, 1).style(style));
+                f.render_widget(Paragraph::new(text).style(style), Rect::new(current_x, area.y, width, 1));
                 current_x += width + 1;
             }
         }
