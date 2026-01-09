@@ -1128,7 +1128,6 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
             }
         }
         CurrentView::Processes => "Process Info".to_string(),
-        CurrentView::Tasks => "Task Properties".to_string(),
     };
     f.render_widget(
         Paragraph::new(info).block(
@@ -1189,25 +1188,6 @@ fn draw_add_remote_modal(f: &mut Frame, app: &App) {
         Paragraph::new(text).block(
             Block::default()
                 .title(" Add Remote Host ")
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(Color::Green)),
-        ),
-        area,
-    );
-}
-
-fn draw_new_task_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(50, 20, f.area());
-    f.render_widget(Clear, area);
-    let text = format!(
-        "Enter task description:\n> {}\n\n(Press Enter to add, Esc to cancel)",
-        app.input
-    );
-    f.render_widget(
-        Paragraph::new(text).block(
-            Block::default()
-                .title(" New Task ")
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Green)),
