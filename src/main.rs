@@ -475,7 +475,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 AppMode::Settings => {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
-                        KeyCode::Char('0') => app.settings_target = SettingsTarget::AllPanes,
                         KeyCode::Char('1') => app.settings_target = SettingsTarget::Pane(0),
                         KeyCode::Char('2') => if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
                         KeyCode::Left | KeyCode::BackTab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::General, SettingsSection::Tabs => SettingsSection::Columns, SettingsSection::General => SettingsSection::Tabs }; }

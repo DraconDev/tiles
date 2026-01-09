@@ -1133,7 +1133,6 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
         
         let target_fs = match app.settings_target {
             SettingsTarget::Pane(idx) => app.panes.get(idx).and_then(|p: &crate::app::Pane| p.current_state()).unwrap_or(fs),
-            _ => fs,
         };
 
         let items: Vec<ListItem> = options
