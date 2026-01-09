@@ -424,109 +424,107 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
                                 let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
                                 
-                                                                                                    // Left sidebar is 15 wide
+                                                                                                                                    // Left sidebar is 15 wide
                                 
-                                                                                                    if column < inner.x + 15 {
+                                                                                                                                    if column < inner.x + 15 {
                                 
-                                                                                                        let rel_y = row.saturating_sub(inner.y + 1);
+                                                                                                                                        let rel_y = row.saturating_sub(inner.y);
                                 
-                                                                                                        match rel_y {
+                                                                                                                                        match rel_y {
                                 
-                                                                                                            0 => app.settings_section = crate::app::SettingsSection::Columns,
+                                                                                                                                            0 => app.settings_section = crate::app::SettingsSection::Columns,
                                 
-                                                                                                            1 => app.settings_section = crate::app::SettingsSection::Tabs,
+                                                                                                                                            1 => app.settings_section = crate::app::SettingsSection::Tabs,
                                 
-                                                                                                            2 => app.settings_section = crate::app::SettingsSection::General,
+                                                                                                                                            2 => app.settings_section = crate::app::SettingsSection::General,
                                 
-                                                                                                            _ => {}
+                                                                                                                                            _ => {}
                                 
-                                                                                                        }
+                                                                                                                                        }
                                 
-                                                                                                    } else {
+                                                                                                                                    } else {
                                 
-                                                                                                        // Main content area
+                                                                                                                                        // Main content area
                                 
-                                                                                                        match app.settings_section {
+                                                                                                                                        match app.settings_section {
                                 
-                                                                                                            crate::app::SettingsSection::Columns => {
+                                                                                                                                            crate::app::SettingsSection::Columns => {
                                 
-                                                                                                                // Tabs at the top of content (usually only middle row is clickable)
+                                                                                                                                                // Tabs at the top of content (inner.y to inner.y + 2)
                                 
-                                                                                                                if row == inner.y + 1 {
+                                                                                                                                                if row >= inner.y && row < inner.y + 3 {
                                 
-                                                                                                                    let content_x = column.saturating_sub(inner.x + 15);
+                                                                                                                                                    let content_x = column.saturating_sub(inner.x + 16);
                                 
-                                                                                                                    let tab_width = 11; // Approximation for " [Global] "
+                                                                                                                                                    let tab_width = 12; 
                                 
-                                                                                                                    match content_x / tab_width {
+                                                                                                                                                    match content_x / tab_width {
                                 
-                                                                                                                        0 => app.settings_target = crate::app::SettingsTarget::AllPanes,
+                                                                                                                                                        0 => app.settings_target = crate::app::SettingsTarget::AllPanes,
                                 
-                                                                                                                        1 => app.settings_target = crate::app::SettingsTarget::Pane(0),
+                                                                                                                                                        1 => app.settings_target = crate::app::SettingsTarget::Pane(0),
                                 
-                                                                                                                        2 => if app.panes.len() > 1 { app.settings_target = crate::app::SettingsTarget::Pane(1); },
+                                                                                                                                                        2 => if app.panes.len() > 1 { app.settings_target = crate::app::SettingsTarget::Pane(1); },
                                 
-                                                                                                                        _ => {}
+                                                                                                                                                        _ => {}
                                 
-                                                                                                                    }
+                                                                                                                                                    }
                                 
-                                                                                                                } else if row >= inner.y + 4 {
+                                                                                                                                                } else if row >= inner.y + 4 {
                                 
-                                                                                                                    // Column list
+                                                                                                                                                    // Column list
                                 
-                                                                                                                    // inner.y is the top of content.
+                                                                                                                                                    // inner.y is the top of content.
                                 
-                                                                                                                    // Tabs take 3 rows (0,1,2). List title is row 3. Items start row 4.
+                                                                                                                                                    // Tabs take 3 rows (0,1,2). List title is row 3. Items start row 4.
                                 
-                                                                                                                    // Adjusting further as per user "2 under" report.
+                                                                                                                                                    let rel_y = row.saturating_sub(inner.y + 4);
                                 
-                                                                                                                    let rel_y = row.saturating_sub(inner.y + 5);
+                                                                                                                                                    match rel_y {
                                 
-                                                                                                                    match rel_y {
+                                                                                                                                                        0 => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
                                 
-                                                                                                                        0 => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                                                                                        1 => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
                                 
-                                                                                                                        1 => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                                                                                        2 => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
                                 
-                                                                                                                        2 => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                                                                                        3 => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
                                 
-                                                                                                                        3 => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                                                                                        4 => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
                                 
-                                                                                                                        4 => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                                                                                        5 => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
                                 
-                                                                                                                        5 => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                                                                                                                        _ => {}
                                 
-                                                                                                                        _ => {}
+                                                                                                                                                    }
                                 
-                                                                                                                    }
+                                                                                                                                                }
                                 
-                                                                                                                }
+                                                                                                                                            }
                                 
-                                                                                                            }
+                                                                                                                                            crate::app::SettingsSection::General => {
                                 
-                                                                                                            crate::app::SettingsSection::General => {
+                                                                                                                                                // General prefs start at inner.y
                                 
-                                                                                                                // General prefs start at inner.y + 1 (due to title)
+                                                                                                                                                let rel_y = row.saturating_sub(inner.y);
                                 
-                                                                                                                let rel_y = row.saturating_sub(inner.y + 1);
+                                                                                                                                                match rel_y {
                                 
-                                                                                                                match rel_y {
+                                                                                                                                                    0 => app.default_show_hidden = !app.default_show_hidden,
                                 
-                                                                                                                    0 => app.default_show_hidden = !app.default_show_hidden,
+                                                                                                                                                    1 => app.confirm_delete = !app.confirm_delete,
                                 
-                                                                                                                    1 => app.confirm_delete = !app.confirm_delete,
+                                                                                                                                                    _ => {}
                                 
-                                                                                                                    _ => {}
+                                                                                                                                                }
                                 
-                                                                                                                }
+                                                                                                                                            }
                                 
-                                                                                                            }
+                                                                                                                                            _ => {}
                                 
-                                                                                                            _ => {}
+                                                                                                                                        }
                                 
-                                                                                                        }
-                                
-                                                                                                    }                                return;
+                                                                                                                                    }                                return;
                             } else {
                                 // Click outside modal closes it
                                 app.mode = AppMode::Normal;
