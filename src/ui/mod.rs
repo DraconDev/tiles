@@ -361,9 +361,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
     let pane_count = app.panes.len();
     
-    // Burger Menu (Settings) at Top-Left
-    let menu_label = " ≡ ";
-    let menu_width = 3;
+    // Settings Button (Top-Left)
+    let menu_label = " Settings ";
+    let menu_width = 10;
     let menu_rect = Rect::new(area.x, area.y, menu_width, 1);
     
     f.render_widget(
@@ -392,6 +392,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     // Tabs Area
     // Align Tabs with the Panes (skip Sidebar)
     // Ensure tabs start AFTER sidebar, but also don't overlap menu if sidebar is tiny (unlikely)
+    // Also account for the wider Settings button
     let start_x = std::cmp::max(area.x + sidebar_width, area.x + menu_width + 1);
     
     // Use full width to ensure alignment with panes
