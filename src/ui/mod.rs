@@ -14,7 +14,6 @@ use ratatui::{
     Frame,
 };
 
-use terma::compositor::engine::TilePlacement;
 use terma::utils::{format_permissions, format_size, format_time};
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
@@ -31,9 +30,9 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         );
     f.render_widget(block, area);
 
+    /*
     let tile_queue = app.tile_queue.clone();
 
-    /*
     if area.width > 0 && area.height > 0 {
         // Background Gradient
         let tile = TilePlacement {
