@@ -1061,27 +1061,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                          app.mode = AppMode::Normal;
                      }
                 }
-                AppMode::NewTask => {
-                    match key.code {
-                        KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); }
-                        KeyCode::Char(c) => { app.input.push(c); }
-                        KeyCode::Backspace => { app.input.pop(); }
-                        KeyCode::Enter => {
-                            if !app.input.trim().is_empty() {
-                                let task = crate::app::Task {
-                                    id: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64,
-                                    description: app.input.trim().to_string(),
-                                    completed: false,
-                                    created_at: std::time::SystemTime::now(),
-                                };
-                                app.tasks.push(task);
-                            }
-                            app.mode = AppMode::Normal;
-                            app.input.clear();
-                        }
-                        _ => {}
-                    }
-                }
                 AppMode::Location => {
 
                     match key.code {
