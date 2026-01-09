@@ -4,6 +4,7 @@ use crate::modules::files::update_files;
 
 use ratatui::layout::Rect;
 use ratatui::widgets::TableState;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -29,7 +30,7 @@ pub enum AppEvent {
     Delete(PathBuf),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CurrentView {
     Files,
     Processes,
@@ -103,7 +104,7 @@ pub enum ClipboardOp {
     Cut,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum FileColumn {
     Name,
     Size,
@@ -132,7 +133,7 @@ impl std::fmt::Debug for RemoteSession {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RemoteBookmark {
     pub name: String,
     pub host: String,
@@ -157,7 +158,7 @@ pub struct ProcessInfo {
     pub mem: f32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FileMetadata {
     pub size: u64,
     pub modified: std::time::SystemTime,
@@ -180,29 +181,40 @@ impl Default for FileMetadata {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FileState {
     pub current_path: PathBuf,
+    #[serde(skip)]
     pub remote_session: Option<RemoteSession>,
     pub selected_index: Option<usize>,
     pub selection_anchor: Option<usize>,
     pub multi_select: std::collections::HashSet<usize>,
+    #[serde(skip)]
     pub table_state: TableState,
+    #[serde(skip)]
     pub files: Vec<PathBuf>,
+    #[serde(skip)]
     pub metadata: HashMap<PathBuf, FileMetadata>,
+    #[serde(skip)]
     pub git_status: HashMap<PathBuf, String>,
     pub show_hidden: bool,
+    #[serde(skip)]
     pub clipboard: Option<(PathBuf, ClipboardOp)>,
     pub search_filter: String,
     pub columns: Vec<FileColumn>,
     pub history: Vec<PathBuf>,
     pub history_index: usize,
+    #[serde(skip)]
     pub view_height: usize,
     pub sort_column: FileColumn,
     pub sort_ascending: bool,
+    #[serde(skip)]
     pub breadcrumb_bounds: Vec<(Rect, PathBuf)>,
+    #[serde(skip)]
     pub column_bounds: Vec<(Rect, FileColumn)>,
+    #[serde(skip)]
     pub hovered_breadcrumb: Option<PathBuf>,
+    #[serde(skip)]
     pub git_branch: Option<String>,
 }
 
@@ -270,6 +282,7 @@ pub enum LicenseStatus {
     FreeMode,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Pane {
     pub tabs: Vec<FileState>,
     pub active_tab_index: usize,
@@ -543,6 +556,76 @@ impl App {
     pub fn move_right(&mut self) {
         if self.panes.len() > 1 {
             self.focused_pane_index = 1;
+        }
+    }
+
+    pub fn copy_to_other_pane(&mut self) {
+        if self.panes.len() < 2 {
+            return;
+        }
+        let other_pane_idx = if self.focused_pane_index == 0 { 1 } else { 0 };
+
+        let dest_path = if let Some(other_fs) = self.panes[other_pane_idx].current_state() {
+            other_fs.current_path.clone()
+        } else {
+            return;
+        };
+
+        if let Some(fs) = self.current_file_state_mut() {
+            let mut paths_to_copy = Vec::new();
+            if !fs.multi_select.is_empty() {
+                for &idx in &fs.multi_select {
+                    if let Some(p) = fs.files.get(idx) {
+                        paths_to_copy.push(p.clone());
+                    }
+                }
+            } else if let Some(idx) = fs.selected_index {
+                if let Some(p) = fs.files.get(idx) {
+                    paths_to_copy.push(p.clone());
+                }
+            }
+
+            for src in paths_to_copy {
+                if let Some(filename) = src.file_name() {
+                    let dest = dest_path.join(filename);
+                    let _ = crate::modules::files::copy_recursive(&src, &dest);
+                }
+            }
+        }
+    }
+
+    pub fn move_to_other_pane(&mut self) {
+        if self.panes.len() < 2 {
+            return;
+        }
+        let other_pane_idx = if self.focused_pane_index == 0 { 1 } else { 0 };
+
+        let dest_path = if let Some(other_fs) = self.panes[other_pane_idx].current_state() {
+            other_fs.current_path.clone()
+        } else {
+            return;
+        };
+
+        if let Some(fs) = self.current_file_state_mut() {
+            let mut paths_to_move = Vec::new();
+            if !fs.multi_select.is_empty() {
+                for &idx in &fs.multi_select {
+                    if let Some(p) = fs.files.get(idx) {
+                        paths_to_move.push(p.clone());
+                    }
+                }
+            } else if let Some(idx) = fs.selected_index {
+                if let Some(p) = fs.files.get(idx) {
+                    paths_to_move.push(p.clone());
+                }
+            }
+
+            for src in paths_to_move {
+                if let Some(filename) = src.file_name() {
+                    let dest = dest_path.join(filename);
+                    let _ = crate::modules::files::move_recursive(&src, &dest);
+                }
+            }
         }
     }
 }
