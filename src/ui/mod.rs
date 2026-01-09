@@ -461,14 +461,22 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 
         for i in 0..pane_count {
             let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
-            draw_file_view(f, chunks[i], app, i, is_focused);
+            // First and subsequent panes omit LEFT border to merge with previous component's RIGHT border
+            draw_file_view(f, chunks[i], app, i, is_focused, Borders::ALL ^ Borders::LEFT);
         }
     }
 }
 
 use std::time::SystemTime;
 
-fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool) {
+fn draw_file_view(
+    f: &mut Frame,
+    area: Rect,
+    app: &mut App,
+    pane_idx: usize,
+    is_focused: bool,
+    borders: Borders,
+) {
     // REMOVED Local Tab Strip. Use full area for content.
     let content_area = area;
 
@@ -723,7 +731,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         }
 
         let block = Block::default()
-            .borders(Borders::ALL)
+            .borders(borders)
             .border_type(BorderType::Rounded)
             .title(Line::from(breadcrumb_spans))
             .border_style(if is_focused {
