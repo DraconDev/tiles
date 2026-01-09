@@ -394,11 +394,21 @@ impl App {
         if let Some(mut state) = crate::config::load_state() {
             log_debug("State loaded from config");
             if !state.panes.is_empty() {
-                // FORCE RESTORE mandatory columns if missing from saved state
+                // FORCE RESTORE mandatory columns and sensible defaults if missing or corrupted in saved state
                 for pane in &mut state.panes {
                     for tab in &mut pane.tabs {
+                        // Ensure Name is always there
                         if !tab.columns.contains(&FileColumn::Name) {
                             tab.columns.insert(0, FileColumn::Name);
+                        }
+                        
+                        // If columns list became empty for some reason, restore defaults
+                        if tab.columns.len() <= 1 { // Only has Name or is empty
+                             tab.columns = vec![
+                                 FileColumn::Name,
+                                 FileColumn::Size,
+                                 FileColumn::Modified,
+                             ];
                         }
                     }
                 }
