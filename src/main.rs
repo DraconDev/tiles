@@ -1164,26 +1164,22 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                             KeyCode::Char('t') | KeyCode::Char('.') => {
                                 if let Some(fs) = app.current_file_state() {
-                                    // Build priority list
+                                    // Build priority list focused on system defaults
                                     let mut terminals = Vec::new();
                                     
-                                    // 1. Check TERMINAL env var
                                     if let Ok(env_t) = std::env::var("TERMINAL") {
                                         terminals.push(env_t);
                                     }
                                     
-                                    // 2. Standard common reliable terminals
                                     terminals.extend(vec![
-                                        "alacritty".to_string(),
-                                        "kitty".to_string(),
-                                        "wezterm".to_string(),
-                                        "gnome-terminal".to_string(),
-                                        "konsole".to_string(),
-                                        "xfce4-terminal".to_string(),
                                         "xdg-terminal-exec".to_string(),
                                         "xdg-terminal".to_string(),
+                                        "gnome-terminal".to_string(),
+                                        "konsole".to_string(),
                                         "x-terminal-emulator".to_string(),
-                                        "xterm".to_string()
+                                        "alacritty".to_string(),
+                                        "kitty".to_string(),
+                                        "xterm".to_string(),
                                     ]);
 
                                     let mut spawned = false;
@@ -1198,28 +1194,23 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             .unwrap_or(false);
                                             
                                         if exists {
-                                            crate::app::log_debug(&format!("Attempting to spawn terminal: {}", t));
+                                            crate::app::log_debug(&format!("Launching default terminal: {}", t));
                                             
-                                            let mut cmd = std::process::Command::new("setsid");
-                                            cmd.arg(&t);
-                                            
-                                            match t.as_str() {
-                                                "gnome-terminal" => { cmd.arg("--window"); }
-                                                "konsole" => { cmd.arg("--new-window"); }
-                                                _ => {}
-                                            }
+                                            // Simple backgrounding via shell to ensure it opens a fresh window
+                                            // and doesn't block the TUI.
+                                            let cmd_str = format!("{} &", t);
 
-                                            match cmd.current_dir(&fs.current_path)
+                                            match std::process::Command::new("sh")
+                                                .arg("-c")
+                                                .arg(&cmd_str)
+                                                .current_dir(&fs.current_path)
                                                 .spawn() 
                                             {
                                                 Ok(_) => {
-                                                    crate::app::log_debug(&format!("Successfully spawned {} via setsid", t));
                                                     spawned = true;
                                                     break;
                                                 }
-                                                Err(e) => {
-                                                    crate::app::log_debug(&format!("Failed to spawn {}: {}", t, e));
-                                                }
+                                                Err(_) => {}
                                             }
                                         }
                                     }
