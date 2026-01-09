@@ -55,8 +55,8 @@ fn run_tty() -> color_eyre::Result<()> {
             let mut buffer = [0; 1];
             
             loop {
-                // Poll for input with short timeout (10ms) to detect Esc key
-                let polled = unsafe { terma::backend::tty::poll_input(std::os::fd::BorrowedFd::borrow_raw(fd), 10) };
+                // Poll for input with timeout (20ms) to detect Esc key
+                let polled = unsafe { terma::backend::tty::poll_input(std::os::fd::BorrowedFd::borrow_raw(fd), 20) };
                 match polled {
                     Ok(true) => {
                         // Data available
