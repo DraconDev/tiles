@@ -746,8 +746,8 @@ fn draw_file_view(
             .column_spacing(0) // Fix alignment and gaps
             .row_highlight_style(
                 Style::default()
-                    .bg(Color::Red)
-                    .fg(Color::White)
+                    .bg(THEME.accent_primary)
+                    .fg(Color::Black)
                     .add_modifier(Modifier::BOLD),
             ); // Disable default teal highlighting
                // Fix: Use content_area instead of area to avoid overlapping with Tabs!
