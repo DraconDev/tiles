@@ -1127,7 +1127,7 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
 }
 
 fn draw_settings_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(60, 60, f.area());
+    let area = centered_rect(80, 80, f.area());
     f.render_widget(Clear, area);
     
     let block = Block::default()
