@@ -128,7 +128,6 @@ pub enum FileColumn {
     Modified,
     Created,
     Permissions,
-    Extension,
 }
 
 #[derive(Clone)]
