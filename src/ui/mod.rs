@@ -1141,9 +1141,54 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
     );
 }
 
-fn draw_column_setup_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 40, f.area());
+fn draw_settings_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(60, 60, f.area());
     f.render_widget(Clear, area);
+    
+    let block = Block::default()
+        .title(" Settings ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Cyan));
+    
+    let inner_area = block.inner(area);
+    f.render_widget(block, area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Length(15), Constraint::Min(0)])
+        .split(inner_area);
+    
+    // Left: Sections
+    let sections = vec![
+        ListItem::new(" 󰟜 Columns "),
+        ListItem::new(" 󰓩 Tabs "),
+        ListItem::new(" 󰒓 General "),
+    ];
+    
+    use ratatui::widgets::ListState;
+    let mut section_state = ListState::default();
+    section_state.select(Some(match app.settings_section {
+        SettingsSection::Columns => 0,
+        SettingsSection::Tabs => 1,
+        SettingsSection::General => 2,
+    }));
+
+    let section_list = List::new(sections)
+        .block(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(Color::DarkGray)))
+        .highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD));
+    
+    f.render_stateful_widget(section_list, chunks[0], &mut section_state);
+
+    // Right: Content
+    match app.settings_section {
+        SettingsSection::Columns => draw_column_settings(f, chunks[1], app),
+        SettingsSection::Tabs => draw_tab_settings(f, chunks[1], app),
+        SettingsSection::General => draw_general_settings(f, chunks[1], app),
+    }
+}
+
+fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
     if let Some(fs) = app.current_file_state() {
         let options = vec![
             (FileColumn::Name, "Name (n)"),
@@ -1167,14 +1212,35 @@ fn draw_column_setup_modal(f: &mut Frame, app: &App) {
         f.render_widget(
             List::new(items).block(
                 Block::default()
-                    .title(" Column Setup ")
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded)
-                    .border_style(Style::default().fg(Color::Cyan)),
+                    .title(" Visible Columns (Current Tab) ")
+                    .borders(Borders::NONE),
             ),
             area,
         );
     }
+}
+
+fn draw_tab_settings(f: &mut Frame, area: Rect, app: &App) {
+    let mut lines = Vec::new();
+    lines.push(Line::from(vec![
+        Span::styled("Tab/Pane Persistence", Style::default().add_modifier(Modifier::BOLD)),
+    ]));
+    lines.push(Line::from(""));
+    lines.push(Line::from("Each pane and tab maintains its own state (Nautilus-style)."));
+    lines.push(Line::from("Current Pane Count: ".to_string() + &app.panes.len().to_string()));
+    
+    f.render_widget(
+        Paragraph::new(lines).block(Block::default().title(" Tabs & Panes ").borders(Borders::NONE)),
+        area,
+    );
+}
+
+fn draw_general_settings(f: &mut Frame, area: Rect, _app: &App) {
+    let info = "General preferences will be added here.";
+    f.render_widget(
+        Paragraph::new(info).block(Block::default().title(" General ").borders(Borders::NONE)),
+        area,
+    );
 }
 
 fn draw_add_remote_modal(f: &mut Frame, app: &App) {
