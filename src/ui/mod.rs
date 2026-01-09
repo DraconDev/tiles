@@ -1,7 +1,7 @@
 pub mod theme;
 use std::path::PathBuf;
 
-use crate::app::{App, AppMode, CurrentView, DropTarget, FileColumn, SidebarBounds, SidebarTarget, SettingsSection};
+use crate::app::{App, AppMode, CurrentView, DropTarget, FileColumn, SidebarBounds, SidebarTarget, SettingsSection, SettingsTarget};
 use crate::ui::theme::THEME;
 use ratatui::text::{Line, Span};
 use ratatui::{
@@ -9,7 +9,7 @@ use ratatui::{
     style::{Color, Modifier, Style},
     widgets::{
         Block, BorderType, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Scrollbar,
-        ScrollbarOrientation, ScrollbarState, Table,
+        ScrollbarOrientation, ScrollbarState, Table, Tabs
     },
     Frame,
 };
@@ -1208,7 +1208,7 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
         ];
         
         let target_fs = match app.settings_target {
-            SettingsTarget::Pane(idx) => app.panes.get(idx).and_then(|p| p.current_state()).unwrap_or(fs),
+            SettingsTarget::Pane(idx) => app.panes.get(idx).and_then(|p: &crate::app::Pane| p.current_state()).unwrap_or(fs),
             _ => fs,
         };
 
