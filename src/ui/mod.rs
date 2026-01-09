@@ -461,8 +461,8 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 
         for i in 0..pane_count {
             let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
-            // First and subsequent panes omit LEFT border to merge with previous component's RIGHT border
-            draw_file_view(f, chunks[i], app, i, is_focused, Borders::ALL ^ Borders::LEFT);
+            // Use Borders::ALL to avoid broken look at junctions
+            draw_file_view(f, chunks[i], app, i, is_focused, Borders::ALL);
         }
     }
 }
