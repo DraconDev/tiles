@@ -317,7 +317,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     let now = std::time::Instant::now();
                     if let Some((last_time, last_row, last_col)) = app.last_click {
                         if now.duration_since(last_time) < Duration::from_millis(500) && last_row == row && last_col == column {
-                            // is_double_click = true; // This variable is no longer used
                         }
                     }
                     app.last_click = Some((now, row, column));
@@ -327,105 +326,68 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
             match me.kind {
                 MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                     app.mouse_pos = (column, row);
-                    
-                    // Handle Drag State
                     if let Some((sx, sy)) = app.drag_start_pos {
                         let dist = ((column as i16 - sx as i16).pow(2) + (row as i16 - sy as i16).pow(2)) as f32;
-                        if dist >= 1.0 { // Any movement activates drag
-                            app.is_dragging = true;
-                        }
+                        if dist >= 1.0 { app.is_dragging = true; }
                     }
-                    
-                    // Update hovered drop target if dragging
                     app.hovered_drop_target = None;
                     if app.is_dragging {
                         let sidebar_width = app.sidebar_width();
-                        
-                        // Check Favorites Hover (Sidebar top)
                         if column < sidebar_width {
                             let mut hit_link = false;
                             for bound in &app.sidebar_bounds {
                                 if bound.y == row {
                                     match &bound.target {
                                         SidebarTarget::Favorite(p) => {
-                                            // Implement Reordering
                                             if let Some(source) = &app.drag_source {
                                                 if app.starred.contains(source) && source != p {
                                                     let source_idx = app.starred.iter().position(|x| x == source);
                                                     let target_idx = app.starred.iter().position(|x| x == p);
                                                     if let (Some(s), Some(t)) = (source_idx, target_idx) {
                                                         app.starred.swap(s, t);
-                                                        // Stop highlight for this frame to avoid flicker,
-                                                        // but set target path so it stays consistent
                                                         app.hovered_drop_target = Some(DropTarget::Folder(source.clone()));
                                                         hit_link = true;
                                                     }
-                                                } else {
-                                                    app.hovered_drop_target = Some(DropTarget::Folder(p.clone()));
-                                                    hit_link = true;
-                                                }
-                                            } else {
-                                                app.hovered_drop_target = Some(DropTarget::Folder(p.clone()));
-                                                hit_link = true;
-                                            }
+                                                } else { app.hovered_drop_target = Some(DropTarget::Folder(p.clone())); hit_link = true; }
+                                            } else { app.hovered_drop_target = Some(DropTarget::Folder(p.clone())); hit_link = true; }
                                         }
                                         _ => {}
                                     }
                                     break;
                                 }
                             }
-                            if !hit_link {
-                                app.hovered_drop_target = Some(DropTarget::SidebarArea);
-                            }
+                            if !hit_link { app.hovered_drop_target = Some(DropTarget::SidebarArea); }
                         }
-                        
-                        // Check Folder Hover in content panes
                         if app.hovered_drop_target.is_none() && row >= 3 && column >= sidebar_width {
                             let index = fs_mouse_index(row, app);
                             if let Some(fs) = app.current_file_state() {
-                                if let Some(path) = fs.files.get(index) {
-                                    if path.is_dir() {
-                                        app.hovered_drop_target = Some(DropTarget::Folder(path.clone()));
-                                    }
-                                }
+                                if let Some(path) = fs.files.get(index) { if path.is_dir() { app.hovered_drop_target = Some(DropTarget::Folder(path.clone())); } }
                             }
                         }
                     }
-
-                    // Update hovered breadcrumb for all panes
                     for pane in &mut app.panes {
                         if let Some(fs) = pane.current_state_mut() {
                             fs.hovered_breadcrumb = None;
                             if row == 1 {
                                 for (rect, path) in &fs.breadcrumb_bounds {
-                                    if rect.contains(ratatui::layout::Position { x: column, y: row }) {
-                                        fs.hovered_breadcrumb = Some(path.clone());
-                                        break;
-                                    }
+                                    if rect.contains(ratatui::layout::Position { x: column, y: row }) { fs.hovered_breadcrumb = Some(path.clone()); break; }
                                 }
                             }
                         }
                     }
                 }
                 MouseEventKind::Down(button) => {
-                MouseEventKind::Down(button) => {
                     let sidebar_width = app.sidebar_width();
                     let (w, h) = app.terminal_size;
 
-                    // 1. Modal / Exclusive Handling
                     if app.mode == AppMode::Settings {
                         if w > 0 && h > 0 {
-                            // Match centered_rect(80, 80)
                             let area_w = (w as f32 * 0.8) as u16;
                             let area_h = (h as f32 * 0.8) as u16;
                             let area_x = (w - area_w) / 2;
                             let area_y = (h - area_h) / 2;
-
-                            // Check if click is inside modal
                             if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
                                 let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
-                                
-                                // Left sidebar is 15 wide
                                 if column < inner.x + 15 {
                                     let rel_y = row.saturating_sub(inner.y);
                                     match rel_y {
@@ -435,10 +397,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         _ => {}
                                     }
                                 } else {
-                                    // Main content area
                                     match app.settings_section {
                                         crate::app::SettingsSection::Columns => {
-                                            // Tabs at the top of content (inner.y to inner.y + 2)
                                             if row >= inner.y && row < inner.y + 3 {
                                                 let content_x = column.saturating_sub(inner.x + 16);
                                                 let tab_width = 12; 
@@ -449,7 +409,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                     _ => {}
                                                 }
                                             } else if row >= inner.y + 4 {
-                                                // Column list
                                                 let rel_y = row.saturating_sub(inner.y + 4);
                                                 match rel_y {
                                                     0 => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
@@ -474,22 +433,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                                 return;
-                            } else {
-                                app.mode = AppMode::Normal;
-                                return;
-                            }
+                            } else { app.mode = AppMode::Normal; return; }
                         }
                     }
 
                     if let AppMode::ContextMenu { x, y, target } = app.mode.clone() {
                         let menu_width = 20;
                         let menu_height = match target {
-                            ContextMenuTarget::File(_) => 6,
-                            ContextMenuTarget::Folder(_) => 5,
-                            ContextMenuTarget::EmptySpace => 5,
-                            ContextMenuTarget::SidebarFavorite(_) => 3,
-                            ContextMenuTarget::SidebarRemote(_) => 3,
-                            ContextMenuTarget::SidebarStorage(_) => 2,
+                            ContextMenuTarget::File(_) => 6, ContextMenuTarget::Folder(_) => 5, ContextMenuTarget::EmptySpace => 5,
+                            ContextMenuTarget::SidebarFavorite(_) => 3, ContextMenuTarget::SidebarRemote(_) => 3, ContextMenuTarget::SidebarStorage(_) => 2,
                         };
                         if column >= x && column < x + menu_width && row >= y && row < y + menu_height {
                             let menu_row = row.saturating_sub(y + 1) as usize;
@@ -498,19 +450,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     if let Some(fs) = app.current_file_state_mut() {
                                         if let Some(path) = fs.files.get(idx).cloned() {
                                             match menu_row {
-                                                0 => { // Edit
-                                                    let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
-                                                    app.mode = AppMode::Normal;
-                                                }
-                                                1 => { // Star
-                                                    if app.starred.contains(&path) { app.starred.retain(|x| x != &path); }
-                                                    else { app.starred.push(path.clone()); }
-                                                    app.mode = AppMode::Normal;
-                                                }
-                                                2 => app.mode = AppMode::Rename,
-                                                3 => app.mode = AppMode::Delete,
-                                                4 => app.mode = AppMode::Properties,
-                                                _ => app.mode = AppMode::Normal,
+                                                0 => { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); app.mode = AppMode::Normal; }
+                                                1 => { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } app.mode = AppMode::Normal; }
+                                                2 => app.mode = AppMode::Rename, 3 => app.mode = AppMode::Delete, 4 => app.mode = AppMode::Properties, _ => app.mode = AppMode::Normal,
                                             }
                                         }
                                     }
@@ -519,129 +461,49 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     if let Some(fs) = app.current_file_state_mut() {
                                         if let Some(path) = fs.files.get(idx).cloned() {
                                             match menu_row {
-                                                0 => { // Open
-                                                    fs.current_path = path.clone();
-                                                    fs.selected_index = Some(0);
-                                                    fs.search_filter.clear();
-                                                    *fs.table_state.offset_mut() = 0;
-                                                    let p = path.clone();
-                                                    push_history(fs, p);
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                                    app.mode = AppMode::Normal;
-                                                }
-                                                1 => { // Star
-                                                    if app.starred.contains(&path) { app.starred.retain(|x| x != &path); }
-                                                    else { app.starred.push(path.clone()); }
-                                                    app.mode = AppMode::Normal;
-                                                }
-                                                2 => app.mode = AppMode::Rename,
-                                                3 => app.mode = AppMode::Delete,
-                                                _ => app.mode = AppMode::Normal,
+                                                0 => { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.mode = AppMode::Normal; }
+                                                1 => { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } app.mode = AppMode::Normal; }
+                                                2 => app.mode = AppMode::Rename, 3 => app.mode = AppMode::Delete, _ => app.mode = AppMode::Normal,
                                             }
                                         }
                                     }
                                 }
                                 ContextMenuTarget::EmptySpace => {
                                     match menu_row {
-                                        0 => { app.mode = AppMode::NewFolder; app.input.clear(); },
-                                        1 => { app.mode = AppMode::NewFile; app.input.clear(); },
+                                        0 => { app.mode = AppMode::NewFolder; app.input.clear(); }, 1 => { app.mode = AppMode::NewFile; app.input.clear(); },
                                         2 => { let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.mode = AppMode::Normal; },
-                                        3 => { // Terminal Here
-                                            if let Some(fs) = app.current_file_state() {
-                                                let terminals = ["alacritty", "kitty", "wezterm", "gnome-terminal", "konsole", "xterm", "xdg-terminal"];
-                                                for t in terminals {
-                                                    let exists = std::process::Command::new("which")
-                                                        .arg(t)
-                                                        .stdout(std::process::Stdio::null())
-                                                        .stderr(std::process::Stdio::null())
-                                                        .status()
-                                                        .map(|s| s.success())
-                                                        .unwrap_or(false);
-                                                    if exists {
-                                                        if std::process::Command::new(t).current_dir(&fs.current_path).spawn().is_ok() {
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            app.mode = AppMode::Normal;
-                                        }
+                                        3 => { if let Some(fs) = app.current_file_state() { let terminals = ["kgx", "alacritty", "kitty", "wezterm", "gnome-terminal", "konsole", "xterm", "xdg-terminal"]; for t in terminals { if std::process::Command::new("which").arg(t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false) { if std::process::Command::new(t).current_dir(&fs.current_path).spawn().is_ok() { break; } } } } app.mode = AppMode::Normal; }
                                         _ => app.mode = AppMode::Normal,
                                     }
                                 }
                                 ContextMenuTarget::SidebarFavorite(path) => {
                                     let p_fav = path.clone();
                                     match menu_row {
-                                        0 => { // Unstar
-                                            app.starred.retain(|x| x != &p_fav);
-                                            app.mode = AppMode::Normal;
-                                        }
-                                        1 => { // Open in new tab
-                                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                                                let mut new_fs = pane.tabs[pane.active_tab_index].clone();
-                                                new_fs.current_path = p_fav.clone();
-                                                new_fs.selected_index = Some(0);
-                                                new_fs.search_filter.clear();
-                                                *new_fs.table_state.offset_mut() = 0;
-                                                new_fs.history = vec![p_fav];
-                                                new_fs.history_index = 0;
-                                                pane.open_tab(new_fs);
-                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                            }
-                                            app.mode = AppMode::Normal;
-                                        }
+                                        0 => { app.starred.retain(|x| x != &p_fav); app.mode = AppMode::Normal; }
+                                        1 => { if let Some(pane) = app.panes.get_mut(app.focused_pane_index) { let mut new_fs = pane.tabs[pane.active_tab_index].clone(); new_fs.current_path = p_fav.clone(); new_fs.selected_index = Some(0); new_fs.search_filter.clear(); *new_fs.table_state.offset_mut() = 0; new_fs.history = vec![p_fav]; new_fs.history_index = 0; pane.open_tab(new_fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } app.mode = AppMode::Normal; }
                                         _ => app.mode = AppMode::Normal,
                                     }
                                 }
                                 ContextMenuTarget::SidebarRemote(idx) => {
                                     match menu_row {
-                                        0 => { // Connect
-                                            let bookmark_idx = *idx;
-                                            crate::app::log_debug(&format!("Connecting to remote bookmark index: {}", bookmark_idx));
-                                            execute_command(crate::app::CommandAction::ConnectToRemote(bookmark_idx), app, event_tx.clone());
-                                            app.mode = AppMode::Normal;
-                                        }
-                                        1 => { // Remove
-                                            app.remote_bookmarks.remove(*idx);
-                                            app.mode = AppMode::Normal;
-                                        }
+                                        0 => { execute_command(crate::app::CommandAction::ConnectToRemote(*idx), app, event_tx.clone()); app.mode = AppMode::Normal; }
+                                        1 => { app.remote_bookmarks.remove(*idx); app.mode = AppMode::Normal; }
                                         _ => app.mode = AppMode::Normal,
                                     }
                                 }
-                                ContextMenuTarget::SidebarStorage(idx) => {
-                                    match menu_row {
-                                        0 => { // Mount
-                                            app.mode = AppMode::Normal;
-                                        }
-                                        1 => { // Unmount
-                                            app.mode = AppMode::Normal;
-                                        }
-                                        _ => app.mode = AppMode::Normal,
-                                    }
-                                }
+                                ContextMenuTarget::SidebarStorage(idx) => { match menu_row { 0 | 1 => app.mode = AppMode::Normal, _ => app.mode = AppMode::Normal, } }
                             }
                             return;
-                        } else {
-                            app.mode = AppMode::Normal;
-                            return;
-                        }
+                        } else { app.mode = AppMode::Normal; return; }
                     }
 
-                    if app.mode != AppMode::Normal {
-                        return;
-                    }
+                    if app.mode != AppMode::Normal { return; }
 
-                    // 2. Mouse Back/Forward Buttons
                     if button == MouseButton::Back || button == MouseButton::Forward {
-                        if let Some(fs) = app.current_file_state_mut() {
-                            if button == MouseButton::Back { navigate_back(fs); }
-                            else { navigate_forward(fs); }
-                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                        }
+                        if let Some(fs) = app.current_file_state_mut() { if button == MouseButton::Back { navigate_back(fs); } else { navigate_forward(fs); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
                         return;
                     }
 
-                    // 3. Normal Focus logic (happens for all other clicks)
                     if column >= sidebar_width {
                         let pane_count = app.panes.len();
                         if pane_count > 0 {
@@ -649,22 +511,17 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                              let content_col = column.saturating_sub(sidebar_width);
                              let pane_width = content_area_width / pane_count as u16;
                              let clicked_pane = (content_col / pane_width) as usize;
-                             if clicked_pane < pane_count {
-                                  app.focused_pane_index = clicked_pane;
-                             }
+                             if clicked_pane < pane_count { app.focused_pane_index = clicked_pane; }
                         }
                     }
 
                     if app.current_view == CurrentView::Files {
-                        // Header click
                         let mut clicked_pane_index = None;
                         let mut clicked_col = None;
                         for (i, pane) in app.panes.iter().enumerate() {
                             if let Some(fs) = pane.current_state() {
                                 for (rect, col_type) in &fs.column_bounds {
-                                    if rect.contains(ratatui::layout::Position { x: column, y: row }) && row == rect.y {
-                                        clicked_pane_index = Some(i); clicked_col = Some(*col_type); break;
-                                    }
+                                    if rect.contains(ratatui::layout::Position { x: column, y: row }) && row == rect.y { clicked_pane_index = Some(i); clicked_col = Some(*col_type); break; }
                                 }
                             }
                             if clicked_pane_index.is_some() { break; }
@@ -675,16 +532,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 if let Some(fs) = pane.current_state_mut() {
                                     if fs.sort_column == col { fs.sort_ascending = !fs.sort_ascending; }
                                     else { fs.sort_column = col; fs.sort_ascending = true; }
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
-                                    return;
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx)); return;
                                 }
                             }
                         }
 
-                        // Breadcrumbs
                         if row == 1 {
                              let pane_count = app.panes.len();
-                             let sidebar_width = app.sidebar_width();
                              if column >= sidebar_width {
                                  let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
                                  let pane_width = if pane_count > 0 { content_area_width / pane_count as u16 } else { content_area_width };
@@ -702,7 +556,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                  }
                              }
                         } else if row > 1 {
-                            let sidebar_width = app.sidebar_width();
                             if column < sidebar_width {
                                 app.sidebar_focus = true;
                                  let mut clicked_bound = None;
@@ -711,17 +564,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                      app.sidebar_index = bound.index;
                                      match bound.target {
                                          SidebarTarget::Favorite(p) => {
-                                             if let Some(fs) = app.current_file_state_mut() {
-                                                 fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p);
-                                             }
+                                             if let Some(fs) = app.current_file_state_mut() { fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); }
                                              let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false;
                                          }
                                          SidebarTarget::Storage(idx) => {
                                              if let Some(disk) = app.system_state.disks.get(idx) {
                                                  let p = std::path::PathBuf::from(&disk.name);
-                                                 if let Some(fs) = app.current_file_state_mut() {
-                                                     fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p);
-                                                 }
+                                                 if let Some(fs) = app.current_file_state_mut() { fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); }
                                                  let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false;
                                              }
                                          }
