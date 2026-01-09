@@ -1189,6 +1189,29 @@ fn draw_settings_modal(f: &mut Frame, app: &App) {
 }
 
 fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(area);
+
+    // Target Selection
+    let titles = vec![" [Global] ", " [Pane 1] ", " [Pane 2] "];
+    let sel = match app.settings_target {
+        SettingsTarget::AllPanes => 0,
+        SettingsTarget::Pane(0) => 1,
+        SettingsTarget::Pane(1) => 2,
+        _ => 0,
+    };
+    
+    let tabs = ratatui::widgets::Tabs::new(titles)
+        .block(Block::default().borders(Borders::BOTTOM).title(" Configure Target "))
+        .select(sel)
+        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+    f.render_widget(tabs, chunks[0]);
+
+    // Show columns for the selected target
+    // If Global, show intersection or just a template? 
+    // Let's show the focused tab's current state as the baseline.
     if let Some(fs) = app.current_file_state() {
         let options = vec![
             (FileColumn::Name, "Name (n)"),
@@ -1198,10 +1221,16 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
             (FileColumn::Permissions, "Permissions (p)"),
             (FileColumn::Extension, "Extension (e)"),
         ];
+        
+        let target_fs = match app.settings_target {
+            SettingsTarget::Pane(idx) => app.panes.get(idx).and_then(|p| p.current_state()).unwrap_or(fs),
+            _ => fs,
+        };
+
         let items: Vec<ListItem> = options
             .iter()
             .map(|(col, label)| {
-                let prefix = if fs.columns.contains(col) {
+                let prefix = if target_fs.columns.contains(col) {
                     "[x] "
                 } else {
                     "[ ] "
@@ -1212,10 +1241,10 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
         f.render_widget(
             List::new(items).block(
                 Block::default()
-                    .title(" Visible Columns (Current Tab) ")
+                    .title(" Visible Columns ")
                     .borders(Borders::NONE),
             ),
-            area,
+            chunks[1],
         );
     }
 }
