@@ -111,6 +111,9 @@ fn run_tty() -> color_eyre::Result<()> {
 
     crate::app::log_debug("Entering main loop");
     loop {
+        // Prepare backend (Clear + Resize)
+        let _ = terminal.backend_mut().clear_backend();
+
         // Draw
         {
             let mut app_guard = app.lock().unwrap();
