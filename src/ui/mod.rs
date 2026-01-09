@@ -738,6 +738,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         let table = Table::new(rows, constraints.clone())
             .header(header)
             .block(block.clone())
+            .column_spacing(0) // Fix alignment and gaps
             .row_highlight_style(
                 Style::default()
                     .bg(Color::Red)
@@ -767,6 +768,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         let column_layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(constraints.clone())
+            .spacing(0) // Match table spacing
             .split(block.inner(content_area));
 
         for (i, col_type) in file_state.columns.iter().enumerate() {

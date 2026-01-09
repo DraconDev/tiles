@@ -52,7 +52,7 @@ fn run_tty() -> color_eyre::Result<()> {
             let mut parser = terma::input::parser::Parser::new();
             let mut stdin = std::io::stdin();
             let fd = stdin.as_raw_fd();
-            let mut buffer = [0; 1];
+            let mut buffer = [0; 1024];
             
             loop {
                 // Poll for input with timeout (20ms) to detect Esc key
@@ -62,17 +62,19 @@ fn run_tty() -> color_eyre::Result<()> {
                         // Data available
                          match stdin.read(&mut buffer) {
                             Ok(0) => break, // EOF
-                            Ok(_) => {
-                                if let Some(evt) = parser.advance(buffer[0]) {
-                                     if let Some(converted) = crate::event::convert_event(evt) {
-                                         let is_spam = if let Event::Mouse(ref me) = converted {
-                                              matches!(me.kind, MouseEventKind::Moved)
-                                         } else { false };
-                                         
-                                         if !is_spam {
-                                             let _ = tx.blocking_send(AppEvent::Raw(converted));
+                            Ok(n) => {
+                                for i in 0..n {
+                                    if let Some(evt) = parser.advance(buffer[i]) {
+                                         if let Some(converted) = crate::event::convert_event(evt) {
+                                             let is_spam = if let Event::Mouse(ref me) = converted {
+                                                  matches!(me.kind, MouseEventKind::Moved)
+                                             } else { false };
+                                             
+                                             if !is_spam {
+                                                 let _ = tx.blocking_send(AppEvent::Raw(converted));
+                                             }
                                          }
-                                     }
+                                    }
                                 }
                             }
                             Err(_) => break,
