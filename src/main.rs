@@ -536,9 +536,21 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         2 => { let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.mode = AppMode::Normal; },
                                         3 => { // Terminal Here
                                             if let Some(fs) = app.current_file_state() {
-                                                let _ = std::process::Command::new("xdg-terminal").current_dir(&fs.current_path).spawn()
-                                                    .or_else(|_| std::process::Command::new("gnome-terminal").current_dir(&fs.current_path).spawn())
-                                                    .or_else(|_| std::process::Command::new("xterm").current_dir(&fs.current_path).spawn());
+                                                let terminals = ["alacritty", "kitty", "wezterm", "gnome-terminal", "konsole", "xterm", "xdg-terminal"];
+                                                for t in terminals {
+                                                    let exists = std::process::Command::new("which")
+                                                        .arg(t)
+                                                        .stdout(std::process::Stdio::null())
+                                                        .stderr(std::process::Stdio::null())
+                                                        .status()
+                                                        .map(|s| s.success())
+                                                        .unwrap_or(false);
+                                                    if exists {
+                                                        if std::process::Command::new(t).current_dir(&fs.current_path).spawn().is_ok() {
+                                                            break;
+                                                        }
+                                                    }
+                                                }
                                             }
                                             app.mode = AppMode::Normal;
                                         }
