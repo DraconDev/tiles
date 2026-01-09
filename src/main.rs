@@ -1164,23 +1164,22 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                             KeyCode::Char('t') | KeyCode::Char('.') => {
                                 if let Some(fs) = app.current_file_state() {
-                                    // Priority list: try generic "default" wrappers first, then specific ones
+                                    // Priority list: try common reliable terminals first, then wrappers
                                     let terminals = [
-                                        "xdg-terminal-exec", 
-                                        "xdg-terminal", 
+                                        "alacritty",
+                                        "kitty",
+                                        "wezterm",
+                                        "gnome-terminal",
+                                        "konsole",
+                                        "xfce4-terminal",
+                                        "xdg-terminal-exec",
+                                        "xdg-terminal",
                                         "x-terminal-emulator",
-                                        "alacritty", 
-                                        "kitty", 
-                                        "wezterm", 
-                                        "gnome-terminal", 
-                                        "konsole", 
-                                        "xfce4-terminal", 
                                         "xterm"
                                     ];
                                     let mut spawned = false;
                                     
                                     for t in terminals {
-                                        // Check if binary exists in PATH using 'which'
                                         let exists = std::process::Command::new("which")
                                             .arg(t)
                                             .stdout(std::process::Stdio::null())
@@ -1190,13 +1189,25 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             .unwrap_or(false);
                                             
                                         if exists {
-                                            crate::app::log_debug(&format!("Found terminal candidate: {}", t));
-                                            match std::process::Command::new(t)
-                                                .current_dir(&fs.current_path)
+                                            crate::app::log_debug(&format!("Attempting to spawn terminal: {}", t));
+                                            
+                                            // Build the command. We use setsid to detach it from the current process group
+                                            // so it doesn't close when 'tiles' exits or get interrupted by our signals.
+                                            let mut cmd = std::process::Command::new("setsid");
+                                            cmd.arg(t);
+                                            
+                                            // Add window-forcing flags for known terminals
+                                            match t {
+                                                "gnome-terminal" => { cmd.arg("--window"); }
+                                                "konsole" => { cmd.arg("--new-window"); }
+                                                _ => {}
+                                            }
+
+                                            match cmd.current_dir(&fs.current_path)
                                                 .spawn() 
                                             {
                                                 Ok(_) => {
-                                                    crate::app::log_debug(&format!("Successfully spawned {}", t));
+                                                    crate::app::log_debug(&format!("Successfully spawned {} via setsid", t));
                                                     spawned = true;
                                                     break;
                                                 }
