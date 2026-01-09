@@ -1395,12 +1395,9 @@ fn fs_mouse_index(row: u16, app: &App) -> usize {
 }
 
 fn update_commands(app: &mut App) {
-    let mut commands = vec![
+    let commands = vec![
         CommandItem { key: "quit".to_string(), desc: "Quit".to_string(), action: crate::app::CommandAction::Quit },
         CommandItem { key: "remote".to_string(), desc: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
-        CommandItem { key: "view_files".to_string(), desc: "View: Files".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Files) },
-        CommandItem { key: "view_tasks".to_string(), desc: "View: Tasks".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Tasks) },
-        CommandItem { key: "view_proc".to_string(), desc: "View: Processes".to_string(), action: crate::app::CommandAction::SwitchView(CurrentView::Processes) },
     ];
     let mut filtered = commands;
     for bookmark_idx in 0..app.remote_bookmarks.len() {
