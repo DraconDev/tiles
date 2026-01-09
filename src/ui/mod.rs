@@ -356,8 +356,8 @@ fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
         menu_rect,
     );
 
-    // Split Button (Keep at Right for now)
-    let split_label = "[◫]";
+    // Split Button
+    let split_label = if pane_count > 1 { "[□]" } else { "[◫]" };
     let split_width = 3;
     let split_rect = Rect::new(
         area.x + area.width.saturating_sub(split_width),
