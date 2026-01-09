@@ -584,10 +584,6 @@ fn draw_file_view(
                     metadata.map(|m| m.permissions).unwrap_or(0),
                 ))
                 .style(Style::default().fg(THEME.fg)),
-                FileColumn::Extension => {
-                    Cell::from(path.extension().and_then(|e| e.to_str()).unwrap_or(""))
-                        .style(Style::default().fg(THEME.fg))
-                }
             });
 
             let mut row_style = Style::default();

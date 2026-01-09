@@ -591,8 +591,8 @@ impl App {
     }
 
     pub fn toggle_column(&mut self, col: FileColumn) {
-        // Name and Extension are mandatory
-        if col == FileColumn::Name || col == FileColumn::Extension {
+        // Name is mandatory
+        if col == FileColumn::Name {
             return;
         }
         match self.settings_target {
@@ -608,7 +608,6 @@ impl App {
                         // Maintain a consistent default order
                         let order = [
                             FileColumn::Name,
-                            FileColumn::Extension,
                             FileColumn::Size,
                             FileColumn::Modified,
                             FileColumn::Created,
