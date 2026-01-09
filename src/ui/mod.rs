@@ -535,7 +535,6 @@ fn draw_file_view(
 
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let metadata = file_state.metadata.get(path);
-            let is_active_selection = Some(i) == file_state.selected_index && is_focused;
             let is_multi_selected = file_state.multi_select.contains(&i) && is_focused;
 
             let cells = file_state.columns.iter().map(|c| match c {
