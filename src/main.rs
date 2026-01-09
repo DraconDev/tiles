@@ -409,7 +409,77 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 }
                 MouseEventKind::Down(button) => {
                     let sidebar_width = app.sidebar_width();
+                    let (w, h) = app.terminal_size;
 
+                    // 1. Modal / Exclusive Handling
+                    if app.mode == AppMode::Settings {
+                        if w > 0 && h > 0 {
+                            // Match centered_rect(80, 80)
+                            let area_w = (w as f32 * 0.8) as u16;
+                            let area_h = (h as f32 * 0.8) as u16;
+                            let area_x = (w - area_w) / 2;
+                            let area_y = (h - area_h) / 2;
+
+                            // Check if click is inside modal
+                            if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
+                                let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
+                                
+                                // Left sidebar is 15 wide
+                                if column < inner.x + 15 {
+                                    let rel_y = row.saturating_sub(inner.y);
+                                    match rel_y {
+                                        0 => app.settings_section = crate::app::SettingsSection::Columns,
+                                        1 => app.settings_section = crate::app::SettingsSection::Tabs,
+                                        2 => app.settings_section = crate::app::SettingsSection::General,
+                                        _ => {}
+                                    }
+                                } else {
+                                    // Main content area
+                                    match app.settings_section {
+                                        crate::app::SettingsSection::Columns => {
+                                            // Tabs at the top of content (inner.y to inner.y + 2)
+                                            if row >= inner.y && row < inner.y + 3 {
+                                                let content_x = column.saturating_sub(inner.x + 16);
+                                                let tab_width = 12; // Approximation
+                                                match content_x / tab_width {
+                                                    0 => app.settings_target = crate::app::SettingsTarget::AllPanes,
+                                                    1 => app.settings_target = crate::app::SettingsTarget::Pane(0),
+                                                    2 => if app.panes.len() > 1 { app.settings_target = crate::app::SettingsTarget::Pane(1); },
+                                                    _ => {}
+                                                }
+                                            } else {
+                                                // Column list
+                                                let rel_y = row.saturating_sub(inner.y + 4);
+                                                match rel_y {
+                                                    0 => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                    1 => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                    2 => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                    3 => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                    4 => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                    5 => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); },
+                                                    _ => {}
+                                                }
+                                            }
+                                        }
+                                        crate::app::SettingsSection::General => {
+                                            let rel_y = row.saturating_sub(inner.y);
+                                            match rel_y {
+                                                0 => app.default_show_hidden = !app.default_show_hidden,
+                                                1 => app.confirm_delete = !app.confirm_delete,
+                                                _ => {}
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                return;
+                            } else {
+                                // Click outside modal closes it
+                                app.mode = AppMode::Normal;
+                                return;
+                            }
+                        }
+                    }
 
                     // 2. Mouse Back/Forward Buttons
                     if button == MouseButton::Back || button == MouseButton::Forward {
