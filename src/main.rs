@@ -446,7 +446,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
 
                             // Check if click is inside modal
                             if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
-                                let inner_x = area_x + 1;
                                 let inner_y = area_y + 1; // Border + Title
                                 // Options list starts at inner_y.
                                 // Items: Name, Size, Modified, Created, Permissions, Extension
