@@ -4,17 +4,18 @@ use tokio::sync::mpsc;
 
 // Terma Imports
 use terma::integration::ratatui::TermaBackend;
-use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifiers};
+use terma::input::event::{Event, KeyCode, MouseEventKind, KeyModifiers};
 
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent, DropTarget, SidebarTarget, ContextMenuTarget, SettingsSection, SettingsTarget};
+use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenuTarget, SettingsSection, SettingsTarget};
 
 mod app;
 mod config;
 mod modules;
 mod event;
+mod ui;
 mod license;
 
 #[tokio::main]
@@ -243,7 +244,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
             let column = me.column;
             let row = me.row;
             
-            if let MouseEventKind::Down(button) = me.kind {
+            if let MouseEventKind::Down(_button) = me.kind {
                 let (w, h) = app.terminal_size;
                 
                 // 0. Global Header (Row 0)
@@ -268,7 +269,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
                         
                         if column < inner.x + 15 {
-                            // Sidebar selection fix -> subtraction by 1 was reported as one lower, so try sub(inner.y)
                             let rel_y = row.saturating_sub(inner.y);
                             match rel_y {
                                 0 => app.settings_section = SettingsSection::Columns,
@@ -279,7 +279,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         } else {
                             match app.settings_section {
                                 SettingsSection::Columns => {
-                                    // Target selection: reported as 2 rows higher, range check visually
                                     if row >= inner.y && row < inner.y + 3 {
                                         let content_x = column.saturating_sub(inner.x + 16);
                                         match content_x / 12 {
@@ -289,7 +288,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             _ => {}
                                         }
                                     } else if row >= inner.y + 4 {
-                                        // Column list selection: reported as 1 lower, sub(4)
                                         let rel_y = row.saturating_sub(inner.y + 4);
                                         match rel_y {
                                             0 => app.toggle_column(crate::app::FileColumn::Name),
@@ -304,7 +302,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                                 SettingsSection::General => {
-                                    // General selection: reported as one lower, sub(1)
                                     let rel_y = row.saturating_sub(inner.y + 1);
                                     match rel_y {
                                         0 => app.default_show_hidden = !app.default_show_hidden,
@@ -386,11 +383,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 let sidebar_width = app.sidebar_width();
                 if column < sidebar_width {
                     app.sidebar_focus = true;
-                    if let Some(bound) = app.sidebar_bounds.iter().find(|b| b.y == row) {
+                    let clicked_sidebar_item = app.sidebar_bounds.iter().find(|b| b.y == row).cloned();
+                    if let Some(bound) = clicked_sidebar_item {
                         app.sidebar_index = bound.index;
                         match &bound.target {
                             SidebarTarget::Favorite(p) => {
-                                if let Some(fs) = app.current_file_state_mut() { fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; let p2 = p.clone(); push_history(fs, p2); }
+                                let p2 = p.clone();
+                                if let Some(fs) = app.current_file_state_mut() { fs.current_path = p2.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p2); }
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false;
                             }
                             SidebarTarget::Storage(idx) => {
@@ -416,17 +415,23 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 // 5. File Selection
                 if row >= 3 {
                     let index = fs_mouse_index(row, app);
+                    let mut selected_path = None;
                     if let Some(fs) = app.current_file_state_mut() {
                         if index < fs.files.len() {
                             fs.selected_index = Some(index); fs.table_state.select(Some(index));
-                            let path = fs.files[index].clone();
-                            app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
-                            if app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
-                                if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
-                                else { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); }
-                            }
-                            app.mouse_last_click = std::time::Instant::now(); app.mouse_click_pos = (column, row);
+                            selected_path = Some(fs.files[index].clone());
                         }
+                    }
+                    
+                    if let Some(path) = selected_path {
+                        app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
+                        if app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
+                            if path.is_dir() { 
+                                if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                            }
+                            else { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); }
+                        }
+                        app.mouse_last_click = std::time::Instant::now(); app.mouse_click_pos = (column, row);
                     }
                 }
             }
