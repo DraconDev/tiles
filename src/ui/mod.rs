@@ -110,15 +110,15 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 if is_focused {
                     label = label.style(
                         Style::default()
-                            .bg(Color::Red)
-                            .fg(Color::White)
+                            .bg(THEME.accent_primary)
+                            .fg(Color::Black)
                             .add_modifier(Modifier::BOLD),
                     );
                 } else if is_hovered && app.is_dragging {
                     label = label.style(
                         Style::default()
-                            .fg(Color::White)
-                            .bg(Color::Red)
+                            .fg(Color::Black)
+                            .bg(THEME.accent_primary)
                             .add_modifier(Modifier::BOLD),
                     );
                 } else if matches!(&app.drag_source, Some(s) if s == path) && app.is_dragging {
