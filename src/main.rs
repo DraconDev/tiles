@@ -1033,6 +1033,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
             }
         }
         Event::Key(key) => {
+            crate::app::log_debug(&format!("DEBUG KEY: code={:?} modifiers={:?}", key.code, key.modifiers));
             crate::app::log_debug(&format!("Key Event: {:?} Modifiers: {:?}", key.code, key.modifiers));
             match app.mode {
                 AppMode::CommandPalette => {
