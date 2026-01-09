@@ -298,6 +298,9 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         CurrentView::Processes => {
             // Placeholder for Processes sidebar
         }
+        CurrentView::Tasks => {
+            // Placeholder for Tasks sidebar (can add stats or filtering later)
+        }
     }
 }
 
@@ -1115,6 +1118,7 @@ fn draw_delete_modal(f: &mut Frame, app: &App) {
             }
         }
         CurrentView::Processes => "Delete Process? (y/n)".to_string(),
+        CurrentView::Tasks => "Delete Task? (y/n)".to_string(),
     };
     f.render_widget(
         Paragraph::new(text).block(
@@ -1163,6 +1167,7 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
             }
         }
         CurrentView::Processes => "Process Info".to_string(),
+        CurrentView::Tasks => "Task Properties".to_string(),
     };
     f.render_widget(
         Paragraph::new(info).block(
