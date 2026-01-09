@@ -1165,7 +1165,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             KeyCode::Char('.') | KeyCode::Char('p') | KeyCode::Char('P') | KeyCode::Char('t') => {
                                 if let Some(fs) = app.current_file_state() {
                                     // Priority list of terminals to try
-                                    let terminals = ["alacritty", "kitty", "wezterm", "gnome-terminal", "konsole", "xterm", "xdg-terminal"];
+                                    let terminals = ["alacritty", "kitty", "wezterm", "gnome-terminal", "konsole", "xfce4-terminal", "xterm", "xdg-terminal", "x-terminal-emulator"];
                                     let mut spawned = false;
                                     
                                     for t in terminals {
@@ -1201,7 +1201,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                             }
-                            KeyCode::Char(' ') => { app.mode = AppMode::CommandPalette; update_commands(app); }
+                            KeyCode::Char(' ') => { app.input.clear(); app.mode = AppMode::CommandPalette; update_commands(app); }
                             _ => {}
                         }
                         return;
