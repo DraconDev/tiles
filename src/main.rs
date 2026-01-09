@@ -269,7 +269,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
                         
                         if column < inner.x + 15 {
-                            let rel_y = row.saturating_sub(inner.y);
+                            // Sidebar selection: "one row lower" fix -> subtract inner.y + 1
+                            let rel_y = row.saturating_sub(inner.y + 1);
                             match rel_y {
                                 0 => app.settings_section = SettingsSection::Columns,
                                 1 => app.settings_section = SettingsSection::Tabs,
@@ -279,16 +280,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         } else {
                             match app.settings_section {
                                 SettingsSection::Columns => {
+                                    // Target selection: working correctly, keeping as is
                                     if row >= inner.y && row < inner.y + 3 {
                                         let content_x = column.saturating_sub(inner.x + 16);
                                         match content_x / 12 {
                                             0 => app.settings_target = SettingsTarget::AllPanes,
                                             1 => app.settings_target = SettingsTarget::Pane(0),
                                             2 => if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
-                                            _ => {}
+                                            _ => {} 
                                         }
                                     } else if row >= inner.y + 4 {
-                                        let rel_y = row.saturating_sub(inner.y + 4);
+                                        // Column list selection: "one row lower" fix -> subtract inner.y + 5
+                                        let rel_y = row.saturating_sub(inner.y + 5);
                                         match rel_y {
                                             0 => app.toggle_column(crate::app::FileColumn::Name),
                                             1 => app.toggle_column(crate::app::FileColumn::Size),
@@ -302,7 +305,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                                 SettingsSection::General => {
-                                    let rel_y = row.saturating_sub(inner.y + 1);
+                                    // General selection: "2 rows lower" fix -> subtract inner.y + 3
+                                    let rel_y = row.saturating_sub(inner.y + 3);
                                     match rel_y {
                                         0 => app.default_show_hidden = !app.default_show_hidden,
                                         1 => app.confirm_delete = !app.confirm_delete,
