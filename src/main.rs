@@ -435,7 +435,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                     }
 
-                    if app.mode == AppMode::ColumnSetup {
+                    if app.mode == AppMode::Settings {
                         let (w, h) = app.terminal_size;
                         if w > 0 && h > 0 {
                             // Replicate centered_rect(40, 40) logic from ui/mod.rs
@@ -671,7 +671,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         if row == 0 {
                             // 1. Menu Button (Top Left)
                             if column < 10 {
-                                app.mode = AppMode::ColumnSetup;
+                                app.mode = AppMode::Settings;
                                 return;
                             }
 
@@ -1116,7 +1116,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         _ => {}
                     }
                 }
-                AppMode::ColumnSetup => {
+                AppMode::Settings => {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
                         KeyCode::Char('n') => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
