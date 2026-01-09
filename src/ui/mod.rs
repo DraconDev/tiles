@@ -356,6 +356,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::AddRemote) {
         draw_add_remote_modal(f, app);
     }
+    if matches!(app.mode, AppMode::NewTask) {
+        draw_new_task_modal(f, app);
+    }
 }
 
 fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
@@ -483,7 +486,35 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             let borders = Borders::ALL;
             draw_file_view(f, chunks[i], app, i, is_focused, borders);
         }
+    } else if app.current_view == CurrentView::Tasks {
+        draw_tasks_view(f, area, app);
     }
+}
+
+fn draw_tasks_view(f: &mut Frame, area: Rect, app: &App) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(" Tasks ");
+    
+    f.render_widget(block.clone(), area);
+    let inner = block.inner(area);
+    
+    let items: Vec<ListItem> = app.tasks.iter().enumerate().map(|(i, task)| {
+        let status = if task.completed { "[x] " } else { "[ ] " };
+        let content = format!("{}{}", status, task.description);
+        let mut style = if task.completed {
+             Style::default().fg(Color::DarkGray)
+        } else {
+             Style::default().fg(Color::White)
+        };
+        
+        // Highlight logic (placeholder, we might need selected_task_index in App)
+        // For now, no selection logic in UI yet, just list
+        ListItem::new(content).style(style)
+    }).collect();
+    
+    f.render_widget(List::new(items), inner);
 }
 
 use std::time::SystemTime;
@@ -1188,6 +1219,25 @@ fn draw_add_remote_modal(f: &mut Frame, app: &App) {
         Paragraph::new(text).block(
             Block::default()
                 .title(" Add Remote Host ")
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(Color::Green)),
+        ),
+        area,
+    );
+}
+
+fn draw_new_task_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(50, 20, f.area());
+    f.render_widget(Clear, area);
+    let text = format!(
+        "Enter task description:\n> {}\n\n(Press Enter to add, Esc to cancel)",
+        app.input
+    );
+    f.render_widget(
+        Paragraph::new(text).block(
+            Block::default()
+                .title(" New Task ")
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Green)),
