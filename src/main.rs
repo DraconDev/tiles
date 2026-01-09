@@ -428,18 +428,43 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                     }
 
-                    if let AppMode::ContextMenu { x, y, item_index } = app.mode {
+                    if let AppMode::ContextMenu { x, y, ref target } = app.mode {
                         let menu_width = 20;
-                        let menu_height = if item_index.is_some() { 6 } else { 6 }; // Dynamic based on items
+                        let menu_height = match target {
+                            ContextMenuTarget::File(_) => 6,
+                            ContextMenuTarget::Folder(_) => 5,
+                            ContextMenuTarget::EmptySpace => 5,
+                            ContextMenuTarget::SidebarFavorite(_) => 3,
+                            ContextMenuTarget::SidebarRemote(_) => 3,
+                            ContextMenuTarget::SidebarStorage(_) => 2,
+                        };
                         if column >= x && column < x + menu_width && row >= y && row < y + menu_height {
                             let menu_row = row.saturating_sub(y + 1) as usize;
-                            if let Some(idx) = item_index {
-                                // Item menu: check if folder or file
-                                if let Some(fs) = app.current_file_state_mut() {
-                                    if let Some(path) = fs.files.get(idx).cloned() {
-                                        let is_dir = fs.metadata.get(&path).map(|m| m.is_dir).unwrap_or(false);
-                                        if is_dir {
-                                            // Folder: Open, Star, Rename, Delete
+                            match target {
+                                ContextMenuTarget::File(idx) => {
+                                    if let Some(fs) = app.current_file_state_mut() {
+                                        if let Some(path) = fs.files.get(*idx).cloned() {
+                                            match menu_row {
+                                                0 => { // Edit
+                                                    let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
+                                                    app.mode = AppMode::Normal;
+                                                }
+                                                1 => { // Star
+                                                    if app.starred.contains(&path) { app.starred.retain(|x| x != &path); }
+                                                    else { app.starred.push(path.clone()); }
+                                                    app.mode = AppMode::Normal;
+                                                }
+                                                2 => app.mode = AppMode::Rename,
+                                                3 => app.mode = AppMode::Delete,
+                                                4 => app.mode = AppMode::Properties,
+                                                _ => app.mode = AppMode::Normal,
+                                            }
+                                        }
+                                    }
+                                }
+                                ContextMenuTarget::Folder(idx) => {
+                                    if let Some(fs) = app.current_file_state_mut() {
+                                        if let Some(path) = fs.files.get(*idx).cloned() {
                                             match menu_row {
                                                 0 => { // Open
                                                     fs.current_path = path.clone();
@@ -451,62 +476,54 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                     app.mode = AppMode::Normal;
                                                 }
                                                 1 => { // Star
-                                                    if app.starred.contains(&path) {
-                                                        app.starred.retain(|x| x != &path);
-                                                    } else {
-                                                        app.starred.push(path.clone());
-                                                    }
+                                                    if app.starred.contains(&path) { app.starred.retain(|x| x != &path); }
+                                                    else { app.starred.push(path.clone()); }
                                                     app.mode = AppMode::Normal;
                                                 }
-                                                2 => app.mode = AppMode::Rename, // Rename
-                                                3 => app.mode = AppMode::Delete, // Delete
+                                                2 => app.mode = AppMode::Rename,
+                                                3 => app.mode = AppMode::Delete,
                                                 _ => app.mode = AppMode::Normal,
                                             }
-                                        } else {
-                                            // File: Edit, Star, Rename, Delete, Properties
-                                                match menu_row {
-                                                    0 => { // Edit (open with xdg-open)
-                                                        let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
-                                                        app.mode = AppMode::Normal;
-                                                    }
-                                                    1 => { // Star
-                                                        if app.starred.contains(&path) {
-                                                            app.starred.retain(|x| x != &path);
-                                                        } else {
-                                                            app.starred.push(path.clone());
-                                                        }
-                                                        app.mode = AppMode::Normal;
-                                                    }
-                                                    2 => app.mode = AppMode::Rename, // Rename
-                                                    3 => app.mode = AppMode::Delete, // Delete
-                                                    4 => app.mode = AppMode::Properties, // Properties
-                                                    _ => app.mode = AppMode::Normal,
+                                        }
+                                    }
+                                }
+                                ContextMenuTarget::EmptySpace => {
+                                    match menu_row {
+                                        0 => { app.mode = AppMode::NewFolder; app.input.clear(); },
+                                        1 => { app.mode = AppMode::NewFile; app.input.clear(); },
+                                        2 => { let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.mode = AppMode::Normal; },
+                                        3 => { // Terminal Here
+                                            if let Some(fs) = app.current_file_state() {
+                                                let _ = std::process::Command::new("xdg-terminal").current_dir(&fs.current_path).spawn()
+                                                    .or_else(|_| std::process::Command::new("gnome-terminal").current_dir(&fs.current_path).spawn())
+                                                    .or_else(|_| std::process::Command::new("xterm").current_dir(&fs.current_path).spawn());
+                                            }
+                                            app.mode = AppMode::Normal;
+                                        }
+                                        _ => app.mode = AppMode::Normal,
+                                    }
+                                }
+                                ContextMenuTarget::SidebarFavorite(path) => {
+                                    let path = path.clone();
+                                    match menu_row {
+                                        0 => { // Unstar
+                                            app.starred.retain(|x| x != &path);
+                                            app.mode = AppMode::Normal;
+                                        }
+                                        1 => { // Open in new tab
+                                            if let Some(fs) = app.current_file_state() {
+                                                let new_fs = crate::app::FileState::new(path, fs.remote_session.clone(), fs.show_hidden, fs.columns.clone(), fs.sort_column, fs.sort_ascending);
+                                                if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                                    pane.open_tab(new_fs);
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                                 }
+                                            }
+                                            app.mode = AppMode::Normal;
                                         }
+                                        _ => app.mode = AppMode::Normal,
                                     }
                                 }
-                            } else {
-                                // Empty space menu: New Folder, New File, Refresh, Terminal Here
-                                match menu_row {
-                                    0 => { app.mode = AppMode::NewFolder; app.input.clear(); },
-                                    1 => { app.mode = AppMode::NewFile; app.input.clear(); },
-                                    2 => { let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.mode = AppMode::Normal; },
-                                    3 => { // Terminal Here
-                                        if let Some(fs) = app.current_file_state() {
-                                            let _ = std::process::Command::new("xdg-terminal")
-                                                .current_dir(&fs.current_path)
-                                                .spawn()
-                                                .or_else(|_| std::process::Command::new("gnome-terminal")
-                                                    .current_dir(&fs.current_path)
-                                                    .spawn())
-                                                .or_else(|_| std::process::Command::new("xterm")
-                                                    .current_dir(&fs.current_path)
-                                                    .spawn());
-                                        }
-                                        app.mode = AppMode::Normal;
-                                    }
-                                    _ => app.mode = AppMode::Normal,
-                                }
+                                _ => app.mode = AppMode::Normal,
                             }
                             return;
                         }
@@ -514,13 +531,43 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         return;
                     }
                     if button == MouseButton::Right {
-                        let index = if app.current_view == CurrentView::Files && !app.sidebar_focus {
-                            let idx = fs_mouse_index(row, app);
-                            if let Some(fs) = app.current_file_state() { if idx < fs.files.len() { Some(idx) } else { None } } else { None }
-                        } else { None };
-                        if let Some(idx) = index { if let Some(fs) = app.current_file_state_mut() { fs.selected_index = Some(idx); fs.table_state.select(Some(idx)); } }
-                        app.mode = AppMode::ContextMenu { x: column, y: row, item_index: index };
-                        return;
+                        let sidebar_width = app.sidebar_width();
+                        if column < sidebar_width {
+                            let mut clicked_bound = None;
+                            for bound in &app.sidebar_bounds {
+                                if bound.y == row { clicked_bound = Some(bound.clone()); break; }
+                            }
+                            if let Some(bound) = clicked_bound {
+                                let target = match bound.target {
+                                    SidebarTarget::Favorite(p) => ContextMenuTarget::SidebarFavorite(p),
+                                    SidebarTarget::Remote(idx) => ContextMenuTarget::SidebarRemote(idx),
+                                    SidebarTarget::Storage(idx) => ContextMenuTarget::SidebarStorage(idx),
+                                    SidebarTarget::Header(_) => ContextMenuTarget::EmptySpace,
+                                };
+                                app.mode = AppMode::ContextMenu { x: column, y: row, target };
+                                return;
+                            }
+                        } else {
+                            let index = if app.current_view == CurrentView::Files {
+                                let idx = fs_mouse_index(row, app);
+                                if let Some(fs) = app.current_file_state() { if idx < fs.files.len() { Some(idx) } else { None } } else { None }
+                            } else { None };
+                            
+                            let target = if let Some(idx) = index {
+                                let is_dir = if let Some(fs) = app.current_file_state() {
+                                    fs.metadata.get(&fs.files[idx]).map(|m| m.is_dir).unwrap_or(false)
+                                } else { false };
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    fs.selected_index = Some(idx);
+                                    fs.table_state.select(Some(idx));
+                                }
+                                if is_dir { ContextMenuTarget::Folder(idx) } else { ContextMenuTarget::File(idx) }
+                            } else {
+                                ContextMenuTarget::EmptySpace
+                            };
+                            app.mode = AppMode::ContextMenu { x: column, y: row, target };
+                            return;
+                        }
                     }
                     if button == MouseButton::Middle {
                         if app.current_view == CurrentView::Files {
