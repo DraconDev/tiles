@@ -486,8 +486,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 }
                                 ContextMenuTarget::SidebarRemote(idx) => {
                                     match menu_row {
-                                        0 => { execute_command(crate::app::CommandAction::ConnectToRemote(*idx), app, event_tx.clone()); app.mode = AppMode::Normal; }
-                                        1 => { app.remote_bookmarks.remove(*idx); app.mode = AppMode::Normal; }
+                                        0 => { execute_command(crate::app::CommandAction::ConnectToRemote(idx), app, event_tx.clone()); app.mode = AppMode::Normal; }
+                                        1 => { app.remote_bookmarks.remove(idx); app.mode = AppMode::Normal; }
                                         _ => app.mode = AppMode::Normal,
                                     }
                                 }
