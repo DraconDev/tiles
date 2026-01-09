@@ -385,7 +385,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                 }
                 MouseEventKind::Down(button) => {
-                    let sidebar_width = (app.terminal_size.0 * 20) / 100;
+                    let sidebar_width = app.sidebar_width();
 
 
                     // 2. Mouse Back/Forward Buttons
@@ -633,7 +633,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         // Row 1: Breadcrumbs
                         if row == 1 {
                              let pane_count = app.panes.len();
-                             let sidebar_width = (app.terminal_size.0 * 20) / 100;
+                             let sidebar_width = app.sidebar_width();
                              
                              if column >= sidebar_width {
                                  let content_area_width = app.terminal_size.0.saturating_sub(sidebar_width);
@@ -658,7 +658,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                              }
                              app.current_view = CurrentView::Files;
                         } else if row > 1 {
-                            let sidebar_width = (app.terminal_size.0 * 20) / 100;
+                            let sidebar_width = app.sidebar_width();
                             if column < sidebar_width {
                                 app.sidebar_focus = true;
                                  let mut clicked_bound = None;
