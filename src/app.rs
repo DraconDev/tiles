@@ -34,15 +34,6 @@ pub enum AppEvent {
 pub enum CurrentView {
     Files,
     Processes,
-    Tasks,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Task {
-    pub id: u64,
-    pub description: String,
-    pub completed: bool,
-    pub created_at: std::time::SystemTime,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -76,7 +67,6 @@ pub enum AppMode {
     Location,
     ColumnSetup,
     AddRemote,
-    NewTask,
 }
 
 #[derive(Clone, Debug)]
@@ -366,9 +356,6 @@ pub struct App {
 
     pub mouse_last_click: std::time::Instant,
     pub mouse_click_pos: (u16, u16),
-    
-    pub tasks: Vec<Task>,
-    pub task_index: usize,
 }
 
 impl App {
@@ -418,8 +405,6 @@ impl App {
                     sidebar_bounds: Vec::new(),
                     mouse_last_click: std::time::Instant::now(),
                     mouse_click_pos: (0, 0),
-                    tasks: state.tasks,
-                    task_index: 0,
                 };
             }
         }
@@ -498,8 +483,6 @@ impl App {
 
             mouse_last_click: std::time::Instant::now(),
             mouse_click_pos: (0, 0),
-            tasks: Vec::new(),
-            task_index: 0,
         };
         log_debug("App::new finished successfully");
         app
@@ -539,8 +522,7 @@ impl App {
 
     pub fn switch_view(&mut self) {
         self.current_view = match self.current_view {
-            CurrentView::Files => CurrentView::Tasks,
-            CurrentView::Tasks => CurrentView::Processes,
+            CurrentView::Files => CurrentView::Processes,
             CurrentView::Processes => CurrentView::Files,
         };
     }
