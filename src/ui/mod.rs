@@ -812,7 +812,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     // CPU
     spans.push(ratatui::text::Span::styled(
         format!("CPU: {:.0}%", app.system_state.cpu_usage),
-        Style::default().fg(Color::Yellow),
+        Style::default().fg(Color::Green),
     ));
     spans.push(ratatui::text::Span::raw(" | "));
 
@@ -838,13 +838,13 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
         let storage_percent = (total_used / total_space) * 100.0;
         spans.push(ratatui::text::Span::styled(
             format!("Storage: {:.0}%", storage_percent),
-            Style::default().fg(Color::Yellow),
+            Style::default().fg(Color::Cyan),
         ));
     } else if let Some(disk) = app.system_state.disks.first() {
         let free = disk.total_space - disk.used_space;
         spans.push(ratatui::text::Span::styled(
             format!("Storage: {:.1}GB", free),
-            Style::default().fg(Color::Yellow),
+            Style::default().fg(Color::Cyan),
         ));
     }
 
