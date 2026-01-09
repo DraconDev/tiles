@@ -535,11 +535,15 @@ fn draw_file_view(
 
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             if path.to_string_lossy() == "__DIVIDER__" {
-                // Return a solid row with the theme's primary accent background
-                let cells = file_state.columns.iter().map(|_| {
-                    Cell::from("").style(Style::default().bg(THEME.accent_primary))
+                // Display a clear textual label instead of a solid color
+                let cells = file_state.columns.iter().enumerate().map(|(col_idx, _)| {
+                    if col_idx == 0 {
+                        Cell::from("── GLOBAL RESULTS ──").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+                    } else {
+                        Cell::from("──────────────────").style(Style::default().fg(Color::DarkGray))
+                    }
                 });
-                return Row::new(cells).style(Style::default().bg(THEME.accent_primary));
+                return Row::new(cells);
             }
 
             let metadata = file_state.metadata.get(path);
