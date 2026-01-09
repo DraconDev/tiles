@@ -392,9 +392,23 @@ impl App {
         let license = check_license();
         log_debug("License checked");
 
-        if let Some(state) = crate::config::load_state() {
+        if let Some(mut state) = crate::config::load_state() {
             log_debug("State loaded from config");
             if !state.panes.is_empty() {
+                // FORCE RESTORE mandatory columns if missing from saved state
+                for pane in &mut state.panes {
+                    for tab in &mut pane.tabs {
+                        if !tab.columns.contains(&FileColumn::Name) {
+                            tab.columns.insert(0, FileColumn::Name);
+                        }
+                        if !tab.columns.contains(&FileColumn::Extension) {
+                            // Find index of Name and insert after it, or just push
+                            let name_idx = tab.columns.iter().position(|&c| c == FileColumn::Name).unwrap_or(0);
+                            tab.columns.insert(name_idx + 1, FileColumn::Extension);
+                        }
+                    }
+                }
+
                 log_debug("Returning early with loaded state");
                 return Self {
                     running: true,
