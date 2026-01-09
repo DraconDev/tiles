@@ -413,6 +413,7 @@ impl App {
                     sidebar_bounds: Vec::new(),
                     mouse_last_click: std::time::Instant::now(),
                     mouse_click_pos: (0, 0),
+                    settings_section: SettingsSection::Columns,
                 };
             }
         }
@@ -491,6 +492,7 @@ impl App {
 
             mouse_last_click: std::time::Instant::now(),
             mouse_click_pos: (0, 0),
+            settings_section: SettingsSection::Columns,
         };
         log_debug("App::new finished successfully");
         app
