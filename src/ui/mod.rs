@@ -846,7 +846,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
         Span::raw("Quit "),
         Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
         Span::raw("Split "),
-        Span::styled(" ^P/T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(" ^. ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
         Span::raw("Term "),
         Span::styled(" ^Spc ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
         Span::raw("Cmd "),
