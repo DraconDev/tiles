@@ -478,10 +478,9 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 
         for i in 0..pane_count {
             let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
-            let mut borders = Borders::TOP | Borders::BOTTOM | Borders::RIGHT;
-            if i == 0 {
-                borders |= Borders::LEFT;
-            }
+            // User requested left side for right panel too. 
+            // Using Borders::ALL for all panels ensures they each have their own box.
+            let borders = Borders::ALL;
             draw_file_view(f, chunks[i], app, i, is_focused, borders);
         }
     }
