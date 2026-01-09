@@ -1285,8 +1285,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 }
                             }
                         }
-                        KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); }
-                        KeyCode::Up => { app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); }
+                        KeyCode::Down => { 
+                            if app.current_view == CurrentView::Tasks {
+                                if !app.tasks.is_empty() && app.task_index < app.tasks.len() - 1 {
+                                    app.task_index += 1;
+                                }
+                            } else {
+                                app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); 
+                            }
+                        }
+                        KeyCode::Up => { 
+                            if app.current_view == CurrentView::Tasks {
+                                if app.task_index > 0 {
+                                    app.task_index -= 1;
+                                }
+                            } else {
+                                app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); 
+                            }
+                        }
                         KeyCode::Left => {
                             if key.modifiers.contains(KeyModifiers::SHIFT) {
                                 crate::app::log_debug("Triggering copy_to_other_pane (Left)");
@@ -1357,18 +1373,38 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } 
                         }
                         KeyCode::Char('N') => { app.mode = AppMode::NewFolder; app.input.clear(); }
-                        KeyCode::Char('n') => { app.mode = AppMode::NewFile; app.input.clear(); }
+                        KeyCode::Char('n') => {
+                            if app.current_view == CurrentView::Tasks {
+                                app.mode = AppMode::NewTask;
+                                app.input.clear();
+                            } else {
+                                app.mode = AppMode::NewFile;
+                                app.input.clear();
+                            }
+                        }
                         KeyCode::Char(' ') => {
-                            if let Some(fs) = app.current_file_state() {
-                                if let Some(idx) = fs.selected_index {
-                                    if let Some(path) = fs.files.get(idx).cloned() {
-                                        if app.starred.contains(&path) {
-                                            app.starred.retain(|x| x != &path);
-                                        } else {
-                                            app.starred.push(path.clone());
+                            if app.current_view == CurrentView::Tasks {
+                                if let Some(task) = app.tasks.get_mut(app.task_index) {
+                                    task.completed = !task.completed;
+                                }
+                            } else {
+                                if let Some(fs) = app.current_file_state() {
+                                    if let Some(idx) = fs.selected_index {
+                                        if let Some(path) = fs.files.get(idx).cloned() {
+                                            if app.starred.contains(&path) {
+                                                app.starred.retain(|x| x != &path);
+                                            } else {
+                                                app.starred.push(path.clone());
+                                            }
                                         }
                                     }
                                 }
+                            }
+                        }
+                        KeyCode::Char('d') if app.current_view == CurrentView::Tasks => {
+                            if !app.tasks.is_empty() {
+                                app.tasks.remove(app.task_index);
+                                app.task_index = app.task_index.saturating_sub(1);
                             }
                         }
                         // Nautilus-style search
