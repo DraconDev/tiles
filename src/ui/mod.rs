@@ -603,7 +603,6 @@ fn draw_file_view(
                 FileColumn::Modified => Constraint::Percentage(20),
                 FileColumn::Created => Constraint::Percentage(20),
                 FileColumn::Permissions => Constraint::Length(12),
-                FileColumn::Extension => Constraint::Length(6),
             })
             .collect();
         let mut breadcrumb_spans = Vec::new();
