@@ -279,17 +279,17 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                         } else {
                             match app.settings_section {
-                                SettingsSection::Columns => {
-                                    // Target selection:visually at inner.y + 1
-                                    if row >= inner.y && row < inner.y + 3 {
-                                        let content_x = column.saturating_sub(inner.x + 16);
-                                        // Precise ranges for " [Pane 1]   [Pane 2] "
-                                        if content_x < 11 {
-                                            app.settings_target = SettingsTarget::Pane(0);
-                                        } else if content_x < 22 {
-                                            if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
-                                        }
-                                    } else if row >= inner.y + 4 {
+                                                                SettingsSection::Columns => {
+                                                                    // Target selection: visually at inner.y to inner.y + 2
+                                                                    if row >= inner.y && row < inner.y + 3 {
+                                                                        let content_x = column.saturating_sub(inner.x + 15);
+                                                                        // Precise ranges for " [Pane 1]   [Pane 2] "
+                                                                        if content_x < 12 {
+                                                                            app.settings_target = SettingsTarget::Pane(0);
+                                                                        } else if content_x < 25 {
+                                                                            if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
+                                                                        }
+                                                                    } else if row >= inner.y + 4 {
                                         // Column list selection: subtract 4
                                         let rel_y = row.saturating_sub(inner.y + 4);
                                         match rel_y {
