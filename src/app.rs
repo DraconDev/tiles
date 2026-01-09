@@ -611,6 +611,23 @@ impl App {
                         } else {
                             tab.columns.push(col);
                         }
+
+                        // Maintain a consistent default order
+                        let order = [
+                            FileColumn::Name,
+                            FileColumn::Extension,
+                            FileColumn::Size,
+                            FileColumn::Modified,
+                            FileColumn::Created,
+                            FileColumn::Permissions,
+                        ];
+                        let mut sorted = Vec::new();
+                        for &c in &order {
+                            if tab.columns.contains(&c) {
+                                sorted.push(c);
+                            }
+                        }
+                        tab.columns = sorted;
                     }
                 }
             }
