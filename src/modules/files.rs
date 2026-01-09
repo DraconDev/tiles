@@ -70,7 +70,7 @@ fn sort_files(state: &mut FileState) {
     });
 }
 
-fn update_local_files(state: &mut FileState) {
+pub fn update_local_files(state: &mut FileState) {
     let mut local_files = Vec::new();
     let mut global_files = Vec::new();
     state.metadata.clear();
