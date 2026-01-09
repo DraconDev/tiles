@@ -1105,11 +1105,10 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
         .split(area);
 
     // Target Selection
-    let titles = vec![" [Global] ", " [Pane 1] ", " [Pane 2] "];
+    let titles = vec![" [Pane 1] ", " [Pane 2] "];
     let sel = match app.settings_target {
-        SettingsTarget::AllPanes => 0,
-        SettingsTarget::Pane(0) => 1,
-        SettingsTarget::Pane(1) => 2,
+        SettingsTarget::Pane(0) => 0,
+        SettingsTarget::Pane(1) => 1,
         _ => 0,
     };
     
