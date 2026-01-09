@@ -1,87 +1,124 @@
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-use terma::backend::tty::get_window_size;
-use terma::compositor::engine::{Compositor, TilePlacement};
-use terma::core::terma::Terma;
+// Terma Imports
+use terma::integration::ratatui::TermaBackend;
 use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifiers};
-use terma::input::parser::Parser;
+
+// Ratatui Imports
+use ratatui::Terminal;
+
+use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent, DropTarget, SidebarTarget, ContextMenuTarget, SettingsSection, SettingsTarget};
 
 mod app;
 mod config;
 mod modules;
-mod ui;
+mod event;
 mod license;
-
-use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent, DropTarget, SidebarTarget, ContextMenuTarget};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let tile_queue = Arc::new(Mutex::new(Vec::new()));
-    let (app, event_tx, mut event_rx) = setup_app(tile_queue.clone());
-
-    let stdout = std::io::stdout();
-    let mut terma = Terma::new(stdout)?;
-    let mut compositor = Compositor::new(tile_queue.clone());
-
-    let (mut w, mut h) = get_window_size(terma.as_fd())?;
-    {
-        let mut app_guard = app.lock().unwrap();
-        app_guard.terminal_size = (w, h);
-    }
-
-    // TTY Event Loop
-    let mut parser = Parser::new();
-    let tx = event_tx.clone();
+    crate::app::log_debug("main start");
     
-    tokio::spawn(async move {
-        use std::io::Read;
-        let mut stdin = std::io::stdin();
-        let mut buf = [0u8; 1024];
-        loop {
-            if let Ok(n) = stdin.read(&mut buf) {
-                for i in 0..n {
-                    if let Some(evt) = parser.advance(buf[i]) {
-                        if let Some(converted) = crate::event::convert_event(evt) {
-                            let _ = tx.blocking_send(AppEvent::Raw(converted));
+    // Initialize TermaBackend (Raw Mode, etc.)
+    let backend = TermaBackend::new(std::io::stdout())?;
+    crate::app::log_debug("TermaBackend created");
+    let tile_queue = backend.tile_queue();
+    let mut terminal = Terminal::new(backend)?;
+
+    // Setup App & Channels
+    let app = Arc::new(Mutex::new(App::new(tile_queue)));    
+    let (event_tx, mut event_rx) = mpsc::channel::<AppEvent>(1000); 
+
+    // 1. TTY Input Loop (Parser -> Raw AppEvent)
+    {
+        let tx = event_tx.clone();
+        std::thread::spawn(move || {
+            use std::io::Read;
+            use std::os::fd::AsRawFd;
+            let mut parser = terma::input::parser::Parser::new();
+            let mut stdin = std::io::stdin();
+            let fd = stdin.as_raw_fd();
+            let mut buffer = [0; 1024];
+            loop {
+                let polled = unsafe { terma::backend::tty::poll_input(std::os::fd::BorrowedFd::borrow_raw(fd), 20) };
+                match polled {
+                    Ok(true) => {
+                         match stdin.read(&mut buffer) {
+                            Ok(0) => break,
+                            Ok(n) => {
+                                for i in 0..n {
+                                    if let Some(evt) = parser.advance(buffer[i]) {
+                                         if let Some(converted) = crate::event::convert_event(evt) {
+                                             let _ = tx.blocking_send(AppEvent::Raw(converted));
+                                         }
+                                    }
+                                }
+                            }
+                            Err(_) => break,
                         }
                     }
+                    Ok(false) => {
+                        if let Some(evt) = parser.check_timeout() {
+                             if let Some(converted) = crate::event::convert_event(evt) {
+                                 let _ = tx.blocking_send(AppEvent::Raw(converted));
+                             }
+                        }
+                    }
+                    Err(_) => break,
                 }
             }
-            if let Some(evt) = parser.check_timeout() {
-                if let Some(converted) = crate::event::convert_event(evt) {
-                    let _ = tx.blocking_send(AppEvent::Raw(converted));
-                }
-            }
-            tokio::time::sleep(Duration::from_millis(10)).await;
-        }
-    });
+        });
+    }
 
+    // 2. System Stats Loop
+    {
+        let tx = event_tx.clone();
+        tokio::spawn(async move {
+            let mut sys_mod = modules::system::SystemModule::new();
+            loop {
+                let data = sys_mod.get_data();
+                let _ = tx.send(AppEvent::SystemUpdated(data)).await;
+                tokio::time::sleep(Duration::from_secs(2)).await;
+            }
+        });
+    }
+
+    // 3. Tick Loop
+    {
+        let tx = event_tx.clone();
+        tokio::spawn(async move {
+            loop {
+                let _ = tx.send(AppEvent::Tick).await;
+                tokio::time::sleep(Duration::from_millis(500)).await;
+            }
+        });
+    }
+
+    // Main UI & Event Handling Loop
+    crate::app::log_debug("Entering main loop");
     loop {
+        // Draw
         {
             let mut app_guard = app.lock().unwrap();
-            if !app_guard.running { break; }
-            
-            let new_size = get_window_size(terma.as_fd())?;
-            if new_size != (w, h) {
-                w = new_size.0; h = new_size.1;
-                app_guard.terminal_size = (w, h);
+            if !app_guard.running { 
+                let _ = crate::config::save_state(&app_guard);
+                break; 
             }
-
-            terma.inner().get_frame(|f| {
+            app_guard.terminal_size = (terminal.size()?.width, terminal.size()?.height);
+            terminal.draw(|f| {
                 ui::draw(f, &mut app_guard);
             })?;
         }
 
+        // Process Events
         while let Ok(event) = event_rx.try_recv() {
             match event {
                 AppEvent::Raw(raw) => {
                     let mut app_guard = app.lock().unwrap();
                     handle_event(raw, &mut app_guard, event_tx.clone());
                 }
-                AppEvent::Tick => {}
                 AppEvent::SystemUpdated(data) => {
                     let mut app_guard = app.lock().unwrap();
                     app_guard.system_state.cpu_usage = data.cpu_usage;
@@ -125,42 +162,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let idx = app_guard.focused_pane_index;
                     app_guard.update_files_for_active_tab(idx);
                 }
+                AppEvent::Tick => {}
             }
         }
-
-        compositor.render(&mut terma)?;
         tokio::time::sleep(Duration::from_millis(16)).await;
     }
 
-    let app_final = app.lock().unwrap();
-    let _ = config::save_state(&app_final);
     Ok(())
-}
-
-fn setup_app(tile_queue: Arc<Mutex<Vec<TilePlacement>>>) -> (Arc<Mutex<App>>, mpsc::Sender<AppEvent>, mpsc::Receiver<AppEvent>) {
-    let app = Arc::new(Mutex::new(App::new(tile_queue)));
-    let (logic_tx, event_rx) = mpsc::channel(100);
-    
-    let app_bg = app.clone();
-    let tx_bg = logic_tx.clone();
-    tokio::spawn(async move {
-        loop {
-            let _ = tx_bg.send(AppEvent::Tick).await;
-            tokio::time::sleep(Duration::from_millis(500)).await;
-        }
-    });
-
-    let app_sys = app.clone();
-    let tx_sys = logic_tx.clone();
-    tokio::spawn(async move {
-        loop {
-            let data = modules::system::get_system_data();
-            let _ = tx_sys.send(AppEvent::SystemUpdated(data)).await;
-            tokio::time::sleep(Duration::from_secs(2)).await;
-        }
-    });
-
-    (app, logic_tx, event_rx)
 }
 
 fn push_history(fs: &mut crate::app::FileState, path: std::path::PathBuf) {
@@ -191,6 +199,41 @@ fn navigate_forward(fs: &mut crate::app::FileState) {
         fs.table_state.select(Some(0));
         *fs.table_state.offset_mut() = 0;
         fs.search_filter.clear();
+    }
+}
+
+fn fs_mouse_index(row: u16, app: &App) -> usize {
+    let mouse_row_offset = row.saturating_sub(3) as usize;
+    if let Some(fs) = app.current_file_state() { fs.table_state.offset() + mouse_row_offset }
+    else { 0 }
+}
+
+fn update_commands(app: &mut App) {
+    let commands = vec![
+        CommandItem { key: "quit".to_string(), desc: "Quit".to_string(), action: crate::app::CommandAction::Quit },
+        CommandItem { key: "remote".to_string(), desc: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
+    ];
+    let mut filtered = commands;
+    for bookmark_idx in 0..app.remote_bookmarks.len() {
+        let bookmark = &app.remote_bookmarks[bookmark_idx];
+        filtered.push(CommandItem { key: format!("connect_{}", bookmark_idx), desc: format!("Connect to: {}", bookmark.name), action: crate::app::CommandAction::ConnectToRemote(bookmark_idx) });
+    }
+    app.filtered_commands = filtered.into_iter().filter(|cmd| cmd.desc.to_lowercase().contains(&app.input.to_lowercase())).collect();
+    app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
+}
+
+fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: mpsc::Sender<AppEvent>) {
+    match action {
+        crate::app::CommandAction::Quit => { app.running = false; },
+        crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
+        crate::app::CommandAction::SwitchView(view) => app.current_view = view,
+        crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); },
+        crate::app::CommandAction::ConnectToRemote(idx) => {
+            if let Some(_bookmark) = app.remote_bookmarks.get(idx).cloned() {
+                // Connection logic would go here
+            }
+        },
+        crate::app::CommandAction::CommandPalette => { app.mode = AppMode::CommandPalette; },
     }
 }
 
@@ -225,25 +268,28 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
                         
                         if column < inner.x + 15 {
+                            // Sidebar selection: "one row lower" fix -> rel_y starts at 0 for row inner.y
                             let rel_y = row.saturating_sub(inner.y);
                             match rel_y {
-                                0 => app.settings_section = crate::app::SettingsSection::Columns,
-                                1 => app.settings_section = crate::app::SettingsSection::Tabs,
-                                2 => app.settings_section = crate::app::SettingsSection::General,
+                                0 => app.settings_section = SettingsSection::Columns,
+                                1 => app.settings_section = SettingsSection::Tabs,
+                                2 => app.settings_section = SettingsSection::General,
                                 _ => {}
                             }
                         } else {
                             match app.settings_section {
-                                crate::app::SettingsSection::Columns => {
+                                SettingsSection::Columns => {
+                                    // Tabs selection: "2 higher than should be" fix -> visual is inner.y+1, so check range
                                     if row >= inner.y && row < inner.y + 3 {
                                         let content_x = column.saturating_sub(inner.x + 16);
                                         match content_x / 12 {
-                                            0 => app.settings_target = crate::app::SettingsTarget::AllPanes,
-                                            1 => app.settings_target = crate::app::SettingsTarget::Pane(0),
-                                            2 => if app.panes.len() > 1 { app.settings_target = crate::app::SettingsTarget::Pane(1); }
+                                            0 => app.settings_target = SettingsTarget::AllPanes,
+                                            1 => app.settings_target = SettingsTarget::Pane(0),
+                                            2 => if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
                                             _ => {}
                                         }
                                     } else if row >= inner.y + 4 {
+                                        // Column list selection: "one row lower" fix -> subtract 4
                                         let rel_y = row.saturating_sub(inner.y + 4);
                                         match rel_y {
                                             0 => app.toggle_column(crate::app::FileColumn::Name),
@@ -257,7 +303,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     }
                                 }
-                                crate::app::SettingsSection::General => {
+                                SettingsSection::General => {
+                                    // General selection: "one lower than should be" fix -> subtract 1
                                     let rel_y = row.saturating_sub(inner.y + 1);
                                     match rel_y {
                                         0 => app.default_show_hidden = !app.default_show_hidden,
@@ -421,9 +468,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 AppMode::Settings => {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
-                        KeyCode::Char('0') => app.settings_target = crate::app::SettingsTarget::AllPanes,
-                        KeyCode::Char('1') => app.settings_target = crate::app::SettingsTarget::Pane(0),
-                        KeyCode::Char('2') => if app.panes.len() > 1 { app.settings_target = crate::app::SettingsTarget::Pane(1); }
+                        KeyCode::Char('0') => app.settings_target = SettingsTarget::AllPanes,
+                        KeyCode::Char('1') => app.settings_target = SettingsTarget::Pane(0),
+                        KeyCode::Char('2') => if app.panes.len() > 1 { app.settings_target = SettingsTarget::Pane(1); }
                         KeyCode::Left | KeyCode::BackTab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::General, SettingsSection::Tabs => SettingsSection::Columns, SettingsSection::General => SettingsSection::Tabs }; }
                         KeyCode::Right | KeyCode::Tab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Tabs, SettingsSection::Tabs => SettingsSection::General, SettingsSection::General => SettingsSection::Columns }; }
                         KeyCode::Char('n') => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
@@ -479,40 +526,5 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
             }
         }
         _ => {}
-    }
-}
-
-fn fs_mouse_index(row: u16, app: &App) -> usize {
-    let mouse_row_offset = row.saturating_sub(3) as usize;
-    if let Some(fs) = app.current_file_state() { fs.table_state.offset() + mouse_row_offset }
-    else { 0 }
-}
-
-fn update_commands(app: &mut App) {
-    let commands = vec![
-        CommandItem { key: "quit".to_string(), desc: "Quit".to_string(), action: crate::app::CommandAction::Quit },
-        CommandItem { key: "remote".to_string(), desc: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
-    ];
-    let mut filtered = commands;
-    for bookmark_idx in 0..app.remote_bookmarks.len() {
-        let bookmark = &app.remote_bookmarks[bookmark_idx];
-        filtered.push(CommandItem { key: format!("connect_{}", bookmark_idx), desc: format!("Connect to: {}", bookmark.name), action: crate::app::CommandAction::ConnectToRemote(bookmark_idx) });
-    }
-    app.filtered_commands = filtered.into_iter().filter(|cmd| cmd.desc.to_lowercase().contains(&app.input.to_lowercase())).collect();
-    app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
-}
-
-fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: mpsc::Sender<AppEvent>) {
-    match action {
-        crate::app::CommandAction::Quit => { app.running = false; },
-        crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
-        crate::app::CommandAction::SwitchView(view) => app.current_view = view,
-        crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); },
-        crate::app::CommandAction::ConnectToRemote(idx) => {
-            if let Some(_bookmark) = app.remote_bookmarks.get(idx).cloned() {
-                // Connection logic would go here
-            }
-        },
-        crate::app::CommandAction::CommandPalette => { app.mode = AppMode::CommandPalette; },
     }
 }
