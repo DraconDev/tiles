@@ -47,6 +47,13 @@ pub enum ContextMenuTarget {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum SettingsSection {
+    Columns,
+    Tabs,
+    General,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum AppMode {
     Normal,
     Rename,
@@ -65,7 +72,7 @@ pub enum AppMode {
     },
     CommandPalette,
     Location,
-    ColumnSetup,
+    Settings,
     AddRemote,
 }
 
@@ -356,6 +363,7 @@ pub struct App {
 
     pub mouse_last_click: std::time::Instant,
     pub mouse_click_pos: (u16, u16),
+    pub settings_section: SettingsSection,
 }
 
 impl App {
