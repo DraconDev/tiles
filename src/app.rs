@@ -34,6 +34,15 @@ pub enum AppEvent {
 pub enum CurrentView {
     Files,
     Processes,
+    Tasks,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Task {
+    pub id: u64,
+    pub description: String,
+    pub completed: bool,
+    pub created_at: std::time::SystemTime,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -67,6 +76,7 @@ pub enum AppMode {
     Location,
     ColumnSetup,
     AddRemote,
+    NewTask,
 }
 
 #[derive(Clone, Debug)]
@@ -356,6 +366,8 @@ pub struct App {
 
     pub mouse_last_click: std::time::Instant,
     pub mouse_click_pos: (u16, u16),
+    
+    pub tasks: Vec<Task>,
 }
 
 impl App {
