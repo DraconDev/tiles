@@ -920,6 +920,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         _ => {}
                     }
                 }
+                AppMode::ContextMenu { .. } => {
+                    if key.code == KeyCode::Esc {
+                        app.mode = AppMode::Normal;
+                    }
+                }
                 _ => {
                     if key.modifiers.contains(KeyModifiers::CONTROL) {
                         match key.code {
