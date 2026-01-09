@@ -356,7 +356,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
         menu_rect,
     );
 
-    // Split Button
+    // Split Button (Dynamic Icon)
     let split_label = if pane_count > 1 { "[□]" } else { "[◫]" };
     let split_width = 3;
     let split_rect = Rect::new(
@@ -375,12 +375,19 @@ fn draw_global_header(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     // Tabs Area
-    // Start after Menu, End before Split
-    let tabs_x = area.x + menu_width + 1;
-    let tabs_width = area.width.saturating_sub(menu_width + 1 + split_width + 1);
+    // Align Tabs with the Panes (skip Sidebar)
+    let sidebar_width = (app.terminal_size.0 * 20) / 100;
+    
+    // Ensure tabs start AFTER sidebar, but also don't overlap menu if sidebar is tiny (unlikely)
+    let start_x = std::cmp::max(area.x + sidebar_width, area.x + menu_width + 1);
+    
+    // End before Split button
+    let end_x = area.x + area.width.saturating_sub(split_width + 1);
+    
+    let tabs_width = end_x.saturating_sub(start_x);
     
     if tabs_width > 0 {
-        let tabs_area = Rect::new(tabs_x, area.y, tabs_width, 1);
+        let tabs_area = Rect::new(start_x, area.y, tabs_width, 1);
         
         // Split tabs area if multiple panes
         let pane_constraints = vec![Constraint::Ratio(1, pane_count as u32); pane_count];
