@@ -427,13 +427,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 if row >= 3 {
                     let index = fs_mouse_index(row, app);
                     let mut selected_path = None;
-                    if let Some(fs) = app.current_file_state_mut() {
-                        if index < fs.files.len() {
-                            fs.selected_index = Some(index); fs.table_state.select(Some(index));
-                            selected_path = Some(fs.files[index].clone());
-                        }
-                    }
-                    
+                                                        if let Some(fs) = app.current_file_state_mut() {
+                                                            if index < fs.files.len() {
+                                                                if fs.files[index].to_string_lossy() == "__DIVIDER__" {
+                                                                    return; // Ignore divider clicks
+                                                                }
+                                                                fs.selected_index = Some(index); fs.table_state.select(Some(index));
+                                                                selected_path = Some(fs.files[index].clone());
+                                                            }
+                                                        }                    
                     if let Some(path) = selected_path {
                         app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
                         if app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {

@@ -671,11 +671,16 @@ impl App {
         }
         if let Some(fs) = self.current_file_state_mut() {
             let old_idx = fs.selected_index.unwrap_or(0);
-            let i = if old_idx == 0 {
+            let mut i = if old_idx == 0 {
                 fs.files.len().saturating_sub(1)
             } else {
                 old_idx - 1
             };
+
+            // Skip divider
+            if fs.files[i].to_string_lossy() == "__DIVIDER__" {
+                i = if i == 0 { fs.files.len().saturating_sub(1) } else { i - 1 };
+            }
 
             fs.selected_index = Some(i);
             fs.table_state.select(Some(i));
@@ -707,11 +712,16 @@ impl App {
         }
         if let Some(fs) = self.current_file_state_mut() {
             let old_idx = fs.selected_index.unwrap_or(0);
-            let i = if old_idx >= fs.files.len().saturating_sub(1) {
+            let mut i = if old_idx >= fs.files.len().saturating_sub(1) {
                 0
             } else {
                 old_idx + 1
             };
+
+            // Skip divider
+            if i < fs.files.len() && fs.files[i].to_string_lossy() == "__DIVIDER__" {
+                i = if i >= fs.files.len().saturating_sub(1) { 0 } else { i + 1 };
+            }
 
             fs.selected_index = Some(i);
             fs.table_state.select(Some(i));

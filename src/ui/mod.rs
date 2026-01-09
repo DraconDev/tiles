@@ -534,6 +534,13 @@ fn draw_file_view(
         let header = Row::new(header_cells).height(1).bottom_margin(0);
 
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
+            if path.to_string_lossy() == "__DIVIDER__" {
+                let cells = file_state.columns.iter().map(|_| {
+                    Cell::from("────────────").style(Style::default().fg(Color::DarkGray))
+                });
+                return Row::new(cells).style(Style::default().fg(Color::DarkGray));
+            }
+
             let metadata = file_state.metadata.get(path);
             let is_multi_selected = file_state.multi_select.contains(&i) && is_focused;
 
