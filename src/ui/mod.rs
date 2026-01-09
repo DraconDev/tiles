@@ -466,8 +466,11 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 
         for i in 0..pane_count {
             let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
-            // Use Borders::ALL to avoid broken look at junctions
-            draw_file_view(f, chunks[i], app, i, is_focused, Borders::ALL);
+            let mut borders = Borders::TOP | Borders::BOTTOM | Borders::RIGHT;
+            if i == 0 {
+                borders |= Borders::LEFT;
+            }
+            draw_file_view(f, chunks[i], app, i, is_focused, borders);
         }
     }
 }
