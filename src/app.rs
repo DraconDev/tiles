@@ -399,7 +399,9 @@ impl App {
             }
         }
 
+        log_debug("No valid state found, starting fresh");
         let initial_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        log_debug(&format!("Initial path: {:?}", initial_path));
         let mut file_state = FileState::new(
             initial_path.clone(),
             None,
@@ -409,7 +411,9 @@ impl App {
             true,
         );
         file_state.table_state.select(Some(0));
+        log_debug("Initial file state created");
         update_files(&mut file_state, None);
+        log_debug("Initial files updated");
 
         let license = check_license();
 
