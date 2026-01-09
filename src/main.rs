@@ -1127,8 +1127,21 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         match key.code {
                             KeyCode::Char('q') => app.running = false,
                             KeyCode::Char('s') => app.toggle_split(),
-                            KeyCode::Char('.') => { app.mode = AppMode::CommandPalette; update_commands(app); }
+                            KeyCode::Char('p') => { app.mode = AppMode::CommandPalette; update_commands(app); }
                             KeyCode::Char('f') => app.current_view = CurrentView::Files,
+                            KeyCode::Char('t') => {
+                                if let Some(fs) = app.current_file_state() {
+                                    let _ = std::process::Command::new("xdg-terminal")
+                                        .current_dir(&fs.current_path)
+                                        .spawn()
+                                        .or_else(|_| std::process::Command::new("gnome-terminal")
+                                            .current_dir(&fs.current_path)
+                                            .spawn())
+                                        .or_else(|_| std::process::Command::new("xterm")
+                                            .current_dir(&fs.current_path)
+                                            .spawn());
+                                }
+                            }
                             _ => {}
                         }
                         return;
