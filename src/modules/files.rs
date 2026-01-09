@@ -71,40 +71,88 @@ fn sort_files(state: &mut FileState) {
 }
 
 fn update_local_files(state: &mut FileState) {
-    state.files.clear();
+    let mut local_files = Vec::new();
+    let mut global_files = Vec::new();
     state.metadata.clear();
 
+    // 1. LOCAL SEARCH (Always performed)
+    if let Ok(entries) = std::fs::read_dir(&state.current_path) {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            
+            // Hidden filtering
+            if !state.show_hidden && name.starts_with('.') {
+                continue;
+            }
+            
+            // Search filtering
+            if !state.search_filter.is_empty() && !name.to_lowercase().contains(&state.search_filter.to_lowercase()) {
+                continue;
+            }
+
+            if let Ok(m) = std::fs::metadata(&path).or_else(|_| entry.metadata()) {
+                let meta = crate::app::FileMetadata {
+                    size: m.len(),
+                    modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                    created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                    #[cfg(unix)]
+                    permissions: {
+                        use std::os::unix::fs::PermissionsExt;
+                        m.permissions().mode()
+                    },
+                    #[cfg(not(unix))]
+                    permissions: 0,
+                    extension: path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string(),
+                    is_dir: m.is_dir(),
+                };
+                state.metadata.insert(path.clone(), meta);
+                local_files.push(path);
+            }
+        }
+    }
+
+    // Sort local files (Dirs first, then by sort_column)
+    // We'll reuse the existing state.files sorting logic by temporarily assigning local_files to state.files
+    state.files = local_files;
+    sort_files(state);
+    local_files = state.files.clone();
+
+    // 2. GLOBAL SEARCH (Recursive, if filter >= 3)
     if state.search_filter.len() >= 3 {
-        // Global Search (Recursive)
-        let mut count = 0;
-        let mut scored_files = Vec::new();
+        let mut scored_global = Vec::new();
+        let filter_lower = state.search_filter.to_lowercase();
+        
         let walker = walkdir::WalkDir::new(&state.current_path)
             .follow_links(false)
             .into_iter()
             .filter_entry(|e| {
                 let name = e.file_name().to_string_lossy();
+                // De-prioritize hidden but also don't traverse them if show_hidden is off
                 if !state.show_hidden && name.starts_with('.') { return false; }
                 true
             });
 
-        let filter_lower = state.search_filter.to_lowercase();
-
         for entry in walker.filter_map(|e| e.ok()) {
-            if count >= 1000 { break; } // Increase limit for scoring
+            if scored_global.len() >= 500 { break; } // Traverse enough to find good matches
             let path = entry.path().to_path_buf();
-            if path == state.current_path { continue; }
+            
+            // Skip the current dir and anything already found in local search
+            if path == state.current_path || local_files.contains(&path) { continue; }
 
             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
             let name_lower = name.to_lowercase();
             
             if name_lower.contains(&filter_lower) {
                 if let Ok(m) = entry.metadata() {
-                    // Simple score: shorter paths and closer depth are better
-                    // Subtract from a large number so we can sort descending or just use it as is
+                    // SCORING: lower is better
                     let depth = entry.depth();
                     let path_len = path.to_string_lossy().len();
                     let is_exact = if name_lower == filter_lower { 0 } else { 1 };
-                    let score = depth * 10 + path_len + is_exact * 100;
+                    // Penalty for hidden files if they are shown
+                    let hidden_penalty = if name.starts_with('.') { 50 } else { 0 };
+                    
+                    let score = depth * 20 + path_len + is_exact * 100 + hidden_penalty;
                     
                     let meta = crate::app::FileMetadata {
                         size: m.len(),
@@ -120,70 +168,22 @@ fn update_local_files(state: &mut FileState) {
                         extension: path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string(),
                         is_dir: m.is_dir(),
                     };
-                    scored_files.push((score, path, meta));
-                    count += 1;
+                    scored_global.push((score, path, meta));
                 }
             }
         }
         
-        // Sort by score (ascending: smaller score = better)
-        scored_files.sort_by_key(|(s, _, _)| *s);
-        
-        for (_, path, meta) in scored_files.into_iter().take(100) {
+        // Sort by score and take top 100
+        scored_global.sort_by_key(|(s, _, _)| *s);
+        for (_, path, meta) in scored_global.into_iter().take(100) {
             state.metadata.insert(path.clone(), meta);
-            state.files.push(path);
-        }
-    } else {
-        // Local Search (Current Dir Only)
-        if let Ok(entries) = std::fs::read_dir(&state.current_path) {
-            for entry in entries.filter_map(|e| e.ok()) {
-                let path = entry.path();
-
-                // Filtering
-                let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-                if !state.show_hidden && name.starts_with('.') {
-                    continue;
-                }
-                if !state.search_filter.is_empty()
-                    && !name
-                        .to_lowercase()
-                        .contains(&state.search_filter.to_lowercase())
-                {
-                    continue;
-                }
-
-                // Metadata Cache (The Fix)
-                // Use std::fs::metadata to ensure we follow symlinks to get the REAL file size.
-                // Fallback to entry.metadata() (symlink itself) if target is broken.
-                let metadata_result = std::fs::metadata(&path).or_else(|_| entry.metadata());
-
-                if let Ok(m) = metadata_result {
-                    let meta = crate::app::FileMetadata {
-                        size: m.len(),
-                        modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-                        created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-                        #[cfg(unix)]
-                        permissions: {
-                            use std::os::unix::fs::PermissionsExt;
-                            m.permissions().mode()
-                        },
-                        #[cfg(not(unix))]
-                        permissions: 0,
-                        extension: path
-                            .extension()
-                            .and_then(|e| e.to_str())
-                            .unwrap_or("")
-                            .to_string(),
-                        is_dir: m.is_dir(),
-                    };
-                    state.metadata.insert(path.clone(), meta);
-                }
-                state.files.push(path);
-            }
+            global_files.push(path);
         }
     }
 
-    sort_files(state);
+    // Combine: Local results followed by Global results
+    state.files = local_files;
+    state.files.extend(global_files);
 
     // Git Integration
     state.git_status.clear();
