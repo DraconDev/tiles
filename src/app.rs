@@ -29,6 +29,7 @@ pub enum AppEvent {
     CreateFolder(PathBuf),
     Rename(PathBuf, PathBuf),
     Delete(PathBuf),
+    RemoteConnected(usize, RemoteSession), // pane_idx, session
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -52,6 +53,7 @@ pub enum SettingsSection {
     Columns,
     Tabs,
     General,
+    Remotes,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -75,13 +77,16 @@ pub enum AppMode {
     Location,
     Settings,
     AddRemote,
+    ImportServers,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DropTarget {
     Favorites,
     SidebarArea,
     Folder(PathBuf),
+    ImportServers,
+    RemotesHeader,
 }
 
 #[derive(Clone, Debug)]
@@ -113,6 +118,7 @@ pub enum CommandAction {
     SwitchView(CurrentView),
     AddRemote,
     ConnectToRemote(usize), // index into remote_bookmarks
+    ImportServers,
     CommandPalette,
 }
 
@@ -156,6 +162,7 @@ pub struct RemoteBookmark {
     pub user: String,
     pub port: u16,
     pub last_path: PathBuf,
+    pub key_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug)]
@@ -376,6 +383,7 @@ pub struct App {
     pub mouse_click_pos: (u16, u16),
     pub settings_section: SettingsSection,
     pub settings_target: SettingsTarget,
+    pub rename_selected: bool,
     
     // Global Preferences
     pub default_show_hidden: bool,
@@ -459,6 +467,7 @@ impl App {
                     mouse_click_pos: (0, 0),
                     settings_section: SettingsSection::Columns,
                     settings_target: SettingsTarget::SingleMode,
+                    rename_selected: false,
                     default_show_hidden: false,
                     confirm_delete: true,
                     preferred_terminal: None,
@@ -550,6 +559,7 @@ impl App {
             mouse_click_pos: (0, 0),
             settings_section: SettingsSection::Columns,
             settings_target: SettingsTarget::SingleMode,
+            rename_selected: false,
             default_show_hidden: false,
             confirm_delete: true,
             preferred_terminal: None,
@@ -859,6 +869,38 @@ impl App {
         } else {
             log_debug("Current pane has no state");
         }
+    }
+
+    pub fn import_servers(&mut self, path: PathBuf) -> anyhow::Result<()> {
+        #[derive(Deserialize)]
+        struct ServerEntry {
+            name: String,
+            host: String,
+            user: String,
+            key_path: Option<String>,
+        }
+        #[derive(Deserialize)]
+        struct Config {
+            servers: Vec<ServerEntry>,
+        }
+
+        let content = std::fs::read_to_string(path)?;
+        let config: Config = toml::from_str(&content)?;
+
+        for s in config.servers {
+            // Check if already exists
+            if !self.remote_bookmarks.iter().any(|b| b.host == s.host && b.user == s.user) {
+                self.remote_bookmarks.push(RemoteBookmark {
+                    name: s.name,
+                    host: s.host,
+                    last_path: PathBuf::from("/home/").join(&s.user),
+                    user: s.user,
+                    port: 22,
+                    key_path: s.key_path.map(PathBuf::from),
+                });
+            }
+        }
+        Ok(())
     }
 }
 

@@ -83,7 +83,16 @@ impl SystemModule {
                         if let Ok(size) = size_str.parse::<f64>() {
                             if size > 100_000_000.0 {
                                 let dev_path = format!("/dev/{}", name);
-                                let display_name = if !label.is_empty() { label.to_string() } else { dev_path.clone() };
+                                let display_name = if !label.is_empty() { 
+                                    label.to_string() 
+                                } else {
+                                    let gb = size / 1_073_741_824.0;
+                                    if gb >= 1.0 {
+                                        format!("{:.0}G Drive", gb)
+                                    } else {
+                                        format!("{:.0}M Drive", size / 1_048_576.0)
+                                    }
+                                };
                                 
                                 if fstype != "swap" && !fstype.contains("member") {
                                     final_disks.push(crate::app::DiskInfo {
