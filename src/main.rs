@@ -513,11 +513,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
                         }
                         KeyCode::Up if key.modifiers.contains(KeyModifiers::ALT) => {
-                             // crate::app::log_debug("Alt+Up pressed");
+                             crate::app::log_debug("Alt+Up pressed");
                              if app.sidebar_focus {
                                   if app.sidebar_index < app.sidebar_bounds.len() {
                                       let bound = &app.sidebar_bounds[app.sidebar_index];
-                                      // crate::app::log_debug(&format!("Current bound: {:?}", bound));
+                                      crate::app::log_debug(&format!("Current bound: {:?}", bound));
                                       if let SidebarTarget::Favorite(path) = &bound.target {
                                           if let Some(idx) = app.starred.iter().position(|p| p == path) {
                                               if idx > 0 {
@@ -531,7 +531,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                              }
                         }
                         KeyCode::Down if key.modifiers.contains(KeyModifiers::ALT) => {
-                             // crate::app::log_debug("Alt+Down pressed");
+                             crate::app::log_debug("Alt+Down pressed");
                              if app.sidebar_focus {
                                   if app.sidebar_index < app.sidebar_bounds.len() {
                                       let bound = &app.sidebar_bounds[app.sidebar_index];
