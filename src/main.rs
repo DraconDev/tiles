@@ -988,7 +988,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                     }
 
-                    if let AppMode::ContextMenu { x, y, target } = app.mode.clone() {
+                    if let AppMode::ContextMenu { x, y, target, actions } = app.mode.clone() {
                         let items_count = match target {
                             ContextMenuTarget::File(_) => 5, ContextMenuTarget::Folder(_) => 4, ContextMenuTarget::EmptySpace => 4,
                             ContextMenuTarget::SidebarFavorite(_) => 2, ContextMenuTarget::SidebarRemote(_) => 2,
