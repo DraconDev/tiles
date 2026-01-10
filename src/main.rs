@@ -451,7 +451,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         }
                                         KeyCode::Enter => {
                                             let input = app.input.clone();
-                                            let pane_idx = app.focused_pane_index;
                                             if let Some(fs) = app.current_file_state() {
                                                 let path = fs.current_path.join(&input);
                                                 match app.mode {
