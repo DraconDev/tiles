@@ -50,7 +50,7 @@ impl SystemModule {
                                        mount.starts_with("/mnt") || 
                                        mount.starts_with("/run/media");
 
-                let is_system_path = mount.starts_with("/boot")
+                let is_system_path = (mount.starts_with("/boot")
                         || mount.starts_with("/nix")
                         || mount.starts_with("/snap")
                         || mount.starts_with("/run")
@@ -58,10 +58,9 @@ impl SystemModule {
                         || mount.starts_with("/proc")
                         || mount.starts_with("/dev")
                         || mount.starts_with("/tmp")
-                        || mount == "/efi";
+                        || mount == "/efi") && !is_removable_path;
 
                 // Logic: Must be a real filesystem AND (be in a removable path OR not be a system path)
-                // Also keep 100MB minimum to hide tiny EFI or recovery partitions
                 is_real_fs && (is_removable_path || !is_system_path) && disk.total_space() > 100_000_000
             })
             .map(|disk: &sysinfo::Disk| crate::app::DiskInfo {
