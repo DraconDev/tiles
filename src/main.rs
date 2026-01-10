@@ -9,7 +9,7 @@ use terma::input::event::{Event, KeyCode, MouseEventKind, KeyModifiers, MouseBut
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenuTarget, SettingsSection, SettingsTarget, DropTarget};
+use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenuTarget, SettingsSection, SettingsTarget};
 
 mod app;
 mod config;
@@ -372,6 +372,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         if let Some(fs) = app.current_file_state_mut() { fs.multi_select.clear(); fs.selection_anchor = None; if !fs.search_filter.is_empty() { fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
                     }
                     match key.code {
+                        KeyCode::Left if key.modifiers.contains(KeyModifiers::ALT) => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                navigate_back(fs);
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                            }
+                        }
+                        KeyCode::Right if key.modifiers.contains(KeyModifiers::ALT) => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                navigate_forward(fs);
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                            }
+                        }
                         KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); }
                         KeyCode::Up => { app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); }
                         KeyCode::Left => { if key.modifiers.contains(KeyModifiers::SHIFT) { app.copy_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else if key.modifiers.contains(KeyModifiers::CONTROL) { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else { app.move_left(); } }
