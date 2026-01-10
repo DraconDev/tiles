@@ -78,6 +78,8 @@ pub enum ContextMenuAction {
     Run,
     RunTerminal,
     ExtractHere,
+    NewFolder,
+    NewFile,
     Cut,
     Copy,
     Paste,
