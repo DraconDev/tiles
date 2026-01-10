@@ -408,6 +408,32 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
             if let MouseEventKind::Down(_button) = me.kind {
                 let (w, h) = app.terminal_size;
                 if row == 0 {
+                // 0. Global Header (Row 0)
+                if row == 0 {
+                    // Check Tabs
+                    let clicked_tab = app.tab_bounds.iter().find(|(rect, _, _)| rect.contains(ratatui::layout::Position { x: column, y: row })).cloned();
+                    if let Some((_, p_idx, t_idx)) = clicked_tab {
+                        if let MouseEventKind::Down(MouseButton::Left) = me.kind {
+                            if let Some(pane) = app.panes.get_mut(p_idx) {
+                                pane.active_tab_index = t_idx;
+                                app.focused_pane_index = p_idx;
+                                app.sidebar_focus = false;
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
+                            }
+                        } else if let MouseEventKind::Down(MouseButton::Right) = me.kind {
+                            if let Some(pane) = app.panes.get_mut(p_idx) {
+                                if pane.tabs.len() > 1 {
+                                    pane.tabs.remove(t_idx);
+                                    if pane.active_tab_index >= pane.tabs.len() {
+                                        pane.active_tab_index = pane.tabs.len() - 1;
+                                    }
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
+                                }
+                            }
+                        }
+                        return;
+                    }
+
                     if column < 10 { app.mode = AppMode::Settings; return; }
                     if column >= w.saturating_sub(3) {
                         app.toggle_split();
