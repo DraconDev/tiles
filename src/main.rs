@@ -850,11 +850,33 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     if let Some((sx, sy)) = app.drag_start_pos { if ((column as i16 - sx as i16).pow(2) + (row as i16 - sy as i16).pow(2)) as f32 >= 1.0 { app.is_dragging = true; } } // Threshold for drag start
                                     // Update hovered drop target
                                     if app.is_dragging {
+                                        let sidebar_width = app.sidebar_width();
+                                        
+                                        // Live Reorder Logic
+                                        if let Some((sx, _)) = app.drag_start_pos {
+                                            if sx < sidebar_width {
+                                                if let Some(source_path) = &app.drag_source {
+                                                    if let Some(hovered_bound) = app.sidebar_bounds.iter().find(|b| b.y == row).cloned() {
+                                                        if let SidebarTarget::Favorite(target_path) = hovered_bound.target {
+                                                            if source_path != &target_path {
+                                                                if let Some(s_idx) = app.starred.iter().position(|p| p == source_path) {
+                                                                    if let Some(e_idx) = app.starred.iter().position(|p| p == &target_path) {
+                                                                        let item = app.starred.remove(s_idx);
+                                                                        app.starred.insert(e_idx, item);
+                                                                        app.sidebar_index = hovered_bound.index;
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
                                         if app.mode == AppMode::ImportServers {
                                             let (w, h) = app.terminal_size; let area_w = (w as f32 * 0.6) as u16; let area_h = (h as f32 * 0.2) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
                                             if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h { app.hovered_drop_target = Some(DropTarget::ImportServers); } else { app.hovered_drop_target = None; } // Inside import modal
                                         } else {
-                                            let sidebar_width = app.sidebar_width();
                                             if column < sidebar_width {
                                                 // Check if hovering over REMOTES header specifically
                                                 if let Some(bound) = app.sidebar_bounds.iter().find(|b| b.y == row) {
