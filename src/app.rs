@@ -264,7 +264,6 @@ impl FileState {
             metadata: HashMap::new(),
             git_status: HashMap::new(),
             show_hidden,
-            clipboard: None,
             search_filter: String::new(),
             columns,
             history: vec![path],
@@ -383,6 +382,8 @@ pub struct App {
     pub settings_section: SettingsSection,
     pub settings_target: SettingsTarget,
     pub rename_selected: bool,
+    #[serde(skip)]
+    pub clipboard: Option<(PathBuf, ClipboardOp)>,
     
     // Global Preferences
     pub default_show_hidden: bool,
@@ -467,6 +468,7 @@ impl App {
                     settings_section: SettingsSection::Columns,
                     settings_target: SettingsTarget::SingleMode,
                     rename_selected: false,
+                    clipboard: None,
                     default_show_hidden: false,
                     confirm_delete: true,
                     preferred_terminal: None,
