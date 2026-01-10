@@ -1,4 +1,5 @@
 different context menus for clicing on folders, files, sidebar files, empty space, and remotes
+improve them
 
 we need to be able to reorder the favorites on the sidebar with either alt up and down arrow or mouse1 drag should keep swapping them
 
