@@ -490,13 +490,8 @@ fn draw_file_view(
         let mut render_state = ratatui::widgets::TableState::default();
         if let Some(sel) = file_state.selected_index {
             let offset = file_state.table_state.offset();
-            // Capacity = Height - 2 (Borders) - 1 (Header)
-            // User reported last row is broken; sub(3) instead of sub(4) to show more.
             let capacity = file_state.view_height.saturating_sub(3);
 
-            // CRITICAL FIX: Only tell Ratatui to select the row if it is PHYSICALLY visible
-            // based on our manual offset. Otherwise, Ratatui will auto-scroll the offset
-            // to show the selection, fighting our manual scroll logic in main.rs.
             if sel >= offset && sel < offset + capacity {
                 render_state.select(Some(sel));
             } else {
@@ -505,6 +500,29 @@ fn draw_file_view(
         }
         // Force the render state offset to match our manual offset
         *render_state.offset_mut() = file_state.table_state.offset();
+
+        // 1. Calculate Constraints and Layout first to get column widths
+        let constraints: Vec<Constraint> = file_state
+            .columns
+            .iter()
+            .map(|c| match c {
+                FileColumn::Name => Constraint::Min(20),
+                FileColumn::Size => Constraint::Length(10),
+                FileColumn::Modified => Constraint::Percentage(20),
+                FileColumn::Created => Constraint::Percentage(20),
+                FileColumn::Permissions => Constraint::Length(12),
+            })
+            .collect();
+
+        // Need a dummy block to calculate inner area
+        let dummy_block = Block::default().borders(borders);
+        let column_layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(constraints.clone())
+            .spacing(0)
+            .split(dummy_block.inner(content_area));
+        
+        let name_col_width = column_layout.get(0).map(|r| r.width as usize).unwrap_or(20);
 
         let sort_col = file_state.sort_column;
         let sort_asc = file_state.sort_ascending;
@@ -566,25 +584,25 @@ fn draw_file_view(
                             .add_modifier(Modifier::BOLD);
                     }
 
-                    // For global results, add dimmed parent path
+                    // For global results, use smart path display
                     if i > file_state.local_count {
-                        if let Some(parent) = path.parent() {
-                            let parent_str = parent.to_string_lossy();
-                            let short_parent = if parent_str.starts_with("/home/dracon") {
-                                parent_str.replacen("/home/dracon", "~", 1)
-                            } else {
-                                parent_str.to_string()
-                            };
-                            
-                            let spans = vec![
-                                Span::styled(name.to_string(), final_style),
-                                Span::styled(suffix, final_style),
-                                Span::styled(format!("  in {}", short_parent), Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC)),
-                            ];
-                            Cell::from(Line::from(spans))
+                        let full_str = path.to_string_lossy();
+                        let mut display_path = if full_str.starts_with("/home/dracon") {
+                            full_str.replacen("/home/dracon", "~", 1)
                         } else {
-                            Cell::from(format!("{}{}", name, suffix)).style(final_style)
+                            full_str.to_string()
+                        };
+                        
+                        display_path.push_str(&suffix);
+
+                        // Smart truncation: show the END of the path if it's too long
+                        if display_path.len() > name_col_width && name_col_width > 5 {
+                            let keep_len = name_col_width - 3;
+                            let start_idx = display_path.len() - keep_len;
+                            display_path = format!("...{}", &display_path[start_idx..]);
                         }
+                        
+                        Cell::from(display_path).style(final_style)
                     } else {
                         Cell::from(format!("{}{}", name, suffix)).style(final_style)
                     }
@@ -619,22 +637,10 @@ fn draw_file_view(
             let mut row_style = Style::default();
             if is_multi_selected {
                 row_style = row_style.bg(Color::Rgb(100, 0, 0)).fg(Color::White);
-                // Darker red for range selection
             }
-            // elementary logic says multi_select should be distinguishable red
             Row::new(cells).style(row_style)
         });
-        let constraints: Vec<Constraint> = file_state
-            .columns
-            .iter()
-            .map(|c| match c {
-                FileColumn::Name => Constraint::Min(20),
-                FileColumn::Size => Constraint::Length(10),
-                FileColumn::Modified => Constraint::Percentage(20),
-                FileColumn::Created => Constraint::Percentage(20),
-                FileColumn::Permissions => Constraint::Length(12),
-            })
-            .collect();
+
         let mut breadcrumb_spans = Vec::new();
         file_state.breadcrumb_bounds.clear();
 
