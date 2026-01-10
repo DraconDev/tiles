@@ -534,8 +534,32 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             app.sidebar_index = bound.index;
                             match &bound.target {
                                 SidebarTarget::Favorite(p) => { let p2 = p.clone(); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p2.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p2); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false; }
-                                SidebarTarget::Storage(idx) => { if let Some(disk) = app.system_state.disks.get(*idx) { let p = std::path::PathBuf::from(&disk.name); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false; } } 
-                                _ => {} 
+                                SidebarTarget::Storage(idx) => {
+                                if let Some(disk) = app.system_state.disks.get(*idx) {
+                                    if !disk.is_mounted {
+                                        // Attempt to mount via udisksctl
+                                        let dev = disk.device.clone();
+                                        tokio::spawn(async move {
+                                            let _ = std::process::Command::new("udisksctl")
+                                                .arg("mount")
+                                                .arg("-b")
+                                                .arg(dev)
+                                                .spawn();
+                                        });
+                                    } else {
+                                        let p = std::path::PathBuf::from(&disk.name);
+                                        if let Some(fs) = app.current_file_state_mut() {
+                                            fs.current_path = p.clone();
+                                            fs.selected_index = Some(0);
+                                            fs.search_filter.clear();
+                                            *fs.table_state.offset_mut() = 0;
+                                            push_history(fs, p);
+                                        }
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                        app.sidebar_focus = false;
+                                    }
+                                }
+                            }                                _ => {} 
                             }
                         }
                         return;

@@ -28,10 +28,12 @@ impl SystemModule {
         for disk in self.disks.iter() {
             let mount = disk.mount_point().to_string_lossy();
             let fs_type = disk.file_system().to_string_lossy().to_lowercase();
+            let device = disk.name().to_string_lossy().to_string();
             
             if mount == "/" {
                 final_disks.push(crate::app::DiskInfo {
                     name: mount.to_string(),
+                    device,
                     used_space: (disk.total_space() - disk.available_space()) as f64,
                     available_space: disk.available_space() as f64,
                     total_space: disk.total_space() as f64,
@@ -52,18 +54,16 @@ impl SystemModule {
             if is_real_fs && (is_removable_path || !is_system_path) && disk.total_space() > 100_000_000 {
                 final_disks.push(crate::app::DiskInfo {
                     name: mount.to_string(),
+                    device,
                     used_space: (disk.total_space() - disk.available_space()) as f64,
                     available_space: disk.available_space() as f64,
                     total_space: disk.total_space() as f64,
                     is_mounted: true,
                 });
-                // Track this physical device if possible to avoid duplicates with lsblk
-                // sysinfo doesn't easily give us the /dev/sda1 name, but we can try to find it via mount
             }
         }
 
         // 2. Supplement with unmounted drives from lsblk
-        // We look for partitions that have a FSTYPE but no MOUNTPOINT
         if let Ok(output) = std::process::Command::new("lsblk")
             .arg("-rnbo")
             .arg("NAME,FSTYPE,SIZE,MOUNTPOINT,LABEL")
@@ -79,15 +79,16 @@ impl SystemModule {
                     let mountpoint = parts.get(3).cloned().unwrap_or("");
                     let label = parts.get(4).cloned().unwrap_or("");
 
-                    // Only care if it has a filesystem but NO mountpoint
                     if !fstype.is_empty() && mountpoint.is_empty() {
                         if let Ok(size) = size_str.parse::<f64>() {
-                            if size > 100_000_000.0 { // > 100MB
-                                let display_name = if !label.is_empty() { label.to_string() } else { format!("/dev/{}", name) };
-                                // Avoid adding swap or system-specific types
+                            if size > 100_000_000.0 {
+                                let dev_path = format!("/dev/{}", name);
+                                let display_name = if !label.is_empty() { label.to_string() } else { dev_path.clone() };
+                                
                                 if fstype != "swap" && !fstype.contains("member") {
                                     final_disks.push(crate::app::DiskInfo {
                                         name: display_name,
+                                        device: dev_path,
                                         used_space: 0.0,
                                         available_space: size,
                                         total_space: size,
