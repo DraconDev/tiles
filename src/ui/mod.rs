@@ -198,7 +198,12 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 // Simplified label: Just the name/label
                 let label = if disk.is_mounted {
                     let available = (disk.available_space as f64 / 1_073_741_824.0).round() as u64; // GB
-                    format!("{}: {}G Free", disk.name, available)
+                    let display_name = if disk.name == "/" { "Root (/)".to_string() } else { 
+                        std::path::Path::new(&disk.name).file_name()
+                            .map(|n| n.to_string_lossy().to_string())
+                            .unwrap_or(disk.name.clone())
+                    };
+                    format!("{}: {}G Free", display_name, available)
                 } else {
                     format!("{} (Not mounted)", disk.name)
                 };
