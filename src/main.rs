@@ -4,7 +4,7 @@ use tokio::sync::mpsc;
 
 // Terma Imports
 use terma::integration::ratatui::TermaBackend;
-use terma::input::event::{Event, KeyCode, MouseEventKind, KeyModifiers};
+use terma::input::event::{Event, KeyCode, MouseEventKind, KeyModifiers, MouseButton};
 
 // Ratatui Imports
 use ratatui::Terminal;
@@ -379,9 +379,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         KeyCode::Right => { if key.modifiers.contains(KeyModifiers::SHIFT) { app.copy_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else if key.modifiers.contains(KeyModifiers::CONTROL) { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else { app.move_right(); } }
                         KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } }
                         KeyCode::Char(' ') => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } } } } }
-                        // Search handler: explicitly ignore keys that are meant to be hotkeys
                         KeyCode::Char(c) if key.modifiers.is_empty() && c != '.' && c != 'g' => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
-                        // Also handle Ctrl-G and Ctrl-. fallback if they arrived without modifiers
                         KeyCode::Char(c) if key.modifiers.is_empty() && (c == '.' || c == 'g') => {
                             if let Some(fs) = app.current_file_state() {
                                 let mut terminals = vec!["kgx".to_string(), "gnome-terminal".to_string(), "konsole".to_string(), "xdg-terminal-exec".to_string(), "x-terminal-emulator".to_string(), "alacritty".to_string(), "kitty".to_string(), "xterm".to_string()];
@@ -408,32 +406,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
             if let MouseEventKind::Down(_button) = me.kind {
                 let (w, h) = app.terminal_size;
                 if row == 0 {
-                // 0. Global Header (Row 0)
-                if row == 0 {
-                    // Check Tabs
                     let clicked_tab = app.tab_bounds.iter().find(|(rect, _, _)| rect.contains(ratatui::layout::Position { x: column, y: row })).cloned();
                     if let Some((_, p_idx, t_idx)) = clicked_tab {
                         if let MouseEventKind::Down(MouseButton::Left) = me.kind {
                             if let Some(pane) = app.panes.get_mut(p_idx) {
-                                pane.active_tab_index = t_idx;
-                                app.focused_pane_index = p_idx;
-                                app.sidebar_focus = false;
+                                pane.active_tab_index = t_idx; app.focused_pane_index = p_idx; app.sidebar_focus = false;
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
                             }
                         } else if let MouseEventKind::Down(MouseButton::Right) = me.kind {
                             if let Some(pane) = app.panes.get_mut(p_idx) {
                                 if pane.tabs.len() > 1 {
                                     pane.tabs.remove(t_idx);
-                                    if pane.active_tab_index >= pane.tabs.len() {
-                                        pane.active_tab_index = pane.tabs.len() - 1;
-                                    }
+                                    if pane.active_tab_index >= pane.tabs.len() { pane.active_tab_index = pane.tabs.len() - 1; }
                                     let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
                                 }
                             }
                         }
                         return;
                     }
-
                     if column < 10 { app.mode = AppMode::Settings; return; }
                     if column >= w.saturating_sub(3) {
                         app.toggle_split();
@@ -561,5 +551,40 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
             }
         }
         _ => {}
+    }
+}
+
+fn fs_mouse_index(row: u16, app: &App) -> usize {
+    let mouse_row_offset = row.saturating_sub(3) as usize;
+    if let Some(fs) = app.current_file_state() { fs.table_state.offset() + mouse_row_offset }
+    else { 0 }
+}
+
+fn update_commands(app: &mut App) {
+    let commands = vec![
+        CommandItem { key: "quit".to_string(), desc: "Quit".to_string(), action: crate::app::CommandAction::Quit },
+        CommandItem { key: "remote".to_string(), desc: "Add Remote Host".to_string(), action: crate::app::CommandAction::AddRemote },
+    ];
+    let mut filtered = commands;
+    for bookmark_idx in 0..app.remote_bookmarks.len() {
+        let bookmark = &app.remote_bookmarks[bookmark_idx];
+        filtered.push(CommandItem { key: format!("connect_{}", bookmark_idx), desc: format!("Connect to: {}", bookmark.name), action: crate::app::CommandAction::ConnectToRemote(bookmark_idx) });
+    }
+    app.filtered_commands = filtered.into_iter().filter(|cmd| cmd.desc.to_lowercase().contains(&app.input.to_lowercase())).collect();
+    app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
+}
+
+fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: mpsc::Sender<AppEvent>) {
+    match action {
+        crate::app::CommandAction::Quit => { app.running = false; },
+        crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
+        crate::app::CommandAction::SwitchView(view) => app.current_view = view,
+        crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); },
+        crate::app::CommandAction::ConnectToRemote(idx) => {
+            if let Some(_bookmark) = app.remote_bookmarks.get(idx).cloned() {
+                // Connection logic would go here
+            }
+        },
+        crate::app::CommandAction::CommandPalette => { app.mode = AppMode::CommandPalette; },
     }
 }
