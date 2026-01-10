@@ -26,7 +26,13 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     let cat = crate::modules::files::get_file_category(path);
                     match cat {
                         FileCategory::Archive => actions.push(ContextMenuAction::ExtractHere),
-                        FileCategory::Script => actions.push(ContextMenuAction::Run),
+                        FileCategory::Script => {
+                            actions.push(ContextMenuAction::Run);
+                            actions.push(ContextMenuAction::RunTerminal);
+                        }
+                        FileCategory::Audio | FileCategory::Video => {
+                            actions.push(ContextMenuAction::Run); // "Play"
+                        }
                         _ => {}
                     }
                 }
@@ -45,6 +51,8 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                 ContextMenuAction::Open,
                 ContextMenuAction::OpenNewTab,
                 ContextMenuAction::TerminalHere,
+                ContextMenuAction::NewFolder,
+                ContextMenuAction::NewFile,
                 ContextMenuAction::Cut,
                 ContextMenuAction::Copy,
             ];
