@@ -127,7 +127,6 @@ pub enum FileColumn {
     Name,
     Size,
     Modified,
-    Created,
     Permissions,
 }
 
