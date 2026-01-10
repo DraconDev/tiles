@@ -137,7 +137,82 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 current_y += 1;
             }
 
-            // REMOTE Section
+            // STORAGE Section (Swapped to be above Remotes)
+            sidebar_items.push(ListItem::new(""));
+            current_y += 1;
+            let current_storage_header_idx = sidebar_items.len();
+            sidebar_items.push(
+                ListItem::new("󰋊 STORAGES").style(
+                    Style::default()
+                        .fg(THEME.accent_secondary)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            );
+            app.sidebar_bounds.push(SidebarBounds {
+                y: current_y,
+                index: current_storage_header_idx,
+                target: SidebarTarget::Header("STORAGES".to_string()),
+            });
+            current_y += 1;
+            
+            // Collect current path from focused pane
+            let active_path = app.current_file_state().map(|fs| fs.current_path.to_string_lossy().to_string());
+
+            for (i, disk) in app.system_state.disks.iter().enumerate() {
+                // Check if focused pane path starts with this disk's mount point (only for mounted disks)
+                let is_active = if disk.is_mounted {
+                    if let Some(ref path) = active_path {
+                        path.starts_with(&disk.name)
+                            || (disk.name == "/"
+                                && !app
+                                    .system_state
+                                    .disks
+                                    .iter()
+                                    .filter(|d| d.is_mounted)
+                                    .any(|d| d.name != "/" && path.starts_with(&d.name)))
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+
+                let current_disk_idx = sidebar_items.len();
+                let is_focused = app.sidebar_focus && app.sidebar_index == current_disk_idx;
+                
+                let mut name_style = if !disk.is_mounted {
+                    Style::default().fg(Color::DarkGray) // Dimmed for unmounted
+                } else if is_active {
+                    Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(Color::Green)
+                };
+
+                if is_focused {
+                    name_style = name_style
+                        .bg(THEME.accent_primary)
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD);
+                }
+
+                // Simplified label: Just the name/label
+                let label = if disk.is_mounted {
+                    let available = (disk.available_space as f64 / 1_073_741_824.0).round() as u64; // GB
+                    format!("{}: {}G Free", disk.name, available)
+                } else {
+                    format!("{} (Not mounted)", disk.name)
+                };
+
+                sidebar_items.push(ListItem::new(label.clone()).style(name_style));
+                app.sidebar_bounds.push(SidebarBounds {
+                    y: current_y,
+                    index: current_disk_idx,
+                    target: SidebarTarget::Storage(i),
+                });
+                current_y += 1;
+            }
+
+            // REMOTE Section (Swapped to be below Storages)
             sidebar_items.push(ListItem::new(""));
             current_y += 1;
 
@@ -190,80 +265,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 sidebar_items.push(
                     ListItem::new("(No remotes)").style(Style::default().fg(Color::DarkGray)),
                 );
-                current_y += 1;
-            }
-
-            // STORAGE Section
-            sidebar_items.push(ListItem::new(""));
-            current_y += 1;
-            let current_storage_header_idx = sidebar_items.len();
-            sidebar_items.push(
-                ListItem::new("󰋊 STORAGES").style(
-                    Style::default()
-                        .fg(THEME.accent_secondary)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            );
-            app.sidebar_bounds.push(SidebarBounds {
-                y: current_y,
-                index: current_storage_header_idx, // elementary logic says index should match sidebar_items.len()
-                target: SidebarTarget::Header("STORAGES".to_string()),
-            });
-            current_y += 1;
-            
-            // Collect current path from focused pane
-            let active_path = app.current_file_state().map(|fs| fs.current_path.to_string_lossy().to_string());
-
-            for (i, disk) in app.system_state.disks.iter().enumerate() {
-                // Check if focused pane path starts with this disk's mount point (only for mounted disks)
-                let is_active = if disk.is_mounted {
-                    if let Some(ref path) = active_path {
-                        path.starts_with(&disk.name)
-                            || (disk.name == "/"
-                                && !app
-                                    .system_state
-                                    .disks
-                                    .iter()
-                                    .filter(|d| d.is_mounted)
-                                    .any(|d| d.name != "/" && path.starts_with(&d.name)))
-                    } else {
-                        false
-                    }
-                } else {
-                    false
-                };
-
-                let current_disk_idx = sidebar_items.len();
-                let is_focused = app.sidebar_focus && app.sidebar_index == current_disk_idx;
-                
-                let mut name_style = if !disk.is_mounted {
-                    Style::default().fg(Color::DarkGray) // Dimmed for unmounted
-                } else if is_active {
-                    Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
-                } else {
-                    Style::default().fg(Color::Green)
-                };
-
-                if is_focused {
-                    name_style = name_style
-                        .bg(THEME.accent_primary)
-                        .fg(Color::Black)
-                        .add_modifier(Modifier::BOLD);
-                }
-
-                let label = if disk.is_mounted {
-                    let available = (disk.available_space as f64 / 1_073_741_824.0).round() as u64; // GB
-                    format!("{}: {}G Free", disk.name, available)
-                } else {
-                    format!("{} (Not mounted)", disk.name)
-                };
-
-                sidebar_items.push(ListItem::new(label.clone()).style(name_style));
-                app.sidebar_bounds.push(SidebarBounds {
-                    y: current_y,
-                    index: current_disk_idx,
-                    target: SidebarTarget::Storage(i),
-                });
                 current_y += 1;
             }
 
