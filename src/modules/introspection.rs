@@ -31,7 +31,7 @@ impl WorldState {
                 "Main".to_string()
             },
             active_tab: app.focused_pane_index,
-            input_buffer: app.input.clone(),
+            input_buffer: app.input.value.clone(),
             // Map the *active* state of each pane as the visible tabs
             tabs: app
                 .panes
