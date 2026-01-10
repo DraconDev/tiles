@@ -38,7 +38,7 @@ impl SystemModule {
                         && !mount.starts_with("/nix")
                         && !mount.starts_with("/snap")
                         && !mount.starts_with("/var/snap")
-                        && !mount.starts_with("/run/payload") // specific system run paths
+                        && !mount.starts_with("/run")
                         && !mount.starts_with("/sys")
                         && !mount.starts_with("/proc")
                         && !mount.starts_with("/dev")
