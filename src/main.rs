@@ -783,6 +783,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                                          if s_idx != e_idx {
                                                                              let item = app.starred.remove(s_idx);
                                                                              app.starred.insert(e_idx, item);
+                                                                             app.sidebar_index = end_bound.index;
                                                                              let _ = crate::config::save_state(app);
                                                                              reorder_done = true;
                                                                          }
