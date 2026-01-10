@@ -58,6 +58,18 @@ pub enum SettingsSection {
     Remotes,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum FileCategory {
+    Archive,
+    Image,
+    Script,
+    Text,
+    Document,
+    Audio,
+    Video,
+    Other,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ContextMenuAction {
     Open,
