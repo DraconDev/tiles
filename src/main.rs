@@ -787,17 +787,17 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         let mut reorder_done = false;
                                         if let Some((sx, sy)) = app.drag_start_pos {
                                             let (ex, ey) = (column, row);
-                                            // crate::app::log_debug(&format!("Mouse Up Drag: sx={} sy={} ex={} ey={}", sx, sy, ex, ey));
+                                            crate::app::log_debug(&format!("Mouse Up Drag: sx={} sy={} ex={} ey={}", sx, sy, ex, ey));
                                             if sx < app.sidebar_width() && ex < app.sidebar_width() {
                                                  if let Some(start_bound) = app.sidebar_bounds.iter().find(|b| b.y == sy).cloned() {
-                                                     // crate::app::log_debug(&format!("Start bound: {:?}", start_bound));
+                                                     crate::app::log_debug(&format!("Start bound: {:?}", start_bound));
                                                      if let SidebarTarget::Favorite(start_path) = start_bound.target {
                                                          if let Some(end_bound) = app.sidebar_bounds.iter().find(|b| b.y == ey).cloned() {
-                                                             // crate::app::log_debug(&format!("End bound: {:?}", end_bound));
+                                                             crate::app::log_debug(&format!("End bound: {:?}", end_bound));
                                                              if let SidebarTarget::Favorite(end_path) = end_bound.target {
                                                                  if let Some(s_idx) = app.starred.iter().position(|p| p == &start_path) {
                                                                      if let Some(e_idx) = app.starred.iter().position(|p| p == &end_path) {
-                                                                         // crate::app::log_debug(&format!("Swapping {} with {}", s_idx, e_idx));
+                                                                         crate::app::log_debug(&format!("Swapping {} with {}", s_idx, e_idx));
                                                                          if s_idx != e_idx {
                                                                              let item = app.starred.remove(s_idx);
                                                                              app.starred.insert(e_idx, item);
