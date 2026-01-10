@@ -46,15 +46,6 @@ fn sort_files(state: &mut FileState) {
                     .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
                 a_mod.cmp(&b_mod)
             }
-            crate::app::FileColumn::Created => {
-                let a_cr = a_meta
-                    .map(|m| m.created)
-                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-                let b_cr = b_meta
-                    .map(|m| m.created)
-                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-                a_cr.cmp(&b_cr)
-            }
             crate::app::FileColumn::Permissions => {
                 let a_perm = a_meta.map(|m| m.permissions).unwrap_or(0);
                 let b_perm = b_meta.map(|m| m.permissions).unwrap_or(0);

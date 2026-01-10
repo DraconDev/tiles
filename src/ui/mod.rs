@@ -530,7 +530,6 @@ fn draw_file_view(
                 FileColumn::Name => "Name",
                 FileColumn::Size => "Size",
                 FileColumn::Modified => "Modified",
-                FileColumn::Created => "Created",
                 FileColumn::Permissions => "Permissions",
             };
             let name = if *c == sort_col {
