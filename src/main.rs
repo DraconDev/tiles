@@ -327,8 +327,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
                         
                         if column < inner.x + 15 {
-                            // Sidebar selection fix: Click inner.y -> rel_y 0
-                            let rel_y = row.saturating_sub(inner.y);
+                            // Sidebar selection fix: reported as one below, subtract 1 more
+                            let rel_y = row.saturating_sub(inner.y + 1);
                             match rel_y {
                                 0 => app.settings_section = SettingsSection::Columns,
                                 1 => app.settings_section = SettingsSection::Tabs,
@@ -341,14 +341,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     // Target selection: visually at inner.y to inner.y + 2
                                     if row >= inner.y && row < inner.y + 3 {
                                         let content_x = column.saturating_sub(inner.x + 15);
+                                        // Precise ranges for " [Single]   [Split] "
                                         if content_x < 12 {
                                             app.settings_target = SettingsTarget::SingleMode;
                                         } else if content_x < 25 {
                                             app.settings_target = SettingsTarget::SplitMode;
                                         }
                                     } else if row >= inner.y + 4 {
-                                        // Column list selection (Size, Modified, Permissions)
-                                        let rel_y = row.saturating_sub(inner.y + 4);
+                                        // Column list selection: reported as one below, subtract 1 more
+                                        let rel_y = row.saturating_sub(inner.y + 5);
                                         match rel_y {
                                             0 => app.toggle_column(crate::app::FileColumn::Size),
                                             1 => app.toggle_column(crate::app::FileColumn::Modified),
@@ -359,8 +360,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                                 SettingsSection::General => {
-                                    // General selection fix: subtract inner.y
-                                    let rel_y = row.saturating_sub(inner.y);
+                                    // General selection fix: reported as 2 below, subtract 2 more
+                                    let rel_y = row.saturating_sub(inner.y + 2);
                                     match rel_y {
                                         0 => app.default_show_hidden = !app.default_show_hidden,
                                         1 => app.confirm_delete = !app.confirm_delete,
