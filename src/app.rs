@@ -459,7 +459,7 @@ impl App {
                     default_show_hidden: false,
                     confirm_delete: true,
                     preferred_terminal: None,
-                    single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Created, FileColumn::Permissions],
+                    single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Created, FileColumn::Modified, FileColumn::Permissions],
                     split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
                 };
             }
@@ -550,7 +550,7 @@ impl App {
             default_show_hidden: false,
             confirm_delete: true,
             preferred_terminal: None,
-            single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Created, FileColumn::Permissions],
+            single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Created, FileColumn::Modified, FileColumn::Permissions],
             split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
         };
         log_debug("App::new finished successfully");
