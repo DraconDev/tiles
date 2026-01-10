@@ -452,6 +452,7 @@ impl App {
                     hovered_drop_target: None,
                     starred: state.starred,
                     sidebar_bounds: Vec::new(),
+                    tab_bounds: Vec::new(),
                     mouse_last_click: std::time::Instant::now(),
                     mouse_click_pos: (0, 0),
                     settings_section: SettingsSection::Columns,
@@ -541,6 +542,7 @@ impl App {
                 s
             },
             sidebar_bounds: Vec::new(),
+            tab_bounds: Vec::new(),
 
             mouse_last_click: std::time::Instant::now(),
             mouse_click_pos: (0, 0),
