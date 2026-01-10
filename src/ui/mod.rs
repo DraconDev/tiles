@@ -405,28 +405,56 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
     let mut items = Vec::new();
     let title = match target {
         crate::app::ContextMenuTarget::File(_) => { 
+            items.push(ListItem::new(" 󰉋 Open")); 
             items.push(ListItem::new(" 󰚩 Edit (Demon)")); 
+            items.push(ListItem::new(" 󰆐 Cut")); 
+            items.push(ListItem::new(" 󰆏 Copy")); 
             items.push(ListItem::new(" 󰏫 Rename")); 
             items.push(ListItem::new(" 󰆴 Delete")); 
             items.push(ListItem::new(" 󰈙 Properties")); 
             " File " 
         }
-        crate::app::ContextMenuTarget::Folder(_) => { 
+        crate::app::ContextMenuTarget::Folder(idx) => { 
             items.push(ListItem::new(" 󰉋 Open")); 
-            items.push(ListItem::new(" 󰓎 Star")); 
+            items.push(ListItem::new(" 󰓩 Open in New Tab")); 
+            items.push(ListItem::new(" 󰞷 Terminal Here")); 
+            items.push(ListItem::new(" 󰆐 Cut")); 
+            items.push(ListItem::new(" 󰆏 Copy")); 
+            
+            let paste_style = if app.clipboard.is_some() { Style::default() } else { Style::default().fg(Color::DarkGray) };
+            items.push(ListItem::new(" 󰆒 Paste Into").style(paste_style)); 
+            
             items.push(ListItem::new(" 󰏫 Rename")); 
+            
+            let is_starred = if let Some(fs) = app.current_file_state() {
+                if let Some(path) = fs.files.get(*idx) {
+                    app.starred.contains(path)
+                } else { false }
+            } else { false };
+            if is_starred { items.push(ListItem::new(" 󰓎 Unstar")); } else { items.push(ListItem::new(" 󰓎 Star")); }
+
             items.push(ListItem::new(" 󰆴 Delete")); 
+            items.push(ListItem::new(" 󰈙 Properties")); 
             " Folder " 
         }
         crate::app::ContextMenuTarget::EmptySpace => { 
             items.push(ListItem::new(" 󰉋 New Folder")); 
             items.push(ListItem::new(" 󰈔 New File")); 
+            
+            let paste_style = if app.clipboard.is_some() { Style::default() } else { Style::default().fg(Color::DarkGray) };
+            items.push(ListItem::new(" 󰆒 Paste").style(paste_style)); 
+            
+            items.push(ListItem::new(" 󰒆 Select All")); 
+            items.push(ListItem::new(" 󰞷 Terminal Here")); 
             items.push(ListItem::new(" 󰑓 Refresh")); 
-            items.push(ListItem::new(" 󰞷 Terminal")); 
+            items.push(ListItem::new(" 󰈈 Toggle Hidden")); 
+            items.push(ListItem::new(" 󰈙 Properties")); 
             " View " 
         }
         crate::app::ContextMenuTarget::SidebarFavorite(_) => {
             items.push(ListItem::new(" 󰉋 Open"));
+            items.push(ListItem::new(" 󰓩 Open in New Tab"));
+            items.push(ListItem::new(" 󰞷 Terminal Here"));
             items.push(ListItem::new(" 󰆴 Remove Favorite"));
             " Favorite "
         }
@@ -448,8 +476,10 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
         }
     };
     
-    // Prevent menu from going off-screen
-    let menu_width = 22;
+    // ... rest of function ... (Need to ensure I don't delete the drawing code)
+    // I will replace the whole function content up to the end.
+    
+    let menu_width = 25; // Widen slightly for "Open in New Tab"
     let menu_height = items.len() as u16 + 2;
     let mut draw_x = x;
     let mut draw_y = y;
