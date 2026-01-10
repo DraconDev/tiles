@@ -395,6 +395,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
             .constraints(pane_constraints)
             .split(tabs_area);
 
+        app.tab_bounds.clear();
         for (p_i, pane) in app.panes.iter().enumerate() {
             let chunk = pane_chunks[p_i];
             let mut current_x = chunk.x;
@@ -435,7 +436,9 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                     break;
                 }
 
-                f.render_widget(Paragraph::new(text).style(style), Rect::new(current_x, area.y, width, 1));
+                let rect = Rect::new(current_x, area.y, width, 1);
+                f.render_widget(Paragraph::new(text).style(style), rect);
+                app.tab_bounds.push((rect, p_i, t_i));
                 current_x += width + 1;
             }
         }
