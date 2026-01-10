@@ -9,7 +9,7 @@ use terma::input::event::{Event, KeyCode, MouseEventKind, KeyModifiers, MouseBut
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenuTarget, SettingsSection, SettingsTarget};
+use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenuTarget, SettingsSection, SettingsTarget, DropTarget};
 
 mod app;
 mod config;
@@ -362,24 +362,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                             }
-                                                                                    KeyCode::Char('g') => { if let Some(pane) = app.panes.get(app.focused_pane_index) { if let Some(fs) = pane.current_state() { spawn_terminal(&fs.current_path, true); } } }
-                                                                                    KeyCode::Char('.') => { if let Some(pane) = app.panes.get(app.focused_pane_index) { if let Some(fs) = pane.current_state() { spawn_terminal(&fs.current_path, false); } } }
-                                                                                    KeyCode::Char(' ') => { app.input.clear(); app.mode = AppMode::CommandPalette; update_commands(app); }                                                        _ => {}
-                                                    }
-                                                    return;
-                                                }
-                                                if key.code == KeyCode::Esc {
-                                                    if let Some(fs) = app.current_file_state_mut() { fs.multi_select.clear(); fs.selection_anchor = None; if !fs.search_filter.is_empty() { fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
-                                                }
-                                                match key.code {
-                                                    KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); }
-                                                    KeyCode::Up => { app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); }
-                                                    KeyCode::Left => { if key.modifiers.contains(KeyModifiers::SHIFT) { app.copy_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else if key.modifiers.contains(KeyModifiers::CONTROL) { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else { app.move_left(); } }
-                                                    KeyCode::Right => { if key.modifiers.contains(KeyModifiers::SHIFT) { app.copy_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else if key.modifiers.contains(KeyModifiers::CONTROL) { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else { app.move_right(); } }
-                                                    KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } }
-                                                    KeyCode::Char(' ') => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } } } } }
-                                                    KeyCode::Char(c) if key.modifiers.is_empty() && c != '.' && c != 'g' => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
-                                                    KeyCode::Char(c) if key.modifiers.is_empty() && (c == '.' || c == 'g') => { if let Some(pane) = app.panes.get(app.focused_pane_index) { if let Some(fs) = pane.current_state() { spawn_terminal(&fs.current_path, c == 'g'); } } }                        KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } 
+                            KeyCode::Char('g') => { if let Some(pane) = app.panes.get(app.focused_pane_index) { if let Some(fs) = pane.current_state() { spawn_terminal(&fs.current_path, true); } } }
+                            KeyCode::Char(' ') => { app.input.clear(); app.mode = AppMode::CommandPalette; update_commands(app); }
+                            _ => {}
+                        }
+                        return;
+                    }
+                    if key.code == KeyCode::Esc {
+                        if let Some(fs) = app.current_file_state_mut() { fs.multi_select.clear(); fs.selection_anchor = None; if !fs.search_filter.is_empty() { fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
+                    }
+                    match key.code {
+                        KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); }
+                        KeyCode::Up => { app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); }
+                        KeyCode::Left => { if key.modifiers.contains(KeyModifiers::SHIFT) { app.copy_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else if key.modifiers.contains(KeyModifiers::CONTROL) { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else { app.move_left(); } }
+                        KeyCode::Right => { if key.modifiers.contains(KeyModifiers::SHIFT) { app.copy_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else if key.modifiers.contains(KeyModifiers::CONTROL) { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else { app.move_right(); } }
+                        KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } }
+                        KeyCode::Char(' ') => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } } } } }
+                        KeyCode::Char(c) if key.modifiers.is_empty() && c != '.' && c != 'g' => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
+                        KeyCode::Char(c) if key.modifiers.is_empty() && (c == '.' || c == 'g') => { if let Some(pane) = app.panes.get(app.focused_pane_index) { if let Some(fs) = pane.current_state() { spawn_terminal(&fs.current_path, c == 'g'); } } }                        KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } 
                         _ => {} 
                     }
                 }
@@ -388,142 +388,153 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
         Event::Mouse(me) => {
             let column = me.column;
             let row = me.row;
-            if let MouseEventKind::Down(button) = me.kind {
-                let (w, h) = app.terminal_size;
-                if row == 0 {
-                    let clicked_tab = app.tab_bounds.iter().find(|(rect, _, _)| rect.contains(ratatui::layout::Position { x: column, y: row })).cloned();
-                    if let Some((_, p_idx, t_idx)) = clicked_tab {
-                        if button == MouseButton::Left {
-                            if let Some(pane) = app.panes.get_mut(p_idx) {
-                                pane.active_tab_index = t_idx; app.focused_pane_index = p_idx; app.sidebar_focus = false;
-                                let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
-                            }
-                        } else if button == MouseButton::Right {
-                            if let Some(pane) = app.panes.get_mut(p_idx) {
-                                if pane.tabs.len() > 1 {
-                                    pane.tabs.remove(t_idx);
-                                    if pane.active_tab_index >= pane.tabs.len() { pane.active_tab_index = pane.tabs.len() - 1; }
+            match me.kind {
+                MouseEventKind::Down(button) => {
+                    let (w, h) = app.terminal_size;
+                    
+                    // 0. Global Header (Row 0)
+                    if row == 0 {
+                        let clicked_tab = app.tab_bounds.iter().find(|(rect, _, _)| rect.contains(ratatui::layout::Position { x: column, y: row })).cloned();
+                        if let Some((_, p_idx, t_idx)) = clicked_tab {
+                            if button == MouseButton::Left {
+                                if let Some(pane) = app.panes.get_mut(p_idx) {
+                                    pane.active_tab_index = t_idx; app.focused_pane_index = p_idx; app.sidebar_focus = false;
                                     let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
                                 }
+                            } else if button == MouseButton::Right {
+                                if let Some(pane) = app.panes.get_mut(p_idx) {
+                                    if pane.tabs.len() > 1 {
+                                        pane.tabs.remove(t_idx);
+                                        if pane.active_tab_index >= pane.tabs.len() { pane.active_tab_index = pane.tabs.len() - 1; }
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
+                                    }
+                                }
                             }
+                            return;
                         }
-                        return;
+                        if column < 10 { app.mode = AppMode::Settings; return; }
+                        if column >= w.saturating_sub(3) {
+                            app.toggle_split();
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                            return;
+                        }
                     }
-                    if column < 10 { app.mode = AppMode::Settings; return; }
-                    if column >= w.saturating_sub(3) {
-                        app.toggle_split();
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
-                        return;
-                    }
-                }
-                if app.mode == AppMode::Settings {
-                    let area_w = (w as f32 * 0.8) as u16;
-                    let area_h = (h as f32 * 0.8) as u16;
-                    let area_x = (w - area_w) / 2;
-                    let area_y = (h - area_h) / 2;
-                    if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
-                        let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
-                        if column < inner.x + 15 {
-                            let rel_y = row.saturating_sub(inner.y + 1);
-                            match rel_y {
-                                0 => app.settings_section = SettingsSection::Columns,
-                                1 => app.settings_section = SettingsSection::Tabs,
-                                2 => app.settings_section = SettingsSection::General,
-                                _ => {}
-                            }
-                        } else {
-                            match app.settings_section {
-                                SettingsSection::Columns => {
-                                    if row >= inner.y && row < inner.y + 3 {
-                                        let content_x = column.saturating_sub(inner.x + 15);
-                                        if content_x < 12 { app.settings_target = SettingsTarget::SingleMode; }
-                                        else if content_x < 25 { app.settings_target = SettingsTarget::SplitMode; }
-                                    } else if row >= inner.y + 4 {
-                                        let rel_y = row.saturating_sub(inner.y + 5);
+
+                    // 1. Modal / Exclusive Handling
+                    if app.mode == AppMode::Settings {
+                        let area_w = (w as f32 * 0.8) as u16;
+                        let area_h = (h as f32 * 0.8) as u16;
+                        let area_x = (w - area_w) / 2;
+                        let area_y = (h - area_h) / 2;
+                        if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
+                            let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
+                            if column < inner.x + 15 {
+                                let rel_y = row.saturating_sub(inner.y + 1);
+                                match rel_y {
+                                    0 => app.settings_section = SettingsSection::Columns,
+                                    1 => app.settings_section = SettingsSection::Tabs,
+                                    2 => app.settings_section = SettingsSection::General,
+                                    _ => {}
+                                }
+                            } else {
+                                match app.settings_section {
+                                    SettingsSection::Columns => {
+                                        if row >= inner.y && row < inner.y + 3 {
+                                            let content_x = column.saturating_sub(inner.x + 15);
+                                            if content_x < 12 { app.settings_target = SettingsTarget::SingleMode; }
+                                            else if content_x < 25 { app.settings_target = SettingsTarget::SplitMode; }
+                                        } else if row >= inner.y + 4 {
+                                            let rel_y = row.saturating_sub(inner.y + 5);
+                                            match rel_y {
+                                                0 => app.toggle_column(crate::app::FileColumn::Size),
+                                                1 => app.toggle_column(crate::app::FileColumn::Modified),
+                                                2 => app.toggle_column(crate::app::FileColumn::Permissions),
+                                                _ => {}
+                                            }
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                        }
+                                    }
+                                    SettingsSection::General => {
+                                        let rel_y = row.saturating_sub(inner.y + 2);
                                         match rel_y {
-                                            0 => app.toggle_column(crate::app::FileColumn::Size),
-                                            1 => app.toggle_column(crate::app::FileColumn::Modified),
-                                            2 => app.toggle_column(crate::app::FileColumn::Permissions),
+                                            0 => app.default_show_hidden = !app.default_show_hidden,
+                                            1 => app.confirm_delete = !app.confirm_delete,
                                             _ => {}
                                         }
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     }
+                                    _ => {}
                                 }
-                                SettingsSection::General => {
-                                    let rel_y = row.saturating_sub(inner.y + 2);
-                                    match rel_y {
-                                        0 => app.default_show_hidden = !app.default_show_hidden,
-                                        1 => app.confirm_delete = !app.confirm_delete,
-                                        _ => {}
-                                    }
-                                }
-                                _ => {}
+                            }
+                            return;
+                        } else { app.mode = AppMode::Normal; return; }
+                    }
+
+                    if let AppMode::ContextMenu { x, y, target } = app.mode.clone() {
+                        let menu_width = 20;
+                        let menu_height = match target {
+                            ContextMenuTarget::File(_) => 6, ContextMenuTarget::Folder(_) => 5, ContextMenuTarget::EmptySpace => 5,
+                            ContextMenuTarget::SidebarFavorite(_) => 3, ContextMenuTarget::SidebarRemote(_) => 3, ContextMenuTarget::SidebarStorage(_) => 2,
+                        };
+                        if column >= x && column < x + menu_width && row >= y && row < y + menu_height {
+                            let menu_row = row.saturating_sub(y + 1) as usize;
+                            match target {
+                                ContextMenuTarget::File(idx) => { if let Some(fs) = app.current_file_state_mut() { if let Some(path) = fs.files.get(idx).cloned() { match menu_row { 0 => { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); app.mode = AppMode::Normal; } 1 => { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } app.mode = AppMode::Normal; } 2 => app.mode = AppMode::Rename, 3 => app.mode = AppMode::Delete, 4 => app.mode = AppMode::Properties, _ => app.mode = AppMode::Normal, } } } } 
+                                ContextMenuTarget::Folder(idx) => { if let Some(fs) = app.current_file_state_mut() { if let Some(path) = fs.files.get(idx).cloned() { match menu_row { 0 => { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.mode = AppMode::Normal; } 1 => { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } app.mode = AppMode::Normal; } 2 => app.mode = AppMode::Rename, 3 => app.mode = AppMode::Delete, _ => app.mode = AppMode::Normal, } } } } 
+                                ContextMenuTarget::EmptySpace => { match menu_row { 0 => { app.mode = AppMode::NewFolder; app.input.clear(); }, 1 => { app.mode = AppMode::NewFile; app.input.clear(); }, 2 => { let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.mode = AppMode::Normal; }, 3 => { if let Some(fs) = app.current_file_state() { let terminals = ["kgx", "alacritty", "kitty", "wezterm", "gnome-terminal", "konsole", "xterm", "xdg-terminal"]; for t in terminals { if std::process::Command::new("which").arg(t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false) { if std::process::Command::new(t).current_dir(&fs.current_path).spawn().is_ok() { break; } } } } app.mode = AppMode::Normal; } _ => app.mode = AppMode::Normal, } } 
+                                ContextMenuTarget::SidebarFavorite(path) => { let p_fav = path.clone(); match menu_row { 0 => { app.starred.retain(|x| x != &p_fav); app.mode = AppMode::Normal; } 1 => { if let Some(pane) = app.panes.get_mut(app.focused_pane_index) { let mut new_fs = pane.tabs[pane.active_tab_index].clone(); new_fs.current_path = p_fav.clone(); new_fs.selected_index = Some(0); new_fs.search_filter.clear(); *new_fs.table_state.offset_mut() = 0; new_fs.history = vec![p_fav]; new_fs.history_index = 0; pane.open_tab(new_fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } app.mode = AppMode::Normal; } _ => app.mode = AppMode::Normal, } } 
+                                ContextMenuTarget::SidebarRemote(idx) => { match menu_row { 0 => { execute_command(crate::app::CommandAction::ConnectToRemote(idx), app, event_tx.clone()); app.mode = AppMode::Normal; } 1 => { app.remote_bookmarks.remove(idx); app.mode = AppMode::Normal; } _ => app.mode = AppMode::Normal, } } 
+                                _ => app.mode = AppMode::Normal,
+                            }
+                            return;
+                        } else { app.mode = AppMode::Normal; return; }
+                    }
+
+                    if app.mode != AppMode::Normal { return; }
+
+                    // 2. Normal interaction
+                    let sidebar_width = app.sidebar_width();
+                    if column < sidebar_width {
+                        app.sidebar_focus = true;
+                        let clicked_sidebar_item = app.sidebar_bounds.iter().find(|b| b.y == row).cloned();
+                        if let Some(bound) = clicked_sidebar_item {
+                            app.sidebar_index = bound.index;
+                            match &bound.target {
+                                SidebarTarget::Favorite(p) => { let p2 = p.clone(); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p2.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p2); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false; }
+                                SidebarTarget::Storage(idx) => { if let Some(disk) = app.system_state.disks.get(*idx) { let p = std::path::PathBuf::from(&disk.name); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false; } } 
+                                _ => {} 
                             }
                         }
                         return;
-                    } else { app.mode = AppMode::Normal; return; }
-                }
-                if let AppMode::ContextMenu { x, y, target } = app.mode.clone() {
-                    let menu_width = 20;
-                    let menu_height = match target {
-                        ContextMenuTarget::File(_) => 6, ContextMenuTarget::Folder(_) => 5, ContextMenuTarget::EmptySpace => 5,
-                        ContextMenuTarget::SidebarFavorite(_) => 3, ContextMenuTarget::SidebarRemote(_) => 3, ContextMenuTarget::SidebarStorage(_) => 2,
-                    };
-                    if column >= x && column < x + menu_width && row >= y && row < y + menu_height {
-                        let menu_row = row.saturating_sub(y + 1) as usize;
-                        match target {
-                            ContextMenuTarget::File(idx) => { if let Some(fs) = app.current_file_state_mut() { if let Some(path) = fs.files.get(idx).cloned() { match menu_row { 0 => { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); app.mode = AppMode::Normal; } 1 => { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } app.mode = AppMode::Normal; } 2 => app.mode = AppMode::Rename, 3 => app.mode = AppMode::Delete, 4 => app.mode = AppMode::Properties, _ => app.mode = AppMode::Normal, } } } } 
-                            ContextMenuTarget::Folder(idx) => { if let Some(fs) = app.current_file_state_mut() { if let Some(path) = fs.files.get(idx).cloned() { match menu_row { 0 => { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.mode = AppMode::Normal; } 1 => { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } app.mode = AppMode::Normal; } 2 => app.mode = AppMode::Rename, 3 => app.mode = AppMode::Delete, _ => app.mode = AppMode::Normal, } } } } 
-                            ContextMenuTarget::EmptySpace => { match menu_row { 0 => { app.mode = AppMode::NewFolder; app.input.clear(); }, 1 => { app.mode = AppMode::NewFile; app.input.clear(); }, 2 => { let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.mode = AppMode::Normal; }, 3 => { if let Some(fs) = app.current_file_state() { let terminals = ["kgx", "alacritty", "kitty", "wezterm", "gnome-terminal", "konsole", "xterm", "xdg-terminal"]; for t in terminals { if std::process::Command::new("which").arg(t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false) { if std::process::Command::new(t).current_dir(&fs.current_path).spawn().is_ok() { break; } } } } app.mode = AppMode::Normal; } _ => app.mode = AppMode::Normal, } } 
-                            ContextMenuTarget::SidebarFavorite(path) => { let p_fav = path.clone(); match menu_row { 0 => { app.starred.retain(|x| x != &p_fav); app.mode = AppMode::Normal; } 1 => { if let Some(pane) = app.panes.get_mut(app.focused_pane_index) { let mut new_fs = pane.tabs[pane.active_tab_index].clone(); new_fs.current_path = p_fav.clone(); new_fs.selected_index = Some(0); new_fs.search_filter.clear(); *new_fs.table_state.offset_mut() = 0; new_fs.history = vec![p_fav]; new_fs.history_index = 0; pane.open_tab(new_fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } app.mode = AppMode::Normal; } _ => app.mode = AppMode::Normal, } } 
-                            ContextMenuTarget::SidebarRemote(idx) => { match menu_row { 0 => { execute_command(crate::app::CommandAction::ConnectToRemote(idx), app, event_tx.clone()); app.mode = AppMode::Normal; } 1 => { app.remote_bookmarks.remove(idx); app.mode = AppMode::Normal; } _ => app.mode = AppMode::Normal, } } 
-                            _ => app.mode = AppMode::Normal,
+                    }
+                    let content_area_width = w.saturating_sub(sidebar_width);
+                    let pane_count = app.panes.len();
+                    let pane_width = if pane_count > 0 { content_area_width / pane_count as u16 } else { content_area_width };
+                    let clicked_pane = (column.saturating_sub(sidebar_width) / pane_width) as usize;
+                    if clicked_pane < pane_count { app.focused_pane_index = clicked_pane; app.sidebar_focus = false; }
+                    if row >= 3 {
+                        let index = fs_mouse_index(row, app);
+                        let mut selected_path = None;
+                        if let Some(fs) = app.current_file_state_mut() {
+                            if index < fs.files.len() {
+                                if fs.files[index].to_string_lossy() == "__DIVIDER__" { return; }
+                                fs.selected_index = Some(index); fs.table_state.select(Some(index));
+                                selected_path = Some(fs.files[index].clone());
+                            }
                         }
-                        return;
-                    } else { app.mode = AppMode::Normal; return; }
-                }
-                if app.mode != AppMode::Normal { return; }
-                let sidebar_width = app.sidebar_width();
-                if column < sidebar_width {
-                    app.sidebar_focus = true;
-                    let clicked_sidebar_item = app.sidebar_bounds.iter().find(|b| b.y == row).cloned();
-                    if let Some(bound) = clicked_sidebar_item {
-                        app.sidebar_index = bound.index;
-                        match &bound.target {
-                            SidebarTarget::Favorite(p) => { let p2 = p.clone(); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p2.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p2); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false; }
-                            SidebarTarget::Storage(idx) => { if let Some(disk) = app.system_state.disks.get(*idx) { let p = std::path::PathBuf::from(&disk.name); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false; } } 
-                            _ => {} 
+                        if let Some(path) = selected_path {
+                            app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
+                            if app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
+                                if path.is_dir() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
+                                else { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); } 
+                            }
+                            app.mouse_last_click = std::time::Instant::now(); app.mouse_click_pos = (column, row);
                         }
                     }
-                    return;
                 }
-                let content_area_width = w.saturating_sub(sidebar_width);
-                let pane_count = app.panes.len();
-                let pane_width = if pane_count > 0 { content_area_width / pane_count as u16 } else { content_area_width };
-                let clicked_pane = (column.saturating_sub(sidebar_width) / pane_width) as usize;
-                if clicked_pane < pane_count { app.focused_pane_index = clicked_pane; app.sidebar_focus = false; }
-                if row >= 3 {
-                    let index = fs_mouse_index(row, app);
-                    let mut selected_path = None;
-                    if let Some(fs) = app.current_file_state_mut() {
-                        if index < fs.files.len() {
-                            if fs.files[index].to_string_lossy() == "__DIVIDER__" { return; }
-                            fs.selected_index = Some(index); fs.table_state.select(Some(index));
-                            selected_path = Some(fs.files[index].clone());
-                        }
-                    }
-                    if let Some(path) = selected_path {
-                        app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
-                        if app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
-                            if path.is_dir() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
-                            else { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); }
-                        }
-                        app.mouse_last_click = std::time::Instant::now(); app.mouse_click_pos = (column, row);
-                    }
+                MouseEventKind::Up(_) => {
+                    app.is_dragging = false; app.drag_start_pos = None; app.drag_source = None;
                 }
-            }
-            match me.kind {
                 MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                     app.mouse_pos = (column, row);
                     if let Some((sx, sy)) = app.drag_start_pos {
@@ -535,6 +546,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 _ => {} 
             }
         }
-        _ => {}
+        _ => {} 
     }
 }
