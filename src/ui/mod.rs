@@ -621,12 +621,6 @@ fn draw_file_view(
                         .unwrap_or(SystemTime::UNIX_EPOCH),
                 ))
                 .style(Style::default().fg(THEME.fg)),
-                FileColumn::Created => Cell::from(format_time(
-                    metadata
-                        .map(|m| m.created)
-                        .unwrap_or(SystemTime::UNIX_EPOCH),
-                ))
-                .style(Style::default().fg(THEME.fg)),
                 FileColumn::Permissions => Cell::from(format_permissions(
                     metadata.map(|m| m.permissions).unwrap_or(0),
                 ))
