@@ -1151,7 +1151,6 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
     let options = vec![
         (FileColumn::Size, "Size (s)"),
         (FileColumn::Modified, "Modified (m)"),
-        (FileColumn::Created, "Created (c)"),
         (FileColumn::Permissions, "Permissions (p)"),
     ];
     

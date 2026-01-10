@@ -644,7 +644,6 @@ impl App {
                         let order = [
                             FileColumn::Name,
                             FileColumn::Size,
-                            FileColumn::Created,
                             FileColumn::Modified,
                             FileColumn::Permissions,
                         ];
