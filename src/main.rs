@@ -565,17 +565,9 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
                 ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
                 _ => None,
             };
-            if let Some(parent) = parent_dir {
+            if let Some(_parent) = parent_dir {
                 app.mode = AppMode::NewFolder;
                 app.input.clear();
-                // We need to know which directory we are creating IN.
-                // Currently AppMode::NewFolder doesn't store this.
-                // It assumes the current view path.
-                // If we clicked on a folder, we might want to create INSIDE it.
-                // For now, let's keep it simple and create in the current view path if it matches parent,
-                // or just navigate to parent first?
-                // Actually, if it's a folder click, we probably want to navigate into it or just create inside.
-                // Let's assume current view for now to avoid complexity in AppMode enum change.
             }
         }
         ContextMenuAction::NewFile => {

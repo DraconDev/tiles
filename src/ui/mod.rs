@@ -425,6 +425,8 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
             ContextMenuAction::Copy => " 󰆏 Copy",
             ContextMenuAction::Paste => " 󰆒 Paste",
             ContextMenuAction::Rename => " 󰏫 Rename",
+            ContextMenuAction::Duplicate => " 󰆏 Duplicate",
+            ContextMenuAction::Compress => " 󰛫 Compress",
             ContextMenuAction::Delete => " 󰆴 Delete",
             ContextMenuAction::Star => " 󰓎 Star",
             ContextMenuAction::Unstar => " 󰓎 Unstar",
