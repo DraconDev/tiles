@@ -273,20 +273,27 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: 
     }
 }
 
-fn spawn_terminal(path: &std::path::Path) {
+fn spawn_terminal(path: &std::path::Path, new_tab: bool) {
     let mut terminals = vec!["kgx", "gnome-terminal", "konsole", "xdg-terminal-exec", "x-terminal-emulator", "alacritty", "kitty", "xterm"];
     let env_t;
     if let Ok(et) = std::env::var("TERMINAL") { env_t = et; terminals.insert(0, &env_t); }
     
     for t in terminals {
         if std::process::Command::new("which").arg(t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false) {
-            let mut args = String::new();
-            if t == "gnome-terminal" || t == "kgx" { args.push_str("--working-directory"); } 
-            else if t == "konsole" { args.push_str("--workdir"); }
-            else if t == "alacritty" { args.push_str("--working-directory"); }
+            let mut args = Vec::new();
+            
+            // Tab support
+            if new_tab && (t == "gnome-terminal" || t == "kgx") {
+                args.push("--tab");
+            }
+
+            // Working directory flags
+            if t == "gnome-terminal" || t == "kgx" { args.push("--working-directory"); } 
+            else if t == "konsole" { args.push("--workdir"); }
+            else if t == "alacritty" { args.push("--working-directory"); }
             
             let path_str = path.to_string_lossy();
-            let cmd_str = format!("{} {} \"{}\" &", t, args, path_str);
+            let cmd_str = format!("{} {} \"{}\" &", t, args.join(" "), path_str);
             if std::process::Command::new("sh").arg("-c").arg(&cmd_str).spawn().is_ok() {
                 break;
             }
