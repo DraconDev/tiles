@@ -561,6 +561,7 @@ impl App {
             settings_section: SettingsSection::Columns,
             settings_target: SettingsTarget::SingleMode,
             rename_selected: false,
+            clipboard: None,
             default_show_hidden: false,
             confirm_delete: true,
             preferred_terminal: None,
