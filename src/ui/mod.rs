@@ -551,7 +551,6 @@ fn draw_file_view(
             let cells = file_state.columns.iter().map(|c| match c {
                 FileColumn::Name => {
                     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
-                    let display_name = name.to_string();
                     let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                     let mut final_style = if is_dir {
                         Style::default().fg(THEME.accent_secondary)
@@ -567,7 +566,28 @@ fn draw_file_view(
                             .add_modifier(Modifier::BOLD);
                     }
 
-                    Cell::from(format!("{}{}", display_name, suffix)).style(final_style)
+                    // For global results, add dimmed parent path
+                    if i > file_state.local_count {
+                        if let Some(parent) = path.parent() {
+                            let parent_str = parent.to_string_lossy();
+                            let short_parent = if parent_str.starts_with("/home/dracon") {
+                                parent_str.replacen("/home/dracon", "~", 1)
+                            } else {
+                                parent_str.to_string()
+                            };
+                            
+                            let spans = vec![
+                                Span::styled(name.to_string(), final_style),
+                                Span::styled(suffix, final_style),
+                                Span::styled(format!("  in {}", short_parent), Style::default().fg(Color::DarkGray).add_modifier(Modifier::ITALIC)),
+                            ];
+                            Cell::from(Line::from(spans))
+                        } else {
+                            Cell::from(format!("{}{}", name, suffix)).style(final_style)
+                        }
+                    } else {
+                        Cell::from(format!("{}{}", name, suffix)).style(final_style)
+                    }
                 }
                 FileColumn::Size => {
                     let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
