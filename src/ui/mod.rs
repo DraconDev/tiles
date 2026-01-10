@@ -557,30 +557,37 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
     let mut text = Vec::new();
     
     if let Some(fs) = app.current_file_state() {
-        if let Some(idx) = fs.selected_index {
-            if let Some(path) = fs.files.get(idx) {
-                let name = path.file_name().map(|n| n.to_string_lossy()).unwrap_or_default();
-                let parent = path.parent().map(|p| p.to_string_lossy()).unwrap_or_default();
-                
-                text.push(Line::from(vec![Span::styled("Name: ", Style::default().fg(THEME.accent_secondary)), Span::raw(name)]));
-                text.push(Line::from(vec![Span::styled("Location: ", Style::default().fg(THEME.accent_secondary)), Span::raw(parent)]));
-                text.push(Line::from(""));
-                
-                if let Some(meta) = fs.metadata.get(path) {
-                    let type_str = if meta.is_dir { "Folder" } else { "File" };
-                    text.push(Line::from(vec![Span::styled("Type: ", Style::default().fg(THEME.accent_secondary)), Span::raw(type_str)]));
-                    text.push(Line::from(vec![Span::styled("Size: ", Style::default().fg(THEME.accent_secondary)), Span::raw(format_size(meta.size))]));
-                    text.push(Line::from(vec![Span::styled("Modified: ", Style::default().fg(THEME.accent_secondary)), Span::raw(format_time(meta.modified))]));
-                    text.push(Line::from(vec![Span::styled("Created: ", Style::default().fg(THEME.accent_secondary)), Span::raw(format_time(meta.created))]));
-                    text.push(Line::from(vec![Span::styled("Permissions: ", Style::default().fg(THEME.accent_secondary)), Span::raw(format_permissions(meta.permissions))]));
-                } else {
-                     text.push(Line::from(Span::styled("No metadata available", Style::default().fg(Color::DarkGray))));
-                }
-            } else {
-                 text.push(Line::from("No file selected"));
-            }
+        let target_path = fs.selected_index.and_then(|idx| fs.files.get(idx)).unwrap_or(&fs.current_path);
+        
+        let name = target_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| target_path.to_string_lossy().to_string());
+        let parent = target_path.parent().map(|p| p.to_string_lossy().to_string()).unwrap_or_default();
+        
+        text.push(Line::from(vec![Span::styled("Name: ", Style::default().fg(THEME.accent_secondary)), Span::raw(name)]));
+        text.push(Line::from(vec![Span::styled("Location: ", Style::default().fg(THEME.accent_secondary)), Span::raw(parent)]));
+        text.push(Line::from(""));
+        
+        if let Some(meta) = fs.metadata.get(target_path) {
+            let type_str = if meta.is_dir { "Folder" } else { "File" };
+            text.push(Line::from(vec![Span::styled("Type: ", Style::default().fg(THEME.accent_secondary)), Span::raw(type_str)]));
+            text.push(Line::from(vec![Span::styled("Size: ", Style::default().fg(THEME.accent_secondary)), Span::raw(format_size(meta.size))]));
+            text.push(Line::from(vec![Span::styled("Modified: ", Style::default().fg(THEME.accent_secondary)), Span::raw(format_time(meta.modified))]));
+            text.push(Line::from(vec![Span::styled("Created: ", Style::default().fg(THEME.accent_secondary)), Span::raw(format_time(meta.created))]));
+            text.push(Line::from(vec![Span::styled("Permissions: ", Style::default().fg(THEME.accent_secondary)), Span::raw(format_permissions(meta.permissions))]));
         } else {
-             text.push(Line::from("No selection"));
+             if fs.remote_session.is_none() {
+                 if let Ok(m) = std::fs::metadata(target_path) {
+                     let is_dir = m.is_dir();
+                     text.push(Line::from(vec![Span::styled("Type: ", Style::default().fg(THEME.accent_secondary)), Span::raw(if is_dir { "Folder" } else { "File" })]));
+                     text.push(Line::from(vec![Span::styled("Size: ", Style::default().fg(THEME.accent_secondary)), Span::raw(format_size(m.len()))]));
+                     if let Ok(mod_time) = m.modified() {
+                         text.push(Line::from(vec![Span::styled("Modified: ", Style::default().fg(THEME.accent_secondary)), Span::raw(format_time(mod_time))]));
+                     }
+                 } else {
+                     text.push(Line::from(Span::styled("No metadata available", Style::default().fg(Color::DarkGray))));
+                 }
+             } else {
+                 text.push(Line::from(Span::styled("No metadata available (Remote)", Style::default().fg(Color::DarkGray))));
+             }
         }
     }
 
