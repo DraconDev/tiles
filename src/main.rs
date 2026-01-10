@@ -176,6 +176,12 @@ mod license;
                     let idx = app_guard.focused_pane_index;
                     app_guard.update_files_for_active_tab(idx);
                 }
+                AppEvent::Copy(src, dest) => {
+                    let _ = crate::modules::files::copy_recursive(&src, &dest);
+                    let mut app_guard = app.lock().unwrap();
+                    let idx = app_guard.focused_pane_index;
+                    app_guard.update_files_for_active_tab(idx);
+                }
                 AppEvent::CreateFile(path) => {
                     let _ = std::fs::File::create(&path);
                     let mut app_guard = app.lock().unwrap();
