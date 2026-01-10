@@ -131,10 +131,11 @@ pub fn update_local_files(state: &mut FileState) {
                 let path = e.path();
                 if path.is_dir() {
                     let p_str = path.to_string_lossy();
-                    // Skip virtual filesystems, massive system directories, and build artifacts
+                    // Expanded exclusions: system folders and build artifacts
                     if p_str == "/proc" || p_str == "/sys" || p_str == "/dev" || 
-                       p_str == "/run" || p_str == "/tmp" || p_str == "/nix/store" ||
-                       p_str == "/var/lib" || p_str == "/var/cache" ||
+                       p_str == "/run" || p_str == "/tmp" || p_str == "/nix" ||
+                       p_str == "/var" || p_str == "/usr" || p_str == "/etc" ||
+                       p_str == "/boot" || p_str == "/root" || p_str == "/lost+found" ||
                        p_str.ends_with("/target") || p_str.ends_with("/node_modules")
                     { 
                         return false; 
@@ -147,31 +148,27 @@ pub fn update_local_files(state: &mut FileState) {
             });
 
         for entry in walker.filter_map(|e| e.ok()) {
-            if scored_global.len() >= 10000 { break; } // Traverse deeply
+            if scored_global.len() >= 10000 { break; } 
             let path = entry.path().to_path_buf();
             
             if path == state.current_path || local_files.contains(&path) { continue; }
 
-            // Match against the full path since we are searching from /
-            let search_target = path.to_string_lossy().to_lowercase();
+            // Match only against the FILENAME to prevent "everything inside matching folder" noise
+            let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
             
-            if search_target.contains(&filter_lower) {
+            if filename.contains(&filter_lower) {
                 if let Ok(m) = entry.metadata() {
                     // SCORING: lower is better
                     let depth = entry.depth();
                     let path_len = path.to_string_lossy().len();
                     
-                    // Priority: if filename matches, it's better than just path matching
-                    let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
-                    let filename_bonus = if filename.contains(&filter_lower) { 0 } else { 500 };
                     let is_exact = if filename == filter_lower { 0 } else { 100 };
-                    
                     let hidden_penalty = if path.to_string_lossy().contains("/.") { 100 } else { 0 };
                     
                     // Boost files closer to the current directory
                     let proximity_bonus = if path.starts_with(&state.current_path) { 0 } else { 1000 };
                     
-                    let score = depth * 10 + path_len + filename_bonus + is_exact + hidden_penalty + proximity_bonus;
+                    let score = depth * 10 + path_len + is_exact + hidden_penalty + proximity_bonus;
                     
                     let meta = crate::app::FileMetadata {
                         size: m.len(),
@@ -192,9 +189,9 @@ pub fn update_local_files(state: &mut FileState) {
             }
         }
         
-        // Sort by score and take top 500
+        // Sort by score and take top 100
         scored_global.sort_by_key(|(s, _, _)| *s);
-        for (_, path, meta) in scored_global.into_iter().take(500) {
+        for (_, path, meta) in scored_global.into_iter().take(100) {
             state.metadata.insert(path.clone(), meta);
             global_files.push(path);
         }
