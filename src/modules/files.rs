@@ -1,5 +1,20 @@
 #![allow(dead_code)]
-use crate::app::FileState;
+use crate::app::{FileCategory, FileMetadata, FileState};
+use std::path::Path;
+
+pub fn get_file_category(path: &Path) -> FileCategory {
+    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+    match ext.as_str() {
+        "zip" | "tar" | "gz" | "7z" | "rar" | "xz" | "bz2" => FileCategory::Archive,
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "svg" | "bmp" => FileCategory::Image,
+        "sh" | "py" | "pyw" | "rb" | "js" | "ts" | "pl" | "php" => FileCategory::Script,
+        "txt" | "md" | "rs" | "c" | "cpp" | "h" | "hpp" | "toml" | "yaml" | "yml" | "json" | "xml" | "html" | "css" | "conf" | "config" | "log" => FileCategory::Text,
+        "pdf" | "doc" | "docx" | "odt" | "ods" | "odp" | "xlsx" | "xls" | "csv" => FileCategory::Document,
+        "mp3" | "wav" | "ogg" | "flac" | "m4a" | "aac" => FileCategory::Audio,
+        "mp4" | "mkv" | "avi" | "mov" | "webm" | "flv" => FileCategory::Video,
+        _ => FileCategory::Other,
+    }
+}
 
 pub fn update_files(state: &mut FileState, session: Option<&ssh2::Session>) {
     if let Some(sess) = session {
