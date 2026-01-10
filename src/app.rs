@@ -84,6 +84,8 @@ pub enum ContextMenuAction {
     Copy,
     Paste,
     Rename,
+    Duplicate,
+    Compress,
     Delete,
     Star,
     Unstar,
