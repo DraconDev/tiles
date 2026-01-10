@@ -260,7 +260,7 @@ fn update_commands(app: &mut App) {
         let bookmark = &app.remote_bookmarks[bookmark_idx];
         filtered.push(CommandItem { key: format!("connect_{}", bookmark_idx), desc: format!("Connect to: {}", bookmark.name), action: crate::app::CommandAction::ConnectToRemote(bookmark_idx) });
     }
-    app.filtered_commands = filtered.into_iter().filter(|cmd| cmd.desc.to_lowercase().contains(&app.input.to_lowercase())).collect();
+    app.filtered_commands = filtered.into_iter().filter(|cmd| cmd.desc.to_lowercase().contains(&app.input.value.to_lowercase())).collect();
     app.command_index = app.command_index.min(app.filtered_commands.len().saturating_sub(1));
 }
 
