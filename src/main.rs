@@ -9,13 +9,97 @@ use terma::input::event::{Event, KeyCode, MouseEventKind, KeyModifiers, MouseBut
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenuTarget, SettingsSection, SettingsTarget, DropTarget};
+use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenuTarget, ContextMenuAction, FileCategory, SettingsSection, SettingsTarget, DropTarget};
 
 mod app;
 mod config;
 mod modules;
 mod ui;
 mod license;
+
+fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<ContextMenuAction> {
+    match target {
+        ContextMenuTarget::File(idx) => {
+            let mut actions = vec![ContextMenuAction::Open, ContextMenuAction::Edit];
+            if let Some(fs) = app.current_file_state() {
+                if let Some(path) = fs.files.get(*idx) {
+                    let cat = crate::modules::files::get_file_category(path);
+                    match cat {
+                        FileCategory::Archive => actions.push(ContextMenuAction::ExtractHere),
+                        FileCategory::Script => actions.push(ContextMenuAction::Run),
+                        _ => {}
+                    }
+                }
+            }
+            actions.extend(vec![
+                ContextMenuAction::Cut,
+                ContextMenuAction::Copy,
+                ContextMenuAction::Rename,
+                ContextMenuAction::Delete,
+                ContextMenuAction::Properties,
+            ]);
+            actions
+        }
+        ContextMenuTarget::Folder(_) => {
+            let mut actions = vec![
+                ContextMenuAction::Open,
+                ContextMenuAction::OpenNewTab,
+                ContextMenuAction::TerminalHere,
+                ContextMenuAction::Cut,
+                ContextMenuAction::Copy,
+            ];
+            if app.clipboard.is_some() {
+                actions.push(ContextMenuAction::Paste);
+            }
+            actions.extend(vec![
+                ContextMenuAction::Rename,
+                ContextMenuAction::Star, // UI decides if it shows Star or Unstar
+                ContextMenuAction::Delete,
+                ContextMenuAction::Properties,
+            ]);
+            actions
+        }
+        ContextMenuTarget::EmptySpace => {
+            let mut actions = vec![
+                ContextMenuAction::NewFolder,
+                ContextMenuAction::NewFile,
+            ];
+            if app.clipboard.is_some() {
+                actions.push(ContextMenuAction::Paste);
+            }
+            actions.extend(vec![
+                ContextMenuAction::SelectAll,
+                ContextMenuAction::TerminalHere,
+                ContextMenuAction::Refresh,
+                ContextMenuAction::ToggleHidden,
+                ContextMenuAction::Properties,
+            ]);
+            actions
+        }
+        ContextMenuTarget::SidebarFavorite(_) => vec![
+            ContextMenuAction::Open,
+            ContextMenuAction::OpenNewTab,
+            ContextMenuAction::TerminalHere,
+            ContextMenuAction::Delete,
+        ],
+        ContextMenuTarget::SidebarRemote(_) => vec![
+            ContextMenuAction::ConnectRemote,
+            ContextMenuAction::DeleteRemote,
+        ],
+        ContextMenuTarget::SidebarStorage(idx) => {
+            let mut actions = vec![];
+            if let Some(disk) = app.system_state.disks.get(*idx) {
+                if disk.is_mounted {
+                    actions.push(ContextMenuAction::Open);
+                    actions.push(ContextMenuAction::Unmount);
+                } else {
+                    actions.push(ContextMenuAction::Mount);
+                }
+            }
+            actions
+        }
+    }
+}
 
 #[tokio::main] async fn main() -> Result<(), Box<dyn std::error::Error>> {
     crate::app::log_debug("main start");
