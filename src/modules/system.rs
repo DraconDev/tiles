@@ -27,24 +27,29 @@ impl SystemModule {
             .iter()
             .filter(|disk| {
                 let mount = disk.mount_point().to_string_lossy();
-                // Filter out pseudo-filesystems and small system partitions
+                
+                // 1. ALWAYS keep the root filesystem
+                if mount == "/" { return true; }
+
+                // 2. Filter out pseudo-filesystems and small system partitions
                 // Standard external/removable mount points
                 let is_removable_path = mount.starts_with("/media") || 
                                        mount.starts_with("/mnt") || 
                                        mount.starts_with("/run/media");
 
-                (is_removable_path
-                    || (!mount.starts_with("/boot")
-                        && !mount.starts_with("/nix")
-                        && !mount.starts_with("/snap")
-                        && !mount.starts_with("/var/snap")
-                        && !mount.starts_with("/run")
-                        && !mount.starts_with("/sys")
-                        && !mount.starts_with("/proc")
-                        && !mount.starts_with("/dev")
-                        && !mount.starts_with("/tmp")
-                        && mount != "/efi"))
-                    && disk.total_space() > 100_000_000 // At least 100MB (catch smaller USBs)
+                let is_system_path = mount.starts_with("/boot")
+                        || mount.starts_with("/nix")
+                        || mount.starts_with("/snap")
+                        || mount.starts_with("/var/snap")
+                        || mount.starts_with("/run")
+                        || mount.starts_with("/sys")
+                        || mount.starts_with("/proc")
+                        || mount.starts_with("/dev")
+                        || mount.starts_with("/tmp")
+                        || mount == "/efi";
+
+                (is_removable_path || !is_system_path)
+                    && disk.total_space() > 100_000_000 // At least 100MB
             })
             .map(|disk: &sysinfo::Disk| crate::app::DiskInfo {
                 name: disk.mount_point().to_string_lossy().to_string(),
