@@ -814,6 +814,29 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                                 }
                                             }
                                         }
+                                    } else {
+                                        if column < app.sidebar_width() {
+                                            if let Some(bound) = app.sidebar_bounds.iter().find(|b| b.y == row).cloned() {
+                                                match bound.target {
+                                                    SidebarTarget::Header(h) if h == "REMOTES" => { app.mode = AppMode::ImportServers; app.input.set_value("servers.toml".to_string()); }
+                                                    SidebarTarget::Favorite(p) => { let p2 = p.clone(); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p2.clone(); fs.remote_session = None; fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p2); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = true; }
+                                                    SidebarTarget::Storage(idx) => {
+                                                        if let Some(disk) = app.system_state.disks.get(idx) {
+                                                            if !disk.is_mounted {
+                                                                let dev = disk.device.clone(); let tx = event_tx.clone(); let pane_idx = app.focused_pane_index;
+                                                                tokio::spawn(async move { if let Ok(out) = std::process::Command::new("udisksctl").arg("mount").arg("-b").arg(&dev).output() { if let Some(_) = String::from_utf8_lossy(&out.stdout).split(" at ").last() { tokio::time::sleep(Duration::from_millis(200)).await; let _ = tx.send(AppEvent::RefreshFiles(pane_idx)).await; } } });
+                                                            } else {
+                                                                let p = std::path::PathBuf::from(&disk.name);
+                                                                if let Some(fs) = app.current_file_state_mut() { fs.current_path = p.clone(); fs.remote_session = None; fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); }
+                                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false;
+                                                            }
+                                                        }
+                                                    }
+                                                    SidebarTarget::Remote(idx) => { execute_command(crate::app::CommandAction::ConnectToRemote(idx), app, event_tx.clone()); app.sidebar_focus = false; }
+                                                    _ => {} 
+                                                }
+                                            }
+                                        }
                                     }
                                     app.is_dragging = false; app.drag_start_pos = None; app.drag_source = None;
                                 }
