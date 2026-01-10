@@ -419,6 +419,8 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
             ContextMenuAction::Run => " 󰐊 Run",
             ContextMenuAction::RunTerminal => " 󰞷 Run in Terminal",
             ContextMenuAction::ExtractHere => " 󰛫 Extract Here",
+            ContextMenuAction::NewFolder => " 󰉋 New Folder",
+            ContextMenuAction::NewFile => " 󰈔 New File",
             ContextMenuAction::Cut => " 󰆐 Cut",
             ContextMenuAction::Copy => " 󰆏 Copy",
             ContextMenuAction::Paste => " 󰆒 Paste",
