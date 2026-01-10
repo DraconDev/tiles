@@ -83,7 +83,7 @@ impl SystemModule {
                     // Only care if it has a filesystem but NO mountpoint
                     if !fstype.is_empty() && mountpoint.is_empty() {
                         if let Ok(size) = size_str.parse::<f64>() {
-                            if size > 100_000_000 { // > 100MB
+                            if size > 100_000_000.0 { // > 100MB
                                 let display_name = if !label.is_empty() { label.to_string() } else { format!("/dev/{}", name) };
                                 // Avoid adding swap or system-specific types
                                 if fstype != "swap" && !fstype.contains("member") {
