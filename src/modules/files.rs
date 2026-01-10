@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::app::{FileCategory, FileMetadata, FileState};
+use crate::app::{FileCategory, FileState};
 use std::path::Path;
 
 pub fn get_file_category(path: &Path) -> FileCategory {

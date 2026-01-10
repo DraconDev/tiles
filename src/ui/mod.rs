@@ -206,7 +206,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_main_stage(f, workspace[1], app);
     draw_footer(f, chunks[2], app);
 
-    if let AppMode::ContextMenu { x, y, ref target } = app.mode { draw_context_menu(f, x, y, target, app); }
+    if let AppMode::ContextMenu { x, y, ref target, .. } = app.mode { draw_context_menu(f, x, y, target, app); }
     if matches!(app.mode, AppMode::Rename) { draw_rename_modal(f, app); }
     if matches!(app.mode, AppMode::Delete) { draw_delete_modal(f, app); }
     if matches!(app.mode, AppMode::Properties) { draw_properties_modal(f, app); }
