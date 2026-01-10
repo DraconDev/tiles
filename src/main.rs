@@ -298,7 +298,9 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: 
 
 fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
     match evt {
-        Event::Mouse(me) => {
+        Event::Key(key) => {
+            crate::app::log_debug(&format!("KEY EVENT: code={:?} modifiers={:?}", key.code, key.modifiers));
+            match app.mode {
             let column = me.column;
             let row = me.row;
             
@@ -553,15 +555,42 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             KeyCode::Char('q') => { app.running = false; }
                             KeyCode::Char('s') => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
                             KeyCode::Char('h') => { let pane_idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx)); }
-                            KeyCode::Char('t') | KeyCode::Char('.') => {
+                            KeyCode::Char('t') => {
+                                if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                    if let Some(fs) = pane.current_state() {
+                                        let mut new_fs = fs.clone();
+                                        // Reset state for new tab
+                                        new_fs.selected_index = Some(0);
+                                        new_fs.search_filter.clear();
+                                        *new_fs.table_state.offset_mut() = 0;
+                                        new_fs.history = vec![new_fs.current_path.clone()];
+                                        new_fs.history_index = 0;
+                                        
+                                        pane.open_tab(new_fs);
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    }
+                                }
+                            }
+                            KeyCode::Char('.') => {
                                 if let Some(fs) = app.current_file_state() {
                                     let mut terminals = vec!["kgx".to_string(), "gnome-terminal".to_string(), "konsole".to_string(), "xdg-terminal-exec".to_string(), "x-terminal-emulator".to_string(), "alacritty".to_string(), "kitty".to_string(), "xterm".to_string()];
                                     if let Ok(et) = std::env::var("TERMINAL") { terminals.insert(0, et); }
                                     for t in terminals {
                                         if std::process::Command::new("which").arg(&t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false) {
-                                            let mut cmd = std::process::Command::new(&t); cmd.current_dir(&fs.current_path);
-                                            if t == "gnome-terminal" || t == "kgx" { cmd.arg("--window"); } else if t == "konsole" { cmd.arg("--new-window"); }
-                                            if cmd.spawn().is_ok() { break; }
+                                            crate::app::log_debug(&format!("Attempting to spawn terminal: {}", t));
+                                            let mut args = String::new();
+                                            if t == "gnome-terminal" || t == "kgx" { args.push_str("--window"); } else if t == "konsole" { args.push_str("--new-window"); }
+                                            
+                                            let cmd_str = format!("setsid {} {} >/dev/null 2>&1 &", t, args);
+                                            if std::process::Command::new("sh")
+                                                .arg("-c")
+                                                .arg(&cmd_str)
+                                                .current_dir(&fs.current_path)
+                                                .spawn().is_ok() 
+                                            {
+                                                crate::app::log_debug(&format!("Successfully launched: {}", cmd_str));
+                                                break;
+                                            }
                                         }
                                     }
                                 }
