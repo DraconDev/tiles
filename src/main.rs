@@ -40,7 +40,9 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             actions.extend(vec![
                 ContextMenuAction::Cut,
                 ContextMenuAction::Copy,
+                ContextMenuAction::Duplicate,
                 ContextMenuAction::Rename,
+                ContextMenuAction::Compress,
                 ContextMenuAction::Delete,
                 ContextMenuAction::Properties,
             ]);
@@ -55,12 +57,14 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                 ContextMenuAction::NewFile,
                 ContextMenuAction::Cut,
                 ContextMenuAction::Copy,
+                ContextMenuAction::Duplicate,
             ];
             if app.clipboard.is_some() {
                 actions.push(ContextMenuAction::Paste);
             }
             actions.extend(vec![
                 ContextMenuAction::Rename,
+                ContextMenuAction::Compress,
                 ContextMenuAction::Star, // UI decides if it shows Star or Unstar
                 ContextMenuAction::Delete,
                 ContextMenuAction::Properties,
@@ -634,6 +638,54 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
                 app.mode = AppMode::Rename;
                 app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string());
                 app.rename_selected = true;
+            }
+        }
+        ContextMenuAction::Duplicate => {
+            let path = match target {
+                ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => {
+                    app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned())
+                }
+                _ => None,
+            };
+            if let Some(src) = path {
+                let mut dest = src.clone();
+                let stem = src.file_stem().unwrap().to_string_lossy();
+                let ext = src.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+                dest.set_file_name(format!("{} (copy){}", stem, ext));
+                // Ensure unique name if already exists
+                let mut i = 1;
+                while dest.exists() {
+                    dest.set_file_name(format!("{} (copy {}){}", stem, i, ext));
+                    i += 1;
+                }
+                let _ = event_tx.try_send(AppEvent::Copy(src, dest));
+            }
+        }
+        ContextMenuAction::Compress => {
+            let path = match target {
+                ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => {
+                    app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned())
+                }
+                _ => None,
+            };
+            if let Some(src) = path {
+                let mut dest = src.clone();
+                dest.set_extension("zip");
+                // Try zip, then tar
+                let _ = std::process::Command::new("zip")
+                    .arg("-r")
+                    .arg(&dest)
+                    .arg(&src)
+                    .spawn()
+                    .or_else(|_| {
+                        dest.set_extension("tar.gz");
+                        std::process::Command::new("tar")
+                            .arg("-czf")
+                            .arg(&dest)
+                            .arg(&src)
+                            .spawn()
+                    });
+                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
             }
         }
         ContextMenuAction::Delete => {
