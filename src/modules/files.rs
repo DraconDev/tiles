@@ -131,10 +131,11 @@ pub fn update_local_files(state: &mut FileState) {
                 let path = e.path();
                 if path.is_dir() {
                     let p_str = path.to_string_lossy();
-                    // Skip virtual filesystems and massive system directories
+                    // Skip virtual filesystems, massive system directories, and build artifacts
                     if p_str == "/proc" || p_str == "/sys" || p_str == "/dev" || 
                        p_str == "/run" || p_str == "/tmp" || p_str == "/nix/store" ||
-                       p_str == "/var/lib" || p_str == "/var/cache" 
+                       p_str == "/var/lib" || p_str == "/var/cache" ||
+                       p_str.ends_with("/target") || p_str.ends_with("/node_modules")
                     { 
                         return false; 
                     }
