@@ -640,14 +640,14 @@ impl App {
             target_cols.push(col);
         }
 
-        // Maintain consistent order in the template
-        let order = [
-            FileColumn::Name,
-            FileColumn::Size,
-            FileColumn::Modified,
-            FileColumn::Created,
-            FileColumn::Permissions,
-        ];
+                        // Maintain a consistent default order
+                        let order = [
+                            FileColumn::Name,
+                            FileColumn::Size,
+                            FileColumn::Created,
+                            FileColumn::Modified,
+                            FileColumn::Permissions,
+                        ];
         let mut sorted = Vec::new();
         for &c in &order {
             if target_cols.contains(&c) {
