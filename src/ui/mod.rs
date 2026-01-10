@@ -1,4 +1,3 @@
-#![allow(dead_code, unused)]
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -468,19 +467,28 @@ fn draw_import_servers_modal(f: &mut Frame, app: &App) {
     let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Import Servers (TOML) ").border_style(Style::default().fg(THEME.accent_primary));
     let inner = block.inner(area);
     f.render_widget(block, area);
-    let text = vec![
-        Line::from("Enter path to server configuration file:"), Line::from(""),
-        Line::from(vec![Span::styled("> ", Style::default().fg(THEME.accent_secondary)), Span::styled(&app.input, Style::default().fg(Color::Yellow))]), Line::from(""),
-        Line::from(vec![Span::styled(" [Enter] ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)), Span::raw("Import "), Span::styled(" [Esc] ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), Span::raw("Cancel")]),
-    ];
-    f.render_widget(Paragraph::new(text), inner);
+    
+    let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(2), Constraint::Length(1), Constraint::Length(1), Constraint::Length(1)]).split(inner);
+    
+    f.render_widget(Paragraph::new("Enter path to server configuration file:"), chunks[0]);
+    
+    let input_area = chunks[1];
+    f.render_widget(Paragraph::new("> ").style(Style::default().fg(THEME.accent_secondary)), Rect::new(input_area.x, input_area.y, 2, 1));
+    f.render_widget(&app.input, Rect::new(input_area.x + 2, input_area.y, input_area.width.saturating_sub(2), 1));
+    
+    let footer_text = vec![Span::styled(" [Enter] ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)), Span::raw("Import "), Span::styled(" [Esc] ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), Span::raw("Cancel")];
+    f.render_widget(Paragraph::new(Line::from(footer_text)), chunks[3]);
 }
 
 fn draw_command_palette(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 20, f.area());
     f.render_widget(Clear, area);
     let inner = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Command Palette ").border_style(Style::default().fg(Color::Magenta)).inner(area);
-    f.render_widget(Paragraph::new(format!("> {}", app.input)).style(Style::default().fg(Color::Yellow)), Rect::new(inner.x, inner.y, inner.width, 1));
+    f.render_widget(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Command Palette ").border_style(Style::default().fg(Color::Magenta)), area);
+    
+    f.render_widget(Paragraph::new("> ").style(Style::default().fg(Color::Yellow)), Rect::new(inner.x, inner.y, 2, 1));
+    f.render_widget(&app.input, Rect::new(inner.x + 2, inner.y, inner.width.saturating_sub(2), 1));
+    
     let items: Vec<ListItem> = app.filtered_commands.iter().enumerate().map(|(i, cmd)| {
         let style = if i == app.command_index { Style::default().bg(Color::DarkGray).fg(Color::White) } else { Style::default() };
         ListItem::new(cmd.desc.clone()).style(style)
@@ -490,37 +498,45 @@ fn draw_command_palette(f: &mut Frame, app: &App) {
 
 fn draw_rename_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
+    let block = Block::default().title(" Rename ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Yellow));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
     
-    let text = if app.rename_selected {
-        if let Some(idx) = app.input.rfind('.') {
+    if app.rename_selected {
+        let text = if let Some(idx) = app.input.value.rfind('.') {
              if idx > 0 {
-                 let stem_part = &app.input[..idx];
-                 let ext_part = &app.input[idx..];
+                 let stem_part = &app.input.value[..idx];
+                 let ext_part = &app.input.value[idx..];
                  Line::from(vec![
                      Span::styled(stem_part, Style::default().bg(Color::Blue).fg(Color::White)),
                      Span::raw(ext_part)
                  ])
              } else {
-                 Line::from(vec![Span::styled(&app.input, Style::default().bg(Color::Blue).fg(Color::White))])
+                 Line::from(vec![Span::styled(&app.input.value, Style::default().bg(Color::Blue).fg(Color::White))])
              }
         } else {
-             Line::from(vec![Span::styled(&app.input, Style::default().bg(Color::Blue).fg(Color::White))])
-        }
+             Line::from(vec![Span::styled(&app.input.value, Style::default().bg(Color::Blue).fg(Color::White))])
+        };
+        f.render_widget(Paragraph::new(text), inner);
     } else {
-        Line::from(app.input.as_str())
-    };
-
-    f.render_widget(Paragraph::new(text).block(Block::default().title(" Rename ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Yellow))), area);
+        f.render_widget(&app.input, inner);
+    }
 }
 
 fn draw_new_folder_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(app.input.as_str()).block(Block::default().title(" New Folder ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green))), area);
+    let block = Block::default().title(" New Folder ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+    f.render_widget(&app.input, inner);
 }
 
 fn draw_new_file_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(app.input.as_str()).block(Block::default().title(" New File ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green))), area);
+    let block = Block::default().title(" New File ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+    f.render_widget(&app.input, inner);
 }
 
 fn draw_delete_modal(f: &mut Frame, app: &App) {
