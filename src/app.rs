@@ -59,6 +59,32 @@ pub enum SettingsSection {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum ContextMenuAction {
+    Open,
+    OpenNewTab,
+    Edit,
+    Run,
+    RunTerminal,
+    ExtractHere,
+    Cut,
+    Copy,
+    Paste,
+    Rename,
+    Delete,
+    Star,
+    Unstar,
+    Properties,
+    TerminalHere,
+    Refresh,
+    SelectAll,
+    ToggleHidden,
+    ConnectRemote,
+    DeleteRemote,
+    Mount,
+    Unmount,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum AppMode {
     Normal,
     Rename,
@@ -74,6 +100,7 @@ pub enum AppMode {
         x: u16,
         y: u16,
         target: ContextMenuTarget,
+        actions: Vec<ContextMenuAction>,
     },
     CommandPalette,
     Location,
