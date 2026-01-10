@@ -33,41 +33,8 @@ mod license;
     // 1. TTY Input Loop
     {
         let tx = event_tx.clone();
-        std::thread::spawn(move || {
-            use std::io::Read;
-            use std::os::fd::AsRawFd;
-            let mut parser = terma::input::parser::Parser::new();
-            let mut stdin = std::io::stdin();
-            let fd = stdin.as_raw_fd();
-            let mut buffer = [0; 1024];
-            loop {
-                let polled = unsafe { terma::backend::tty::poll_input(std::os::fd::BorrowedFd::borrow_raw(fd), 20) };
-                match polled {
-                    Ok(true) => {
-                         match stdin.read(&mut buffer) {
-                            Ok(0) => break,
-                            Ok(n) => {
-                                for i in 0..n {
-                                    if let Some(evt) = parser.advance(buffer[i]) {
-                                         if let Some(converted) = crate::event::convert_event(evt) {
-                                             let _ = tx.blocking_send(AppEvent::Raw(converted));
-                                         }
-                                    }
-                                }
-                            }
-                            Err(_) => break,
-                        }
-                    }
-                    Ok(false) => {
-                        if let Some(evt) = parser.check_timeout() {
-                             if let Some(converted) = crate::event::convert_event(evt) {
-                                 let _ = tx.blocking_send(AppEvent::Raw(converted));
-                             }
-                        }
-                    }
-                    Err(_) => break,
-                }
-            }
+        terma::input::InputReader::spawn(move |evt| {
+             let _ = tx.blocking_send(AppEvent::Raw(evt));
         });
     }
 
@@ -541,13 +508,16 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
                         }
                         KeyCode::Up if key.modifiers.contains(KeyModifiers::ALT) => {
+                             // crate::app::log_debug("Alt+Up pressed");
                              if app.sidebar_focus {
-                                  if let Some(bound) = app.sidebar_bounds.get(app.sidebar_index) {
+                                  if app.sidebar_index < app.sidebar_bounds.len() {
+                                      let bound = &app.sidebar_bounds[app.sidebar_index];
+                                      // crate::app::log_debug(&format!("Current bound: {:?}", bound));
                                       if let SidebarTarget::Favorite(path) = &bound.target {
                                           if let Some(idx) = app.starred.iter().position(|p| p == path) {
                                               if idx > 0 {
                                                   app.starred.swap(idx, idx - 1);
-                                                  app.sidebar_index -= 1; 
+                                                  if app.sidebar_index > 0 { app.sidebar_index -= 1; }
                                                   let _ = crate::config::save_state(app);
                                               }
                                           }
@@ -556,8 +526,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                              }
                         }
                         KeyCode::Down if key.modifiers.contains(KeyModifiers::ALT) => {
+                             // crate::app::log_debug("Alt+Down pressed");
                              if app.sidebar_focus {
-                                  if let Some(bound) = app.sidebar_bounds.get(app.sidebar_index) {
+                                  if app.sidebar_index < app.sidebar_bounds.len() {
+                                      let bound = &app.sidebar_bounds[app.sidebar_index];
                                       if let SidebarTarget::Favorite(path) = &bound.target {
                                           if let Some(idx) = app.starred.iter().position(|p| p == path) {
                                               if idx < app.starred.len() - 1 {
@@ -746,6 +718,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
 
                     if column < sidebar_width {
                         app.sidebar_focus = true;
+                        app.drag_start_pos = Some((column, row));
                         let clicked_sidebar_item = app.sidebar_bounds.iter().find(|b| b.y == row).cloned();
                         if let Some(bound) = clicked_sidebar_item {
                             app.sidebar_index = bound.index;
@@ -808,21 +781,23 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     if app.is_dragging {
                                         let mut reorder_done = false;
                                         if let Some((sx, sy)) = app.drag_start_pos {
-                                            if sx < app.sidebar_width() {
+                                            let (ex, ey) = (column, row);
+                                            // crate::app::log_debug(&format!("Mouse Up Drag: sx={} sy={} ex={} ey={}", sx, sy, ex, ey));
+                                            if sx < app.sidebar_width() && ex < app.sidebar_width() {
                                                  if let Some(start_bound) = app.sidebar_bounds.iter().find(|b| b.y == sy).cloned() {
+                                                     // crate::app::log_debug(&format!("Start bound: {:?}", start_bound));
                                                      if let SidebarTarget::Favorite(start_path) = start_bound.target {
-                                                         let (ex, ey) = app.mouse_pos;
-                                                         if ex < app.sidebar_width() {
-                                                             if let Some(end_bound) = app.sidebar_bounds.iter().find(|b| b.y == ey).cloned() {
-                                                                 if let SidebarTarget::Favorite(end_path) = end_bound.target {
-                                                                     if let Some(s_idx) = app.starred.iter().position(|p| p == &start_path) {
-                                                                         if let Some(e_idx) = app.starred.iter().position(|p| p == &end_path) {
-                                                                             if s_idx != e_idx {
-                                                                                 let item = app.starred.remove(s_idx);
-                                                                                 app.starred.insert(e_idx, item);
-                                                                                 let _ = crate::config::save_state(app);
-                                                                                 reorder_done = true;
-                                                                             }
+                                                         if let Some(end_bound) = app.sidebar_bounds.iter().find(|b| b.y == ey).cloned() {
+                                                             // crate::app::log_debug(&format!("End bound: {:?}", end_bound));
+                                                             if let SidebarTarget::Favorite(end_path) = end_bound.target {
+                                                                 if let Some(s_idx) = app.starred.iter().position(|p| p == &start_path) {
+                                                                     if let Some(e_idx) = app.starred.iter().position(|p| p == &end_path) {
+                                                                         // crate::app::log_debug(&format!("Swapping {} with {}", s_idx, e_idx));
+                                                                         if s_idx != e_idx {
+                                                                             let item = app.starred.remove(s_idx);
+                                                                             app.starred.insert(e_idx, item);
+                                                                             let _ = crate::config::save_state(app);
+                                                                             reorder_done = true;
                                                                          }
                                                                      }
                                                                  }
