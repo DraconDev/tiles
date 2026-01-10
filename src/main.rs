@@ -14,7 +14,6 @@ use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenu
 mod app;
 mod config;
 mod modules;
-mod event;
 mod ui;
 mod license;
 
