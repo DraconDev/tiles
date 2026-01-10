@@ -462,6 +462,28 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
                 _ => {}
             }
         }
+        ContextMenuAction::OpenNewTab => {
+            let path = match target {
+                ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+                ContextMenuTarget::SidebarFavorite(p) => Some(p.clone()),
+                _ => None,
+            };
+            if let Some(path) = path {
+                if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                    if let Some(fs) = pane.current_state() {
+                        let mut new_fs = fs.clone();
+                        new_fs.current_path = path.clone();
+                        new_fs.selected_index = Some(0);
+                        new_fs.search_filter.clear();
+                        *new_fs.table_state.offset_mut() = 0;
+                        new_fs.history = vec![path];
+                        new_fs.history_index = 0;
+                        pane.open_tab(new_fs);
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                    }
+                }
+            }
+        }
         ContextMenuAction::Edit => {
             if let ContextMenuTarget::File(idx) = target {
                 if let Some(fs) = app.current_file_state() {
