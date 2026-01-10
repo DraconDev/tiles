@@ -346,7 +346,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                             }
-                            KeyCode::Char('.') => {
+                            KeyCode::Char('g') | KeyCode::Char('.') => {
                                 if let Some(fs) = app.current_file_state() {
                                     let mut terminals = vec!["kgx".to_string(), "gnome-terminal".to_string(), "konsole".to_string(), "xdg-terminal-exec".to_string(), "x-terminal-emulator".to_string(), "alacritty".to_string(), "kitty".to_string(), "xterm".to_string()];
                                     if let Ok(et) = std::env::var("TERMINAL") { terminals.insert(0, et); }
@@ -379,7 +379,23 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         KeyCode::Right => { if key.modifiers.contains(KeyModifiers::SHIFT) { app.copy_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else if key.modifiers.contains(KeyModifiers::CONTROL) { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else { app.move_right(); } }
                         KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } }
                         KeyCode::Char(' ') => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } } } } }
-                        KeyCode::Char(c) if key.modifiers.is_empty() => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
+                        // Search handler: explicitly ignore keys that are meant to be hotkeys
+                        KeyCode::Char(c) if key.modifiers.is_empty() && c != '.' && c != 'g' => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
+                        // Also handle Ctrl-G and Ctrl-. fallback if they arrived without modifiers
+                        KeyCode::Char(c) if key.modifiers.is_empty() && (c == '.' || c == 'g') => {
+                            if let Some(fs) = app.current_file_state() {
+                                let mut terminals = vec!["kgx".to_string(), "gnome-terminal".to_string(), "konsole".to_string(), "xdg-terminal-exec".to_string(), "x-terminal-emulator".to_string(), "alacritty".to_string(), "kitty".to_string(), "xterm".to_string()];
+                                if let Ok(et) = std::env::var("TERMINAL") { terminals.insert(0, et); }
+                                for t in terminals {
+                                    if std::process::Command::new("which").arg(&t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false) {
+                                        let mut args = String::new();
+                                        if t == "gnome-terminal" || t == "kgx" { args.push_str("--window"); } else if t == "konsole" { args.push_str("--new-window"); }
+                                        let cmd_str = format!("setsid {} {} >/dev/null 2>&1 &", t, args);
+                                        if let Ok(_) = std::process::Command::new("sh").arg("-c").arg(&cmd_str).current_dir(&fs.current_path).spawn() { break; }
+                                    }
+                                }
+                            }
+                        }
                         KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } }
                         _ => {}
                     }
