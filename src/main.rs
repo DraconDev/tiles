@@ -727,6 +727,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         let clicked_sidebar_item = app.sidebar_bounds.iter().find(|b| b.y == row).cloned();
                         if let Some(bound) = clicked_sidebar_item {
                             app.sidebar_index = bound.index;
+                            if let SidebarTarget::Favorite(ref p) = bound.target {
+                                app.drag_source = Some(p.clone());
+                            }
                             if button == MouseButton::Right {
                                 let target = match &bound.target {
                                     SidebarTarget::Favorite(p) => Some(ContextMenuTarget::SidebarFavorite(p.clone())),
