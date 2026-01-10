@@ -365,10 +365,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 AppMode::CommandPalette => {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
-                        KeyCode::Char(c) => { app.input.push(c); update_commands(app); }
-                        KeyCode::Backspace => { app.input.pop(); update_commands(app); }
                         KeyCode::Enter => { if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() { execute_command(cmd.action, app, event_tx.clone()); } app.mode = AppMode::Normal; app.input.clear(); }
-                        _ => {} 
+                        _ => {
+                            if app.input.handle_event(&evt) {
+                                update_commands(app);
+                            }
+                        }
                     }
                 }
                 AppMode::Settings => {
@@ -390,67 +392,64 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 AppMode::ImportServers => {
                                     match key.code {
                                         KeyCode::Esc => app.mode = AppMode::Normal,
-                                        KeyCode::Char(c) => { app.input.push(c); }
-                                        KeyCode::Backspace => { app.input.pop(); }
                                         KeyCode::Enter => {
-                                            let filename = app.input.clone();
+                                            let filename = app.input.value.clone();
                                             let import_path = if let Some(fs) = app.current_file_state() { fs.current_path.join(filename) } else { std::path::PathBuf::from(filename) };
                                             let _ = app.import_servers(import_path);
                                             let _ = crate::config::save_state(app);
                                             app.mode = AppMode::Normal; app.input.clear();
                                         }
-                                        _ => {} 
+                                        _ => { app.input.handle_event(&evt); }
                                     }
                                 }
                                 AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete => {
-                                    match key.code {
-                                        KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); }
-                                        KeyCode::Char(c) => { 
-                                            if app.mode == AppMode::Rename && app.rename_selected {
+                                    // Rename special logic
+                                    if app.mode == AppMode::Rename && app.rename_selected {
+                                        match key.code {
+                                            KeyCode::Char(c) => {
                                                 app.rename_selected = false;
-                                                // Try to preserve extension
-                                                let input_clone = app.input.clone();
-                                                let path = std::path::Path::new(&input_clone);
+                                                let input_val = app.input.value.clone();
+                                                let path = std::path::Path::new(&input_val);
                                                 if let Some(stem) = path.file_stem() {
                                                     if let Some(ext) = path.extension() {
-                                                        if stem.to_string_lossy().len() > 0 {
-                                                            // We have a stem and extension, replace stem with char
-                                                            app.input = format!("{}.{}", c, ext.to_string_lossy());
+                                                        if !stem.to_string_lossy().is_empty() {
+                                                            app.input.set_value(format!("{}.{}", c, ext.to_string_lossy()));
                                                         } else {
-                                                            app.input = c.to_string();
+                                                            app.input.set_value(c.to_string());
                                                         }
                                                     } else {
-                                                        app.input = c.to_string();
+                                                        app.input.set_value(c.to_string());
                                                     }
                                                 } else {
-                                                    app.input = c.to_string();
+                                                    app.input.set_value(c.to_string());
                                                 }
-                                            } else {
-                                                app.input.push(c); 
+                                                return;
                                             }
-                                        }
-                                        KeyCode::Backspace => { 
-                                            if app.mode == AppMode::Rename && app.rename_selected {
+                                            KeyCode::Backspace => {
                                                  app.rename_selected = false;
-                                                 // Delete stem
-                                                 let input_clone = app.input.clone();
-                                                 let path = std::path::Path::new(&input_clone);
+                                                 let input_val = app.input.value.clone();
+                                                 let path = std::path::Path::new(&input_val);
                                                  if let Some(ext) = path.extension() {
-                                                     app.input = format!(".{}", ext.to_string_lossy());
+                                                     app.input.set_value(format!(".{}", ext.to_string_lossy()));
                                                  } else {
                                                      app.input.clear();
                                                  }
-                                            } else {
-                                                app.input.pop(); 
+                                                 return;
                                             }
-                                        }
-                                        KeyCode::Left | KeyCode::Right => {
-                                            if app.mode == AppMode::Rename {
+                                            KeyCode::Left | KeyCode::Right => {
                                                 app.rename_selected = false;
+                                                // Fall through to standard navigation
                                             }
+                                            KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return; }
+                                            KeyCode::Enter => {} // Handled below
+                                            _ => {}
                                         }
+                                    }
+
+                                    match key.code {
+                                        KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); }
                                         KeyCode::Enter => {
-                                            let input = app.input.clone();
+                                            let input = app.input.value.clone();
                                             if let Some(fs) = app.current_file_state() {
                                                 let path = fs.current_path.join(&input);
                                                 match app.mode {
@@ -479,7 +478,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             app.mode = AppMode::Normal;
                                             app.input.clear();
                                         }
-                                        _ => {} 
+                                        _ => { app.input.handle_event(&evt); }
                                     }
                                 }
                                 _ => {
@@ -738,7 +737,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 if let Some(t) = target { app.mode = AppMode::ContextMenu { x: column, y: row, target: t }; return; }
                             }
                             match &bound.target {
-                                SidebarTarget::Header(h) if h == "REMOTES" => { app.mode = AppMode::ImportServers; app.input = "servers.toml".to_string(); }
+                                SidebarTarget::Header(h) if h == "REMOTES" => { app.mode = AppMode::ImportServers; app.input.set_value("servers.toml".to_string()); }
                                 SidebarTarget::Favorite(p) => { let p2 = p.clone(); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p2.clone(); fs.remote_session = None; fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p2); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false; }
                                 SidebarTarget::Storage(idx) => {
                                     if let Some(disk) = app.system_state.disks.get(*idx) {
