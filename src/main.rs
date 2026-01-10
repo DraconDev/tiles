@@ -347,20 +347,20 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             app.settings_target = SettingsTarget::SplitMode;
                                         }
                                     } else if row >= inner.y + 4 {
+                                        // Column list selection (Size, Modified, Permissions)
                                         let rel_y = row.saturating_sub(inner.y + 4);
                                         match rel_y {
                                             0 => app.toggle_column(crate::app::FileColumn::Size),
                                             1 => app.toggle_column(crate::app::FileColumn::Modified),
-                                            2 => app.toggle_column(crate::app::FileColumn::Created),
-                                            3 => app.toggle_column(crate::app::FileColumn::Permissions),
+                                            2 => app.toggle_column(crate::app::FileColumn::Permissions),
                                             _ => {}
                                         }
                                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     }
                                 }
                                 SettingsSection::General => {
-                                    // General selection fix: Click inner.y+1 -> rel_y 0
-                                    let rel_y = row.saturating_sub(inner.y + 1);
+                                    // General selection fix: subtract inner.y
+                                    let rel_y = row.saturating_sub(inner.y);
                                     match rel_y {
                                         0 => app.default_show_hidden = !app.default_show_hidden,
                                         1 => app.confirm_delete = !app.confirm_delete,

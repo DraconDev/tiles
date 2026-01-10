@@ -508,7 +508,6 @@ fn draw_file_view(
             .map(|c| match c {
                 FileColumn::Name => Constraint::Min(20),
                 FileColumn::Size => Constraint::Length(10),
-                FileColumn::Created => Constraint::Percentage(20),
                 FileColumn::Modified => Constraint::Percentage(20),
                 FileColumn::Permissions => Constraint::Length(12),
             })
