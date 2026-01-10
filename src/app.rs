@@ -161,6 +161,7 @@ pub struct RemoteBookmark {
 #[derive(Clone, Debug)]
 pub struct DiskInfo {
     pub name: String,
+    pub device: String,
     pub used_space: f64,
     pub available_space: f64,
     pub total_space: f64,
