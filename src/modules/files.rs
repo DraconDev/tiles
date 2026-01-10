@@ -118,29 +118,41 @@ pub fn update_local_files(state: &mut FileState) {
     sort_files(state);
     local_files = state.files.clone();
 
-    // 2. GLOBAL SEARCH (Recursive, if filter >= 3)
+    // 2. GLOBAL SEARCH (Recursive from Root, if filter >= 3)
     if state.search_filter.len() >= 3 {
         let mut scored_global = Vec::new();
         let filter_lower = state.search_filter.to_lowercase();
         
-        let walker = walkdir::WalkDir::new(&state.current_path)
+        // Search the whole disk, but skip system/virtual folders for speed and safety
+        let walker = walkdir::WalkDir::new("/")
             .follow_links(false)
             .into_iter()
             .filter_entry(|e| {
+                let path = e.path();
+                if path.is_dir() {
+                    let p_str = path.to_string_lossy();
+                    // Skip virtual filesystems and massive system directories
+                    if p_str == "/proc" || p_str == "/sys" || p_str == "/dev" || 
+                       p_str == "/run" || p_str == "/tmp" || p_str == "/nix/store" ||
+                       p_str == "/var/lib" || p_str == "/var/cache" 
+                    { 
+                        return false; 
+                    }
+                }
+                
                 let name = e.file_name().to_string_lossy();
                 if !state.show_hidden && name.starts_with('.') { return false; }
                 true
             });
 
         for entry in walker.filter_map(|e| e.ok()) {
-            if scored_global.len() >= 2000 { break; } // Traverse more to find better matches
+            if scored_global.len() >= 10000 { break; } // Traverse deeply
             let path = entry.path().to_path_buf();
             
             if path == state.current_path || local_files.contains(&path) { continue; }
 
-            // Match against the RELATIVE path from current root
-            let rel_path = path.strip_prefix(&state.current_path).unwrap_or(&path);
-            let search_target = rel_path.to_string_lossy().to_lowercase();
+            // Match against the full path since we are searching from /
+            let search_target = path.to_string_lossy().to_lowercase();
             
             if search_target.contains(&filter_lower) {
                 if let Ok(m) = entry.metadata() {
@@ -150,12 +162,15 @@ pub fn update_local_files(state: &mut FileState) {
                     
                     // Priority: if filename matches, it's better than just path matching
                     let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
-                    let filename_bonus = if filename.contains(&filter_lower) { 0 } else { 200 };
-                    let is_exact = if filename == filter_lower { 0 } else { 50 };
+                    let filename_bonus = if filename.contains(&filter_lower) { 0 } else { 500 };
+                    let is_exact = if filename == filter_lower { 0 } else { 100 };
                     
-                    let hidden_penalty = if path.to_string_lossy().contains("/.") { 50 } else { 0 };
+                    let hidden_penalty = if path.to_string_lossy().contains("/.") { 100 } else { 0 };
                     
-                    let score = depth * 10 + path_len + filename_bonus + is_exact + hidden_penalty;
+                    // Boost files closer to the current directory
+                    let proximity_bonus = if path.starts_with(&state.current_path) { 0 } else { 1000 };
+                    
+                    let score = depth * 10 + path_len + filename_bonus + is_exact + hidden_penalty + proximity_bonus;
                     
                     let meta = crate::app::FileMetadata {
                         size: m.len(),
@@ -176,9 +191,9 @@ pub fn update_local_files(state: &mut FileState) {
             }
         }
         
-        // Sort by score and take top 200
+        // Sort by score and take top 500
         scored_global.sort_by_key(|(s, _, _)| *s);
-        for (_, path, meta) in scored_global.into_iter().take(200) {
+        for (_, path, meta) in scored_global.into_iter().take(500) {
             state.metadata.insert(path.clone(), meta);
             global_files.push(path);
         }
