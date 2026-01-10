@@ -164,6 +164,7 @@ pub struct DiskInfo {
     pub used_space: f64,
     pub available_space: f64,
     pub total_space: f64,
+    pub is_mounted: bool,
 }
 
 #[derive(Clone, Debug)]
