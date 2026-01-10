@@ -475,7 +475,6 @@ impl App {
                 FileColumn::Name,
                 FileColumn::Size,
                 FileColumn::Modified,
-                FileColumn::Created,
                 FileColumn::Permissions,
             ],
             FileColumn::Name,
