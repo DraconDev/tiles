@@ -382,7 +382,6 @@ pub struct App {
     pub settings_section: SettingsSection,
     pub settings_target: SettingsTarget,
     pub rename_selected: bool,
-    #[serde(skip)]
     pub clipboard: Option<(PathBuf, ClipboardOp)>,
     
     // Global Preferences
