@@ -509,7 +509,15 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
              if let ContextMenuTarget::File(idx) = target {
                 if let Some(fs) = app.current_file_state() {
                     if let Some(path) = fs.files.get(*idx) {
-                        let _ = std::process::Command::new(path).spawn();
+                        let cat = crate::modules::files::get_file_category(path);
+                        match cat {
+                            FileCategory::Audio | FileCategory::Video => {
+                                let _ = std::process::Command::new("xdg-open").arg(path).spawn();
+                            }
+                            _ => {
+                                let _ = std::process::Command::new(path).spawn();
+                            }
+                        }
                     }
                 }
             }
@@ -528,7 +536,21 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
                 if let Some(fs) = app.current_file_state() {
                     if let Some(path) = fs.files.get(*idx) {
                         let parent = path.parent().unwrap_or(Path::new("."));
-                        let _ = std::process::Command::new("atool").arg("-x").arg(path).current_dir(parent).spawn();
+                        // Try atool, then unzip/tar as fallbacks
+                        let _ = std::process::Command::new("atool")
+                            .arg("-x")
+                            .arg(path)
+                            .current_dir(parent)
+                            .spawn()
+                            .or_else(|_| {
+                                // Fallback to common tools if atool missing
+                                let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+                                match ext.as_str() {
+                                    "zip" => std::process::Command::new("unzip").arg(path).current_dir(parent).spawn(),
+                                    "tar" | "gz" | "xz" | "bz2" => std::process::Command::new("tar").arg("-xf").arg(path).current_dir(parent).spawn(),
+                                    _ => Err(std::io::Error::new(std::io::ErrorKind::NotFound, "No extraction tool found")),
+                                }
+                            });
                     }
                 }
             }
