@@ -776,7 +776,6 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
                 }
             }
         }
-        _ => {}
     }
     app.mode = AppMode::Normal;
 }
