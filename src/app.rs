@@ -29,6 +29,7 @@ pub enum AppEvent {
     CreateFile(PathBuf),
     CreateFolder(PathBuf),
     Rename(PathBuf, PathBuf),
+    Copy(PathBuf, PathBuf),
     Delete(PathBuf),
     RemoteConnected(usize, RemoteSession), // pane_idx, session
 }
