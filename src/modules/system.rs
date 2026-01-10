@@ -28,21 +28,23 @@ impl SystemModule {
             .filter(|disk| {
                 let mount = disk.mount_point().to_string_lossy();
                 // Filter out pseudo-filesystems and small system partitions
-                // BUT allow /media and /mnt which are typical USB/external mount points
-                let is_external = mount.starts_with("/media") || mount.starts_with("/mnt");
+                // Standard external/removable mount points
+                let is_removable_path = mount.starts_with("/media") || 
+                                       mount.starts_with("/mnt") || 
+                                       mount.starts_with("/run/media");
 
-                (is_external
+                (is_removable_path
                     || (!mount.starts_with("/boot")
                         && !mount.starts_with("/nix")
                         && !mount.starts_with("/snap")
                         && !mount.starts_with("/var/snap")
-                        && !mount.starts_with("/run")
+                        && !mount.starts_with("/run/payload") // specific system run paths
                         && !mount.starts_with("/sys")
                         && !mount.starts_with("/proc")
                         && !mount.starts_with("/dev")
                         && !mount.starts_with("/tmp")
                         && mount != "/efi"))
-                    && disk.total_space() > 1_000_000_000 // At least 1GB
+                    && disk.total_space() > 100_000_000 // At least 100MB (catch smaller USBs)
             })
             .map(|disk: &sysinfo::Disk| crate::app::DiskInfo {
                 name: disk.mount_point().to_string_lossy().to_string(),
