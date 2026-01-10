@@ -12,67 +12,11 @@ use std::collections::HashMap;
 
 use crate::app::{App, AppMode, CurrentView, FileColumn, FileMetadata, FileState, ContextMenuTarget, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget};
 use crate::ui::theme::THEME;
+use terma::layout::centered_rect;
+use terma::utils::{format_size, format_time, format_permissions};
 
 pub mod theme;
 pub mod layout;
-
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
-        ])
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
-        ])
-        .split(popup_layout[1])[1]
-}
-
-fn format_size(size: u64) -> String {
-    if size < 1024 {
-        format!("{} B", size)
-    } else if size < 1024 * 1024 {
-        format!("{:.1} KB", size as f64 / 1024.0)
-    } else if size < 1024 * 1024 * 1024 {
-        format!("{:.1} MB", size as f64 / 1024.0 / 1024.0)
-    } else {
-        format!("{:.1} GB", size as f64 / 1024.0 / 1024.0 / 1024.0)
-    }
-}
-
-fn format_time(time: SystemTime) -> String {
-    let datetime: chrono::DateTime<chrono::Local> = time.into();
-    datetime.format("%Y-%m-%d %H:%M").to_string()
-}
-
-fn format_permissions(mode: u32) -> String {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let r = if mode & 0o400 != 0 { "r" } else { "-" };
-        let w = if mode & 0o200 != 0 { "w" } else { "-" };
-        let x = if mode & 0o100 != 0 { "x" } else { "-" };
-        let gr = if mode & 0o040 != 0 { "r" } else { "-" };
-        let gw = if mode & 0o020 != 0 { "w" } else { "-" };
-        let gx = if mode & 0o010 != 0 { "x" } else { "-" };
-        let or = if mode & 0o004 != 0 { "r" } else { "-" };
-        let ow = if mode & 0o002 != 0 { "w" } else { "-" };
-        let ox = if mode & 0o001 != 0 { "x" } else { "-" };
-        format!("{}{}{}{}{}{}{}{}{}", r, w, x, gr, gw, gx, or, ow, ox)
-    }
-    #[cfg(not(unix))]
-    {
-        "---------".to_string()
-    }
-}
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = area.inner(ratatui::layout::Margin {
