@@ -612,7 +612,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             let mut handled = false;
                             if row >= 3 { // Check if clicked on file list
                                 let index = fs_mouse_index(row, app);
-                                if let Some(fs) = app.current_file_state() { if index < fs.files.len() { let path = &fs.files[index]; if path.extension().map(|e| e == "toml").unwrap_or(false) { app.input = path.file_name().unwrap_or_default().to_string_lossy().to_string(); handled = true; } } } 
+                                if let Some(fs) = app.current_file_state() { if index < fs.files.len() { let path = &fs.files[index]; if path.extension().map(|e| e == "toml").unwrap_or(false) { app.input.set_value(path.file_name().unwrap_or_default().to_string_lossy().to_string()); handled = true; } } } 
                             }
                             if !handled { app.mode = AppMode::Normal; } // Clicked outside modal and not on a toml file
                             if !handled && button == MouseButton::Left { return; } // Prevent default action if not handled
