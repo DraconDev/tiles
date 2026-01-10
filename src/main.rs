@@ -70,6 +70,12 @@ mod license;
         for i in 0..pane_count {
             let _ = event_tx.send(AppEvent::RefreshFiles(i)).await;
         }
+        
+        // Initial Size
+        let mut app_guard = app.lock().unwrap();
+        if let Ok(size) = terminal.size() {
+            app_guard.terminal_size = (size.width, size.height);
+        }
     }
 
     loop {
@@ -80,7 +86,6 @@ mod license;
                 let _ = crate::config::save_state(&app_guard);
                 break; 
             }
-            app_guard.terminal_size = (terminal.size()?.width, terminal.size()?.height);
             terminal.draw(|f| {
                 ui::draw(f, &mut app_guard);
             })?;
@@ -351,6 +356,9 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
 
 fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
     match evt {
+        Event::Resize(w, h) => {
+            app.terminal_size = (w, h);
+        }
         Event::Key(key) => {
             crate::app::log_debug(&format!("KEY EVENT: code={:?} modifiers={:?}", key.code, key.modifiers));
             match app.mode {

@@ -1070,6 +1070,7 @@ dependencies = [
  "log",
  "rand",
  "ratatui",
+ "signal-hook",
  "unicode-width 0.1.14",
 ]
 
