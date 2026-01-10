@@ -923,7 +923,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     SidebarTarget::Storage(idx) => Some(ContextMenuTarget::SidebarStorage(*idx)),
                                     _ => None
                                 };
-                                if let Some(t) = target { app.mode = AppMode::ContextMenu { x: column, y: row, target: t }; return; }
+                                if let Some(t) = target { 
+                                    let actions = get_context_menu_actions(&t, app);
+                                    app.mode = AppMode::ContextMenu { x: column, y: row, target: t, actions }; 
+                                    return; 
+                                }
                             }
                         }
                         return;
@@ -937,10 +941,20 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 if fs.files[index].to_string_lossy() == "__DIVIDER__" { return; } // Ignore dividers
                                 fs.selected_index = Some(index); fs.table_state.select(Some(index));
                                 let p = fs.files[index].clone(); is_dir = fs.metadata.get(&p).map(|m| m.is_dir).unwrap_or(false); selected_path = Some(p);
-                            } else if button == MouseButton::Right { app.mode = AppMode::ContextMenu { x: column, y: row, target: ContextMenuTarget::EmptySpace }; return; } // Right click on empty space
+                            } else if button == MouseButton::Right { 
+                                let target = ContextMenuTarget::EmptySpace;
+                                let actions = get_context_menu_actions(&target, app);
+                                app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; 
+                                return; 
+                            } // Right click on empty space
                         }
                         if let Some(path) = selected_path {
-                            if button == MouseButton::Right { let target = if is_dir { ContextMenuTarget::Folder(index) } else { ContextMenuTarget::File(index) }; app.mode = AppMode::ContextMenu { x: column, y: row, target }; return; }
+                            if button == MouseButton::Right { 
+                                let target = if is_dir { ContextMenuTarget::Folder(index) } else { ContextMenuTarget::File(index) }; 
+                                let actions = get_context_menu_actions(&target, app);
+                                app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; 
+                                return; 
+                            }
                             app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
                             // Double click detection
                             if button == MouseButton::Left && app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
@@ -950,7 +964,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             app.mouse_last_click = std::time::Instant::now(); app.mouse_click_pos = (column, row);
                         }
                     } else if row >= 1 && button == MouseButton::Right { // Right click above file list but below header
-                        app.mode = AppMode::ContextMenu { x: column, y: row, target: ContextMenuTarget::EmptySpace };
+                        let target = ContextMenuTarget::EmptySpace;
+                        let actions = get_context_menu_actions(&target, app);
+                        app.mode = AppMode::ContextMenu { x: column, y: row, target, actions };
                     }
                 }
                                 MouseEventKind::Up(_) => {
