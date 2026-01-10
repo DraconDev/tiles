@@ -537,14 +537,33 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 SidebarTarget::Storage(idx) => {
                                 if let Some(disk) = app.system_state.disks.get(*idx) {
                                     if !disk.is_mounted {
-                                        // Attempt to mount via udisksctl
                                         let dev = disk.device.clone();
+                                        let tx = event_tx.clone();
+                                        let pane_idx = app.focused_pane_index;
                                         tokio::spawn(async move {
-                                            let _ = std::process::Command::new("udisksctl")
+                                            // 1. Trigger mount
+                                            let output = std::process::Command::new("udisksctl")
                                                 .arg("mount")
                                                 .arg("-b")
-                                                .arg(dev)
-                                                .spawn();
+                                                .arg(&dev)
+                                                .output();
+                                            
+                                            if let Ok(out) = output {
+                                                let msg = String::from_utf8_lossy(&out.stdout);
+                                                // udisksctl output: "Mounted /dev/sdb1 at /run/media/dracon/Ventoy"
+                                                if let Some(path_part) = msg.split(" at ").last() {
+                                                    let mount_path = path_part.trim().to_string();
+                                                    // 2. Wait a bit for filesystem to be ready and refresh UI
+                                                    tokio::time::sleep(Duration::from_millis(200)).await;
+                                                    
+                                                    // We can't directly mutate app here, so we send a Rename or Custom event?
+                                                    // For now, let's just trigger a global refresh, the next system update
+                                                    // will pick up the mounted status and user can click again,
+                                                    // OR we can try to send a specific "jump to path" event if we had one.
+                                                    // Let's assume user will click again for now as auto-jump is risky without app lock.
+                                                    let _ = tx.send(AppEvent::RefreshFiles(pane_idx)).await;
+                                                }
+                                            }
                                         });
                                     } else {
                                         let p = std::path::PathBuf::from(&disk.name);
