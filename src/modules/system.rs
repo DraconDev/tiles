@@ -23,7 +23,6 @@ impl SystemModule {
         let total_mem = self.sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0; // GB
 
         let mut final_disks = Vec::new();
-        let mut mounted_devices = std::collections::HashSet::new();
 
         // 1. Get mounted disks from sysinfo
         for disk in self.disks.iter() {
