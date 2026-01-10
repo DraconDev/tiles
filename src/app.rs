@@ -224,8 +224,6 @@ pub struct FileState {
     #[serde(skip)]
     pub git_status: HashMap<PathBuf, String>,
     pub show_hidden: bool,
-    #[serde(skip)]
-    pub clipboard: Option<(PathBuf, ClipboardOp)>,
     pub search_filter: String,
     pub columns: Vec<FileColumn>,
     pub history: Vec<PathBuf>,
