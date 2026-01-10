@@ -429,7 +429,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                                 SettingsSection::General => {
-                                    let rel_y = row.saturating_sub(inner.y + 2);
+                                    let rel_y = row.saturating_sub(inner.y + 3);
                                     match rel_y {
                                         0 => app.default_show_hidden = !app.default_show_hidden,
                                         1 => app.confirm_delete = !app.confirm_delete,
