@@ -239,6 +239,28 @@ fn push_history(fs: &mut crate::app::FileState, path: std::path::PathBuf) {
     fs.history_index = fs.history.len() - 1;
 }
 
+fn navigate_back(fs: &mut crate::app::FileState) {
+    if fs.history_index > 0 {
+        fs.history_index -= 1;
+        fs.current_path = fs.history[fs.history_index].clone();
+        fs.selected_index = Some(0);
+        fs.table_state.select(Some(0));
+        *fs.table_state.offset_mut() = 0;
+        fs.search_filter.clear();
+    }
+}
+
+fn navigate_forward(fs: &mut crate::app::FileState) {
+    if fs.history_index + 1 < fs.history.len() {
+        fs.history_index += 1;
+        fs.current_path = fs.history[fs.history_index].clone();
+        fs.selected_index = Some(0);
+        fs.table_state.select(Some(0));
+        *fs.table_state.offset_mut() = 0;
+        fs.search_filter.clear();
+    }
+}
+
 fn fs_mouse_index(row: u16, app: &App) -> usize {
     let mouse_row_offset = row.saturating_sub(3) as usize;
     if let Some(fs) = app.current_file_state() { fs.table_state.offset() + mouse_row_offset }
@@ -281,13 +303,7 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool) {
     for t in terminals {
         if std::process::Command::new("which").arg(t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false) {
             let mut args = Vec::new();
-            
-            // Tab support
-            if new_tab && (t == "gnome-terminal" || t == "kgx") {
-                args.push("--tab");
-            }
-
-            // Working directory flags
+            if new_tab && (t == "gnome-terminal" || t == "kgx") { args.push("--tab"); }
             if t == "gnome-terminal" || t == "kgx" { args.push("--working-directory"); } 
             else if t == "konsole" { args.push("--workdir"); }
             else if t == "alacritty" { args.push("--working-directory"); }
@@ -346,7 +362,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                             }
-                            KeyCode::Char('g') => { if let Some(fs) = app.current_file_state() { spawn_terminal(&fs.current_path); } }
+                            KeyCode::Char('g') => { if let Some(fs) = app.current_file_state() { spawn_terminal(&fs.current_path, true); } }
                             KeyCode::Char(' ') => { app.input.clear(); app.mode = AppMode::CommandPalette; update_commands(app); }
                             _ => {}
                         }
@@ -363,7 +379,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } }
                         KeyCode::Char(' ') => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } } } } }
                         KeyCode::Char(c) if key.modifiers.is_empty() && c != '.' && c != 'g' => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
-                        KeyCode::Char(c) if key.modifiers.is_empty() && (c == '.' || c == 'g') => { if let Some(fs) = app.current_file_state() { spawn_terminal(&fs.current_path); } } 
+                        KeyCode::Char(c) if key.modifiers.is_empty() && (c == '.' || c == 'g') => { if let Some(fs) = app.current_file_state() { spawn_terminal(&fs.current_path, c == 'g'); } } 
                         KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } 
                         _ => {} 
                     }
@@ -410,7 +426,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
                         let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
                         if column < inner.x + 15 {
-                            let rel_y = row.saturating_sub(inner.y + 2);
+                            let rel_y = row.saturating_sub(inner.y + 1);
                             match rel_y {
                                 0 => app.settings_section = SettingsSection::Columns,
                                 1 => app.settings_section = SettingsSection::Tabs,
@@ -425,7 +441,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         if content_x < 12 { app.settings_target = SettingsTarget::SingleMode; }
                                         else if content_x < 25 { app.settings_target = SettingsTarget::SplitMode; }
                                     } else if row >= inner.y + 4 {
-                                        let rel_y = row.saturating_sub(inner.y + 6);
+                                        let rel_y = row.saturating_sub(inner.y + 5);
                                         match rel_y {
                                             0 => app.toggle_column(crate::app::FileColumn::Size),
                                             1 => app.toggle_column(crate::app::FileColumn::Modified),
@@ -436,7 +452,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                                 SettingsSection::General => {
-                                    let rel_y = row.saturating_sub(inner.y + 3);
+                                    let rel_y = row.saturating_sub(inner.y + 2);
                                     match rel_y {
                                         0 => app.default_show_hidden = !app.default_show_hidden,
                                         1 => app.confirm_delete = !app.confirm_delete,
@@ -520,7 +536,5 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 _ => {} 
             }
         }
-        _ => {} 
     }
 }
-
