@@ -402,84 +402,58 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::ContextMenuTarget, app: &App) {
+    use crate::app::ContextMenuAction;
     let mut items = Vec::new();
-    let title = match target {
-        crate::app::ContextMenuTarget::File(_) => { 
-            items.push(ListItem::new(" 󰉋 Open")); 
-            items.push(ListItem::new(" 󰚩 Edit (Demon)")); 
-            items.push(ListItem::new(" 󰆐 Cut")); 
-            items.push(ListItem::new(" 󰆏 Copy")); 
-            items.push(ListItem::new(" 󰏫 Rename")); 
-            items.push(ListItem::new(" 󰆴 Delete")); 
-            items.push(ListItem::new(" 󰈙 Properties")); 
-            " File " 
-        }
-        crate::app::ContextMenuTarget::Folder(idx) => { 
-            items.push(ListItem::new(" 󰉋 Open")); 
-            items.push(ListItem::new(" 󰓩 Open in New Tab")); 
-            items.push(ListItem::new(" 󰞷 Terminal Here")); 
-            items.push(ListItem::new(" 󰆐 Cut")); 
-            items.push(ListItem::new(" 󰆏 Copy")); 
-            
-            let paste_style = if app.clipboard.is_some() { Style::default() } else { Style::default().fg(Color::DarkGray) };
-            items.push(ListItem::new(" 󰆒 Paste Into").style(paste_style)); 
-            
-            items.push(ListItem::new(" 󰏫 Rename")); 
-            
-            let is_starred = if let Some(fs) = app.current_file_state() {
-                if let Some(path) = fs.files.get(*idx) {
-                    app.starred.contains(path)
-                } else { false }
-            } else { false };
-            if is_starred { items.push(ListItem::new(" 󰓎 Unstar")); } else { items.push(ListItem::new(" 󰓎 Star")); }
+    
+    let actions = if let AppMode::ContextMenu { actions, .. } = &app.mode {
+        actions.clone()
+    } else {
+        vec![] 
+    };
 
-            items.push(ListItem::new(" 󰆴 Delete")); 
-            items.push(ListItem::new(" 󰈙 Properties")); 
-            " Folder " 
+    for action in &actions {
+        let label = match action {
+            ContextMenuAction::Open => " 󰉋 Open",
+            ContextMenuAction::OpenNewTab => " 󰓩 Open in New Tab",
+            ContextMenuAction::Edit => " 󰚩 Edit (Demon)",
+            ContextMenuAction::Run => " 󰐊 Run",
+            ContextMenuAction::RunTerminal => " 󰞷 Run in Terminal",
+            ContextMenuAction::ExtractHere => " 󰛫 Extract Here",
+            ContextMenuAction::Cut => " 󰆐 Cut",
+            ContextMenuAction::Copy => " 󰆏 Copy",
+            ContextMenuAction::Paste => " 󰆒 Paste",
+            ContextMenuAction::Rename => " 󰏫 Rename",
+            ContextMenuAction::Delete => " 󰆴 Delete",
+            ContextMenuAction::Star => " 󰓎 Star",
+            ContextMenuAction::Unstar => " 󰓎 Unstar",
+            ContextMenuAction::Properties => " 󰈙 Properties",
+            ContextMenuAction::TerminalHere => " 󰞷 Terminal Here",
+            ContextMenuAction::Refresh => " 󰑓 Refresh",
+            ContextMenuAction::SelectAll => " 󰒆 Select All",
+            ContextMenuAction::ToggleHidden => " 󰈈 Toggle Hidden",
+            ContextMenuAction::ConnectRemote => " 󰒍 Connect",
+            ContextMenuAction::DeleteRemote => " 󰆴 Delete Bookmark",
+            ContextMenuAction::Mount => " 󰃭 Mount",
+            ContextMenuAction::Unmount => " 󰃭 Unmount",
+        };
+        
+        let mut item = ListItem::new(label);
+        if (*action == ContextMenuAction::Paste) && app.clipboard.is_none() {
+            item = item.style(Style::default().fg(Color::DarkGray));
         }
-        crate::app::ContextMenuTarget::EmptySpace => { 
-            items.push(ListItem::new(" 󰉋 New Folder")); 
-            items.push(ListItem::new(" 󰈔 New File")); 
-            
-            let paste_style = if app.clipboard.is_some() { Style::default() } else { Style::default().fg(Color::DarkGray) };
-            items.push(ListItem::new(" 󰆒 Paste").style(paste_style)); 
-            
-            items.push(ListItem::new(" 󰒆 Select All")); 
-            items.push(ListItem::new(" 󰞷 Terminal Here")); 
-            items.push(ListItem::new(" 󰑓 Refresh")); 
-            items.push(ListItem::new(" 󰈈 Toggle Hidden")); 
-            items.push(ListItem::new(" 󰈙 Properties")); 
-            " View " 
-        }
-        crate::app::ContextMenuTarget::SidebarFavorite(_) => {
-            items.push(ListItem::new(" 󰉋 Open"));
-            items.push(ListItem::new(" 󰓩 Open in New Tab"));
-            items.push(ListItem::new(" 󰞷 Terminal Here"));
-            items.push(ListItem::new(" 󰆴 Remove Favorite"));
-            " Favorite "
-        }
-        crate::app::ContextMenuTarget::SidebarRemote(idx) => {
-            items.push(ListItem::new(" 󰒍 Connect"));
-            items.push(ListItem::new(" 󰆴 Delete Bookmark"));
-            " Remote "
-        }
-        crate::app::ContextMenuTarget::SidebarStorage(idx) => {
-            if let Some(disk) = app.system_state.disks.get(*idx) {
-                if disk.is_mounted {
-                    items.push(ListItem::new(" 󰉋 Open"));
-                    items.push(ListItem::new(" 󰃭 Unmount"));
-                } else {
-                    items.push(ListItem::new(" 󰃭 Mount"));
-                }
-            }
-            " Storage "
-        }
+        items.push(item);
+    }
+
+    let title = match target {
+        crate::app::ContextMenuTarget::File(_) => " File ",
+        crate::app::ContextMenuTarget::Folder(_) => " Folder ",
+        crate::app::ContextMenuTarget::EmptySpace => " View ",
+        crate::app::ContextMenuTarget::SidebarFavorite(_) => " Favorite ",
+        crate::app::ContextMenuTarget::SidebarRemote(_) => " Remote ",
+        crate::app::ContextMenuTarget::SidebarStorage(_) => " Storage ",
     };
     
-    // ... rest of function ... (Need to ensure I don't delete the drawing code)
-    // I will replace the whole function content up to the end.
-    
-    let menu_width = 25; // Widen slightly for "Open in New Tab"
+    let menu_width = 25;
     let menu_height = items.len() as u16 + 2;
     let mut draw_x = x;
     let mut draw_y = y;
