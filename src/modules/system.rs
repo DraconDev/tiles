@@ -27,12 +27,25 @@ impl SystemModule {
             .iter()
             .filter(|disk| {
                 let mount = disk.mount_point().to_string_lossy();
+                let fs_type = disk.file_system().to_string_lossy().to_lowercase();
                 
-                // 1. ALWAYS keep the root filesystem
+                // 1. Always include root
                 if mount == "/" { return true; }
 
-                // 2. Filter out pseudo-filesystems and small system partitions
-                // Standard external/removable mount points
+                // 2. Identify "Real" filesystems vs virtual/pseudo ones
+                let is_real_fs = fs_type.contains("ext") || 
+                                fs_type.contains("btrfs") || 
+                                fs_type.contains("xfs") || 
+                                fs_type.contains("zfs") || 
+                                fs_type.contains("vfat") || 
+                                fs_type.contains("fat") || 
+                                fs_type.contains("ntfs") || 
+                                fs_type.contains("exfat") ||
+                                fs_type.contains("fuseblk") ||
+                                fs_type.contains("apfs") ||
+                                fs_type.contains("hfs");
+
+                // 3. Mount point categories
                 let is_removable_path = mount.starts_with("/media") || 
                                        mount.starts_with("/mnt") || 
                                        mount.starts_with("/run/media");
@@ -40,7 +53,6 @@ impl SystemModule {
                 let is_system_path = mount.starts_with("/boot")
                         || mount.starts_with("/nix")
                         || mount.starts_with("/snap")
-                        || mount.starts_with("/var/snap")
                         || mount.starts_with("/run")
                         || mount.starts_with("/sys")
                         || mount.starts_with("/proc")
@@ -48,8 +60,9 @@ impl SystemModule {
                         || mount.starts_with("/tmp")
                         || mount == "/efi";
 
-                (is_removable_path || !is_system_path)
-                    && disk.total_space() > 100_000_000 // At least 100MB
+                // Logic: Must be a real filesystem AND (be in a removable path OR not be a system path)
+                // Also keep 100MB minimum to hide tiny EFI or recovery partitions
+                is_real_fs && (is_removable_path || !is_system_path) && disk.total_space() > 100_000_000
             })
             .map(|disk: &sysinfo::Disk| crate::app::DiskInfo {
                 name: disk.mount_point().to_string_lossy().to_string(),
