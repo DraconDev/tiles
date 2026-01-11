@@ -765,8 +765,9 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             ("Ctrl + h", "Toggle Hidden Files"),
         ]),
         ("Terminal", vec![
-            ("Ctrl + e", "Open Terminal (Current Dir)"),
-            (".", "Open Terminal Here (Current Dir)"),
+            ("Ctrl + e", "Open Terminal Tab"),
+            ("Ctrl + n", "Open Terminal Window"),
+            ("Ctrl + .", "Open Terminal Window (Alias)"),
             ("g", "Open Terminal Here (Git Mode)"),
         ]),
     ];
