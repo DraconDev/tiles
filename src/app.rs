@@ -104,6 +104,7 @@ pub enum ContextMenuAction {
     SortBy(FileColumn),
     AddToFavorites,
     RemoveFromFavorites,
+    SetColor(Option<u8>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -118,6 +119,7 @@ pub enum AppMode {
     RemoteAdd,
     TabSearch,
     Properties,
+    Highlight,
     ContextMenu {
         x: u16,
         y: u16,
@@ -458,6 +460,7 @@ pub struct App {
     pub is_resizing_sidebar: bool,
     pub show_sidebar: bool,
     pub initial_window_size: Option<(u16, u16)>,
+    pub path_colors: HashMap<PathBuf, u8>,
 }
 
 impl App {
@@ -545,6 +548,7 @@ impl App {
                     is_resizing_sidebar: false,
                     show_sidebar: true,
                     initial_window_size: state.window_size,
+                    path_colors: state.path_colors,
                 };
             }
         }
