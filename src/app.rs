@@ -436,6 +436,7 @@ pub struct App {
     pub single_columns: Vec<FileColumn>,
     pub split_columns: Vec<FileColumn>,
     pub sidebar_width_percent: u16,
+    pub is_resizing_sidebar: bool,
 }
 
 impl App {
@@ -519,6 +520,7 @@ impl App {
                     single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
                     split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
                     sidebar_width_percent: 20,
+                    is_resizing_sidebar: false,
                 };
             }
         }
