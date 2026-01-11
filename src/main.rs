@@ -544,6 +544,19 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: 
     }
 }
 
+fn spawn_detached(cmd: &str, args: Vec<&str>) {
+    let mut command = std::process::Command::new(cmd);
+    command.args(args);
+    unsafe {
+        let _ = command
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .pre_exec(|| { libc::setsid(); Ok(()) })
+            .spawn();
+    }
+}
+
 fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTarget, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
     use std::path::Path;
     
