@@ -962,6 +962,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             }
                                             KeyCode::Char('g') => { if let Some(pane) = app.panes.get(app.focused_pane_index) { if let Some(fs) = pane.current_state() { spawn_terminal(&fs.current_path, true, fs.remote_session.as_ref()); } } } 
                                             KeyCode::Char(' ') => { app.input.clear(); app.mode = AppMode::CommandPalette; update_commands(app); } 
+                                            KeyCode::Left => {
+                                                if app.sidebar_focus {
+                                                    app.resize_sidebar(-1);
+                                                } else {
+                                                    app.move_to_other_pane(); 
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
+                                                }
+                                            }
+                                            KeyCode::Right => {
+                                                if app.sidebar_focus {
+                                                    app.resize_sidebar(1);
+                                                } else {
+                                                    app.move_to_other_pane(); 
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
+                                                }
+                                            }
                                             _ => {} 
                                         }
                                         return;
