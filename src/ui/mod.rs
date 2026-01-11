@@ -443,7 +443,6 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
         Span::styled(" ^. ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Term-W "),
         Span::styled(" ^Spc ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Cmd "),
         Span::styled(" ^H ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Hidden "),
-        Span::styled(" Esc ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Back "),
     ];
     f.render_widget(Paragraph::new(Line::from(shortcuts)), chunks[0]);
 
