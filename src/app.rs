@@ -57,6 +57,7 @@ pub enum SettingsSection {
     Tabs,
     General,
     Remotes,
+    Shortcuts,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
