@@ -455,6 +455,7 @@ pub struct App {
     pub sidebar_width_percent: u16,
     pub is_resizing_sidebar: bool,
     pub show_sidebar: bool,
+    pub initial_window_size: Option<(u16, u16)>,
 }
 
 impl App {
