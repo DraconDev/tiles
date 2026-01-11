@@ -75,6 +75,7 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     }
                     
                     actions.push(ContextMenuAction::TerminalHere); // "Open Terminal Here" (parent dir)
+                    actions.push(ContextMenuAction::SetColor(None));
                     actions.push(ContextMenuAction::Properties);
                 }
             }
@@ -121,6 +122,7 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         actions.push(ContextMenuAction::GitInit);
                     }
                     
+                    actions.push(ContextMenuAction::SetColor(None));
                     actions.push(ContextMenuAction::Properties);
                 }
              }
@@ -604,29 +606,61 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
         }
 
-        ContextMenuAction::RemoveFromFavorites => {
+                ContextMenuAction::RemoveFromFavorites => {
 
-            let path = match target {
+                    let path = match target {
 
-                ContextMenuTarget::Folder(idx) | ContextMenuTarget::File(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+                        ContextMenuTarget::Folder(idx) | ContextMenuTarget::File(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
 
-                ContextMenuTarget::SidebarFavorite(p) => Some(p.clone()),
+                        ContextMenuTarget::SidebarFavorite(p) => Some(p.clone()),
 
-                _ => None,
+                        _ => None,
 
-            };
+                    };
 
-            if let Some(path) = path {
+                    if let Some(path) = path {
 
-                app.starred.retain(|x| x != &path);
+                        app.starred.retain(|x| x != &path);
 
-                let _ = crate::config::save_state(app);
+                        let _ = crate::config::save_state(app);
 
-            }
+                    }
 
-        }
+                }
 
-        ContextMenuAction::Open => {
+                ContextMenuAction::SetColor(color) => {
+
+                    if let Some(c) = color {
+
+                        let paths = match target {
+
+                            ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => get_targets(app, Some(*idx)),
+
+                            _ => vec![],
+
+                        };
+
+                        for p in paths {
+
+                            app.path_colors.insert(p, c);
+
+                        }
+
+                        let _ = crate::config::save_state(app);
+
+                    } else {
+
+                        // Open Highlight modal
+
+                        app.mode = AppMode::Highlight;
+
+                        close_menu = false;
+
+                    }
+
+                }
+
+                ContextMenuAction::Open => {
 
             match target {
 
