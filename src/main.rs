@@ -1744,10 +1744,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return true;
                         }
                         _ => {
-                            if app.input.handle_event(&evt) {
+                            let handled = app.input.handle_event(&evt);
+                            if handled {
                                 update_commands(app);
-                                return true;
                             }
+                            return handled;
                         }
                     }
                 }
