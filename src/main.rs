@@ -988,15 +988,20 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                 cmd_str = format!("{} {} \"{}\"", t, args.join(" "), path_str);
             }
             
-            // Use setsid to detach from the controlling terminal
-            let _ = std::process::Command::new("setsid")
-                .arg("sh")
-                .arg("-c")
-                .arg(&cmd_str)
-                .stdin(std::process::Stdio::null())
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .spawn();
+            // Use setsid via pre_exec to detach from the controlling terminal
+            unsafe {
+                let _ = std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(&cmd_str)
+                    .stdin(std::process::Stdio::null())
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .pre_exec(|| {
+                        libc::setsid();
+                        Ok(())
+                    })
+                    .spawn();
+            }
             break;
         }
     }
