@@ -673,23 +673,23 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                 }
 
-                ContextMenuAction::Open => {
+                        ContextMenuAction::Open => {
 
-            match target {
+                            match target {
 
-                ContextMenuTarget::File(idx) => {
+                                ContextMenuTarget::File(idx) => {
 
-                    if let Some(fs) = app.current_file_state() {
+                                    if let Some(fs) = app.current_file_state() {
 
-                        if let Some(path) = fs.files.get(*idx) {
+                                        if let Some(path) = fs.files.get(*idx) {
 
-                            let _ = std::process::Command::new("xdg-open").arg(path).spawn();
+                                            spawn_detached("xdg-open", vec![&path.to_string_lossy()]);
 
-                        }
+                                        }
 
-                    }
+                                    }
 
-                }
+                                }
 
                 ContextMenuTarget::Folder(idx) => {
 
@@ -841,25 +841,25 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                 }
 
-                ContextMenuAction::Run => {
+                        ContextMenuAction::Run => {
 
-                     if let ContextMenuTarget::File(idx) = target {
+                             if let ContextMenuTarget::File(idx) = target {
 
-                        if let Some(fs) = app.current_file_state() {
+                                if let Some(fs) = app.current_file_state() {
 
-                            if let Some(path) = fs.files.get(*idx) {
+                                    if let Some(path) = fs.files.get(*idx) {
 
-                                let cat = crate::modules::files::get_file_category(path);
+                                        let cat = crate::modules::files::get_file_category(path);
 
-                                match cat {
+                                        match cat {
 
-                                    FileCategory::Audio | FileCategory::Video => {
+                                            FileCategory::Audio | FileCategory::Video => {
 
-                                        let _ = std::process::Command::new("xdg-open").arg(path).spawn();
+                                                spawn_detached("xdg-open", vec![&path.to_string_lossy()]);
 
-                                    }
+                                            }
 
-                                    _ => {
+                                            _ => {
 
                                         let cmd = format!("./\"{}\"", path.file_name().unwrap_or_default().to_string_lossy());
 
@@ -2243,7 +2243,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             // Double click detection
                             if button == MouseButton::Left && app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
                                 if path.is_dir() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
-                                else { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); } 
+                                else { spawn_detached("xdg-open", vec![&path.to_string_lossy()]); } 
                             }
                             app.mouse_last_click = std::time::Instant::now(); app.mouse_click_pos = (column, row);
                         }
