@@ -165,7 +165,19 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
     let mut terminal = Terminal::new(backend)?;
 
     // Setup App & Channels
-    let app = Arc::new(Mutex::new(App::new(tile_queue)));    
+    let app = Arc::new(Mutex::new(App::new(tile_queue)));
+    
+    // Check for resize request from saved state
+    {
+        let app_guard = app.lock().unwrap();
+        if let Some((w, h)) = app_guard.initial_window_size {
+             use std::io::Write;
+             // OSC 8; rows; cols t
+             print!("\x1b[8;{};{}t", h, w);
+             let _ = std::io::stdout().flush();
+        }
+    }
+
     let (event_tx, mut event_rx) = mpsc::channel::<AppEvent>(1000); 
 
     // 1. TTY Input Loop
