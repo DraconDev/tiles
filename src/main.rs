@@ -1576,11 +1576,14 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                 cmd_str = format!("{} {} \"{}\"", t, args.join(" "), path_str);
             }
             
-            // Use setsid via pre_exec to detach from the controlling terminal
+            // Use double-fork trick via sh -c to ensure complete detachment and silence
+            // We wrap the command in parens and background it, redirecting all IO
+            let wrapped_cmd = format!("( {} ) >/dev/null 2>&1 &", cmd_str);
+            
             unsafe {
                 let _ = std::process::Command::new("sh")
                     .arg("-c")
-                    .arg(&cmd_str)
+                    .arg(&wrapped_cmd)
                     .stdin(std::process::Stdio::null())
                     .stdout(std::process::Stdio::null())
                     .stderr(std::process::Stdio::null())
