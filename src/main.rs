@@ -543,6 +543,25 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: 
 }
 
 fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTarget, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
+    use std::path::Path;
+    
+    // Helper to get selected paths including multi-select
+    let get_targets = |app: &mut App, target_idx: Option<usize>| -> Vec<std::path::PathBuf> {
+        let mut paths = Vec::new();
+        if let Some(fs) = app.current_file_state() {
+             if let Some(idx) = target_idx {
+                 if fs.multi_select.contains(&idx) {
+                     for &i in &fs.multi_select {
+                         if let Some(p) = fs.files.get(i) { paths.push(p.clone()); }
+                     }
+                 } else {
+                     if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
+                 }
+             }
+        }
+        paths
+    };
+
     // We do NOT set app.mode = AppMode::Normal here at the end unconditionally.
 
     // Each action that finishes the interaction should set it to Normal.
