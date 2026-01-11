@@ -542,6 +542,7 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: 
     }
 }
 
+fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTarget, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
     // We do NOT set app.mode = AppMode::Normal here at the end unconditionally.
 
     // Each action that finishes the interaction should set it to Normal.
