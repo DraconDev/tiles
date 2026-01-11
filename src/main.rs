@@ -1820,117 +1820,114 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                 }
                                 AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete => {
-                                    // Rename special logic
-                                    if app.mode == AppMode::Rename && app.rename_selected {
-                                        match key.code {
-                                            KeyCode::Char(c) => {
-                                                app.rename_selected = false;
-                                                let input_val = app.input.value.clone();
-                                                let path = std::path::Path::new(&input_val);
-                                                if let Some(stem) = path.file_stem() {
-                                                    if let Some(ext) = path.extension() {
-                                                        if !stem.to_string_lossy().is_empty() {
-                                                            app.input.set_value(format!("{}.{}", c, ext.to_string_lossy()));
-                                                        } else {
-                                                            app.input.set_value(c.to_string());
-                                                        }
-                                                    } else {
-                                                        app.input.set_value(c.to_string());
-                                                    }
-                                                } else {
-                                                    app.input.set_value(c.to_string());
-                                                }
-                                                return;
-                                            }
-                                            KeyCode::Backspace => {
-                                                 app.rename_selected = false;
-                                                 let input_val = app.input.value.clone();
-                                                 let path = std::path::Path::new(&input_val);
-                                                 if let Some(ext) = path.extension() {
-                                                     app.input.set_value(format!(".{}", ext.to_string_lossy()));
-                                                 } else {
-                                                     app.input.clear();
-                                                 }
-                                                 return;
-                                            }
-                                            KeyCode::Left | KeyCode::Right => {
-                                                app.rename_selected = false;
-                                                // Fall through to standard navigation
-                                            }
-                                            KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return; }
-                                            KeyCode::Enter => {} // Handled below
-                                            _ => {}
-                                        }
-                                    }
+                    if app.mode == AppMode::Rename && app.rename_selected {
+                        match key.code {
+                            KeyCode::Char(c) => {
+                                app.rename_selected = false;
+                                let input_val = app.input.value.clone();
+                                let path = std::path::Path::new(&input_val);
+                                if let Some(stem) = path.file_stem() {
+                                    if let Some(ext) = path.extension() {
+                                        if !stem.to_string_lossy().is_empty() {
+                                            app.input.set_value(format!("{}.{}", c, ext.to_string_lossy()));
+                                        } else { app.input.set_value(c.to_string()); }
+                                    } else { app.input.set_value(c.to_string()); }
+                                } else { app.input.set_value(c.to_string()); }
+                                return true;
+                            }
+                            KeyCode::Backspace => {
+                                 app.rename_selected = false;
+                                 let input_val = app.input.value.clone();
+                                 let path = std::path::Path::new(&input_val);
+                                 if let Some(ext) = path.extension() {
+                                     app.input.set_value(format!(".{}", ext.to_string_lossy()));
+                                 } else { app.input.clear(); }
+                                 return true;
+                            }
+                            KeyCode::Left | KeyCode::Right => {
+                                app.rename_selected = false;
+                            }
+                            KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
+                            _ => {}
+                        }
+                    }
 
-                                    match key.code {
-                                        KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); }
-                                        KeyCode::Enter => {
-                                            let input = app.input.value.clone();
-                                            if let Some(fs) = app.current_file_state() {
-                                                let path = fs.current_path.join(&input);
-                                                match app.mode {
-                                                    AppMode::NewFile => { let _ = event_tx.try_send(AppEvent::CreateFile(path)); }
-                                                    AppMode::NewFolder => { let _ = event_tx.try_send(AppEvent::CreateFolder(path)); }
-                                                    AppMode::Rename => {
-                                                        if let Some(idx) = fs.selected_index {
-                                                            if let Some(old_path) = fs.files.get(idx) {
-                                                                let new_path = old_path.parent().unwrap_or(&std::path::PathBuf::from(".")).join(&input);
-                                                                let _ = event_tx.try_send(AppEvent::Rename(old_path.clone(), new_path));
-                                                            }
-                                                        }
-                                                    }
-                                                    AppMode::Delete => {
-                                                        if input.to_lowercase() == "y" || input.to_lowercase() == "yes" || !app.confirm_delete {
-                                                            if let Some(idx) = fs.selected_index {
-                                                                if let Some(path) = fs.files.get(idx) {
-                                                                    let _ = event_tx.try_send(AppEvent::Delete(path.clone()));
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    _ => {} 
+                    match key.code {
+                        KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
+                        KeyCode::Enter => {
+                            let input = app.input.value.clone();
+                            if let Some(fs) = app.current_file_state() {
+                                let path = fs.current_path.join(&input);
+                                match app.mode {
+                                    AppMode::NewFile => { let _ = event_tx.try_send(AppEvent::CreateFile(path)); }
+                                    AppMode::NewFolder => { let _ = event_tx.try_send(AppEvent::CreateFolder(path)); }
+                                    AppMode::Rename => {
+                                        if let Some(idx) = fs.selected_index {
+                                            if let Some(old_path) = fs.files.get(idx) {
+                                                let new_path = old_path.parent().unwrap_or(&std::path::PathBuf::from(".")).join(&input);
+                                                let _ = event_tx.try_send(AppEvent::Rename(old_path.clone(), new_path));
+                                            }
+                                        }
+                                    }
+                                    AppMode::Delete => {
+                                        if input.to_lowercase() == "y" || input.to_lowercase() == "yes" || !app.confirm_delete {
+                                            if let Some(idx) = fs.selected_index {
+                                                if let Some(path) = fs.files.get(idx) {
+                                                    let _ = event_tx.try_send(AppEvent::Delete(path.clone()));
                                                 }
                                             }
-                                            app.mode = AppMode::Normal;
-                                            app.input.clear();
                                         }
-                                        _ => { app.input.handle_event(&evt); }
                                     }
+                                    _ => {} 
                                 }
-                                _ => {
-                                                                    if key.code == KeyCode::Esc {
-                                                                        app.mode = AppMode::Normal;
-                                                                        for pane in &mut app.panes {
-                                                                            pane.preview = None;
-                                                                        }
-                                                                        if let Some(fs) = app.current_file_state_mut() { fs.multi_select.clear(); fs.selection_anchor = None; if !fs.search_filter.is_empty() { fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
-                                                                    }
-                                                        match key.code {
+                            }
+                            app.mode = AppMode::Normal;
+                            app.input.clear();
+                            return true;
+                        }
+                        _ => { return app.input.handle_event(&evt); }
+                    }
+                }
+                _ => {
+                    if key.code == KeyCode::Esc {
+                        app.mode = AppMode::Normal;
+                        for pane in &mut app.panes { pane.preview = None; }
+                        if let Some(fs) = app.current_file_state_mut() { 
+                            fs.multi_select.clear(); 
+                            fs.selection_anchor = None; 
+                            if !fs.search_filter.is_empty() { 
+                                fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; 
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); 
+                            } 
+                        } 
+                        return true;
+                    }
+                    match key.code {
                         KeyCode::Left if key.modifiers.contains(KeyModifiers::ALT) => {
                             if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                                 pane.preview = None;
                                 if let Some(fs) = pane.current_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
                             }
+                            return true;
                         }
                         KeyCode::Right if key.modifiers.contains(KeyModifiers::ALT) => {
                             if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                                 pane.preview = None;
                                 if let Some(fs) = pane.current_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
                             }
+                            return true;
                         }
                         KeyCode::Up if key.modifiers.contains(KeyModifiers::ALT) => {
-                             crate::app::log_debug("Alt+Up pressed");
                              if app.sidebar_focus {
                                   if app.sidebar_index < app.sidebar_bounds.len() {
                                       let bound = &app.sidebar_bounds[app.sidebar_index];
-                                      crate::app::log_debug(&format!("Current bound: {:?}", bound));
                                       if let SidebarTarget::Favorite(path) = &bound.target {
                                           if let Some(idx) = app.starred.iter().position(|p| p == path) {
                                               if idx > 0 {
                                                   app.starred.swap(idx, idx - 1);
                                                   if app.sidebar_index > 0 { app.sidebar_index -= 1; }
                                                   let _ = crate::config::save_state(app);
+                                                  return true;
                                               }
                                           }
                                       }
@@ -1938,7 +1935,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                              }
                         }
                         KeyCode::Down if key.modifiers.contains(KeyModifiers::ALT) => {
-                             crate::app::log_debug("Alt+Down pressed");
                              if app.sidebar_focus {
                                   if app.sidebar_index < app.sidebar_bounds.len() {
                                       let bound = &app.sidebar_bounds[app.sidebar_index];
@@ -1948,33 +1944,32 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                                   app.starred.swap(idx, idx + 1);
                                                   app.sidebar_index += 1;
                                                   let _ = crate::config::save_state(app);
+                                                  return true;
                                               }
                                           }
                                       }
                                   }
                              }
                         }
-                        KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); }
-                        KeyCode::Up => { app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); }
+                        KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); return true; }
+                        KeyCode::Up => { app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); return true; }
                         KeyCode::Left => { 
                             if key.modifiers.contains(KeyModifiers::SHIFT) { 
                                 app.copy_to_other_pane(); 
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                            } else { 
-                                app.move_left(); 
-                            } 
+                            } else { app.move_left(); } 
+                            return true;
                         } 
                         KeyCode::Right => { 
                             if key.modifiers.contains(KeyModifiers::SHIFT) { 
                                 app.copy_to_other_pane(); 
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                            } else { 
-                                app.move_right(); 
-                            } 
+                            } else { app.move_right(); } 
+                            return true;
                         } 
-                        KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } } 
+                        KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } return true; } 
                         KeyCode::Char(' ') => { 
                             if let Some(fs) = app.current_file_state() { 
                                 if let Some(idx) = fs.selected_index { 
@@ -1988,9 +1983,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     } 
                                 } 
                             } 
+                            return true;
                         } 
-                        KeyCode::Char(c) if key.modifiers.is_empty() => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
-                        KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } 
+                        KeyCode::Char(c) if key.modifiers.is_empty() => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } return true; } 
+                        KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } return true; } 
                         _ => {} 
                     }
                 }
