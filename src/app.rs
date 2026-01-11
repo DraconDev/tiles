@@ -33,6 +33,16 @@ pub enum AppEvent {
     Delete(PathBuf),
     RemoteConnected(usize, RemoteSession), // pane_idx, session
     PreviewRequested(usize, PathBuf), // target_pane_idx, path
+    SpawnTerminal {
+        path: PathBuf,
+        new_tab: bool,
+        remote: Option<RemoteSession>,
+        command: Option<String>,
+    },
+    SpawnDetached {
+        cmd: String,
+        args: Vec<String>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
