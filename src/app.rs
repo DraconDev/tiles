@@ -673,6 +673,8 @@ impl App {
     pub fn toggle_hidden(&mut self) -> usize {
         if let Some(fs) = self.current_file_state_mut() {
             fs.show_hidden = !fs.show_hidden;
+            fs.multi_select.clear();
+            fs.selection_anchor = None;
         }
         self.focused_pane_index
     }
