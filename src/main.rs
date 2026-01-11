@@ -1036,14 +1036,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 app.copy_to_other_pane(); 
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                            } else if key.modifiers.contains(KeyModifiers::CONTROL) { 
-                                if app.sidebar_focus {
-                                    app.resize_sidebar(-1);
-                                } else {
-                                    app.move_to_other_pane(); 
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                                }
                             } else { 
                                 app.move_left(); 
                             } 
@@ -1053,14 +1045,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 app.copy_to_other_pane(); 
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                            } else if key.modifiers.contains(KeyModifiers::CONTROL) { 
-                                if app.sidebar_focus {
-                                    app.resize_sidebar(1);
-                                } else {
-                                    app.move_to_other_pane(); 
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                                }
                             } else { 
                                 app.move_right(); 
                             } 
