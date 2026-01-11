@@ -637,7 +637,7 @@ fn draw_new_file_modal(f: &mut Frame, app: &App) {
     f.render_widget(&app.input, inner);
 }
 
-fn draw_delete_modal(f: &mut Frame, app: &App) {
+fn draw_delete_modal(f: &mut Frame, _app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
     f.render_widget(Paragraph::new("Delete selected item(s)? (y/n)").block(Block::default().title(" Delete ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Red))), area);
 }
@@ -799,12 +799,12 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(list.block(Block::default().borders(Borders::TOP).title(" Bookmarks ")), chunks[1]);
 }
 
-fn draw_add_remote_modal(f: &mut Frame, app: &App) {
+fn draw_add_remote_modal(f: &mut Frame, _app: &App) {
     let area = centered_rect(60, 40, f.area()); f.render_widget(Clear, area);
     f.render_widget(Paragraph::new("Add remote server modal placeholder").block(Block::default().title(" Add Remote ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green))), area);
 }
 
-fn draw_highlight_modal(f: &mut Frame, app: &App) {
+fn draw_highlight_modal(f: &mut Frame, _app: &App) {
     let area = centered_rect(40, 20, f.area()); f.render_widget(Clear, area);
     let block = Block::default().title(" Select Highlight Color ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Cyan));
     let inner = block.inner(area);
