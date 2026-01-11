@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc;
+use std::os::unix::process::CommandExt;
 
 // Terma Imports
 use terma::integration::ratatui::TermaBackend;
