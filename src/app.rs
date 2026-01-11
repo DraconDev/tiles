@@ -838,6 +838,11 @@ impl App {
         layout[0].width
     }
 
+    pub fn resize_sidebar(&mut self, delta: i16) {
+        let new_val = self.sidebar_width_percent as i16 + delta;
+        self.sidebar_width_percent = new_val.clamp(5, 50) as u16;
+    }
+
     pub fn copy_to_other_pane(&mut self) {
         if self.panes.len() < 2 {
             return;
