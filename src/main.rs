@@ -1202,17 +1202,65 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     if row >= 3 {
                         let index = fs_mouse_index(row, app);
                         let mut selected_path = None; let mut is_dir = false;
+                        let has_modifiers = me.modifiers.contains(KeyModifiers::SHIFT) || me.modifiers.contains(KeyModifiers::CONTROL);
+                        
                         if let Some(fs) = app.current_file_state_mut() {
                             if index < fs.files.len() {
-                                if fs.files[index].to_string_lossy() == "__DIVIDER__" { return; } // Ignore dividers
-                                fs.selected_index = Some(index); fs.table_state.select(Some(index));
+                                if fs.files[index].to_string_lossy() == "__DIVIDER__" { return; } 
+                                
+                                if button == MouseButton::Left {
+                                    if me.modifiers.contains(KeyModifiers::CONTROL) {
+                                        // Toggle individual
+                                        if fs.multi_select.contains(&index) {
+                                            fs.multi_select.remove(&index);
+                                        } else {
+                                            fs.multi_select.insert(index);
+                                        }
+                                        fs.selected_index = Some(index);
+                                        fs.table_state.select(Some(index));
+                                    } else if me.modifiers.contains(KeyModifiers::SHIFT) {
+                                        // Range select
+                                        let anchor = fs.selection_anchor.unwrap_or(fs.selected_index.unwrap_or(0));
+                                        fs.multi_select.clear();
+                                        let start = std::cmp::min(anchor, index);
+                                        let end = std::cmp::max(anchor, index);
+                                        for i in start..=end {
+                                            fs.multi_select.insert(i);
+                                        }
+                                        fs.selected_index = Some(index);
+                                        fs.table_state.select(Some(index));
+                                    } else {
+                                        // Normal click
+                                        fs.multi_select.clear();
+                                        fs.selection_anchor = Some(index);
+                                        fs.selected_index = Some(index);
+                                        fs.table_state.select(Some(index));
+                                    }
+                                } else {
+                                    // Right click: if already part of selection, don't clear
+                                    if !fs.multi_select.contains(&index) {
+                                        fs.multi_select.clear();
+                                        fs.selected_index = Some(index);
+                                        fs.table_state.select(Some(index));
+                                    }
+                                }
+                                
                                 let p = fs.files[index].clone(); is_dir = fs.metadata.get(&p).map(|m| m.is_dir).unwrap_or(false); selected_path = Some(p);
-                            } else if button == MouseButton::Right { 
-                                let target = ContextMenuTarget::EmptySpace;
-                                let actions = get_context_menu_actions(&target, app);
-                                app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; 
-                                return; 
-                            } // Right click on empty space
+                            } else {
+                                // Clicked on empty space
+                                if button == MouseButton::Left && !has_modifiers {
+                                    fs.selected_index = None;
+                                    fs.table_state.select(None);
+                                    fs.multi_select.clear();
+                                    fs.selection_anchor = None;
+                                }
+                                if button == MouseButton::Right { 
+                                    let target = ContextMenuTarget::EmptySpace;
+                                    let actions = get_context_menu_actions(&target, app);
+                                    app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; 
+                                    return; 
+                                } 
+                            }
                         }
                         if let Some(path) = selected_path {
                             if button == MouseButton::Right { 
@@ -1224,7 +1272,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
                             // Double click detection
                             if button == MouseButton::Left && app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
-                                if path.is_dir() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
+                                if path.is_dir() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
                                 else { let _ = std::process::Command::new("xdg-open").arg(&path).spawn(); } 
                             }
                             app.mouse_last_click = std::time::Instant::now(); app.mouse_click_pos = (column, row);
@@ -1270,7 +1318,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                             if let Some(bound) = app.sidebar_bounds.iter().find(|b| b.y == row).cloned() {
                                                 match bound.target {
                                                     SidebarTarget::Header(h) if h == "REMOTES" => { app.mode = AppMode::ImportServers; app.input.set_value("servers.toml".to_string()); }
-                                                    SidebarTarget::Favorite(p) => { let p2 = p.clone(); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p2.clone(); fs.remote_session = None; fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p2); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = true; }
+                                                    SidebarTarget::Favorite(p) => { let p2 = p.clone(); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p2.clone(); fs.remote_session = None; fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p2); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = true; }
                                                     SidebarTarget::Storage(idx) => {
                                                         if let Some(disk) = app.system_state.disks.get(idx) {
                                                             if !disk.is_mounted {
