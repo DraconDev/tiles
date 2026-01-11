@@ -222,6 +222,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_footer(f, chunks[2], app);
 
     if let AppMode::ContextMenu { x, y, ref target, .. } = app.mode { draw_context_menu(f, x, y, target, app); }
+    if matches!(app.mode, AppMode::Highlight) { draw_highlight_modal(f, app); }
     if matches!(app.mode, AppMode::Rename) { draw_rename_modal(f, app); }
     if matches!(app.mode, AppMode::Delete) { draw_delete_modal(f, app); }
     if matches!(app.mode, AppMode::Properties) { draw_properties_modal(f, app); }
@@ -495,6 +496,7 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
             ContextMenuAction::SetWallpaper => format!(" {} Set as Wallpaper", Icon::Image.get(app.icon_mode)),
             ContextMenuAction::GitInit => format!(" {} Git Init", Icon::Git.get(app.icon_mode)),
             ContextMenuAction::GitStatus => format!(" {} Git Status", Icon::Git.get(app.icon_mode)),
+            ContextMenuAction::SetColor(_) => format!(" {} Highlight...", Icon::Image.get(app.icon_mode)),
             ContextMenuAction::SortBy(col) => {
                 let name = match col {
                     crate::app::FileColumn::Name => "Name",
@@ -783,4 +785,30 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
 fn draw_add_remote_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 40, f.area()); f.render_widget(Clear, area);
     f.render_widget(Paragraph::new("Add remote server modal placeholder").block(Block::default().title(" Add Remote ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green))), area);
+}
+
+fn draw_highlight_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(40, 20, f.area()); f.render_widget(Clear, area);
+    let block = Block::default().title(" Select Highlight Color ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Cyan));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let colors = vec![
+        (1, "Red"), (2, "Green"), (3, "Yellow"), (4, "Blue"), (5, "Magenta"), (6, "Cyan"), (0, "Default/None")
+    ];
+
+    let items: Vec<ListItem> = colors.iter().map(|(c, name)| {
+        let style = match c {
+            1 => Style::default().fg(Color::Red),
+            2 => Style::default().fg(Color::Green),
+            3 => Style::default().fg(Color::Yellow),
+            4 => Style::default().fg(Color::Blue),
+            5 => Style::default().fg(Color::Magenta),
+            6 => Style::default().fg(Color::Cyan),
+            _ => Style::default(),
+        };
+        ListItem::new(format!(" [{}] {}", c, name)).style(style)
+    }).collect();
+
+    f.render_widget(List::new(items), inner);
 }
