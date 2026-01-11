@@ -839,8 +839,10 @@ impl App {
     }
 
     pub fn resize_sidebar(&mut self, delta: i16) {
+        let old_val = self.sidebar_width_percent;
         let new_val = self.sidebar_width_percent as i16 + delta;
         self.sidebar_width_percent = new_val.clamp(5, 50) as u16;
+        log_debug(&format!("Resizing sidebar: {}% -> {}%", old_val, self.sidebar_width_percent));
     }
 
     pub fn copy_to_other_pane(&mut self) {
