@@ -2263,11 +2263,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 if let Some(t) = target { 
                                     let actions = get_context_menu_actions(&t, app);
                                     app.mode = AppMode::ContextMenu { x: column, y: row, target: t, actions }; 
-                                    return; 
+                                    return true; 
                                 }
                             }
                         }
-                        return;
+                        return true;
                     }
                     
                     if row >= 3 {
@@ -2277,7 +2277,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         
                         if let Some(fs) = app.current_file_state_mut() {
                             if index < fs.files.len() {
-                                if fs.files[index].to_string_lossy() == "__DIVIDER__" { return; } 
+                                if fs.files[index].to_string_lossy() == "__DIVIDER__" { return true; } 
                                 
                                 if button == MouseButton::Left {
                                     if me.modifiers.contains(KeyModifiers::CONTROL) {
