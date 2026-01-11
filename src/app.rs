@@ -89,8 +89,6 @@ pub enum ContextMenuAction {
     Duplicate,
     Compress,
     Delete,
-    Star,
-    Unstar,
     Properties,
     TerminalHere,
     Refresh,
