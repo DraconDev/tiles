@@ -751,16 +751,16 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             ("Alt + Right", "Go Forward in History"),
             ("Tab", "Switch Active Tab (TODO)"),
         ]),
-        ("File Operations", vec![
-            ("Space", "Preview File (Toggle) / Favorite Folder"),
+        ("View & Tabs", vec![
             ("Ctrl + s", "Toggle Split View"),
-            ("Delete", "Delete Item"),
-            ("Enter", "Open Folder / File"),
+            ("Ctrl + t", "New Internal Tab"),
+            ("Ctrl + h", "Toggle Hidden Files"),
+            ("Ctrl + b", "Toggle Sidebar"),
         ]),
         ("Terminal", vec![
-            ("Ctrl + e", "Open Terminal Tab"),
-            ("Ctrl + n", "Open Terminal Window"),
-            ("Ctrl + .", "Open Terminal Window (Alias)"),
+            ("Ctrl + e", "Open External Terminal Tab"),
+            ("Ctrl + n", "Open External Terminal Window"),
+            ("Ctrl + .", "Open External Terminal Window (Alias)"),
             ("g", "Open Terminal Here (Git Mode)"),
         ]),
     ];
