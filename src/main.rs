@@ -1457,55 +1457,59 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
     }
 
     for t in resolved_terminals {
-        // Optimization: If it's the preferred one (detected previously), we assume it exists or check quickly.
-        // If it's a raw string from the list, we check `which`.
-        
         let exists = if Some(t.as_str()) == preferred_terminal {
-            true // Trust the cache
+            true 
         } else {
              std::process::Command::new("which").arg(&t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false)
         };
 
         if exists {
             let mut args = Vec::new();
-            if new_tab && (t == "gnome-terminal" || t == "kgx") { args.push("--tab"); }
-            
-            let cmd_str;
+            let path_str = path.to_string_lossy();
+
             if let Some(r) = remote {
-                 let path_str = path.to_string_lossy();
                  let ssh_target = format!("{}@{}", r.user, r.host);
+                 let cmd = format!("cd '{}'; exec $SHELL", path_str);
+                 
+                 let mut command = std::process::Command::new(&t);
                  if t == "gnome-terminal" || t == "kgx" {
-                     cmd_str = format!("{} {} -- ssh -t {} \"cd '{}'; exec \\$SHELL\"", t, args.join(" "), ssh_target, path_str);
+                     if new_tab { command.arg("--tab"); }
+                     command.args(["--", "ssh", "-t", &ssh_target, &cmd]);
                  } else if t == "konsole" {
-                     cmd_str = format!("{} {} -e ssh -t {} \"cd '{}'; exec \\$SHELL\"", t, args.join(" "), ssh_target, path_str);
+                     command.args(["-e", "ssh", "-t", &ssh_target, &cmd]);
                  } else {
-                     cmd_str = format!("{} -e ssh -t {} \"cd '{}'; exec \\$SHELL\"", t, ssh_target, path_str);
+                     command.args(["-e", "ssh", "-t", &ssh_target, &cmd]);
+                 }
+                 
+                 unsafe {
+                     let _ = command
+                        .stdin(std::process::Stdio::null())
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .pre_exec(|| { libc::setsid(); Ok(()) })
+                        .spawn();
                  }
             } else {
-                if t == "gnome-terminal" || t == "kgx" { args.push("--working-directory"); } 
-                else if t == "konsole" { args.push("--workdir"); }
-                else if t == "alacritty" { args.push("--working-directory"); }
-                
-                let path_str = path.to_string_lossy();
-                cmd_str = format!("{} {} \"{}\"", t, args.join(" "), path_str);
-            }
-            
-            // Use double-fork trick via sh -c to ensure complete detachment and silence
-            // We wrap the command in parens and background it, redirecting all IO
-            let wrapped_cmd = format!("( {} ) >/dev/null 2>&1 &", cmd_str);
-            
-            unsafe {
-                let _ = std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg(&wrapped_cmd)
-                    .stdin(std::process::Stdio::null())
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .pre_exec(|| {
-                        libc::setsid();
-                        Ok(())
-                    })
-                    .spawn();
+                let mut command = std::process::Command::new(&t);
+                if t == "gnome-terminal" || t == "kgx" {
+                    if new_tab { command.arg("--tab"); }
+                    command.arg("--working-directory").arg(&*path_str);
+                } else if t == "konsole" {
+                    command.arg("--workdir").arg(&*path_str);
+                } else if t == "alacritty" {
+                    command.arg("--working-directory").arg(&*path_str);
+                } else if t == "kitty" {
+                    command.arg("--directory").arg(&*path_str);
+                }
+
+                unsafe {
+                    let _ = command
+                        .stdin(std::process::Stdio::null())
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .pre_exec(|| { libc::setsid(); Ok(()) })
+                        .spawn();
+                }
             }
             break;
         }
