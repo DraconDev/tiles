@@ -548,77 +548,23 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: 
     }
 }
 
-fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTarget, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
+    // We do NOT set app.mode = AppMode::Normal here at the end unconditionally.
 
-    use std::path::Path;
+    // Each action that finishes the interaction should set it to Normal.
+
+    // Actions that start a new mode (NewFolder, Rename, etc.) will leave it in that mode.
 
     
 
-    // Helper to get selected paths including multi-select
+    // Default to closing menu unless specified otherwise
 
-    let get_targets = |app: &mut App, target_idx: Option<usize>| -> Vec<std::path::PathBuf> {
-
-        let mut paths = Vec::new();
-
-        if let Some(fs) = app.current_file_state() {
-
-             // If clicked item is part of multi-select, use multi-select.
-
-             // Otherwise use just the clicked item (and maybe clear multi-select? standard behavior usually keeps unless clicked outside)
-
-             if let Some(idx) = target_idx {
-
-                 if fs.multi_select.contains(&idx) {
-
-                     for &i in &fs.multi_select {
-
-                         if let Some(p) = fs.files.get(i) { paths.push(p.clone()); }
-
-                     }
-
-                 } else {
-
-                     if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
-
-                 }
-
-             } else {
-
-                 // Empty space or Sidebar target - logic varies
-
-             }
-
-        }
-
-        paths
-
-    };
+    let mut close_menu = true;
 
 
 
     match action {
 
-        ContextMenuAction::SortBy(col) => {
-
-             if let Some(fs) = app.current_file_state_mut() {
-
-                 if fs.sort_column == *col {
-
-                     fs.sort_ascending = !fs.sort_ascending;
-
-                 } else {
-
-                     fs.sort_column = *col;
-
-                     fs.sort_ascending = true; // Default to ascending for new col
-
-                 }
-
-                 let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-
-             }
-
-        }
+        ContextMenuAction::SortBy(_) => { /* Removed/No-op if triggered */ }
 
         ContextMenuAction::AddToFavorites => {
 
@@ -956,6 +902,8 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                 app.input.clear();
 
+                close_menu = false; // Stay in NewFolder mode
+
             }
 
         }
@@ -978,6 +926,8 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                 app.input.clear();
 
+                close_menu = false; // Stay in NewFile mode
+
             }
 
         }
@@ -991,12 +941,6 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
                 _ => vec![],
 
             };
-
-            // For now Clipboard only supports single item in struct (need to refactor App::clipboard to Vec)
-
-            // But let's support single for now or refactor app later.
-
-            // Assuming single support for now as per current struct.
 
             if let Some(p) = paths.first() {
 
@@ -1077,6 +1021,8 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
                 app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string());
 
                 app.rename_selected = true;
+
+                close_menu = false;
 
             }
 
@@ -1204,27 +1150,7 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                     app.mode = AppMode::Delete;
 
-                }
-
-            }
-
-        }
-
-        ContextMenuAction::Star => {
-
-            let path = match target {
-
-                ContextMenuTarget::Folder(idx) | ContextMenuTarget::File(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
-
-                _ => None,
-
-            };
-
-            if let Some(path) = path {
-
-                if !app.starred.contains(&path) {
-
-                    app.starred.push(path);
+                    close_menu = false;
 
                 }
 
@@ -1232,29 +1158,15 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
         }
 
-        ContextMenuAction::Unstar => {
+        ContextMenuAction::Star => { /* Removed */ }
 
-            let path = match target {
-
-                ContextMenuTarget::Folder(idx) | ContextMenuTarget::File(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
-
-                ContextMenuTarget::SidebarFavorite(p) => Some(p.clone()),
-
-                _ => None,
-
-            };
-
-            if let Some(path) = path {
-
-                app.starred.retain(|x| x != &path);
-
-            }
-
-        }
+        ContextMenuAction::Unstar => { /* Removed */ }
 
         ContextMenuAction::Properties => {
 
             app.mode = AppMode::Properties;
+
+            close_menu = false;
 
         }
 
@@ -1290,27 +1202,9 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                     ContextMenuTarget::SidebarRemote(idx) => {
 
-                        // This is a bit tricky since we don't have an active session yet if we just clicked the bookmark.
-
-                        // But we can try to find if there's an active session for this bookmark's host.
-
                         let bookmark = &app.remote_bookmarks[*idx];
 
-                        app.active_sessions.get(&bookmark.host).map(|s| {
-
-                            // We need to wrap it back into RemoteSession if we wanted to use spawn_terminal's remote logic
-
-                            // But RemoteSession also has a name and user.
-
-                            // Let's just pass None for now or improve spawn_terminal.
-
-                            // Actually, let's just pass None, it will spawn a local terminal.
-
-                            // If it's a SidebarRemote, we probably want to SSH.
-
-                            None
-
-                        }).flatten()
+                        app.active_sessions.get(&bookmark.host).map(|s| None).flatten()
 
                     }
 
@@ -1520,7 +1414,13 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
     }
 
-    app.mode = AppMode::Normal;
+    
+
+    if close_menu {
+
+        app.mode = AppMode::Normal;
+
+    }
 
 }
 
