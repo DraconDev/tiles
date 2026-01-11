@@ -2141,7 +2141,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     handle_context_menu_action(action, &target, app, event_tx.clone());
                                 }
                             }
-                            return; 
+                            return true; 
                         } else { app.mode = AppMode::Normal; } // Fall through
                     }
 
