@@ -1244,219 +1244,219 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                 let remote = match target {
 
-                    ContextMenuTarget::SidebarRemote(idx) => {
+                                    ContextMenuTarget::SidebarRemote(idx) => {
 
-                        let bookmark = &app.remote_bookmarks[*idx];
+                                            let bookmark = &app.remote_bookmarks[*idx];
 
-                        app.active_sessions.get(&bookmark.host).map(|s| None).flatten()
+                                            app.active_sessions.get(&bookmark.host).map(|_s| None).flatten()
 
-                    }
+                                        }
 
-                    _ => app.current_file_state().and_then(|fs| fs.remote_session.as_ref())
+                                        _ => app.current_file_state().and_then(|fs| fs.remote_session.as_ref())
 
-                };
+                                    };
 
-                spawn_terminal(&p, false, remote, app.preferred_terminal.as_deref());
+                                    spawn_terminal(&p, false, remote, app.preferred_terminal.as_deref());
 
-            }
+                                }
 
-        }
+                            }
 
-        ContextMenuAction::Refresh => {
+                            ContextMenuAction::Refresh => {
 
-            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
 
-        }
+                            }
 
-        ContextMenuAction::SelectAll => {
+                            ContextMenuAction::SelectAll => {
 
-            if let Some(fs) = app.current_file_state_mut() {
+                                if let Some(fs) = app.current_file_state_mut() {
 
-                fs.multi_select = (0..fs.files.len()).collect();
+                                    fs.multi_select = (0..fs.files.len()).collect();
 
-            }
+                                }
 
-        }
+                            }
 
-        ContextMenuAction::ToggleHidden => {
+                            ContextMenuAction::ToggleHidden => {
 
-            let _ = app.toggle_hidden();
+                                let _ = app.toggle_hidden();
 
-            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
 
-        }
+                            }
 
-        ContextMenuAction::ConnectRemote => {
+                            ContextMenuAction::ConnectRemote => {
 
-            if let ContextMenuTarget::SidebarRemote(idx) = target {
+                                if let ContextMenuTarget::SidebarRemote(idx) = target {
 
-                execute_command(crate::app::CommandAction::ConnectToRemote(*idx), app, event_tx.clone());
+                                    execute_command(crate::app::CommandAction::ConnectToRemote(*idx), app, event_tx.clone());
 
-            }
+                                }
 
-        }
+                            }
 
-        ContextMenuAction::DeleteRemote => {
+                            ContextMenuAction::DeleteRemote => {
 
-            if let ContextMenuTarget::SidebarRemote(idx) = target {
+                                if let ContextMenuTarget::SidebarRemote(idx) = target {
 
-                app.remote_bookmarks.remove(*idx);
+                                    app.remote_bookmarks.remove(*idx);
 
-            }
+                                }
 
-        }
+                            }
 
-        ContextMenuAction::Mount => {
+                            ContextMenuAction::Mount => {
 
-            if let ContextMenuTarget::SidebarStorage(idx) = target {
+                                if let ContextMenuTarget::SidebarStorage(idx) = target {
 
-                if let Some(disk) = app.system_state.disks.get(*idx) {
+                                    if let Some(disk) = app.system_state.disks.get(*idx) {
 
-                    let dev = disk.device.clone();
+                                        let dev = disk.device.clone();
 
-                    let tx = event_tx.clone();
+                                        let tx = event_tx.clone();
 
-                    let p_idx = app.focused_pane_index;
+                                        let p_idx = app.focused_pane_index;
 
-                    tokio::spawn(async move {
+                                        tokio::spawn(async move {
 
-                        if let Ok(out) = std::process::Command::new("udisksctl").arg("mount").arg("-b").arg(&dev).output() {
+                                            if let Ok(out) = std::process::Command::new("udisksctl").arg("mount").arg("-b").arg(&dev).output() {
 
-                            if String::from_utf8_lossy(&out.stdout).contains("Mounted") {
+                                                if String::from_utf8_lossy(&out.stdout).contains("Mounted") {
 
-                                tokio::time::sleep(Duration::from_millis(200)).await;
+                                                    tokio::time::sleep(Duration::from_millis(200)).await;
 
-                                let _ = tx.send(AppEvent::RefreshFiles(p_idx)).await;
+                                                    let _ = tx.send(AppEvent::RefreshFiles(p_idx)).await;
+
+                                                }
+
+                                            }
+
+                                        });
+
+                                    }
+
+                                }
+
+                            }
+
+                            ContextMenuAction::Unmount => {
+
+                                if let ContextMenuTarget::SidebarStorage(idx) = target {
+
+                                    if let Some(disk) = app.system_state.disks.get(*idx) {
+
+                                        let dev = disk.device.clone();
+
+                                        tokio::spawn(async move {
+
+                                            let _ = std::process::Command::new("udisksctl").arg("unmount").arg("-b").arg(&dev).output();
+
+                                        });
+
+                                    }
+
+                                }
+
+                            }
+
+                            ContextMenuAction::SetWallpaper => {
+
+                                let path = match target {
+
+                                    ContextMenuTarget::File(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+
+                                    _ => None,
+
+                                };
+
+                                if let Some(p) = path {
+
+                                    let _ = std::process::Command::new("swww").arg("img").arg(&p).spawn()
+
+                                        .or_else(|_| std::process::Command::new("feh").arg("--bg-fill").arg(&p).spawn())
+
+                                        .or_else(|_| std::process::Command::new("gsettings").arg("set").arg("org.gnome.desktop.background").arg("picture-uri").arg(format!("file://{}", p.to_string_lossy())).spawn());
+
+                                }
+
+                            }
+
+                            ContextMenuAction::GitInit => {
+
+                                let path = match target {
+
+                                    ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+
+                                    ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
+
+                                    _ => None,
+
+                                };
+
+                                if let Some(p) = path {
+
+                                    let _ = std::process::Command::new("git").arg("init").current_dir(p).spawn();
+
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+
+                                }
+
+                            }
+
+                            ContextMenuAction::GitStatus => {
+
+                                let path = match target {
+
+                                    ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+
+                                    ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
+
+                                    _ => None,
+
+                                };
+
+                                if let Some(p) = path {
+
+                                    let _remote = app.current_file_state().and_then(|fs| fs.remote_session.as_ref());
+
+                                    let cmd = "git status; read -p 'Press enter to close... '";
+
+                                    let terminals = vec!["kgx", "gnome-terminal", "konsole", "xdg-terminal-exec", "alacritty", "kitty", "xterm"];
+
+                                    for t in terminals {
+
+                                        if std::process::Command::new("which").arg(t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false) {
+
+                                            let mut command = std::process::Command::new(t);
+
+                                            if t == "gnome-terminal" || t == "kgx" {
+
+                                                command.args(["--working-directory", &p.to_string_lossy(), "--", "sh", "-c", cmd]);
+
+                                            } else if t == "konsole" {
+
+                                                command.args(["--workdir", &p.to_string_lossy(), "-e", "sh", "-c", cmd]);
+
+                                            } else {
+
+                                                command.args(["-e", "sh", "-c", cmd]);
+
+                                            }
+
+                                            let _ = command.spawn();
+
+                                            break;
+
+                                        }
+
+                                    }
+
+                                }
 
                             }
 
                         }
-
-                    });
-
-                }
-
-            }
-
-        }
-
-        ContextMenuAction::Unmount => {
-
-            if let ContextMenuTarget::SidebarStorage(idx) = target {
-
-                if let Some(disk) = app.system_state.disks.get(*idx) {
-
-                    let dev = disk.device.clone();
-
-                    tokio::spawn(async move {
-
-                        let _ = std::process::Command::new("udisksctl").arg("unmount").arg("-b").arg(&dev).output();
-
-                    });
-
-                }
-
-            }
-
-        }
-
-        ContextMenuAction::SetWallpaper => {
-
-            let path = match target {
-
-                ContextMenuTarget::File(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
-
-                _ => None,
-
-            };
-
-            if let Some(p) = path {
-
-                let _ = std::process::Command::new("swww").arg("img").arg(&p).spawn()
-
-                    .or_else(|_| std::process::Command::new("feh").arg("--bg-fill").arg(&p).spawn())
-
-                    .or_else(|_| std::process::Command::new("gsettings").arg("set").arg("org.gnome.desktop.background").arg("picture-uri").arg(format!("file://{}", p.to_string_lossy())).spawn());
-
-            }
-
-        }
-
-        ContextMenuAction::GitInit => {
-
-            let path = match target {
-
-                ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
-
-                ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
-
-                _ => None,
-
-            };
-
-            if let Some(p) = path {
-
-                let _ = std::process::Command::new("git").arg("init").current_dir(p).spawn();
-
-                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-
-            }
-
-        }
-
-        ContextMenuAction::GitStatus => {
-
-            let path = match target {
-
-                ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
-
-                ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
-
-                _ => None,
-
-            };
-
-            if let Some(p) = path {
-
-                let remote = app.current_file_state().and_then(|fs| fs.remote_session.as_ref());
-
-                let cmd = "git status; read -p 'Press enter to close... '";
-
-                let terminals = vec!["kgx", "gnome-terminal", "konsole", "xdg-terminal-exec", "alacritty", "kitty", "xterm"];
-
-                for t in terminals {
-
-                    if std::process::Command::new("which").arg(t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false) {
-
-                        let mut command = std::process::Command::new(t);
-
-                        if t == "gnome-terminal" || t == "kgx" {
-
-                            command.args(["--working-directory", &p.to_string_lossy(), "--", "sh", "-c", cmd]);
-
-                        } else if t == "konsole" {
-
-                            command.args(["--workdir", &p.to_string_lossy(), "-e", "sh", "-c", cmd]);
-
-                        } else {
-
-                            command.args(["-e", "sh", "-c", cmd]);
-
-                        }
-
-                        let _ = command.spawn();
-
-                        break;
-
-                    }
-
-                }
-
-            }
-
-        }
-
-    }
 
     
 
