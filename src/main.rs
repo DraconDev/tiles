@@ -2005,7 +2005,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     let sidebar_width = app.sidebar_width();
                     if button == MouseButton::Left && column >= sidebar_width.saturating_sub(1) && column <= sidebar_width && row >= 1 {
                         app.is_resizing_sidebar = true;
-                        return;
+                        return true;
                     }
 
                     if app.mode == AppMode::Highlight {
