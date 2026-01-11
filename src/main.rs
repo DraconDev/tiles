@@ -2329,7 +2329,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     let target = ContextMenuTarget::EmptySpace;
                                     let actions = get_context_menu_actions(&target, app);
                                     app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; 
-                                    return; 
+                                    return true; 
                                 } 
                             }
                         }
@@ -2338,12 +2338,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 let target = if is_dir { ContextMenuTarget::Folder(index) } else { ContextMenuTarget::File(index) }; 
                                 let actions = get_context_menu_actions(&target, app);
                                 app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; 
-                                return; 
+                                return true; 
                             }
                             if button == MouseButton::Middle {
                                 let target_pane = if app.focused_pane_index == 0 { 1 } else { 0 };
                                 let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path.clone()));
-                                return;
+                                return true;
                             }
                             app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
                             // Double click detection
@@ -2357,13 +2357,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         let target = ContextMenuTarget::EmptySpace;
                         let actions = get_context_menu_actions(&target, app);
                         app.mode = AppMode::ContextMenu { x: column, y: row, target, actions };
+                        return true;
                     }
                 }
                                 MouseEventKind::Up(_) => {
                                     if app.is_resizing_sidebar {
                                         app.is_resizing_sidebar = false;
                                         let _ = crate::config::save_state(app);
-                                        return;
+                                        return true;
                                     }
 
                                     if app.is_dragging {
