@@ -676,9 +676,9 @@ fn draw_settings_modal(f: &mut Frame, app: &App) {
     let block = Block::default().title(" Settings ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Cyan));
     let inner = block.inner(area); f.render_widget(block, area);
     let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Length(15), Constraint::Min(0)]).split(inner);
-    let sections = vec![ListItem::new(" 󰟜 Columns "), ListItem::new(" 󰓩 Tabs "), ListItem::new(" 󰒓 General "), ListItem::new(" 󰒍 Remotes ")];
+    let sections = vec![ListItem::new(" 󰟜 Columns "), ListItem::new(" 󰓩 Tabs "), ListItem::new(" 󰒓 General "), ListItem::new(" 󰒍 Remotes "), ListItem::new(" 󰌌 Shortcuts ")];
     let mut state = ScrollbarState::default(); 
-    let sel = match app.settings_section { SettingsSection::Columns => 0, SettingsSection::Tabs => 1, SettingsSection::General => 2, SettingsSection::Remotes => 3 };
+    let sel = match app.settings_section { SettingsSection::Columns => 0, SettingsSection::Tabs => 1, SettingsSection::General => 2, SettingsSection::Remotes => 3, SettingsSection::Shortcuts => 4 };
     let items: Vec<ListItem> = sections.into_iter().enumerate().map(|(i, item)| {
         if i == sel { item.style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD)) } else { item }
     }).collect();
@@ -688,7 +688,63 @@ fn draw_settings_modal(f: &mut Frame, app: &App) {
         SettingsSection::Tabs => draw_tab_settings(f, chunks[1], app),
         SettingsSection::General => draw_general_settings(f, chunks[1], app),
         SettingsSection::Remotes => draw_remote_settings(f, chunks[1], app),
+        SettingsSection::Shortcuts => draw_shortcuts_settings(f, chunks[1], app),
     }
+}
+
+fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
+    let shortcuts = vec![
+        ("General", vec![
+            ("Ctrl + q", "Quit Application"),
+            ("Ctrl + g", "Open Settings"),
+            ("Ctrl + Space", "Open Command Palette"),
+            ("Ctrl + b", "Toggle Sidebar"),
+        ]),
+        ("Navigation", vec![
+            ("↑ / ↓", "Move Selection"),
+            ("Left / Right", "Change Pane / Enter/Leave Sidebar"),
+            ("Enter", "Open Directory / File"),
+            ("Backspace", "Go to Parent Directory"),
+            ("Alt + Left", "Go Back in History"),
+            ("Alt + Right", "Go Forward in History"),
+            ("Tab", "Switch Active Tab (TODO)"),
+        ]),
+        ("File Operations", vec![
+            ("Space", "Preview File (Toggle)"),
+            ("Ctrl + n", "New File (Context dependent)"),
+            ("Ctrl + Shift + n", "New Folder (Context dependent)"),
+            ("Delete", "Delete Item"),
+            ("F2", "Rename Item (Context dependent)"),
+        ]),
+        ("View & Tabs", vec![
+            ("Ctrl + s", "Toggle Split View"),
+            ("Ctrl + t", "New Tab"),
+            ("Ctrl + w", "Close Tab (TODO)"),
+            ("Ctrl + h", "Toggle Hidden Files"),
+        ]),
+        ("Terminal", vec![
+            ("Ctrl + e", "Open Terminal (Current Dir)"),
+            (".", "Open Terminal Here (Current Dir)"),
+            ("g", "Open Terminal Here (Git Mode)"),
+        ]),
+    ];
+
+    let mut rows = Vec::new();
+    for (category, items) in shortcuts {
+        rows.push(Row::new(vec![Cell::from(Span::styled(category, Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD))), Cell::from("")]));
+        for (key, desc) in items {
+            rows.push(Row::new(vec![
+                Cell::from(Span::styled(key, Style::default().fg(Color::Yellow))),
+                Cell::from(desc),
+            ]));
+        }
+        rows.push(Row::new(vec![Cell::from(""), Cell::from("")])); // Spacer
+    }
+
+    let table = Table::new(rows, [Constraint::Length(20), Constraint::Min(0)])
+        .block(Block::default().title(" Keyboard Shortcuts ").borders(Borders::NONE));
+    
+    f.render_widget(table, area);
 }
 
 fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
