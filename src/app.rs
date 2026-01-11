@@ -32,6 +32,7 @@ pub enum AppEvent {
     Copy(PathBuf, PathBuf),
     Delete(PathBuf),
     RemoteConnected(usize, RemoteSession), // pane_idx, session
+    PreviewRequested(usize, PathBuf), // target_pane_idx, path
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -98,6 +99,9 @@ pub enum ContextMenuAction {
     DeleteRemote,
     Mount,
     Unmount,
+    SetWallpaper,
+    GitInit,
+    GitStatus,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -352,10 +356,19 @@ pub enum LicenseStatus {
     FreeMode,
 }
 
+#[derive(Clone, Debug)]
+pub struct PreviewState {
+    pub path: PathBuf,
+    pub content: String,
+    pub scroll: usize,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Pane {
     pub tabs: Vec<FileState>,
     pub active_tab_index: usize,
+    #[serde(skip)]
+    pub preview: Option<PreviewState>,
 }
 
 impl Pane {
@@ -363,6 +376,7 @@ impl Pane {
         Self {
             tabs: vec![initial_state],
             active_tab_index: 0,
+            preview: None,
         }
     }
 
@@ -389,11 +403,14 @@ pub enum SettingsTarget {
     SplitMode,
 }
 
+use crate::icons::{IconMode, guess_icon_mode};
+
 pub struct App {
     pub running: bool,
     pub current_view: CurrentView,
     pub mode: AppMode,
     pub input: TextInput,
+    pub icon_mode: IconMode,
 
     pub panes: Vec<Pane>,
     pub focused_pane_index: usize,
@@ -487,6 +504,7 @@ impl App {
                     current_view: state.current_view,
                     mode: AppMode::Normal,
                     input: TextInput::new(),
+                    icon_mode: guess_icon_mode(),
                     panes: state.panes,
                     focused_pane_index: state.focused_pane_index,
                     terminal_size: (0, 0),
@@ -555,6 +573,7 @@ impl App {
             current_view: CurrentView::Files,
             mode: AppMode::Normal,
             input: TextInput::new(),
+            icon_mode: guess_icon_mode(),
 
             panes: vec![Pane::new(file_state)],
             focused_pane_index: 0,

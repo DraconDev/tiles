@@ -30,6 +30,7 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
                 panes.push(Pane {
                     tabs,
                     active_tab_index: p.active_tab_index,
+                    preview: None,
                 });
             }
             panes

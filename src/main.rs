@@ -16,13 +16,18 @@ mod config;
 mod modules;
 mod ui;
 mod license;
+mod icons;
+
+use crate::icons::IconMode;
 
 fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<ContextMenuAction> {
     match target {
         ContextMenuTarget::File(idx) => {
             let mut actions = vec![ContextMenuAction::Open, ContextMenuAction::Edit];
+            let mut is_starred = false;
             if let Some(fs) = app.current_file_state() {
                 if let Some(path) = fs.files.get(*idx) {
+                    is_starred = app.starred.contains(path);
                     let cat = crate::modules::files::get_file_category(path);
                     match cat {
                         FileCategory::Archive => actions.push(ContextMenuAction::ExtractHere),
@@ -32,6 +37,9 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         }
                         FileCategory::Audio | FileCategory::Video => {
                             actions.push(ContextMenuAction::Run); // "Play"
+                        }
+                        FileCategory::Image => {
+                            actions.push(ContextMenuAction::SetWallpaper);
                         }
                         _ => {}
                     }
@@ -44,11 +52,17 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                 ContextMenuAction::Rename,
                 ContextMenuAction::Compress,
                 ContextMenuAction::Delete,
-                ContextMenuAction::Properties,
             ]);
+            if is_starred {
+                actions.push(ContextMenuAction::Unstar);
+            } else {
+                actions.push(ContextMenuAction::Star);
+            }
+            actions.push(ContextMenuAction::TerminalHere);
+            actions.push(ContextMenuAction::Properties);
             actions
         }
-        ContextMenuTarget::Folder(_) => {
+        ContextMenuTarget::Folder(idx) => {
             let mut actions = vec![
                 ContextMenuAction::Open,
                 ContextMenuAction::OpenNewTab,
@@ -65,7 +79,25 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             actions.extend(vec![
                 ContextMenuAction::Rename,
                 ContextMenuAction::Compress,
-                ContextMenuAction::Star, // UI decides if it shows Star or Unstar
+            ]);
+
+            if let Some(fs) = app.current_file_state() {
+                if let Some(path) = fs.files.get(*idx) {
+                    if app.starred.contains(path) {
+                        actions.push(ContextMenuAction::Unstar);
+                    } else {
+                        actions.push(ContextMenuAction::Star);
+                    }
+                    
+                    if path.join(".git").exists() {
+                        actions.push(ContextMenuAction::GitStatus);
+                    } else {
+                        actions.push(ContextMenuAction::GitInit);
+                    }
+                }
+            }
+
+            actions.extend(vec![
                 ContextMenuAction::Delete,
                 ContextMenuAction::Properties,
             ]);
@@ -73,16 +105,25 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
         }
         ContextMenuTarget::EmptySpace => {
             let mut actions = vec![
+                ContextMenuAction::Refresh,
                 ContextMenuAction::NewFolder,
                 ContextMenuAction::NewFile,
             ];
+
+            if let Some(fs) = app.current_file_state() {
+                if fs.current_path.join(".git").exists() {
+                    actions.push(ContextMenuAction::GitStatus);
+                } else {
+                    actions.push(ContextMenuAction::GitInit);
+                }
+            }
+
             if app.clipboard.is_some() {
                 actions.push(ContextMenuAction::Paste);
             }
             actions.extend(vec![
                 ContextMenuAction::SelectAll,
                 ContextMenuAction::TerminalHere,
-                ContextMenuAction::Refresh,
                 ContextMenuAction::ToggleHidden,
                 ContextMenuAction::Properties,
             ]);
@@ -92,10 +133,11 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             ContextMenuAction::Open,
             ContextMenuAction::OpenNewTab,
             ContextMenuAction::TerminalHere,
-            ContextMenuAction::Delete,
+            ContextMenuAction::Unstar, // Change Delete to Unstar for favorites
         ],
         ContextMenuTarget::SidebarRemote(_) => vec![
             ContextMenuAction::ConnectRemote,
+            ContextMenuAction::TerminalHere, // Could ssh directly
             ContextMenuAction::DeleteRemote,
         ],
         ContextMenuTarget::SidebarStorage(idx) => {
@@ -103,6 +145,7 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             if let Some(disk) = app.system_state.disks.get(*idx) {
                 if disk.is_mounted {
                     actions.push(ContextMenuAction::Open);
+                    actions.push(ContextMenuAction::TerminalHere);
                     actions.push(ContextMenuAction::Unmount);
                 } else {
                     actions.push(ContextMenuAction::Mount);
@@ -304,6 +347,51 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         }
                     }
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
+                }
+                AppEvent::PreviewRequested(target_pane_idx, path) => {
+                    let app_clone = app.clone();
+                    let tx = event_tx.clone();
+                    tokio::spawn(async move {
+                        // For now, only local previews. Remote previews could be added later.
+                        if let Ok(content) = std::fs::read_to_string(&path) {
+                            // Limit content to first 2000 chars for now
+                            let preview_content = content.chars().take(2000).collect::<String>();
+                            let mut app_guard = app_clone.lock().unwrap();
+                            
+                            // If split is not active and we want to preview on the "other" pane, 
+                            // we should probably enable split.
+                            if app_guard.panes.len() < 2 {
+                                app_guard.toggle_split();
+                            }
+                            
+                            if let Some(pane) = app_guard.panes.get_mut(target_pane_idx) {
+                                pane.preview = Some(crate::app::PreviewState {
+                                    path,
+                                    content: preview_content,
+                                    scroll: 0,
+                                });
+                            }
+                        } else if path.is_dir() {
+                             // If it's a directory, maybe just navigate the other pane to it?
+                             {
+                                 let mut app_guard = app_clone.lock().unwrap();
+                                 if app_guard.panes.len() < 2 {
+                                     app_guard.toggle_split();
+                                 }
+                                 if let Some(pane) = app_guard.panes.get_mut(target_pane_idx) {
+                                     if let Some(fs) = pane.current_state_mut() {
+                                         fs.current_path = path.clone();
+                                         fs.selected_index = Some(0);
+                                         fs.multi_select.clear();
+                                         fs.search_filter.clear();
+                                         *fs.table_state.offset_mut() = 0;
+                                         push_history(fs, path);
+                                     }
+                                 }
+                             }
+                             let _ = tx.send(AppEvent::RefreshFiles(target_pane_idx)).await;
+                        }
+                    });
                 }
                 AppEvent::Tick => {} 
             }
@@ -699,19 +787,24 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
             }
         }
         ContextMenuAction::Star => {
-            if let ContextMenuTarget::Folder(idx) = target {
-                if let Some(path) = app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()) {
-                    if !app.starred.contains(&path) {
-                        app.starred.push(path);
-                    }
+            let path = match target {
+                ContextMenuTarget::Folder(idx) | ContextMenuTarget::File(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+                _ => None,
+            };
+            if let Some(path) = path {
+                if !app.starred.contains(&path) {
+                    app.starred.push(path);
                 }
             }
         }
         ContextMenuAction::Unstar => {
-            if let ContextMenuTarget::Folder(idx) = target {
-                if let Some(path) = app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()) {
-                    app.starred.retain(|x| x != &path);
-                }
+            let path = match target {
+                ContextMenuTarget::Folder(idx) | ContextMenuTarget::File(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+                ContextMenuTarget::SidebarFavorite(p) => Some(p.clone()),
+                _ => None,
+            };
+            if let Some(path) = path {
+                app.starred.retain(|x| x != &path);
             }
         }
         ContextMenuAction::Properties => {
@@ -719,13 +812,34 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
         }
         ContextMenuAction::TerminalHere => {
             let path = match target {
+                ContextMenuTarget::File(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).and_then(|p| p.parent().map(|parent| parent.to_path_buf()))),
                 ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
                 ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
                 ContextMenuTarget::SidebarFavorite(p) => Some(p.clone()),
-                _ => None,
+                ContextMenuTarget::SidebarStorage(idx) => {
+                    app.system_state.disks.get(*idx).map(|d| std::path::PathBuf::from(&d.name))
+                }
+                ContextMenuTarget::SidebarRemote(idx) => {
+                    app.remote_bookmarks.get(*idx).map(|b| b.last_path.clone())
+                }
             };
             if let Some(p) = path {
-                let remote = app.current_file_state().and_then(|fs| fs.remote_session.as_ref());
+                let remote = match target {
+                    ContextMenuTarget::SidebarRemote(idx) => {
+                        // This is a bit tricky since we don't have an active session yet if we just clicked the bookmark.
+                        // But we can try to find if there's an active session for this bookmark's host.
+                        let bookmark = &app.remote_bookmarks[*idx];
+                        app.active_sessions.get(&bookmark.host).map(|s| {
+                            // We need to wrap it back into RemoteSession if we wanted to use spawn_terminal's remote logic
+                            // But RemoteSession also has a name and user.
+                            // Let's just pass None for now or improve spawn_terminal.
+                            // Actually, let's just pass None, it will spawn a local terminal.
+                            // If it's a SidebarRemote, we probably want to SSH.
+                            None
+                        }).flatten()
+                    }
+                    _ => app.current_file_state().and_then(|fs| fs.remote_session.as_ref())
+                };
                 spawn_terminal(&p, false, remote);
             }
         }
@@ -775,6 +889,55 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
                     tokio::spawn(async move {
                         let _ = std::process::Command::new("udisksctl").arg("unmount").arg("-b").arg(&dev).output();
                     });
+                }
+            }
+        }
+        ContextMenuAction::SetWallpaper => {
+            let path = match target {
+                ContextMenuTarget::File(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+                _ => None,
+            };
+            if let Some(p) = path {
+                // Try common wallpaper setters
+                let _ = std::process::Command::new("swww").arg("img").arg(&p).spawn()
+                    .or_else(|_| std::process::Command::new("feh").arg("--bg-fill").arg(&p).spawn())
+                    .or_else(|_| std::process::Command::new("gsettings").arg("set").arg("org.gnome.desktop.background").arg("picture-uri").arg(format!("file://{}", p.to_string_lossy())).spawn());
+            }
+        }
+        ContextMenuAction::GitInit => {
+            let path = match target {
+                ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+                ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
+                _ => None,
+            };
+            if let Some(p) = path {
+                let _ = std::process::Command::new("git").arg("init").current_dir(p).spawn();
+                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+            }
+        }
+        ContextMenuAction::GitStatus => {
+            let path = match target {
+                ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+                ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
+                _ => None,
+            };
+            if let Some(p) = path {
+                let remote = app.current_file_state().and_then(|fs| fs.remote_session.as_ref());
+                let cmd = "git status; read -p 'Press enter to close... '";
+                let terminals = vec!["kgx", "gnome-terminal", "konsole", "xdg-terminal-exec", "alacritty", "kitty", "xterm"];
+                for t in terminals {
+                    if std::process::Command::new("which").arg(t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false) {
+                        let mut command = std::process::Command::new(t);
+                        if t == "gnome-terminal" || t == "kgx" {
+                            command.args(["--working-directory", &p.to_string_lossy(), "--", "sh", "-c", cmd]);
+                        } else if t == "konsole" {
+                            command.args(["--workdir", &p.to_string_lossy(), "-e", "sh", "-c", cmd]);
+                        } else {
+                            command.args(["-e", "sh", "-c", cmd]);
+                        }
+                        let _ = command.spawn();
+                        break;
+                    }
                 }
             }
         }
@@ -830,9 +993,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
             let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
 
             match key.code {
-                KeyCode::Char('q') if has_control => { app.running = false; return; }
-                KeyCode::Char('g') if has_control => { app.mode = AppMode::Settings; return; }
-                KeyCode::Char('e') if has_control => { 
+                KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return; }
+                KeyCode::Char('g') | KeyCode::Char('G') if has_control => { app.mode = AppMode::Settings; return; }
+                KeyCode::Char('e') | KeyCode::Char('E') if has_control => { 
                     if let Some(pane) = app.panes.get(app.focused_pane_index) { 
                         if let Some(fs) = pane.current_state() { 
                             spawn_terminal(&fs.current_path, true, fs.remote_session.as_ref()); 
@@ -840,7 +1003,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     } 
                     return;
                 } 
-                KeyCode::Char('b') if has_control => { 
+                KeyCode::Char('b') | KeyCode::Char('B') if has_control => { 
                     app.show_sidebar = !app.show_sidebar; 
                     if !app.show_sidebar && app.sidebar_focus {
                         app.sidebar_focus = false;
@@ -848,9 +1011,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                     return;
                 }
-                KeyCode::Char('s') if has_control => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return; } 
-                KeyCode::Char('h') if has_control => { let pane_idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx)); return; } 
-                KeyCode::Char('t') if has_control => {
+                KeyCode::Char('s') | KeyCode::Char('S') if has_control => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return; } 
+                KeyCode::Char('h') | KeyCode::Char('H') if has_control => { let pane_idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx)); return; } 
+                KeyCode::Char('t') | KeyCode::Char('T') if has_control => {
                     if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                         if let Some(fs) = pane.current_state() {
                             let mut new_fs = fs.clone();
@@ -912,6 +1075,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         KeyCode::Char('s') => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
                         KeyCode::Char('m') => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
                         KeyCode::Char('p') => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
+                        KeyCode::Char('i') => {
+                            app.icon_mode = match app.icon_mode {
+                                IconMode::Nerd => IconMode::Unicode,
+                                IconMode::Unicode => IconMode::ASCII,
+                                IconMode::ASCII => IconMode::Nerd,
+                            };
+                        }
                         KeyCode::Char('h') if app.settings_section == SettingsSection::General => { app.default_show_hidden = !app.default_show_hidden; } 
                         KeyCode::Char('d') if app.settings_section == SettingsSection::General => { app.confirm_delete = !app.confirm_delete; } 
                         _ => {} 
@@ -1010,15 +1180,25 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                                 _ => {
-                                    if key.code == KeyCode::Esc {
-                                        app.mode = AppMode::Normal;
-                                        if let Some(fs) = app.current_file_state_mut() { fs.multi_select.clear(); fs.selection_anchor = None; if !fs.search_filter.is_empty() { fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
-                                    }                    match key.code {
+                                                                    if key.code == KeyCode::Esc {
+                                                                        app.mode = AppMode::Normal;
+                                                                        for pane in &mut app.panes {
+                                                                            pane.preview = None;
+                                                                        }
+                                                                        if let Some(fs) = app.current_file_state_mut() { fs.multi_select.clear(); fs.selection_anchor = None; if !fs.search_filter.is_empty() { fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
+                                                                    }
+                                                        match key.code {
                         KeyCode::Left if key.modifiers.contains(KeyModifiers::ALT) => {
-                            if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
+                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                pane.preview = None;
+                                if let Some(fs) = pane.current_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
+                            }
                         }
                         KeyCode::Right if key.modifiers.contains(KeyModifiers::ALT) => {
-                            if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
+                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                pane.preview = None;
+                                if let Some(fs) = pane.current_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
+                            }
                         }
                         KeyCode::Up if key.modifiers.contains(KeyModifiers::ALT) => {
                              crate::app::log_debug("Alt+Up pressed");
@@ -1076,7 +1256,20 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             } 
                         } 
                         KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } } 
-                        KeyCode::Char(' ') => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } } } } } 
+                        KeyCode::Char(' ') => { 
+                            if let Some(fs) = app.current_file_state() { 
+                                if let Some(idx) = fs.selected_index { 
+                                    if let Some(path) = fs.files.get(idx).cloned() { 
+                                        if path.is_dir() {
+                                            if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } 
+                                        } else {
+                                            let target_pane = if app.focused_pane_index == 0 { 1 } else { 0 };
+                                            let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path));
+                                        }
+                                    } 
+                                } 
+                            } 
+                        } 
                         KeyCode::Char(c) if key.modifiers.is_empty() && c != '.' && c != 'g' => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
                         KeyCode::Char(c) if key.modifiers.is_empty() && (c == '.' || c == 'g') => { if let Some(pane) = app.panes.get(app.focused_pane_index) { if let Some(fs) = pane.current_state() { spawn_terminal(&fs.current_path, c == 'g', fs.remote_session.as_ref()); } } }                        KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } 
                         _ => {} 
@@ -1199,6 +1392,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             }
                             return;
                         } else { app.mode = AppMode::Normal; } // Fall through
+                    }
+
+                    // Clear preview on click if not interacting with context menu
+                    if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                        pane.preview = None;
                     }
 
                     // 1. Header handling (Row 0)
@@ -1336,6 +1534,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 let actions = get_context_menu_actions(&target, app);
                                 app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; 
                                 return; 
+                            }
+                            if button == MouseButton::Middle {
+                                let target_pane = if app.focused_pane_index == 0 { 1 } else { 0 };
+                                let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path.clone()));
+                                return;
                             }
                             app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
                             // Double click detection

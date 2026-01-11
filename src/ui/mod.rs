@@ -9,8 +9,9 @@ use std::time::SystemTime;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
-use crate::app::{App, AppMode, CurrentView, FileColumn, FileMetadata, FileState, ContextMenuTarget, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget};
+use crate::app::{App, AppMode, CurrentView, FileColumn, FileState, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory};
 use crate::ui::theme::THEME;
+use crate::icons::{Icon, IconMode};
 use terma::layout::centered_rect;
 use terma::utils::{format_size, format_time, format_permissions};
 
@@ -66,12 +67,13 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
             if is_dragging_over_sidebar {
                 let current_idx = sidebar_items.len();
-                sidebar_items.push(ListItem::new("> FAVORITES").style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)));
+                sidebar_items.push(ListItem::new(format!("> FAVORITES")).style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)));
                 app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_idx, target: SidebarTarget::Header("FAVORITES".to_string()) });
                 current_y += 1;
             } else {
                 let current_idx = sidebar_items.len();
-                sidebar_items.push(ListItem::new("󰓎 FAVORITES").style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
+                let icon = Icon::Star.get(app.icon_mode);
+                sidebar_items.push(ListItem::new(format!("{}FAVORITES", icon)).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
                 app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_idx, target: SidebarTarget::Header("FAVORITES".to_string()) });
                 current_y += 1;
             }
@@ -90,7 +92,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 if is_focused { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); }
                 else if is_hovered && app.is_dragging { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); }
 
-                sidebar_items.push(ListItem::new(name).style(style));
+                let icon = if path.is_dir() { Icon::Folder.get(app.icon_mode) } else { Icon::File.get(app.icon_mode) };
+                sidebar_items.push(ListItem::new(format!("{}{}", icon, name)).style(style));
                 app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_idx, target: SidebarTarget::Favorite(path.clone()) });
                 current_y += 1;
             }
@@ -98,7 +101,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             // STORAGE Section
             sidebar_items.push(ListItem::new("")); current_y += 1;
             let current_storage_header_idx = sidebar_items.len();
-            sidebar_items.push(ListItem::new("󰋊 STORAGES").style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
+            let storage_icon = Icon::Storage.get(app.icon_mode);
+            sidebar_items.push(ListItem::new(format!("{}STORAGES", storage_icon)).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
             app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_storage_header_idx, target: SidebarTarget::Header("STORAGES".to_string()) });
             current_y += 1;
             
@@ -130,11 +134,12 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     spans.push(Span::styled(format!("{}| ", m_str), Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)));
                 }
 
+                let disk_icon = Icon::Storage.get(app.icon_mode);
                 if disk.is_mounted {
                     let available = (disk.available_space as f64 / 1_073_741_824.0).round() as u64;
-                    spans.push(Span::styled(format!("{}: {}G Free", display_name, available), name_style));
+                    spans.push(Span::styled(format!("{}{}: {}G Free", disk_icon, display_name, available), name_style));
                 } else {
-                    spans.push(Span::styled(format!("{} (Not mounted)", disk.name), name_style));
+                    spans.push(Span::styled(format!("{}{}(Not mounted)", disk_icon, disk.name), name_style));
                 };
 
                 sidebar_items.push(ListItem::new(Line::from(spans)));
@@ -147,7 +152,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let current_header_idx = sidebar_items.len();
             let mut remotes_style = Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD);
             if matches!(app.hovered_drop_target, Some(DropTarget::RemotesHeader)) { remotes_style = remotes_style.bg(THEME.accent_primary).fg(Color::Black); }
-            sidebar_items.push(ListItem::new("󰒍 REMOTES [Import]").style(remotes_style));
+            let remote_icon = Icon::Remote.get(app.icon_mode);
+            sidebar_items.push(ListItem::new(format!("{}REMOTES [Import]", remote_icon)).style(remotes_style));
             app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_header_idx, target: SidebarTarget::Header("REMOTES".to_string()) });
             current_y += 1;
             for (i, bookmark) in app.remote_bookmarks.iter().enumerate() {
@@ -165,7 +171,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     let m_str = m_list.iter().map(|m| m.to_string()).collect::<Vec<_>>().join(",");
                     spans.push(Span::styled(format!("{}| ", m_str), Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)));
                 }
-                spans.push(Span::styled(bookmark.name.clone(), style));
+                let icon = Icon::Remote.get(app.icon_mode);
+                spans.push(Span::styled(format!("{}{}", icon, bookmark.name), style));
 
                 sidebar_items.push(ListItem::new(Line::from(spans)));
                 app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_bookmark_idx, target: SidebarTarget::Remote(i) });
@@ -232,9 +239,9 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let logo_width = 10;
     f.render_widget(Paragraph::new(" 👹 TILES ").style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), Rect::new(area.x, area.y, logo_width, 1));
 
-    let split_label = if pane_count > 1 { " 󰙀 " } else { " 󰇄 " };
-    let split_width = 3;
-    f.render_widget(Paragraph::new(split_label).style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)), Rect::new(area.x + area.width.saturating_sub(split_width), area.y, split_width, 1));
+    let split_icon = if pane_count > 1 { Icon::Split.get(app.icon_mode) } else { Icon::Single.get(app.icon_mode) };
+    let split_width = split_icon.len() as u16 + 2;
+    f.render_widget(Paragraph::new(format!(" {} ", split_icon)).style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)), Rect::new(area.x + area.width.saturating_sub(split_width), area.y, split_width, 1));
 
     if pane_count == 0 { return; }
     let start_x = if app.show_sidebar { 
@@ -280,6 +287,23 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool, borders: Borders) {
+    if let Some(pane) = app.panes.get_mut(pane_idx) {
+        if let Some(preview) = &pane.preview {
+            let block = Block::default()
+                .borders(borders)
+                .border_type(BorderType::Rounded)
+                .title(format!(" Preview: {} ", preview.path.display()))
+                .border_style(if is_focused { Style::default().fg(THEME.border_active) } else { Style::default().fg(THEME.border_inactive) });
+            
+            let text = Paragraph::new(preview.content.as_str())
+                .block(block)
+                .wrap(ratatui::widgets::Wrap { trim: true });
+            
+            f.render_widget(text, area);
+            return;
+        }
+    }
+
     if let Some(file_state) = app.panes.get_mut(pane_idx).and_then(|p| p.current_state_mut()) {
         file_state.view_height = area.height as usize;
         let mut render_state = TableState::default();
@@ -322,6 +346,22 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
                     let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                     let mut final_style = if is_dir { Style::default().fg(THEME.accent_secondary) } else { Style::default().fg(THEME.fg) };
+                    
+                    let icon = if is_dir { 
+                        Icon::Folder.get(app.icon_mode) 
+                    } else {
+                        let cat = crate::modules::files::get_file_category(path);
+                        match cat {
+                            FileCategory::Archive => Icon::Archive.get(app.icon_mode),
+                            FileCategory::Image => Icon::Image.get(app.icon_mode),
+                            FileCategory::Audio => Icon::Audio.get(app.icon_mode),
+                            FileCategory::Video => Icon::Video.get(app.icon_mode),
+                            FileCategory::Script => Icon::Script.get(app.icon_mode),
+                            FileCategory::Document => Icon::Document.get(app.icon_mode),
+                            _ => Icon::File.get(app.icon_mode),
+                        }
+                    };
+
                     let mut suffix = String::new();
                     if app.starred.contains(path) { suffix.push_str(" [*]"); final_style = final_style.fg(THEME.accent_primary).add_modifier(Modifier::BOLD); }
                     if i > file_state.local_count {
@@ -332,8 +372,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                             let keep_len = name_col_width - 3; let start_idx = display_path.len() - keep_len;
                             display_path = format!("...{}", &display_path[start_idx..]);
                         }
-                        Cell::from(display_path).style(final_style)
-                    } else { Cell::from(format!("{}{}", name, suffix)).style(final_style) }
+                        Cell::from(format!("{}{}", icon, display_path)).style(final_style)
+                    } else { Cell::from(format!("{}{}{}", icon, name, suffix)).style(final_style) }
                 }
                 FileColumn::Size => { if metadata.map(|m| m.is_dir).unwrap_or(false) { Cell::from("<DIR>").style(Style::default().fg(THEME.accent_secondary)) } else { Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))).style(Style::default().fg(THEME.fg)) } }
                 FileColumn::Modified => Cell::from(format_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH))).style(Style::default().fg(THEME.fg)),
@@ -428,32 +468,35 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
 
     for action in &actions {
         let label = match action {
-            ContextMenuAction::Open => " 󰉋 Open",
-            ContextMenuAction::OpenNewTab => " 󰓩 Open in New Tab",
-            ContextMenuAction::Edit => " 󰚩 Edit (Demon)",
-            ContextMenuAction::Run => " 󰐊 Run",
-            ContextMenuAction::RunTerminal => " 󰞷 Run in Terminal",
-            ContextMenuAction::ExtractHere => " 󰛫 Extract Here",
-            ContextMenuAction::NewFolder => " 󰉋 New Folder",
-            ContextMenuAction::NewFile => " 󰈔 New File",
-            ContextMenuAction::Cut => " 󰆐 Cut",
-            ContextMenuAction::Copy => " 󰆏 Copy",
-            ContextMenuAction::Paste => " 󰆒 Paste",
-            ContextMenuAction::Rename => " 󰏫 Rename",
-            ContextMenuAction::Duplicate => " 󰆏 Duplicate",
-            ContextMenuAction::Compress => " 󰛫 Compress",
-            ContextMenuAction::Delete => " 󰆴 Delete",
-            ContextMenuAction::Star => " 󰓎 Star",
-            ContextMenuAction::Unstar => " 󰓎 Unstar",
-            ContextMenuAction::Properties => " 󰈙 Properties",
-            ContextMenuAction::TerminalHere => " 󰞷 Terminal Here",
-            ContextMenuAction::Refresh => " 󰑓 Refresh",
-            ContextMenuAction::SelectAll => " 󰒆 Select All",
-            ContextMenuAction::ToggleHidden => " 󰈈 Toggle Hidden",
-            ContextMenuAction::ConnectRemote => " 󰒍 Connect",
-            ContextMenuAction::DeleteRemote => " 󰆴 Delete Bookmark",
-            ContextMenuAction::Mount => " 󰃭 Mount",
-            ContextMenuAction::Unmount => " 󰃭 Unmount",
+            ContextMenuAction::Open => format!(" {} Open", Icon::Folder.get(app.icon_mode)),
+            ContextMenuAction::OpenNewTab => format!(" {} Open in New Tab", Icon::Split.get(app.icon_mode)),
+            ContextMenuAction::Edit => format!(" {} Edit", Icon::Document.get(app.icon_mode)),
+            ContextMenuAction::Run => format!(" {} Run", Icon::Video.get(app.icon_mode)),
+            ContextMenuAction::RunTerminal => format!(" {} Run in Terminal", Icon::Script.get(app.icon_mode)),
+            ContextMenuAction::ExtractHere => format!(" {} Extract Here", Icon::Archive.get(app.icon_mode)),
+            ContextMenuAction::NewFolder => format!(" {} New Folder", Icon::Folder.get(app.icon_mode)),
+            ContextMenuAction::NewFile => format!(" {} New File", Icon::File.get(app.icon_mode)),
+            ContextMenuAction::Cut => " 󰆐 Cut".to_string(), // Keep some standard ones or update all
+            ContextMenuAction::Copy => " 󰆏 Copy".to_string(),
+            ContextMenuAction::Paste => " 󰆒 Paste".to_string(),
+            ContextMenuAction::Rename => " 󰏫 Rename".to_string(),
+            ContextMenuAction::Duplicate => " 󰆏 Duplicate".to_string(),
+            ContextMenuAction::Compress => format!(" {} Compress", Icon::Archive.get(app.icon_mode)),
+            ContextMenuAction::Delete => " 󰆴 Delete".to_string(),
+            ContextMenuAction::Star => format!(" {} Star", Icon::Star.get(app.icon_mode)),
+            ContextMenuAction::Unstar => format!(" {} Unstar", Icon::Star.get(app.icon_mode)),
+            ContextMenuAction::Properties => format!(" {} Properties", Icon::Document.get(app.icon_mode)),
+            ContextMenuAction::TerminalHere => format!(" {} Terminal Here", Icon::Script.get(app.icon_mode)),
+            ContextMenuAction::Refresh => " 󰑓 Refresh".to_string(),
+            ContextMenuAction::SelectAll => " 󰒆 Select All".to_string(),
+            ContextMenuAction::ToggleHidden => " 󰈈 Toggle Hidden".to_string(),
+            ContextMenuAction::ConnectRemote => format!(" {} Connect", Icon::Remote.get(app.icon_mode)),
+            ContextMenuAction::DeleteRemote => " 󰆴 Delete Bookmark".to_string(),
+            ContextMenuAction::Mount => " 󰃭 Mount".to_string(),
+            ContextMenuAction::Unmount => " 󰃭 Unmount".to_string(),
+            ContextMenuAction::SetWallpaper => format!(" {} Set as Wallpaper", Icon::Image.get(app.icon_mode)),
+            ContextMenuAction::GitInit => format!(" {} Git Init", Icon::Git.get(app.icon_mode)),
+            ContextMenuAction::GitStatus => format!(" {} Git Status", Icon::Git.get(app.icon_mode)),
         };
         
         let mut item = ListItem::new(label);
@@ -654,6 +697,7 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
     let items = vec![
         ListItem::new(format!("[{}] Show Hidden Files (h)", if app.default_show_hidden { "x" } else { " " })),
         ListItem::new(format!("[{}] Confirm Delete (d)", if app.confirm_delete { "x" } else { " " })),
+        ListItem::new(format!("Icon Mode: {:?} (i)", app.icon_mode)),
     ];
     f.render_widget(List::new(items).block(Block::default().title(" General Preferences ").borders(Borders::NONE)), area);
 }
