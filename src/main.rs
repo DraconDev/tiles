@@ -24,11 +24,25 @@ use crate::icons::IconMode;
 fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<ContextMenuAction> {
     match target {
         ContextMenuTarget::File(idx) => {
-            let mut actions = vec![ContextMenuAction::Open, ContextMenuAction::Edit];
-            let mut is_starred = false;
+            // Check if multiple items are selected
+            let mut actions = Vec::new();
             if let Some(fs) = app.current_file_state() {
+                if !fs.multi_select.is_empty() && (fs.multi_select.contains(idx) || fs.multi_select.len() > 1) {
+                     // Multi-selection Context Menu
+                     actions.push(ContextMenuAction::Cut);
+                     actions.push(ContextMenuAction::Copy);
+                     actions.push(ContextMenuAction::Delete);
+                     actions.push(ContextMenuAction::Compress);
+                     return actions;
+                }
+
                 if let Some(path) = fs.files.get(*idx) {
-                    is_starred = app.starred.contains(path);
+                    let is_starred = app.starred.contains(path);
+                    
+                    actions.push(ContextMenuAction::Open);
+                    actions.push(ContextMenuAction::Edit);
+                    
+                    // Categorized actions
                     let cat = crate::modules::files::get_file_category(path);
                     match cat {
                         FileCategory::Archive => actions.push(ContextMenuAction::ExtractHere),
@@ -44,73 +58,93 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         }
                         _ => {}
                     }
+                    
+                    actions.extend(vec![
+                        ContextMenuAction::Cut,
+                        ContextMenuAction::Copy,
+                        ContextMenuAction::Rename,
+                        ContextMenuAction::Duplicate,
+                        ContextMenuAction::Compress,
+                        ContextMenuAction::Delete,
+                    ]);
+
+                    if !is_starred {
+                        actions.push(ContextMenuAction::AddToFavorites); // Dolphin style "Add to Places"
+                    } else {
+                        actions.push(ContextMenuAction::RemoveFromFavorites);
+                    }
+                    
+                    actions.push(ContextMenuAction::TerminalHere); // "Open Terminal Here" (parent dir)
+                    actions.push(ContextMenuAction::Properties);
                 }
             }
-            actions.extend(vec![
-                ContextMenuAction::Cut,
-                ContextMenuAction::Copy,
-                ContextMenuAction::Duplicate,
-                ContextMenuAction::Rename,
-                ContextMenuAction::Compress,
-                ContextMenuAction::Delete,
-            ]);
-            if is_starred {
-                actions.push(ContextMenuAction::Unstar);
-            } else {
-                actions.push(ContextMenuAction::Star);
-            }
-            actions.push(ContextMenuAction::TerminalHere);
-            actions.push(ContextMenuAction::Properties);
             actions
         }
         ContextMenuTarget::Folder(idx) => {
-            let mut actions = vec![
-                ContextMenuAction::Open,
-                ContextMenuAction::OpenNewTab,
-                ContextMenuAction::TerminalHere,
-                ContextMenuAction::NewFolder,
-                ContextMenuAction::NewFile,
-                ContextMenuAction::Cut,
-                ContextMenuAction::Copy,
-                ContextMenuAction::Duplicate,
-            ];
-            if app.clipboard.is_some() {
-                actions.push(ContextMenuAction::Paste);
-            }
-            actions.extend(vec![
-                ContextMenuAction::Rename,
-                ContextMenuAction::Compress,
-            ]);
-
-            if let Some(fs) = app.current_file_state() {
+             let mut actions = Vec::new();
+             // Check Multi-select first
+             if let Some(fs) = app.current_file_state() {
+                if !fs.multi_select.is_empty() && (fs.multi_select.contains(idx) || fs.multi_select.len() > 1) {
+                     actions.push(ContextMenuAction::Cut);
+                     actions.push(ContextMenuAction::Copy);
+                     actions.push(ContextMenuAction::Delete);
+                     actions.push(ContextMenuAction::Compress);
+                     return actions;
+                }
+                
                 if let Some(path) = fs.files.get(*idx) {
-                    if app.starred.contains(path) {
-                        actions.push(ContextMenuAction::Unstar);
+                    actions.push(ContextMenuAction::Open);
+                    actions.push(ContextMenuAction::OpenNewTab);
+                    actions.push(ContextMenuAction::TerminalHere);
+                    
+                    if !app.starred.contains(path) {
+                        actions.push(ContextMenuAction::AddToFavorites);
                     } else {
-                        actions.push(ContextMenuAction::Star);
+                        actions.push(ContextMenuAction::RemoveFromFavorites);
                     }
+
+                    actions.extend(vec![
+                        ContextMenuAction::Cut,
+                        ContextMenuAction::Copy,
+                        ContextMenuAction::Paste, // Allow pasting INTO the folder? (Dolphin does this)
+                        ContextMenuAction::Rename,
+                        ContextMenuAction::Duplicate,
+                        ContextMenuAction::Compress,
+                        ContextMenuAction::Delete,
+                    ]);
                     
                     if path.join(".git").exists() {
                         actions.push(ContextMenuAction::GitStatus);
                     } else {
                         actions.push(ContextMenuAction::GitInit);
                     }
+                    
+                    actions.push(ContextMenuAction::Properties);
                 }
-            }
-
-            actions.extend(vec![
-                ContextMenuAction::Delete,
-                ContextMenuAction::Properties,
-            ]);
-            actions
+             }
+             actions
         }
         ContextMenuTarget::EmptySpace => {
             let mut actions = vec![
-                ContextMenuAction::Refresh,
                 ContextMenuAction::NewFolder,
                 ContextMenuAction::NewFile,
             ];
-
+            
+            if app.clipboard.is_some() {
+                actions.push(ContextMenuAction::Paste);
+            }
+            
+            actions.push(ContextMenuAction::SelectAll);
+            actions.push(ContextMenuAction::Refresh);
+            
+            // Sorting Options
+            actions.push(ContextMenuAction::SortBy(crate::app::FileColumn::Name));
+            actions.push(ContextMenuAction::SortBy(crate::app::FileColumn::Size));
+            actions.push(ContextMenuAction::SortBy(crate::app::FileColumn::Modified));
+            
+            actions.push(ContextMenuAction::ToggleHidden);
+            actions.push(ContextMenuAction::TerminalHere);
+            
             if let Some(fs) = app.current_file_state() {
                 if fs.current_path.join(".git").exists() {
                     actions.push(ContextMenuAction::GitStatus);
@@ -118,23 +152,14 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     actions.push(ContextMenuAction::GitInit);
                 }
             }
-
-            if app.clipboard.is_some() {
-                actions.push(ContextMenuAction::Paste);
-            }
-            actions.extend(vec![
-                ContextMenuAction::SelectAll,
-                ContextMenuAction::TerminalHere,
-                ContextMenuAction::ToggleHidden,
-                ContextMenuAction::Properties,
-            ]);
+            actions.push(ContextMenuAction::Properties); // Folder properties
             actions
         }
         ContextMenuTarget::SidebarFavorite(_) => vec![
             ContextMenuAction::Open,
             ContextMenuAction::OpenNewTab,
             ContextMenuAction::TerminalHere,
-            ContextMenuAction::Unstar, // Change Delete to Unstar for favorites
+            ContextMenuAction::RemoveFromFavorites,
         ],
         ContextMenuTarget::SidebarRemote(_) => vec![
             ContextMenuAction::ConnectRemote,

@@ -102,6 +102,9 @@ pub enum ContextMenuAction {
     SetWallpaper,
     GitInit,
     GitStatus,
+    SortBy(FileColumn),
+    AddToFavorites,
+    RemoveFromFavorites,
 }
 
 #[derive(Clone, Debug, PartialEq)]
