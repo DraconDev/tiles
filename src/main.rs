@@ -1924,11 +1924,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         if draw_y + menu_height > h { draw_y = h.saturating_sub(menu_height); }
 
                         if column >= draw_x && column < draw_x + menu_width && row >= draw_y && row < draw_y + menu_height {
-                            let menu_row = row.saturating_sub(draw_y + 1) as usize;
-                            if let Some(action) = actions.get(menu_row) {
-                                handle_context_menu_action(action, &target, app, event_tx.clone());
+                            // Only trigger if clicked INSIDE the borders (not the top/bottom borders)
+                            if row > draw_y && row < draw_y + menu_height - 1 {
+                                let menu_row = (row - draw_y - 1) as usize;
+                                if let Some(action) = actions.get(menu_row) {
+                                    handle_context_menu_action(action, &target, app, event_tx.clone());
+                                }
                             }
-                            return;
+                            return; 
                         } else { app.mode = AppMode::Normal; } // Fall through
                     }
 
