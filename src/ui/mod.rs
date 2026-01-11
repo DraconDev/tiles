@@ -345,7 +345,24 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                 FileColumn::Name => {
                     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
                     let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
-                    let mut final_style = if is_dir { Style::default().fg(THEME.accent_secondary) } else { Style::default().fg(THEME.fg) };
+                    
+                    let path_color = app.path_colors.get(path).map(|&c| match c {
+                        1 => Color::Red,
+                        2 => Color::Green,
+                        3 => Color::Yellow,
+                        4 => Color::Blue,
+                        5 => Color::Magenta,
+                        6 => Color::Cyan,
+                        _ => Color::White,
+                    });
+
+                    let mut final_style = if let Some(c) = path_color {
+                        Style::default().fg(c).add_modifier(Modifier::BOLD)
+                    } else if is_dir {
+                        Style::default().fg(THEME.accent_secondary)
+                    } else {
+                        Style::default().fg(THEME.fg)
+                    };
                     
                     let icon = if is_dir { 
                         Icon::Folder.get(app.icon_mode) 

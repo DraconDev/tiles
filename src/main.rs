@@ -628,27 +628,27 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                 }
 
-                ContextMenuAction::SetColor(color) => {
+                                ContextMenuAction::SetColor(color) => {
 
-                    if let Some(c) = color {
+                                    if let Some(c) = color {
 
-                        let paths = match target {
+                                        let paths = match target {
 
-                            ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => get_targets(app, Some(*idx)),
+                                            ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => get_targets(app, Some(*idx)),
 
-                            _ => vec![],
+                                            _ => vec![],
 
-                        };
+                                        };
 
-                        for p in paths {
+                                        for p in paths {
 
-                            app.path_colors.insert(p, c);
+                                            app.path_colors.insert(p, *c);
 
-                        }
+                                        }
 
-                        let _ = crate::config::save_state(app);
+                                        let _ = crate::config::save_state(app);
 
-                    } else {
+                                    } else {
 
                         // Open Highlight modal
 
