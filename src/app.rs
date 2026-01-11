@@ -435,6 +435,7 @@ pub struct App {
 
     pub single_columns: Vec<FileColumn>,
     pub split_columns: Vec<FileColumn>,
+    pub sidebar_width_percent: u16,
 }
 
 impl App {
