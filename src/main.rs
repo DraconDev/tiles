@@ -258,8 +258,13 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             match event {
                 AppEvent::Raw(raw) => {
                     let mut app_guard = app.lock().unwrap();
-                    if handle_event(raw, &mut app_guard, event_tx.clone()) {
-                        needs_draw = true;
+                    match raw {
+                        Event::FocusGained | Event::FocusLost => { /* Ignore focus events for drawing */ }
+                        _ => {
+                            if handle_event(raw, &mut app_guard, event_tx.clone()) {
+                                needs_draw = true;
+                            }
+                        }
                     }
                 }
                 AppEvent::SystemUpdated(data) => {
