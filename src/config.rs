@@ -10,6 +10,7 @@ pub struct PersistentState {
     pub starred: Vec<PathBuf>,
     pub remote_bookmarks: Vec<RemoteBookmark>,
     pub current_view: CurrentView,
+    pub window_size: Option<(u16, u16)>,
 }
 
 pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
@@ -39,6 +40,7 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
         starred: app.starred.clone(),
         remote_bookmarks: app.remote_bookmarks.clone(),
         current_view: app.current_view.clone(),
+        window_size: if app.terminal_size.0 > 0 && app.terminal_size.1 > 0 { Some(app.terminal_size) } else { None },
     };
 
     let config_dir = dirs::config_dir().ok_or("Could not find config dir")?.join("tiles");
