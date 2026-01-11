@@ -1402,57 +1402,29 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                             }
 
-                            ContextMenuAction::GitStatus => {
+                                    ContextMenuAction::GitStatus => {
 
-                                let path = match target {
+                                        let path = match target {
 
-                                    ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+                                            ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
 
-                                    ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
+                                            ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
 
-                                    _ => None,
+                                            _ => None,
 
-                                };
+                                        };
 
-                                if let Some(p) = path {
+                                        if let Some(p) = path {
 
-                                    let _remote = app.current_file_state().and_then(|fs| fs.remote_session.as_ref());
+                                            let remote = app.current_file_state().and_then(|fs| fs.remote_session.as_ref());
 
-                                    let cmd = "git status; read -p 'Press enter to close... '";
+                                            let cmd = "git status; read -p 'Press enter to close... '";
 
-                                    let terminals = vec!["kgx", "gnome-terminal", "konsole", "xdg-terminal-exec", "alacritty", "kitty", "xterm"];
-
-                                    for t in terminals {
-
-                                        if std::process::Command::new("which").arg(t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false) {
-
-                                            let mut command = std::process::Command::new(t);
-
-                                            if t == "gnome-terminal" || t == "kgx" {
-
-                                                command.args(["--working-directory", &p.to_string_lossy(), "--", "sh", "-c", cmd]);
-
-                                            } else if t == "konsole" {
-
-                                                command.args(["--workdir", &p.to_string_lossy(), "-e", "sh", "-c", cmd]);
-
-                                            } else {
-
-                                                command.args(["-e", "sh", "-c", cmd]);
-
-                                            }
-
-                                            let _ = command.spawn();
-
-                                            break;
+                                            spawn_terminal(&p, false, remote, app.preferred_terminal.as_deref(), Some(cmd));
 
                                         }
 
                                     }
-
-                                }
-
-                            }
 
                         }
 
