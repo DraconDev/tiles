@@ -95,6 +95,8 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                 if let Some(path) = fs.files.get(*idx) {
                     actions.push(ContextMenuAction::Open);
                     actions.push(ContextMenuAction::OpenNewTab);
+                    actions.push(ContextMenuAction::NewFolder);
+                    actions.push(ContextMenuAction::NewFile);
                     actions.push(ContextMenuAction::TerminalHere);
                     
                     if !app.starred.contains(path) {
@@ -106,7 +108,7 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     actions.extend(vec![
                         ContextMenuAction::Cut,
                         ContextMenuAction::Copy,
-                        ContextMenuAction::Paste, // Allow pasting INTO the folder? (Dolphin does this)
+                        ContextMenuAction::Paste,
                         ContextMenuAction::Rename,
                         ContextMenuAction::Duplicate,
                         ContextMenuAction::Compress,
