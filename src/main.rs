@@ -2039,8 +2039,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     app.mode = AppMode::Normal;
                                 }
                             }
-                            return;
-                        } else { app.mode = AppMode::Normal; return; }
+                            return true;
+                        } else { app.mode = AppMode::Normal; return true; }
                     }
 
                     if app.mode == AppMode::Settings {
