@@ -2193,10 +2193,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     // Footer interaction
                     if row == h.saturating_sub(1) {
                         let mut current_x = 0;
-                        if column >= current_x && column < current_x + 9 { app.running = false; return; } current_x += 9;
-                        if column >= current_x && column < current_x + 12 { app.show_sidebar = !app.show_sidebar; return; } current_x += 12;
-                        if column >= current_x && column < current_x + 13 { app.mode = AppMode::Settings; return; } current_x += 13;
-                        if column >= current_x && column < current_x + 10 { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return; } current_x += 10;
+                        if column >= current_x && column < current_x + 9 { app.running = false; return true; } current_x += 9;
+                        if column >= current_x && column < current_x + 12 { app.show_sidebar = !app.show_sidebar; return true; } current_x += 12;
+                        if column >= current_x && column < current_x + 13 { app.mode = AppMode::Settings; return true; } current_x += 13;
+                        if column >= current_x && column < current_x + 10 { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; } current_x += 10;
                         if column >= current_x && column < current_x + 8 { 
                             if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                                 if let Some(fs) = pane.current_state() {
@@ -2205,7 +2205,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     pane.open_tab(new_fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                 }
                             }
-                            return; 
+                            return true; 
                         } current_x += 8;
                         if column >= current_x && column < current_x + 11 { 
                             if let Some(pane) = app.panes.get(app.focused_pane_index) { 
@@ -2218,7 +2218,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     });
                                 } 
                             }
-                            return; 
+                            return true; 
                         } current_x += 11;
                         if column >= current_x && column < current_x + 11 {
                             if let Some(pane) = app.panes.get(app.focused_pane_index) { 
@@ -2231,16 +2231,16 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     });
                                 } 
                             }
-                            return;
+                            return true;
                         } current_x += 11;
                         if column >= current_x && column < current_x + 10 {
                             app.input.clear(); 
                             app.mode = AppMode::CommandPalette; 
                             update_commands(app); 
-                            return;
+                            return true;
                         } current_x += 10;
                         if column >= current_x && column < current_x + 11 {
-                            let pane_idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx)); return;
+                            let pane_idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx)); return true;
                         }
                     }
 
