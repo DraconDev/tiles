@@ -973,11 +973,11 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                  let path_str = path.to_string_lossy();
                  let ssh_target = format!("{}@{}", r.user, r.host);
                  if t == "gnome-terminal" || t == "kgx" {
-                     cmd_str = format!("{} {} -- ssh -t {} \"cd '{}'; exec \\$SHELL\" &", t, args.join(" "), ssh_target, path_str);
+                     cmd_str = format!("{} {} -- ssh -t {} \"cd '{}'; exec \\$SHELL\"", t, args.join(" "), ssh_target, path_str);
                  } else if t == "konsole" {
-                     cmd_str = format!("{} {} -e ssh -t {} \"cd '{}'; exec \\$SHELL\" &", t, args.join(" "), ssh_target, path_str);
+                     cmd_str = format!("{} {} -e ssh -t {} \"cd '{}'; exec \\$SHELL\"", t, args.join(" "), ssh_target, path_str);
                  } else {
-                     cmd_str = format!("{} -e ssh -t {} \"cd '{}'; exec \\$SHELL\" &", t, ssh_target, path_str);
+                     cmd_str = format!("{} -e ssh -t {} \"cd '{}'; exec \\$SHELL\"", t, ssh_target, path_str);
                  }
             } else {
                 if t == "gnome-terminal" || t == "kgx" { args.push("--working-directory"); } 
@@ -985,10 +985,12 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                 else if t == "alacritty" { args.push("--working-directory"); }
                 
                 let path_str = path.to_string_lossy();
-                cmd_str = format!("{} {} \"{}\" &", t, args.join(" "), path_str);
+                cmd_str = format!("{} {} \"{}\"", t, args.join(" "), path_str);
             }
             
-            let _ = std::process::Command::new("sh")
+            // Use setsid to detach from the controlling terminal
+            let _ = std::process::Command::new("setsid")
+                .arg("sh")
                 .arg("-c")
                 .arg(&cmd_str)
                 .stdin(std::process::Stdio::null())
