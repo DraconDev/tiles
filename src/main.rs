@@ -2076,13 +2076,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     _ => {} 
                                 }
                             }
-                            return;
+                            return true;
                         } else { app.mode = AppMode::Normal; } // Fall through
                     }
 
                     if app.mode == AppMode::ImportServers {
                         let area_w = (w as f32 * 0.6) as u16; let area_h = (h as f32 * 0.2) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
-                        if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h { return; } // Clicked inside modal
+                        if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h { return true; } // Clicked inside modal
                         else {
                             let mut handled = false;
                             if row >= 3 { // Check if clicked on file list
@@ -2090,7 +2090,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 if let Some(fs) = app.current_file_state() { if index < fs.files.len() { let path = &fs.files[index]; if path.extension().map(|e| e == "toml").unwrap_or(false) { app.input.set_value(path.file_name().unwrap_or_default().to_string_lossy().to_string()); handled = true; } } } 
                             }
                             if !handled { app.mode = AppMode::Normal; } // Clicked outside modal and not on a toml file
-                            if !handled && button == MouseButton::Left { return; } // Prevent default action if not handled
+                            if !handled && button == MouseButton::Left { return true; } // Prevent default action if not handled
                         }
                     }
 
