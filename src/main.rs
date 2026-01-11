@@ -1464,7 +1464,6 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
         };
 
         if exists {
-            let mut args = Vec::new();
             let path_str = path.to_string_lossy();
 
             if let Some(r) = remote {
