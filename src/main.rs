@@ -2431,7 +2431,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             let new_percent = (column as f32 / w as f32 * 100.0) as u16;
                                             app.sidebar_width_percent = new_percent.clamp(5, 50);
                                         }
-                                        return;
+                                        return true;
                                     }
 
                                     // Check if drag has started
