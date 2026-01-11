@@ -329,6 +329,7 @@ fn navigate_back(fs: &mut crate::app::FileState) {
         fs.current_path = fs.history[fs.history_index].clone();
         fs.selected_index = Some(0);
         fs.table_state.select(Some(0));
+        fs.multi_select.clear();
         *fs.table_state.offset_mut() = 0;
         fs.search_filter.clear();
     }
@@ -340,6 +341,7 @@ fn navigate_forward(fs: &mut crate::app::FileState) {
         fs.current_path = fs.history[fs.history_index].clone();
         fs.selected_index = Some(0);
         fs.table_state.select(Some(0));
+        fs.multi_select.clear();
         *fs.table_state.offset_mut() = 0;
         fs.search_filter.clear();
     }
