@@ -427,6 +427,28 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         }
                     });
                 }
+                AppEvent::SpawnTerminal { path, new_tab, remote, command } => {
+                    let preferred = {
+                        let app_guard = app.lock().unwrap();
+                        app_guard.preferred_terminal.clone()
+                    };
+                    tokio::spawn(async move {
+                        // Small delay to let TUI settle before heavy system activity
+                        tokio::time::sleep(Duration::from_millis(50)).await;
+                        spawn_terminal(&path, new_tab, remote.as_ref(), preferred.as_deref(), command.as_deref());
+                    });
+                    // Start resize cooldown
+                    let mut app_guard = app.lock().unwrap();
+                    app_guard.ignore_resize_until = Some(std::time::Instant::now() + Duration::from_millis(300));
+                }
+                AppEvent::SpawnDetached { cmd, args } => {
+                    tokio::spawn(async move {
+                        tokio::time::sleep(Duration::from_millis(50)).await;
+                        spawn_detached(&cmd, args.iter().map(|s| s.as_str()).collect());
+                    });
+                    let mut app_guard = app.lock().unwrap();
+                    app_guard.ignore_resize_until = Some(std::time::Instant::now() + Duration::from_millis(300));
+                }
                 AppEvent::Tick => {} 
             }
         }
@@ -1560,6 +1582,11 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
 fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
     match evt {
         Event::Resize(w, h) => {
+            if let Some(until) = app.ignore_resize_until {
+                if std::time::Instant::now() < until {
+                    return;
+                }
+            }
             app.terminal_size = (w, h);
         }
         Event::Key(key) => {
