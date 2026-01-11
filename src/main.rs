@@ -931,23 +931,33 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                         }
 
-                        ContextMenuAction::RunTerminal => {
+                                        ContextMenuAction::RunTerminal => {
 
-                     if let ContextMenuTarget::File(idx) = target {
+                                     if let ContextMenuTarget::File(idx) = target {
 
-                        if let Some(fs) = app.current_file_state() {
+                                        if let Some(fs) = app.current_file_state() {
 
-                            if let Some(path) = fs.files.get(*idx) {
+                                            if let Some(path) = fs.files.get(*idx) {
 
-                                spawn_terminal(path, false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref(), None);
+                                                let _ = event_tx.try_send(AppEvent::SpawnTerminal {
 
-                            }
+                                                    path: path.clone(),
 
-                        }
+                                                    new_tab: false,
 
-                    }
+                                                    remote: fs.remote_session.clone(),
 
-                }
+                                                    command: None,
+
+                                                });
+
+                                            }
+
+                                        }
+
+                                    }
+
+                                }
 
         ContextMenuAction::ExtractHere => {
 
@@ -1317,15 +1327,25 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                                         }
 
-                                                            _ => app.current_file_state().and_then(|fs| fs.remote_session.as_ref())
+                                                                                _ => app.current_file_state().and_then(|fs| fs.remote_session.as_ref())
 
-                                                        };
+                                                                            };
 
-                                                        spawn_terminal(&p, false, remote, app.preferred_terminal.as_deref(), None);
+                                                                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
 
-                                                    }
+                                                                                path: p,
 
-                                                }
+                                                                                new_tab: false,
+
+                                                                                remote: remote.cloned(),
+
+                                                                                command: None,
+
+                                                                            });
+
+                                                                        }
+
+                                                                    }
 
                             ContextMenuAction::Refresh => {
 
@@ -1469,29 +1489,39 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                             }
 
-                                    ContextMenuAction::GitStatus => {
+                                            ContextMenuAction::GitStatus => {
 
-                                        let path = match target {
+                                                let path = match target {
 
-                                            ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+                                                    ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
 
-                                            ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
+                                                    ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
 
-                                            _ => None,
+                                                    _ => None,
 
-                                        };
+                                                };
 
-                                        if let Some(p) = path {
+                                                if let Some(p) = path {
 
-                                            let remote = app.current_file_state().and_then(|fs| fs.remote_session.as_ref());
+                                                    let remote = app.current_file_state().and_then(|fs| fs.remote_session.as_ref());
 
-                                            let cmd = "git status; read -p 'Press enter to close... '";
+                                                    let cmd = "git status; read -p 'Press enter to close... '".to_string();
 
-                                            spawn_terminal(&p, false, remote, app.preferred_terminal.as_deref(), Some(cmd));
+                                                    let _ = event_tx.try_send(AppEvent::SpawnTerminal {
 
-                                        }
+                                                        path: p,
 
-                                    }
+                                                        new_tab: false,
+
+                                                        remote: remote.cloned(),
+
+                                                        command: Some(cmd),
+
+                                                    });
+
+                                                }
+
+                                            }
 
                         }
 
