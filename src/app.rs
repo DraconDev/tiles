@@ -542,6 +542,7 @@ impl App {
                     sidebar_width_percent: 20,
                     is_resizing_sidebar: false,
                     show_sidebar: true,
+                    initial_window_size: state.window_size,
                 };
             }
         }
@@ -639,6 +640,7 @@ impl App {
             sidebar_width_percent: 20,
             is_resizing_sidebar: false,
             show_sidebar: true,
+            initial_window_size: None,
         };
         log_debug("App::new finished successfully");
         app
