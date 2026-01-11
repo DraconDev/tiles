@@ -987,7 +987,12 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                 cmd_str = format!("{} {} \"{}\" &", t, args.join(" "), path_str);
             }
             
-            let _ = std::process::Command::new("sh").arg("-c").arg(&cmd_str).spawn();
+            let _ = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(&cmd_str)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn();
             break;
         }
     }
