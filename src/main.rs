@@ -144,8 +144,6 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             if let Some(fs) = app.current_file_state() {
                 if fs.current_path.join(".git").exists() {
                     actions.push(ContextMenuAction::GitStatus);
-                } else {
-                    actions.push(ContextMenuAction::GitInit);
                 }
             }
             actions.push(ContextMenuAction::Properties); // Folder properties
