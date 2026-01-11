@@ -518,6 +518,7 @@ impl App {
                     preferred_terminal: None,
                     single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
                     split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
+                    sidebar_width_percent: 20,
                 };
             }
         }
@@ -611,6 +612,7 @@ impl App {
             preferred_terminal: None,
             single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
             split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
+            sidebar_width_percent: 20,
         };
         log_debug("App::new finished successfully");
         app
@@ -831,7 +833,7 @@ impl App {
         use ratatui::layout::{Constraint, Direction, Layout, Rect};
         let layout = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(20), Constraint::Min(0)])
+            .constraints([Constraint::Percentage(self.sidebar_width_percent), Constraint::Min(0)])
             .split(Rect::new(0, 0, self.terminal_size.0, self.terminal_size.1));
         layout[0].width
     }
