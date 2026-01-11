@@ -1468,7 +1468,7 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
 }
 
-fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::app::RemoteSession>, preferred_terminal: Option<&str>) {
+fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::app::RemoteSession>, preferred_terminal: Option<&str>, command_to_run: Option<&str>) {
     let mut terminals: Vec<String> = vec![
         "kgx".into(), "gnome-terminal".into(), "konsole".into(), "xdg-terminal-exec".into(), 
         "x-terminal-emulator".into(), "alacritty".into(), "kitty".into(), "xterm".into()
@@ -1498,16 +1498,20 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
 
             if let Some(r) = remote {
                  let ssh_target = format!("{}@{}", r.user, r.host);
-                 let cmd = format!("cd '{}'; exec $SHELL", path_str);
+                 let remote_cmd = if let Some(c) = command_to_run {
+                     format!("cd '{}'; {}; exec $SHELL", path_str, c)
+                 } else {
+                     format!("cd '{}'; exec $SHELL", path_str)
+                 };
                  
                  let mut command = std::process::Command::new(&t);
                  if t == "gnome-terminal" || t == "kgx" {
                      if new_tab { command.arg("--tab"); }
-                     command.args(["--", "ssh", "-t", &ssh_target, &cmd]);
+                     command.args(["--", "ssh", "-t", &ssh_target, &remote_cmd]);
                  } else if t == "konsole" {
-                     command.args(["-e", "ssh", "-t", &ssh_target, &cmd]);
+                     command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
                  } else {
-                     command.args(["-e", "ssh", "-t", &ssh_target, &cmd]);
+                     command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
                  }
                  
                  unsafe {
@@ -1520,15 +1524,40 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                  }
             } else {
                 let mut command = std::process::Command::new(&t);
+                
+                // Helper to build local command string
+                let local_cmd = if let Some(c) = command_to_run {
+                    format!("{}; exec $SHELL", c)
+                } else {
+                    "exec $SHELL".to_string()
+                };
+
                 if t == "gnome-terminal" || t == "kgx" {
                     if new_tab { command.arg("--tab"); }
                     command.arg("--working-directory").arg(&*path_str);
+                    if command_to_run.is_some() {
+                        command.arg("--").arg("sh").arg("-c").arg(&local_cmd);
+                    }
                 } else if t == "konsole" {
                     command.arg("--workdir").arg(&*path_str);
+                    if command_to_run.is_some() {
+                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                    }
                 } else if t == "alacritty" {
                     command.arg("--working-directory").arg(&*path_str);
+                    if command_to_run.is_some() {
+                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                    }
                 } else if t == "kitty" {
                     command.arg("--directory").arg(&*path_str);
+                    if command_to_run.is_some() {
+                        command.arg("sh").arg("-c").arg(&local_cmd);
+                    }
+                } else {
+                    // Generic fallback (xterm, etc)
+                    if command_to_run.is_some() {
+                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                    }
                 }
 
                 unsafe {
