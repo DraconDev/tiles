@@ -602,25 +602,36 @@ impl App {
             starred: {
                 let mut s = Vec::new();
                 if let Some(p) = dirs::home_dir() {
-                    if !s.contains(&p) {
-                        s.push(p);
+                    if !s.contains(&p) { s.push(p.clone()); }
+                    
+                    // Common folders relative to home if standard dirs fail or just to be safe
+                    let common = vec!["Desktop", "Downloads", "Documents", "Pictures", "Music", "Videos"];
+                    for c in common {
+                        let path = p.join(c);
+                        if path.exists() && !s.contains(&path) {
+                            s.push(path);
+                        }
+                    }
+
+                    // Developer folders
+                    let dev_names = vec!["Dev", "Development", "Projects", "Code", "git", "source", "work"];
+                    for d in dev_names {
+                        let path = p.join(d);
+                        if path.exists() && !s.contains(&path) {
+                            s.push(path);
+                            break; // Only add the first found dev folder to avoid clutter
+                        }
                     }
                 }
-                if let Some(p) = dirs::download_dir() {
-                    if !s.contains(&p) {
-                        s.push(p);
-                    }
-                }
-                if let Some(p) = dirs::document_dir() {
-                    if !s.contains(&p) {
-                        s.push(p);
-                    }
-                }
-                if let Some(p) = dirs::picture_dir() {
-                    if !s.contains(&p) {
-                        s.push(p);
-                    }
-                }
+                
+                // Fallback to dirs crate specific functions if not found above (though constructing from home usually works on Linux)
+                if let Some(p) = dirs::download_dir() { if !s.contains(&p) { s.push(p); } }
+                if let Some(p) = dirs::document_dir() { if !s.contains(&p) { s.push(p); } }
+                if let Some(p) = dirs::picture_dir() { if !s.contains(&p) { s.push(p); } }
+                if let Some(p) = dirs::desktop_dir() { if !s.contains(&p) { s.push(p); } }
+                if let Some(p) = dirs::audio_dir() { if !s.contains(&p) { s.push(p); } }
+                if let Some(p) = dirs::video_dir() { if !s.contains(&p) { s.push(p); } }
+
                 s
             },
             sidebar_bounds: Vec::new(),
