@@ -958,20 +958,20 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 }
 
 fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::app::RemoteSession>, preferred_terminal: Option<&str>) {
-    let mut terminals = vec!["kgx", "gnome-terminal", "konsole", "xdg-terminal-exec", "x-terminal-emulator", "alacritty", "kitty", "xterm"];
+    let mut terminals: Vec<String> = vec![
+        "kgx".into(), "gnome-terminal".into(), "konsole".into(), "xdg-terminal-exec".into(), 
+        "x-terminal-emulator".into(), "alacritty".into(), "kitty".into(), "xterm".into()
+    ];
     
-    // If we have a cached/preferred terminal, try that first and exclusively if it works/exists
-    // Actually, to keep it robust, if preferred is passed, we check it.
     let mut resolved_terminals = Vec::new();
     if let Some(pt) = preferred_terminal {
-        resolved_terminals.push(pt);
+        resolved_terminals.push(pt.to_string());
     }
     
-    // If no preferred, or if we want fallbacks (but typically if detected once, it's good)
-    // We will just use the list if preferred is None.
     if preferred_terminal.is_none() {
-        let env_t;
-        if let Ok(et) = std::env::var("TERMINAL") { env_t = et; terminals.insert(0, &env_t); }
+        if let Ok(et) = std::env::var("TERMINAL") { 
+            terminals.insert(0, et); 
+        }
         resolved_terminals.extend(terminals);
     }
 
@@ -979,10 +979,10 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
         // Optimization: If it's the preferred one (detected previously), we assume it exists or check quickly.
         // If it's a raw string from the list, we check `which`.
         
-        let exists = if Some(t) == preferred_terminal {
+        let exists = if Some(t.as_str()) == preferred_terminal {
             true // Trust the cache
         } else {
-             std::process::Command::new("which").arg(t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false)
+             std::process::Command::new("which").arg(&t).stdout(std::process::Stdio::null()).status().map(|s| s.success()).unwrap_or(false)
         };
 
         if exists {
