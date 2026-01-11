@@ -1734,11 +1734,19 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             match app.mode {
                 AppMode::CommandPalette => {
                     match key.code {
-                        KeyCode::Esc => app.mode = AppMode::Normal,
-                        KeyCode::Enter => { if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() { execute_command(cmd.action, app, event_tx.clone()); } app.mode = AppMode::Normal; app.input.clear(); }
+                        KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
+                        KeyCode::Enter => { 
+                            if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() { 
+                                execute_command(cmd.action, app, event_tx.clone()); 
+                            } 
+                            app.mode = AppMode::Normal; 
+                            app.input.clear();
+                            return true;
+                        }
                         _ => {
                             if app.input.handle_event(&evt) {
                                 update_commands(app);
+                                return true;
                             }
                         }
                     }
