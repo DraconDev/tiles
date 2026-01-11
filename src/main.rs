@@ -629,16 +629,15 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
                 }
             }
         }
-        ContextMenuAction::RunTerminal => {
-             if let ContextMenuTarget::File(idx) = target {
-                if let Some(fs) = app.current_file_state() {
-                    if let Some(path) = fs.files.get(*idx) {
-                        spawn_terminal(path, false, fs.remote_session.as_ref());
+                        ContextMenuAction::RunTerminal => {
+                     if let ContextMenuTarget::File(idx) = target {
+                        if let Some(fs) = app.current_file_state() {
+                            if let Some(path) = fs.files.get(*idx) {
+                                spawn_terminal(path, false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref());
+                            }
+                        }
                     }
-                }
-            }
-        }
-        ContextMenuAction::ExtractHere => {
+                }        ContextMenuAction::ExtractHere => {
              if let ContextMenuTarget::File(idx) = target {
                 if let Some(fs) = app.current_file_state() {
                     if let Some(path) = fs.files.get(*idx) {
