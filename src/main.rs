@@ -1663,7 +1663,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 KeyCode::Char('e') | KeyCode::Char('E') if has_control => { 
                     if let Some(pane) = app.panes.get(app.focused_pane_index) { 
                         if let Some(fs) = pane.current_state() { 
-                            spawn_terminal(&fs.current_path, true, fs.remote_session.as_ref(), app.preferred_terminal.as_deref(), None); 
+                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                                path: fs.current_path.clone(),
+                                new_tab: true,
+                                remote: fs.remote_session.clone(),
+                                command: None,
+                            });
                         } 
                     } 
                     return;
@@ -1691,7 +1696,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 KeyCode::Char('.') if has_control => {
                     if let Some(pane) = app.panes.get(app.focused_pane_index) {
                         if let Some(fs) = pane.current_state() {
-                            spawn_terminal(&fs.current_path, false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref(), None);
+                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                                path: fs.current_path.clone(),
+                                new_tab: false,
+                                remote: fs.remote_session.clone(),
+                                command: None,
+                            });
                         }
                     }
                     return;
@@ -2203,7 +2213,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         if column >= current_x && column < current_x + 11 { 
                             if let Some(pane) = app.panes.get(app.focused_pane_index) { 
                                 if let Some(fs) = pane.current_state() { 
-                                    spawn_terminal(&fs.current_path, true, fs.remote_session.as_ref(), app.preferred_terminal.as_deref(), None); 
+                                    let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                                        path: fs.current_path.clone(),
+                                        new_tab: true,
+                                        remote: fs.remote_session.clone(),
+                                        command: None,
+                                    });
                                 } 
                             }
                             return; 
@@ -2211,7 +2226,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         if column >= current_x && column < current_x + 11 {
                             if let Some(pane) = app.panes.get(app.focused_pane_index) { 
                                 if let Some(fs) = pane.current_state() { 
-                                    spawn_terminal(&fs.current_path, false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref(), None); 
+                                    let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                                        path: fs.current_path.clone(),
+                                        new_tab: false,
+                                        remote: fs.remote_session.clone(),
+                                        command: None,
+                                    });
                                 } 
                             }
                             return;
