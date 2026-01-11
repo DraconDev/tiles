@@ -1917,6 +1917,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     1 => app.settings_section = SettingsSection::Tabs,
                                     2 => app.settings_section = SettingsSection::General,
                                     3 => app.settings_section = SettingsSection::Remotes,
+                                    4 => app.settings_section = SettingsSection::Shortcuts,
                                     _ => {} 
                                 }
                             } else {
