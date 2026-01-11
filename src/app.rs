@@ -658,6 +658,7 @@ impl App {
             is_resizing_sidebar: false,
             show_sidebar: true,
             initial_window_size: None,
+            path_colors: HashMap::new(),
         };
         log_debug("App::new finished successfully");
         app
