@@ -137,12 +137,6 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             actions.push(ContextMenuAction::SelectAll);
             actions.push(ContextMenuAction::Refresh);
             
-            // Sorting Options
-            actions.push(ContextMenuAction::SortBy(crate::app::FileColumn::Name));
-            actions.push(ContextMenuAction::SortBy(crate::app::FileColumn::Size));
-            actions.push(ContextMenuAction::SortBy(crate::app::FileColumn::Modified));
-            
-            actions.push(ContextMenuAction::ToggleHidden);
             actions.push(ContextMenuAction::TerminalHere);
             
             if let Some(fs) = app.current_file_state() {
