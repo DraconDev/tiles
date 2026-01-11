@@ -1636,6 +1636,43 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         }
                     }
                 }
+                AppMode::Highlight => {
+                    if let KeyCode::Char(c) = key.code {
+                        if let Some(digit) = c.to_digit(10) {
+                            if digit <= 6 {
+                                let color = if digit == 0 { None } else { Some(digit as u8) };
+                                // Apply to current selection
+                                if let AppMode::Highlight = app.mode {
+                                    // We need the target from the ContextMenu which is gone...
+                                    // Wait, I should have saved the target index!
+                                    // Or just use the current selection in the focused pane.
+                                    if let Some(fs) = app.current_file_state() {
+                                        let mut paths = Vec::new();
+                                        if !fs.multi_select.is_empty() {
+                                            for &idx in &fs.multi_select {
+                                                if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
+                                            }
+                                        } else if let Some(idx) = fs.selected_index {
+                                            if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
+                                        }
+
+                                        for p in paths {
+                                            if let Some(col) = color {
+                                                app.path_colors.insert(p, col);
+                                            } else {
+                                                app.path_colors.remove(&p);
+                                            }
+                                        }
+                                        let _ = crate::config::save_state(app);
+                                    }
+                                }
+                                app.mode = AppMode::Normal;
+                            }
+                        }
+                    } else if key.code == KeyCode::Esc {
+                        app.mode = AppMode::Normal;
+                    }
+                }
                 AppMode::Settings => {
                     match key.code {
                         KeyCode::Esc => app.mode = AppMode::Normal,
@@ -1863,7 +1900,37 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         return;
                     }
 
-                    // 0. Modal interaction
+                    if app.mode == AppMode::Highlight {
+                        let area_w = 40; let area_h = 20; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
+                        if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
+                            let rel_y = row.saturating_sub(area_y + 1);
+                            if rel_y < 7 {
+                                let colors = [1, 2, 3, 4, 5, 6, 0];
+                                let color_idx = colors[rel_y as usize];
+                                let color = if color_idx == 0 { None } else { Some(color_idx) };
+                                
+                                if let Some(fs) = app.current_file_state() {
+                                    let mut paths = Vec::new();
+                                    if !fs.multi_select.is_empty() {
+                                        for &idx in &fs.multi_select {
+                                            if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
+                                        }
+                                    } else if let Some(idx) = fs.selected_index {
+                                        if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
+                                    }
+
+                                    for p in paths {
+                                        if let Some(col) = color { app.path_colors.insert(p, col); }
+                                        else { app.path_colors.remove(&p); }
+                                    }
+                                    let _ = crate::config::save_state(app);
+                                }
+                                app.mode = AppMode::Normal;
+                            }
+                            return;
+                        } else { app.mode = AppMode::Normal; return; }
+                    }
+
                     if app.mode == AppMode::Settings {
                         let area_w = (w as f32 * 0.8) as u16; let area_h = (h as f32 * 0.8) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
                         if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
