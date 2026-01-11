@@ -255,11 +255,12 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
         // 1. Process All Pending Events
         let mut needs_draw = false;
         while let Ok(event) = event_rx.try_recv() {
-            needs_draw = true;
             match event {
                 AppEvent::Raw(raw) => {
                     let mut app_guard = app.lock().unwrap();
-                    handle_event(raw, &mut app_guard, event_tx.clone());
+                    if handle_event(raw, &mut app_guard, event_tx.clone()) {
+                        needs_draw = true;
+                    }
                 }
                 AppEvent::SystemUpdated(data) => {
                     let mut app_guard = app.lock().unwrap();
@@ -267,6 +268,7 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     app_guard.system_state.mem_usage = data.mem_usage;
                     app_guard.system_state.total_mem = data.total_mem;
                     app_guard.system_state.disks = data.disks;
+                    needs_draw = true;
                 }
                 AppEvent::RefreshFiles(pane_idx) => {
                     let (path, show_hidden, filter, session, sort_column, sort_ascending) = {
@@ -301,7 +303,8 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                             if let Ok(s) = s_mutex.lock() { 
                                 crate::modules::files::update_files(&mut temp_state, Some(&s)); 
                             }
-                        } else {
+                        }
+                        else {
                             crate::modules::files::update_local_files(&mut temp_state);
                         }
                         
@@ -324,6 +327,7 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                             fs.git_status = git; 
                             fs.git_branch = branch;
                             fs.local_count = local_count;
+                            needs_draw = true;
                         }
                     }
                 }
@@ -332,30 +336,35 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     let mut app_guard = app.lock().unwrap();
                     let idx = app_guard.focused_pane_index;
                     app_guard.update_files_for_active_tab(idx);
+                    needs_draw = true;
                 }
                 AppEvent::Rename(old, new) => {
                     let _ = std::fs::rename(old, new);
                     let mut app_guard = app.lock().unwrap();
                     let idx = app_guard.focused_pane_index;
                     app_guard.update_files_for_active_tab(idx);
+                    needs_draw = true;
                 }
                 AppEvent::Copy(src, dest) => {
                     let _ = crate::modules::files::copy_recursive(&src, &dest);
                     let mut app_guard = app.lock().unwrap();
                     let idx = app_guard.focused_pane_index;
                     app_guard.update_files_for_active_tab(idx);
+                    needs_draw = true;
                 }
                 AppEvent::CreateFile(path) => {
                     let _ = std::fs::File::create(&path);
                     let mut app_guard = app.lock().unwrap();
                     let idx = app_guard.focused_pane_index;
                     app_guard.update_files_for_active_tab(idx);
+                    needs_draw = true;
                 }
                 AppEvent::CreateFolder(path) => {
                     let _ = std::fs::create_dir(&path);
                     let mut app_guard = app.lock().unwrap();
                     let idx = app_guard.focused_pane_index;
                     app_guard.update_files_for_active_tab(idx);
+                    needs_draw = true;
                 }
                 AppEvent::RemoteConnected(pane_idx, session) => {
                     let mut app_guard = app.lock().unwrap();
@@ -371,51 +380,33 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         }
                     }
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
+                    needs_draw = true;
                 }
                 AppEvent::PreviewRequested(target_pane_idx, path) => {
                     let app_clone = app.clone();
                     let tx = event_tx.clone();
                     tokio::spawn(async move {
-                        // For now, only local previews. Remote previews could be added later.
                         if let Ok(content) = std::fs::read_to_string(&path) {
-                            // Limit content to first 2000 chars for now
                             let preview_content = content.chars().take(2000).collect::<String>();
                             let mut app_guard = app_clone.lock().unwrap();
-                            
-                            // If split is not active and we want to preview on the "other" pane, 
-                            // we should probably enable split.
-                            if app_guard.panes.len() < 2 {
-                                app_guard.toggle_split();
-                            }
-                            
+                            if app_guard.panes.len() < 2 { app_guard.toggle_split(); }
                             if let Some(pane) = app_guard.panes.get_mut(target_pane_idx) {
-                                pane.preview = Some(crate::app::PreviewState {
-                                    path,
-                                    content: preview_content,
-                                    scroll: 0,
-                                });
+                                pane.preview = Some(crate::app::PreviewState { path, content: preview_content, scroll: 0 });
                             }
                         } else if path.is_dir() {
-                             // If it's a directory, maybe just navigate the other pane to it?
                              {
                                  let mut app_guard = app_clone.lock().unwrap();
-                                 if app_guard.panes.len() < 2 {
-                                     app_guard.toggle_split();
-                                 }
+                                 if app_guard.panes.len() < 2 { app_guard.toggle_split(); }
                                  if let Some(pane) = app_guard.panes.get_mut(target_pane_idx) {
                                      if let Some(fs) = pane.current_state_mut() {
-                                         fs.current_path = path.clone();
-                                         fs.selected_index = Some(0);
-                                         fs.multi_select.clear();
-                                         fs.search_filter.clear();
-                                         *fs.table_state.offset_mut() = 0;
-                                         push_history(fs, path);
+                                         fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path);
                                      }
                                  }
                              }
                              let _ = tx.send(AppEvent::RefreshFiles(target_pane_idx)).await;
                         }
                     });
+                    needs_draw = true;
                 }
                 AppEvent::SpawnTerminal { path, new_tab, remote, command } => {
                     let preferred = {
@@ -431,12 +422,12 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         spawn_detached(&cmd, args.iter().map(|s| s.as_str()).collect());
                     });
                 }
-                AppEvent::Tick => {} 
+                AppEvent::Tick => { needs_draw = true; } 
             }
         }
 
-        // 2. Draw
-        {
+        // 2. Draw if needed
+        if needs_draw {
             let mut app_guard = app.lock().unwrap();
             if !app_guard.running { 
                 let _ = crate::config::save_state(&app_guard);
