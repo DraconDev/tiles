@@ -1637,6 +1637,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                     return;
                 }
+                KeyCode::Char('.') if has_control => {
+                    if let Some(pane) = app.panes.get(app.focused_pane_index) {
+                        if let Some(fs) = pane.current_state() {
+                            spawn_terminal(&fs.current_path, false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref());
+                        }
+                    }
+                    return;
+                }
                 KeyCode::Char(' ') if has_control => { 
                     app.input.clear(); 
                     app.mode = AppMode::CommandPalette; 
