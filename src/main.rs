@@ -1170,13 +1170,13 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
             }
 
-        }
+                        }
 
-        ContextMenuAction::Star => { /* Removed */ }
+                    };
 
-        ContextMenuAction::Unstar => { /* Removed */ }
+                }
 
-        ContextMenuAction::Properties => {
+                ContextMenuAction::Properties => {
 
             app.mode = AppMode::Properties;
 
