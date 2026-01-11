@@ -471,6 +471,7 @@ pub struct App {
     pub show_sidebar: bool,
     pub initial_window_size: Option<(u16, u16)>,
     pub path_colors: HashMap<PathBuf, u8>,
+    pub ignore_resize_until: Option<std::time::Instant>,
 }
 
 impl App {
@@ -559,6 +560,7 @@ impl App {
                     show_sidebar: true,
                     initial_window_size: state.window_size,
                     path_colors: state.path_colors,
+                    ignore_resize_until: None,
                 };
             }
         }
@@ -669,6 +671,7 @@ impl App {
             show_sidebar: true,
             initial_window_size: None,
             path_colors: HashMap::new(),
+            ignore_resize_until: None,
         };
         log_debug("App::new finished successfully");
         app
