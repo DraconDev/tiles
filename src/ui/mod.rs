@@ -496,6 +496,23 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
             ContextMenuAction::SetWallpaper => format!(" {} Set as Wallpaper", Icon::Image.get(app.icon_mode)),
             ContextMenuAction::GitInit => format!(" {} Git Init", Icon::Git.get(app.icon_mode)),
             ContextMenuAction::GitStatus => format!(" {} Git Status", Icon::Git.get(app.icon_mode)),
+            ContextMenuAction::SortBy(col) => {
+                let name = match col {
+                    crate::app::FileColumn::Name => "Name",
+                    crate::app::FileColumn::Size => "Size",
+                    crate::app::FileColumn::Modified => "Date",
+                    _ => "Unknown",
+                };
+                let mut label = format!(" 󰒺 Sort by {}", name);
+                if let Some(fs) = app.current_file_state() {
+                    if fs.sort_column == *col {
+                        label.push_str(if fs.sort_ascending { " (▲)" } else { " (▼)" });
+                    }
+                }
+                label
+            },
+            ContextMenuAction::AddToFavorites => format!(" {} Add to Places", Icon::Star.get(app.icon_mode)),
+            ContextMenuAction::RemoveFromFavorites => format!(" {} Remove from Places", Icon::Star.get(app.icon_mode)),
         };
         
         let mut item = ListItem::new(label);
