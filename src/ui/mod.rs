@@ -199,7 +199,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     let workspace = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(20), Constraint::Min(0)])
+        .constraints([Constraint::Percentage(app.sidebar_width_percent), Constraint::Min(0)])
         .split(chunks[1]);
 
     draw_global_header(f, chunks[0], workspace[0].width, app);
