@@ -1982,17 +1982,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
 
                     // Footer interaction
                     if row == h.saturating_sub(1) {
-                        // Very rough hit detection for footer items based on string layout in ui::draw_footer
-                        // " ^Q " (4) "Quit " (5) = 9
-                        // " ^B " (4) "Sidebar " (8) = 12
-                        // " ^G " (4) "Settings " (9) = 13
-                        // " ^S " (4) "Split " (6) = 10
-                        // " ^T " (4) "Tab " (4) = 8
-                        // " ^E " (4) "Term-T " (7) = 11
-                        // " ^. " (4) "Term-W " (7) = 11
-                        // " ^Spc " (6) "Cmd " (4) = 10
-                        // " ^H " (4) "Hidden " (7) = 11
-                        
                         let mut current_x = 0;
                         if column >= current_x && column < current_x + 9 { app.running = false; return; } current_x += 9;
                         if column >= current_x && column < current_x + 12 { app.show_sidebar = !app.show_sidebar; return; } current_x += 12;
