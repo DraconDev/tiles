@@ -1756,74 +1756,69 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         if let Some(digit) = c.to_digit(10) {
                             if digit <= 6 {
                                 let color = if digit == 0 { None } else { Some(digit as u8) };
-                                // Apply to current selection
-                                if let AppMode::Highlight = app.mode {
-                                    // We need the target from the ContextMenu which is gone...
-                                    // Wait, I should have saved the target index!
-                                    // Or just use the current selection in the focused pane.
-                                    if let Some(fs) = app.current_file_state() {
-                                        let mut paths = Vec::new();
-                                        if !fs.multi_select.is_empty() {
-                                            for &idx in &fs.multi_select {
-                                                if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
-                                            }
-                                        } else if let Some(idx) = fs.selected_index {
+                                if let Some(fs) = app.current_file_state() {
+                                    let mut paths = Vec::new();
+                                    if !fs.multi_select.is_empty() {
+                                        for &idx in &fs.multi_select {
                                             if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
                                         }
-
-                                        for p in paths {
-                                            if let Some(col) = color {
-                                                app.path_colors.insert(p, col);
-                                            } else {
-                                                app.path_colors.remove(&p);
-                                            }
-                                        }
-                                        let _ = crate::config::save_state(app);
+                                    } else if let Some(idx) = fs.selected_index {
+                                        if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
                                     }
+
+                                    for p in paths {
+                                        if let Some(col) = color { app.path_colors.insert(p, col); }
+                                        else { app.path_colors.remove(&p); }
+                                    }
+                                    let _ = crate::config::save_state(app);
                                 }
                                 app.mode = AppMode::Normal;
+                                return true;
                             }
                         }
                     } else if key.code == KeyCode::Esc {
                         app.mode = AppMode::Normal;
+                        return true;
                     }
                 }
                 AppMode::Settings => {
                     match key.code {
-                        KeyCode::Esc => app.mode = AppMode::Normal,
-                        KeyCode::Char('1') => app.settings_target = SettingsTarget::SingleMode,
-                        KeyCode::Char('2') => app.settings_target = SettingsTarget::SplitMode,
-                        KeyCode::Left | KeyCode::BackTab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Shortcuts, SettingsSection::Tabs => SettingsSection::Columns, SettingsSection::General => SettingsSection::Tabs, SettingsSection::Remotes => SettingsSection::General, SettingsSection::Shortcuts => SettingsSection::Remotes }; } 
-                        KeyCode::Right | KeyCode::Tab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Tabs, SettingsSection::Tabs => SettingsSection::General, SettingsSection::General => SettingsSection::Remotes, SettingsSection::Remotes => SettingsSection::Shortcuts, SettingsSection::Shortcuts => SettingsSection::Columns }; } 
-                        KeyCode::Char('n') => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
-                        KeyCode::Char('s') => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
-                        KeyCode::Char('m') => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
-                        KeyCode::Char('p') => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
+                        KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
+                        KeyCode::Char('1') => { app.settings_target = SettingsTarget::SingleMode; return true; }
+                        KeyCode::Char('2') => { app.settings_target = SettingsTarget::SplitMode; return true; }
+                        KeyCode::Left | KeyCode::BackTab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Shortcuts, SettingsSection::Tabs => SettingsSection::Columns, SettingsSection::General => SettingsSection::Tabs, SettingsSection::Remotes => SettingsSection::General, SettingsSection::Shortcuts => SettingsSection::Remotes }; return true; } 
+                        KeyCode::Right | KeyCode::Tab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Tabs, SettingsSection::Tabs => SettingsSection::General, SettingsSection::General => SettingsSection::Remotes, SettingsSection::Remotes => SettingsSection::Shortcuts, SettingsSection::Shortcuts => SettingsSection::Columns }; return true; } 
+                        KeyCode::Char('n') => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                        KeyCode::Char('s') => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                        KeyCode::Char('m') => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                        KeyCode::Char('p') => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
                         KeyCode::Char('i') => {
                             app.icon_mode = match app.icon_mode {
                                 IconMode::Nerd => IconMode::Unicode,
                                 IconMode::Unicode => IconMode::ASCII,
                                 IconMode::ASCII => IconMode::Nerd,
                             };
+                            return true;
                         }
-                        KeyCode::Char('h') if app.settings_section == SettingsSection::General => { app.default_show_hidden = !app.default_show_hidden; } 
-                        KeyCode::Char('d') if app.settings_section == SettingsSection::General => { app.confirm_delete = !app.confirm_delete; } 
+                        KeyCode::Char('h') if app.settings_section == SettingsSection::General => { app.default_show_hidden = !app.default_show_hidden; return true; } 
+                        KeyCode::Char('d') if app.settings_section == SettingsSection::General => { app.confirm_delete = !app.confirm_delete; return true; } 
                         _ => {} 
                     }
                 }
-                                AppMode::ImportServers => {
-                                    match key.code {
-                                        KeyCode::Esc => app.mode = AppMode::Normal,
-                                        KeyCode::Enter => {
-                                            let filename = app.input.value.clone();
-                                            let import_path = if let Some(fs) = app.current_file_state() { fs.current_path.join(filename) } else { std::path::PathBuf::from(filename) };
-                                            let _ = app.import_servers(import_path);
-                                            let _ = crate::config::save_state(app);
-                                            app.mode = AppMode::Normal; app.input.clear();
-                                        }
-                                        _ => { app.input.handle_event(&evt); }
-                                    }
-                                }
+                AppMode::ImportServers => {
+                    match key.code {
+                        KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
+                        KeyCode::Enter => {
+                            let filename = app.input.value.clone();
+                            let import_path = if let Some(fs) = app.current_file_state() { fs.current_path.join(filename) } else { std::path::PathBuf::from(filename) };
+                            let _ = app.import_servers(import_path);
+                            let _ = crate::config::save_state(app);
+                            app.mode = AppMode::Normal; app.input.clear();
+                            return true;
+                        }
+                        _ => { return app.input.handle_event(&evt); }
+                    }
+                }
                                 AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete => {
                                     // Rename special logic
                                     if app.mode == AppMode::Rename && app.rename_selected {
