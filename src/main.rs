@@ -1917,12 +1917,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
 
                     if let AppMode::ContextMenu { x, y, target, actions } = app.mode.clone() {
-                        let items_count = match target {
-                            ContextMenuTarget::File(_) => 5, ContextMenuTarget::Folder(_) => 4, ContextMenuTarget::EmptySpace => 4,
-                            ContextMenuTarget::SidebarFavorite(_) => 2, ContextMenuTarget::SidebarRemote(_) => 2,
-                            ContextMenuTarget::SidebarStorage(idx) => { if app.system_state.disks.get(idx).map(|d| d.is_mounted).unwrap_or(false) { 2 } else { 1 } }
-                        };
-                        let menu_width = 22; let menu_height = items_count as u16 + 2;
+                        let menu_width = 25; 
+                        let menu_height = actions.len() as u16 + 2;
                         let mut draw_x = x; let mut draw_y = y;
                         if draw_x + menu_width > w { draw_x = w.saturating_sub(menu_width); }
                         if draw_y + menu_height > h { draw_y = h.saturating_sub(menu_height); }
