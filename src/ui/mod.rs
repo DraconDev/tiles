@@ -178,7 +178,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let block = Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .title(ratatui::widgets::block::Title::from(Span::styled(" 󰤼 ", Style::default().fg(Color::Yellow))).alignment(ratatui::layout::Alignment::Right))
+                .title(ratatui::widgets::block::Title::from(Span::styled(" 󰁔 ", Style::default().fg(Color::Yellow))).alignment(ratatui::layout::Alignment::Right))
                 .border_style(if app.sidebar_focus { 
                     Style::default().fg(THEME.border_active) 
                 } else { 
