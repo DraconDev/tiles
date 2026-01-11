@@ -695,23 +695,29 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                 }
 
-                        ContextMenuAction::Open => {
+                                ContextMenuAction::Open => {
 
-                            match target {
+                                    match target {
 
-                                ContextMenuTarget::File(idx) => {
+                                        ContextMenuTarget::File(idx) => {
 
-                                    if let Some(fs) = app.current_file_state() {
+                                            if let Some(fs) = app.current_file_state() {
 
-                                        if let Some(path) = fs.files.get(*idx) {
+                                                if let Some(path) = fs.files.get(*idx) {
 
-                                            spawn_detached("xdg-open", vec![&path.to_string_lossy()]);
+                                                    let _ = event_tx.try_send(AppEvent::SpawnDetached {
+
+                                                        cmd: "xdg-open".to_string(),
+
+                                                        args: vec![path.to_string_lossy().to_string()],
+
+                                                    });
+
+                                                }
+
+                                            }
 
                                         }
-
-                                    }
-
-                                }
 
                 ContextMenuTarget::Folder(idx) => {
 
@@ -841,27 +847,37 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
         }
 
-                ContextMenuAction::Edit => {
+                        ContextMenuAction::Edit => {
 
-                    if let ContextMenuTarget::File(idx) = target {
+                            if let ContextMenuTarget::File(idx) = target {
 
-                        if let Some(fs) = app.current_file_state() {
+                                if let Some(fs) = app.current_file_state() {
 
-                            if let Some(path) = fs.files.get(*idx) {
+                                    if let Some(path) = fs.files.get(*idx) {
 
-                                let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
+                                        let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
 
-                                let cmd = format!("{} \"{}\"", editor, path.to_string_lossy());
+                                        let cmd = format!("{} \"{}\"", editor, path.to_string_lossy());
 
-                                spawn_terminal(path.parent().unwrap_or(Path::new(".")), false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref(), Some(&cmd));
+                                        let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+
+                                            path: path.parent().unwrap_or(Path::new(".")).to_path_buf(),
+
+                                            new_tab: false,
+
+                                            remote: fs.remote_session.clone(),
+
+                                            command: Some(cmd),
+
+                                        });
+
+                                    }
+
+                                }
 
                             }
 
                         }
-
-                    }
-
-                }
 
                         ContextMenuAction::Run => {
 
@@ -877,15 +893,35 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                                             FileCategory::Audio | FileCategory::Video => {
 
-                                                spawn_detached("xdg-open", vec![&path.to_string_lossy()]);
+                                                let _ = event_tx.try_send(AppEvent::SpawnDetached {
+
+                                                    cmd: "xdg-open".to_string(),
+
+                                                    args: vec![path.to_string_lossy().to_string()],
+
+                                                });
 
                                             }
 
                                             _ => {
 
-                                        let cmd = format!("./\"{}\"", path.file_name().unwrap_or_default().to_string_lossy());
+                                                let cmd = format!("./\"{}\"", path.file_name().unwrap_or_default().to_string_lossy());
 
-                                        spawn_terminal(path.parent().unwrap_or(Path::new(".")), false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref(), Some(&cmd));
+                                                let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+
+                                                    path: path.parent().unwrap_or(Path::new(".")).to_path_buf(),
+
+                                                    new_tab: false,
+
+                                                    remote: fs.remote_session.clone(),
+
+                                                    command: Some(cmd),
+
+                                                });
+
+                                            }
+
+                                        }
 
                                     }
 
@@ -894,10 +930,6 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
                             }
 
                         }
-
-                    }
-
-                }
 
                         ContextMenuAction::RunTerminal => {
 
