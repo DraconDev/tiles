@@ -806,53 +806,19 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
         }
 
-        ContextMenuAction::Edit => {
+                ContextMenuAction::Edit => {
 
-            if let ContextMenuTarget::File(idx) = target {
+                    if let ContextMenuTarget::File(idx) = target {
 
-                if let Some(fs) = app.current_file_state() {
+                        if let Some(fs) = app.current_file_state() {
 
-                    if let Some(path) = fs.files.get(*idx) {
+                            if let Some(path) = fs.files.get(*idx) {
 
-                        let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
+                                let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
 
-                        let _ = std::process::Command::new("sh")
+                                let cmd = format!("{} \"{}\"", editor, path.to_string_lossy());
 
-                            .arg("-c")
-
-                            .arg(format!("{} \"{}\"", editor, path.to_string_lossy()))
-
-                            .spawn();
-
-                    }
-
-                }
-
-            }
-
-        }
-
-        ContextMenuAction::Run => {
-
-             if let ContextMenuTarget::File(idx) = target {
-
-                if let Some(fs) = app.current_file_state() {
-
-                    if let Some(path) = fs.files.get(*idx) {
-
-                        let cat = crate::modules::files::get_file_category(path);
-
-                        match cat {
-
-                            FileCategory::Audio | FileCategory::Video => {
-
-                                let _ = std::process::Command::new("xdg-open").arg(path).spawn();
-
-                            }
-
-                            _ => {
-
-                                let _ = std::process::Command::new(path).spawn();
+                                spawn_terminal(path.parent().unwrap_or(Path::new(".")), false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref(), Some(&cmd));
 
                             }
 
@@ -862,27 +828,59 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                 }
 
-            }
+                ContextMenuAction::Run => {
 
-        }
+                     if let ContextMenuTarget::File(idx) = target {
 
-        ContextMenuAction::RunTerminal => {
+                        if let Some(fs) = app.current_file_state() {
 
-             if let ContextMenuTarget::File(idx) = target {
+                            if let Some(path) = fs.files.get(*idx) {
 
-                if let Some(fs) = app.current_file_state() {
+                                let cat = crate::modules::files::get_file_category(path);
 
-                    if let Some(path) = fs.files.get(*idx) {
+                                match cat {
 
-                        spawn_terminal(path, false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref());
+                                    FileCategory::Audio | FileCategory::Video => {
+
+                                        let _ = std::process::Command::new("xdg-open").arg(path).spawn();
+
+                                    }
+
+                                    _ => {
+
+                                        let cmd = format!("./\"{}\"", path.file_name().unwrap_or_default().to_string_lossy());
+
+                                        spawn_terminal(path.parent().unwrap_or(Path::new(".")), false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref(), Some(&cmd));
+
+                                    }
+
+                                }
+
+                            }
+
+                        }
 
                     }
 
                 }
 
-            }
+                        ContextMenuAction::RunTerminal => {
 
-        }
+                     if let ContextMenuTarget::File(idx) = target {
+
+                        if let Some(fs) = app.current_file_state() {
+
+                            if let Some(path) = fs.files.get(*idx) {
+
+                                spawn_terminal(path, false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref(), None);
+
+                            }
+
+                        }
+
+                    }
+
+                }
 
         ContextMenuAction::ExtractHere => {
 
@@ -1252,15 +1250,15 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                                         }
 
-                                        _ => app.current_file_state().and_then(|fs| fs.remote_session.as_ref())
+                                                            _ => app.current_file_state().and_then(|fs| fs.remote_session.as_ref())
 
-                                    };
+                                                        };
 
-                                    spawn_terminal(&p, false, remote, app.preferred_terminal.as_deref());
+                                                        spawn_terminal(&p, false, remote, app.preferred_terminal.as_deref(), None);
 
-                                }
+                                                    }
 
-                            }
+                                                }
 
                             ContextMenuAction::Refresh => {
 
