@@ -1781,6 +1781,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         app.mode = AppMode::Normal;
                         return true;
                     }
+                    return false;
                 }
                 AppMode::Settings => {
                     match key.code {
