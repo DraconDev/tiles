@@ -1326,6 +1326,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
                 }
                                 MouseEventKind::Up(_) => {
+                                    if app.is_resizing_sidebar {
+                                        app.is_resizing_sidebar = false;
+                                        let _ = crate::config::save_state(app);
+                                        return;
+                                    }
+
                                     if app.is_dragging {
                                         let mut reorder_done = false;
                                         if let Some((sx, _)) = app.drag_start_pos {
@@ -1383,6 +1389,16 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 }
                                 MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                                     app.mouse_pos = (column, row);
+
+                                    if app.is_resizing_sidebar {
+                                        let (w, _) = app.terminal_size;
+                                        if w > 0 {
+                                            let new_percent = (column as f32 / w as f32 * 100.0) as u16;
+                                            app.sidebar_width_percent = new_percent.clamp(5, 50);
+                                        }
+                                        return;
+                                    }
+
                                     // Check if drag has started
                                     if let Some((sx, sy)) = app.drag_start_pos { if ((column as i16 - sx as i16).pow(2) + (row as i16 - sy as i16).pow(2)) as f32 >= 1.0 { app.is_dragging = true; } } // Threshold for drag start
                                     // Update hovered drop target
