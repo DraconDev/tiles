@@ -197,13 +197,21 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)])
         .split(f.area());
 
+    let workspace_constraints = if app.show_sidebar {
+        [Constraint::Percentage(app.sidebar_width_percent), Constraint::Min(0)]
+    } else {
+        [Constraint::Percentage(0), Constraint::Min(0)]
+    };
+
     let workspace = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(app.sidebar_width_percent), Constraint::Min(0)])
+        .constraints(workspace_constraints)
         .split(chunks[1]);
 
     draw_global_header(f, chunks[0], workspace[0].width, app);
-    draw_sidebar(f, workspace[0], app);
+    if app.show_sidebar {
+        draw_sidebar(f, workspace[0], app);
+    }
     draw_main_stage(f, workspace[1], app);
     draw_footer(f, chunks[2], app);
 
@@ -221,15 +229,19 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
 fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
     let pane_count = app.panes.len();
-    let menu_width = 10;
-    f.render_widget(Paragraph::new(" Settings ").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Rect::new(area.x, area.y, menu_width, 1));
+    let logo_width = 10;
+    f.render_widget(Paragraph::new(" 👹 TILES ").style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), Rect::new(area.x, area.y, logo_width, 1));
 
-    let split_label = if pane_count > 1 { "[□]" } else { "[◫]" };
+    let split_label = if pane_count > 1 { " 󰙀 " } else { " 󰇄 " };
     let split_width = 3;
-    f.render_widget(Paragraph::new(split_label).style(Style::default().fg(Color::Cyan)), Rect::new(area.x + area.width.saturating_sub(split_width), area.y, split_width, 1));
+    f.render_widget(Paragraph::new(split_label).style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)), Rect::new(area.x + area.width.saturating_sub(split_width), area.y, split_width, 1));
 
     if pane_count == 0 { return; }
-    let start_x = std::cmp::max(area.x + sidebar_width, area.x + menu_width + 1);
+    let start_x = if app.show_sidebar { 
+        std::cmp::max(area.x + sidebar_width, area.x + logo_width + 1)
+    } else {
+        area.x + logo_width + 1
+    };
     let pane_chunks = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / pane_count as u16); pane_count]).split(Rect::new(start_x, area.y, area.width.saturating_sub(start_x + split_width), 1));
 
     app.tab_bounds.clear();
@@ -384,9 +396,11 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(75), Constraint::Percentage(25)]).split(area);
     let shortcuts = vec![
         Span::styled(" ^Q ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Quit "),
+        Span::styled(" ^B ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Sidebar "),
+        Span::styled(" ^G ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Settings "),
         Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Split "),
         Span::styled(" ^T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Tab "),
-        Span::styled(" ^G ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Term-T "),
+        Span::styled(" ^E ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Term-T "),
         Span::styled(" ^. ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Term-W "),
         Span::styled(" ^Spc ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Cmd "),
         Span::styled(" ^H ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Hidden "),

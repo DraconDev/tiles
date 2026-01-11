@@ -825,6 +825,70 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
         }
         Event::Key(key) => {
             crate::app::log_debug(&format!("KEY EVENT: code={:?} modifiers={:?}", key.code, key.modifiers));
+            
+            // 1. Global Shortcuts (Highest Priority)
+            let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
+
+            match key.code {
+                KeyCode::Char('q') if has_control => { app.running = false; return; }
+                KeyCode::Char('g') if has_control => { app.mode = AppMode::Settings; return; }
+                KeyCode::Char('e') if has_control => { 
+                    if let Some(pane) = app.panes.get(app.focused_pane_index) { 
+                        if let Some(fs) = pane.current_state() { 
+                            spawn_terminal(&fs.current_path, true, fs.remote_session.as_ref()); 
+                        } 
+                    } 
+                    return;
+                } 
+                KeyCode::Char('b') if has_control => { 
+                    app.show_sidebar = !app.show_sidebar; 
+                    if !app.show_sidebar && app.sidebar_focus {
+                        app.sidebar_focus = false;
+                        app.focused_pane_index = 0;
+                    }
+                    return;
+                }
+                KeyCode::Char('s') if has_control => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return; } 
+                KeyCode::Char('h') if has_control => { let pane_idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx)); return; } 
+                KeyCode::Char('t') if has_control => {
+                    if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                        if let Some(fs) = pane.current_state() {
+                            let mut new_fs = fs.clone();
+                            new_fs.selected_index = Some(0); new_fs.multi_select.clear(); new_fs.search_filter.clear(); *new_fs.table_state.offset_mut() = 0; new_fs.history = vec![new_fs.current_path.clone()]; new_fs.history_index = 0;
+                            pane.open_tab(new_fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        }
+                    }
+                    return;
+                }
+                KeyCode::Char(' ') if has_control => { 
+                    app.input.clear(); 
+                    app.mode = AppMode::CommandPalette; 
+                    update_commands(app); 
+                    return; 
+                } 
+                KeyCode::Left if has_control => {
+                    if app.sidebar_focus {
+                        app.resize_sidebar(-2);
+                    } else {
+                        app.move_to_other_pane(); 
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
+                    }
+                    return;
+                }
+                KeyCode::Right if has_control => {
+                    if app.sidebar_focus {
+                        app.resize_sidebar(2);
+                    } else {
+                        app.move_to_other_pane(); 
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
+                    }
+                    return;
+                }
+                _ => {}
+            }
+
             match app.mode {
                 AppMode::CommandPalette => {
                     match key.code {
@@ -946,44 +1010,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                     }
                                 }
                                 _ => {
-                                    if key.modifiers.contains(KeyModifiers::CONTROL) {
-                                        match key.code {
-                                            KeyCode::Char('q') => { app.running = false; }
-                                            KeyCode::Char('s') => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } 
-                                            KeyCode::Char('h') => { let pane_idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx)); } 
-                                            KeyCode::Char('t') => {
-                                                if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                                                    if let Some(fs) = pane.current_state() {
-                                                        let mut new_fs = fs.clone();
-                                                        new_fs.selected_index = Some(0); new_fs.search_filter.clear(); *new_fs.table_state.offset_mut() = 0; new_fs.history = vec![new_fs.current_path.clone()]; new_fs.history_index = 0;
-                                                        pane.open_tab(new_fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                                    }
-                                                }
-                                            }
-                                            KeyCode::Char('g') => { if let Some(pane) = app.panes.get(app.focused_pane_index) { if let Some(fs) = pane.current_state() { spawn_terminal(&fs.current_path, true, fs.remote_session.as_ref()); } } } 
-                                            KeyCode::Char(' ') => { app.input.clear(); app.mode = AppMode::CommandPalette; update_commands(app); } 
-                                            KeyCode::Left => {
-                                                if app.sidebar_focus {
-                                                    app.resize_sidebar(-2);
-                                                } else {
-                                                    app.move_to_other_pane(); 
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                                                }
-                                            }
-                                            KeyCode::Right => {
-                                                if app.sidebar_focus {
-                                                    app.resize_sidebar(2);
-                                                } else {
-                                                    app.move_to_other_pane(); 
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                                                }
-                                            }
-                                            _ => {} 
-                                        }
-                                        return;
-                                    }
                                     if key.code == KeyCode::Esc {
                                         app.mode = AppMode::Normal;
                                         if let Some(fs) = app.current_file_state_mut() { fs.multi_select.clear(); fs.selection_anchor = None; if !fs.search_filter.is_empty() { fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 

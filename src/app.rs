@@ -437,6 +437,7 @@ pub struct App {
     pub split_columns: Vec<FileColumn>,
     pub sidebar_width_percent: u16,
     pub is_resizing_sidebar: bool,
+    pub show_sidebar: bool,
 }
 
 impl App {
@@ -521,6 +522,7 @@ impl App {
                     split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
                     sidebar_width_percent: 20,
                     is_resizing_sidebar: false,
+                    show_sidebar: true,
                 };
             }
         }
@@ -616,6 +618,7 @@ impl App {
             split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
             sidebar_width_percent: 20,
             is_resizing_sidebar: false,
+            show_sidebar: true,
         };
         log_debug("App::new finished successfully");
         app
@@ -833,6 +836,9 @@ impl App {
     }
 
     pub fn sidebar_width(&self) -> u16 {
+        if !self.show_sidebar {
+            return 0;
+        }
         use ratatui::layout::{Constraint, Direction, Layout, Rect};
         let layout = Layout::default()
             .direction(Direction::Horizontal)
