@@ -752,17 +752,10 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             ("Tab", "Switch Active Tab (TODO)"),
         ]),
         ("File Operations", vec![
-            ("Space", "Preview File (Toggle)"),
-            ("Ctrl + n", "New File (Context dependent)"),
-            ("Ctrl + Shift + n", "New Folder (Context dependent)"),
-            ("Delete", "Delete Item"),
-            ("F2", "Rename Item (Context dependent)"),
-        ]),
-        ("View & Tabs", vec![
+            ("Space", "Preview File (Toggle) / Favorite Folder"),
             ("Ctrl + s", "Toggle Split View"),
-            ("Ctrl + t", "New Tab"),
-            ("Ctrl + w", "Close Tab (TODO)"),
-            ("Ctrl + h", "Toggle Hidden Files"),
+            ("Delete", "Delete Item"),
+            ("Enter", "Open Folder / File"),
         ]),
         ("Terminal", vec![
             ("Ctrl + e", "Open Terminal Tab"),
