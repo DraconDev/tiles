@@ -1901,31 +1901,35 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     }
 
                     if app.mode == AppMode::Highlight {
-                        let area_w = 40; let area_h = 20; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
+                        let area_w = 34; let area_h = 5; let area_x = (w.saturating_sub(area_w)) / 2; let area_y = (h.saturating_sub(area_h)) / 2;
                         if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
-                            let rel_y = row.saturating_sub(area_y + 1);
-                            if rel_y < 7 {
+                            let rel_x = column.saturating_sub(area_x + 3); // Start after padding
+                            let rel_y = row.saturating_sub(area_y + 2); // Row 1 or 2 inside
+                            if rel_y == 0 || rel_y == 1 { // Clicked on color block or number row
                                 let colors = [1, 2, 3, 4, 5, 6, 0];
-                                let color_idx = colors[rel_y as usize];
-                                let color = if color_idx == 0 { None } else { Some(color_idx) };
-                                
-                                if let Some(fs) = app.current_file_state() {
-                                    let mut paths = Vec::new();
-                                    if !fs.multi_select.is_empty() {
-                                        for &idx in &fs.multi_select {
+                                let color_idx_raw = (rel_x / 4) as usize;
+                                if color_idx_raw < colors.len() {
+                                    let color_code = colors[color_idx_raw];
+                                    let color = if color_code == 0 { None } else { Some(color_code) };
+                                    
+                                    if let Some(fs) = app.current_file_state() {
+                                        let mut paths = Vec::new();
+                                        if !fs.multi_select.is_empty() {
+                                            for &idx in &fs.multi_select {
+                                                if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
+                                            }
+                                        } else if let Some(idx) = fs.selected_index {
                                             if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
                                         }
-                                    } else if let Some(idx) = fs.selected_index {
-                                        if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
-                                    }
 
-                                    for p in paths {
-                                        if let Some(col) = color { app.path_colors.insert(p, col); }
-                                        else { app.path_colors.remove(&p); }
+                                        for p in paths {
+                                            if let Some(col) = color { app.path_colors.insert(p, col); }
+                                            else { app.path_colors.remove(&p); }
+                                        }
+                                        let _ = crate::config::save_state(app);
                                     }
-                                    let _ = crate::config::save_state(app);
+                                    app.mode = AppMode::Normal;
                                 }
-                                app.mode = AppMode::Normal;
                             }
                             return;
                         } else { app.mode = AppMode::Normal; return; }

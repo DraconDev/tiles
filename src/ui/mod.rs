@@ -380,7 +380,15 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                     };
 
                     let mut suffix = String::new();
-                    if app.starred.contains(path) { suffix.push_str(" [*]"); final_style = final_style.fg(THEME.accent_primary).add_modifier(Modifier::BOLD); }
+                    let is_starred = app.starred.contains(path);
+                    if is_starred { suffix.push_str(" [*]"); }
+
+                    if let Some(c) = path_color {
+                        final_style = Style::default().fg(c).add_modifier(Modifier::BOLD);
+                    } else if is_starred {
+                        final_style = Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD);
+                    }
+
                     if i > file_state.local_count {
                         let full_str = path.to_string_lossy();
                         let mut display_path = if full_str.starts_with("/home/dracon") { full_str.replacen("/home/dracon", "~", 1) } else { full_str.to_string() };
@@ -392,9 +400,27 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                         Cell::from(format!("{}{}", icon, display_path)).style(final_style)
                     } else { Cell::from(format!("{}{}{}", icon, name, suffix)).style(final_style) }
                 }
-                FileColumn::Size => { if metadata.map(|m| m.is_dir).unwrap_or(false) { Cell::from("<DIR>").style(Style::default().fg(THEME.accent_secondary)) } else { Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))).style(Style::default().fg(THEME.fg)) } }
-                FileColumn::Modified => Cell::from(format_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH))).style(Style::default().fg(THEME.fg)),
-                FileColumn::Permissions => Cell::from(format_permissions(metadata.map(|m| m.permissions).unwrap_or(0))).style(Style::default().fg(THEME.fg)),
+                FileColumn::Size => { 
+                    let path_color = app.path_colors.get(path).map(|&c| match c {
+                        1 => Color::Red, 2 => Color::Green, 3 => Color::Yellow, 4 => Color::Blue, 5 => Color::Magenta, 6 => Color::Cyan, _ => Color::White,
+                    });
+                    let style = if let Some(c) = path_color { Style::default().fg(c) } else if metadata.map(|m| m.is_dir).unwrap_or(false) { Style::default().fg(THEME.accent_secondary) } else { Style::default().fg(THEME.fg) };
+                    if metadata.map(|m| m.is_dir).unwrap_or(false) { Cell::from("<DIR>").style(style) } else { Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))).style(style) } 
+                }
+                FileColumn::Modified => {
+                    let path_color = app.path_colors.get(path).map(|&c| match c {
+                        1 => Color::Red, 2 => Color::Green, 3 => Color::Yellow, 4 => Color::Blue, 5 => Color::Magenta, 6 => Color::Cyan, _ => Color::White,
+                    });
+                    let style = if let Some(c) = path_color { Style::default().fg(c) } else { Style::default().fg(THEME.fg) };
+                    Cell::from(format_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH))).style(style)
+                },
+                FileColumn::Permissions => {
+                    let path_color = app.path_colors.get(path).map(|&c| match c {
+                        1 => Color::Red, 2 => Color::Green, 3 => Color::Yellow, 4 => Color::Blue, 5 => Color::Magenta, 6 => Color::Cyan, _ => Color::White,
+                    });
+                    let style = if let Some(c) = path_color { Style::default().fg(c) } else { Style::default().fg(THEME.fg) };
+                    Cell::from(format_permissions(metadata.map(|m| m.permissions).unwrap_or(0))).style(style)
+                },
             });
             let mut row_style = Style::default();
             if is_multi_selected { row_style = row_style.bg(Color::Rgb(100, 0, 0)).fg(Color::White); }
