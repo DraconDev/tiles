@@ -1156,27 +1156,23 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
             if let Some(p) = path {
 
-                if let ContextMenuTarget::SidebarFavorite(_) = target {
+                                if let ContextMenuTarget::SidebarFavorite(_) = target {
 
-                    app.starred.retain(|x| x != &p);
+                                    app.starred.retain(|x| x != &p);
 
-                } else {
+                                } else {
 
-                    app.mode = AppMode::Delete;
+                                    app.mode = AppMode::Delete;
 
-                    close_menu = false;
+                                    close_menu = false;
 
-                }
+                                }
 
-            }
+                            }
 
                         }
 
-                    };
-
-                }
-
-                ContextMenuAction::Properties => {
+                        ContextMenuAction::Properties => {
 
             app.mode = AppMode::Properties;
 
