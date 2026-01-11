@@ -1066,6 +1066,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                     crate::app::log_debug(&format!("MOUSE DOWN: button={:?} row={} col={}", button, row, column));
                     let (w, h) = app.terminal_size;
                     
+                    let sidebar_width = app.sidebar_width();
+                    if button == MouseButton::Left && column >= sidebar_width.saturating_sub(1) && column <= sidebar_width && row >= 1 {
+                        app.is_resizing_sidebar = true;
+                        return;
+                    }
+
                     // 0. Modal interaction
                     if app.mode == AppMode::Settings {
                         let area_w = (w as f32 * 0.8) as u16; let area_h = (h as f32 * 0.8) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;

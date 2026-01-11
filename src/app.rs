@@ -615,6 +615,7 @@ impl App {
             single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
             split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
             sidebar_width_percent: 20,
+            is_resizing_sidebar: false,
         };
         log_debug("App::new finished successfully");
         app
