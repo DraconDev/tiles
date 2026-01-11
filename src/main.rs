@@ -1636,15 +1636,16 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
     }
 }
 
-fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
+fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> bool {
     match evt {
         Event::Resize(w, h) => {
             if let Some(until) = app.ignore_resize_until {
                 if std::time::Instant::now() < until {
-                    return;
+                    return true;
                 }
             }
             app.terminal_size = (w, h);
+            return true;
         }
         Event::Key(key) => {
             crate::app::log_debug(&format!("KEY EVENT: code={:?} modifiers={:?}", key.code, key.modifiers));
@@ -1653,8 +1654,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
             let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
 
             match key.code {
-                KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return; }
-                KeyCode::Char('g') | KeyCode::Char('G') if has_control => { app.mode = AppMode::Settings; return; }
+                KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return true; }
+                KeyCode::Char('g') | KeyCode::Char('G') if has_control => { app.mode = AppMode::Settings; return true; }
                 KeyCode::Char('e') | KeyCode::Char('E') if has_control => { 
                     if let Some(pane) = app.panes.get(app.focused_pane_index) { 
                         if let Some(fs) = pane.current_state() { 
@@ -1666,7 +1667,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             });
                         } 
                     } 
-                    return;
+                    return true;
                 } 
                 KeyCode::Char('b') | KeyCode::Char('B') if has_control => { 
                     app.show_sidebar = !app.show_sidebar; 
@@ -1674,10 +1675,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         app.sidebar_focus = false;
                         app.focused_pane_index = 0;
                     }
-                    return;
+                    return true;
                 }
-                KeyCode::Char('s') | KeyCode::Char('S') if has_control => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return; } 
-                KeyCode::Char('h') | KeyCode::Char('H') if has_control => { let pane_idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx)); return; } 
+                KeyCode::Char('s') | KeyCode::Char('S') if has_control => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; } 
+                KeyCode::Char('h') | KeyCode::Char('H') if has_control => { let pane_idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx)); return true; } 
                 KeyCode::Char('t') | KeyCode::Char('T') if has_control => {
                     if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                         if let Some(fs) = pane.current_state() {
@@ -1686,7 +1687,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             pane.open_tab(new_fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                         }
                     }
-                    return;
+                    return true;
                 }
                 KeyCode::Char('.') if has_control => {
                     if let Some(pane) = app.panes.get(app.focused_pane_index) {
@@ -1699,14 +1700,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             });
                         }
                     }
-                    return;
+                    return true;
                 }
                 KeyCode::Char(' ') if has_control => { 
                     app.input.clear(); 
                     app.mode = AppMode::CommandPalette; 
                     update_commands(app); 
-                    return; 
-                } 
+                    return true; 
+                }
                 KeyCode::Left if has_control => {
                     if app.sidebar_focus {
                         app.resize_sidebar(-2);
@@ -1715,7 +1716,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
                     }
-                    return;
+                    return true;
                 }
                 KeyCode::Right if has_control => {
                     if app.sidebar_focus {
@@ -1725,7 +1726,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
                     }
-                    return;
+                    return true;
                 }
                 _ => {}
             }
