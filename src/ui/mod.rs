@@ -805,27 +805,43 @@ fn draw_add_remote_modal(f: &mut Frame, _app: &App) {
 }
 
 fn draw_highlight_modal(f: &mut Frame, _app: &App) {
-    let area = centered_rect(40, 20, f.area()); f.render_widget(Clear, area);
-    let block = Block::default().title(" Select Highlight Color ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Cyan));
+    let area = centered_rect(30, 10, f.area()); // Fixed-ish percentage or small
+    // Actually let's use absolute sizing for palette
+    let area = Rect::new(
+        (f.area().width.saturating_sub(34)) / 2,
+        (f.area().height.saturating_sub(5)) / 2,
+        34,
+        5
+    );
+    
+    f.render_widget(Clear, area);
+    let block = Block::default().title(" Highlight ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Cyan));
     let inner = block.inner(area);
     f.render_widget(block, area);
 
     let colors = vec![
-        (1, "Red"), (2, "Green"), (3, "Yellow"), (4, "Blue"), (5, "Magenta"), (6, "Cyan"), (0, "Default/None")
+        (1, " R ", Color::Red),
+        (2, " G ", Color::Green),
+        (3, " Y ", Color::Yellow),
+        (4, " B ", Color::Blue),
+        (5, " M ", Color::Magenta),
+        (6, " C ", Color::Cyan),
+        (0, " X ", Color::Reset),
     ];
 
-    let items: Vec<ListItem> = colors.iter().map(|(c, name)| {
-        let style = match c {
-            1 => Style::default().fg(Color::Red),
-            2 => Style::default().fg(Color::Green),
-            3 => Style::default().fg(Color::Yellow),
-            4 => Style::default().fg(Color::Blue),
-            5 => Style::default().fg(Color::Magenta),
-            6 => Style::default().fg(Color::Cyan),
-            _ => Style::default(),
+    let mut spans = Vec::new();
+    for (i, (code, label, color)) in colors.iter().enumerate() {
+        let style = if *code == 0 { 
+            Style::default().bg(Color::DarkGray).fg(Color::White) 
+        } else { 
+            Style::default().bg(*color).fg(Color::Black) 
         };
-        ListItem::new(format!(" [{}] {}", c, name)).style(style)
-    }).collect();
+        spans.push(Span::styled(*label, style));
+        if i < colors.len() - 1 {
+            spans.push(Span::raw(" "));
+        }
+    }
 
-    f.render_widget(List::new(items), inner);
+    f.render_widget(Paragraph::new(Line::from(spans)).alignment(ratatui::layout::Alignment::Center), Rect::new(inner.x, inner.y + 1, inner.width, 1));
+    f.render_widget(Paragraph::new("1   2   3   4   5   6   0").alignment(ratatui::layout::Alignment::Center).style(Style::default().fg(Color::DarkGray)), Rect::new(inner.x, inner.y + 2, inner.width, 1));
 }
