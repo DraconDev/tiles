@@ -481,37 +481,9 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
             ContextMenuAction::Duplicate => " 󰆏 Duplicate".to_string(),
             ContextMenuAction::Compress => format!(" {} Compress", Icon::Archive.get(app.icon_mode)),
             ContextMenuAction::Delete => " 󰆴 Delete".to_string(),
-            ContextMenuAction::Star => format!(" {} Star", Icon::Star.get(app.icon_mode)),
-            ContextMenuAction::Unstar => format!(" {} Unstar", Icon::Star.get(app.icon_mode)),
+            ContextMenuAction::AddToFavorites => format!(" {} Add to Favorites", Icon::Star.get(app.icon_mode)),
+            ContextMenuAction::RemoveFromFavorites => format!(" {} Remove from Favorites", Icon::Star.get(app.icon_mode)),
             ContextMenuAction::Properties => format!(" {} Properties", Icon::Document.get(app.icon_mode)),
-            ContextMenuAction::TerminalHere => format!(" {} Terminal Here", Icon::Script.get(app.icon_mode)),
-            ContextMenuAction::Refresh => " 󰑓 Refresh".to_string(),
-            ContextMenuAction::SelectAll => " 󰒆 Select All".to_string(),
-            ContextMenuAction::ToggleHidden => " 󰈈 Toggle Hidden".to_string(),
-            ContextMenuAction::ConnectRemote => format!(" {} Connect", Icon::Remote.get(app.icon_mode)),
-            ContextMenuAction::DeleteRemote => " 󰆴 Delete Bookmark".to_string(),
-            ContextMenuAction::Mount => " 󰃭 Mount".to_string(),
-            ContextMenuAction::Unmount => " 󰃭 Unmount".to_string(),
-            ContextMenuAction::SetWallpaper => format!(" {} Set as Wallpaper", Icon::Image.get(app.icon_mode)),
-            ContextMenuAction::GitInit => format!(" {} Git Init", Icon::Git.get(app.icon_mode)),
-            ContextMenuAction::GitStatus => format!(" {} Git Status", Icon::Git.get(app.icon_mode)),
-            ContextMenuAction::SortBy(col) => {
-                let name = match col {
-                    crate::app::FileColumn::Name => "Name",
-                    crate::app::FileColumn::Size => "Size",
-                    crate::app::FileColumn::Modified => "Date",
-                    _ => "Unknown",
-                };
-                let mut label = format!(" 󰒺 Sort by {}", name);
-                if let Some(fs) = app.current_file_state() {
-                    if fs.sort_column == *col {
-                        label.push_str(if fs.sort_ascending { " (▲)" } else { " (▼)" });
-                    }
-                }
-                label
-            },
-            ContextMenuAction::AddToFavorites => format!(" {} Add to Places", Icon::Star.get(app.icon_mode)),
-            ContextMenuAction::RemoveFromFavorites => format!(" {} Remove from Places", Icon::Star.get(app.icon_mode)),
         };
         
         let mut item = ListItem::new(label);
