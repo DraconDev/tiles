@@ -1965,6 +1965,61 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                         if clicked_pane < pane_count { app.focused_pane_index = clicked_pane; app.sidebar_focus = false; }
                     }
 
+                    // Footer interaction
+                    if row == h.saturating_sub(1) {
+                        // Very rough hit detection for footer items based on string layout in ui::draw_footer
+                        // " ^Q " (4) "Quit " (5) = 9
+                        // " ^B " (4) "Sidebar " (8) = 12
+                        // " ^G " (4) "Settings " (9) = 13
+                        // " ^S " (4) "Split " (6) = 10
+                        // " ^T " (4) "Tab " (4) = 8
+                        // " ^E " (4) "Term-T " (7) = 11
+                        // " ^. " (4) "Term-W " (7) = 11
+                        // " ^Spc " (6) "Cmd " (4) = 10
+                        // " ^H " (4) "Hidden " (7) = 11
+                        
+                        let mut current_x = 0;
+                        if column >= current_x && column < current_x + 9 { app.running = false; return; } current_x += 9;
+                        if column >= current_x && column < current_x + 12 { app.show_sidebar = !app.show_sidebar; return; } current_x += 12;
+                        if column >= current_x && column < current_x + 13 { app.mode = AppMode::Settings; return; } current_x += 13;
+                        if column >= current_x && column < current_x + 10 { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return; } current_x += 10;
+                        if column >= current_x && column < current_x + 8 { 
+                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                if let Some(fs) = pane.current_state() {
+                                    let mut new_fs = fs.clone();
+                                    new_fs.selected_index = Some(0); new_fs.multi_select.clear(); new_fs.search_filter.clear(); *new_fs.table_state.offset_mut() = 0; new_fs.history = vec![new_fs.current_path.clone()]; new_fs.history_index = 0;
+                                    pane.open_tab(new_fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                }
+                            }
+                            return; 
+                        } current_x += 8;
+                        if column >= current_x && column < current_x + 11 { 
+                            if let Some(pane) = app.panes.get(app.focused_pane_index) { 
+                                if let Some(fs) = pane.current_state() { 
+                                    spawn_terminal(&fs.current_path, true, fs.remote_session.as_ref(), app.preferred_terminal.as_deref()); 
+                                } 
+                            }
+                            return; 
+                        } current_x += 11;
+                        if column >= current_x && column < current_x + 11 {
+                            if let Some(pane) = app.panes.get(app.focused_pane_index) { 
+                                if let Some(fs) = pane.current_state() { 
+                                    spawn_terminal(&fs.current_path, false, fs.remote_session.as_ref(), app.preferred_terminal.as_deref()); 
+                                } 
+                            }
+                            return;
+                        } current_x += 11;
+                        if column >= current_x && column < current_x + 10 {
+                            app.input.clear(); 
+                            app.mode = AppMode::CommandPalette; 
+                            update_commands(app); 
+                            return;
+                        } current_x += 10;
+                        if column >= current_x && column < current_x + 11 {
+                            let pane_idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx)); return;
+                        }
+                    }
+
                     if column < sidebar_width {
                         app.sidebar_focus = true;
                         app.drag_start_pos = Some((column, row));
