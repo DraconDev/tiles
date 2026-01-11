@@ -852,7 +852,7 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
                     }
                     _ => app.current_file_state().and_then(|fs| fs.remote_session.as_ref())
                 };
-                spawn_terminal(&p, false, remote);
+                spawn_terminal(&p, false, remote, app.preferred_terminal.as_deref());
             }
         }
         ContextMenuAction::Refresh => {
@@ -1045,7 +1045,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                 KeyCode::Char('e') | KeyCode::Char('E') if has_control => { 
                     if let Some(pane) = app.panes.get(app.focused_pane_index) { 
                         if let Some(fs) = pane.current_state() { 
-                            spawn_terminal(&fs.current_path, true, fs.remote_session.as_ref()); 
+                            spawn_terminal(&fs.current_path, true, fs.remote_session.as_ref(), app.preferred_terminal.as_deref()); 
                         } 
                     } 
                     return;
@@ -1318,7 +1318,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                             } 
                         } 
                         KeyCode::Char(c) if key.modifiers.is_empty() && c != '.' && c != 'g' => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
-                        KeyCode::Char(c) if key.modifiers.is_empty() && (c == '.' || c == 'g') => { if let Some(pane) = app.panes.get(app.focused_pane_index) { if let Some(fs) = pane.current_state() { spawn_terminal(&fs.current_path, c == 'g', fs.remote_session.as_ref()); } } }                        KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } 
+                        KeyCode::Char(c) if key.modifiers.is_empty() && (c == '.' || c == 'g') => { if let Some(pane) = app.panes.get(app.focused_pane_index) { if let Some(fs) = pane.current_state() { spawn_terminal(&fs.current_path, c == 'g', fs.remote_session.as_ref(), app.preferred_terminal.as_deref()); } } }                        KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } 
                         _ => {} 
                     }
                 }
