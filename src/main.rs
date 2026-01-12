@@ -1705,19 +1705,19 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             match key.code {
                 KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return true; }
                 KeyCode::Char('g') | KeyCode::Char('G') if has_control => { app.mode = AppMode::Settings; return true; }
-                KeyCode::Char('e') | KeyCode::Char('E') if has_control => { 
-                    if let Some(pane) = app.panes.get(app.focused_pane_index) { 
-                        if let Some(fs) = pane.current_state() { 
+                KeyCode::Char('e') | KeyCode::Char('E') if has_control => {
+                    if let Some(pane) = app.panes.get(app.focused_pane_index) {
+                        if let Some(fs) = pane.current_state() {
                             let _ = event_tx.try_send(AppEvent::SpawnTerminal {
                                 path: fs.current_path.clone(),
                                 new_tab: true, // Tab
                                 remote: fs.remote_session.clone(),
                                 command: None,
                             });
-                        } 
-                    } 
+                        }
+                    }
                     return true;
-                } 
+                }
                 KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Char('.') if has_control => {
                     if let Some(pane) = app.panes.get(app.focused_pane_index) {
                         if let Some(fs) = pane.current_state() {
@@ -2215,7 +2215,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         if let Some(fs) = pane.current_state_mut() {
                             let clicked_crumb = fs.breadcrumb_bounds.iter().find(|(rect, _)| rect.contains(ratatui::layout::Position { x: column, y: row })).map(|(_, path)| path.clone());
                             if let Some(path) = clicked_crumb {
-                                fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path);
+                                if button == MouseButton::Middle {
+                                    let mut new_fs = fs.clone();
+                                    new_fs.current_path = path.clone();
+                                    new_fs.selected_index = Some(0);
+                                    new_fs.search_filter.clear();
+                                    *new_fs.table_state.offset_mut() = 0;
+                                    new_fs.history = vec![path];
+                                    new_fs.history_index = 0;
+                                    pane.open_tab(new_fs);
+                                } else {
+                                    fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path);
+                                }
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx)); app.focused_pane_index = p_idx; app.sidebar_focus = false; return true;
                             }
                         }
@@ -2383,8 +2394,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 return true; 
                             }
                             if button == MouseButton::Middle {
-                                let target_pane = if app.focused_pane_index == 0 { 1 } else { 0 };
-                                let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path.clone()));
+                                if is_dir {
+                                    if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                        if let Some(fs) = pane.current_state() {
+                                            let mut new_fs = fs.clone();
+                                            new_fs.current_path = path.clone();
+                                            new_fs.selected_index = Some(0);
+                                            new_fs.search_filter.clear();
+                                            *new_fs.table_state.offset_mut() = 0;
+                                            new_fs.history = vec![path.clone()];
+                                            new_fs.history_index = 0;
+                                            pane.open_tab(new_fs);
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                        }
+                                    }
+                                } else {
+                                    let target_pane = if app.focused_pane_index == 0 { 1 } else { 0 };
+                                    let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path.clone()));
+                                }
                                 return true;
                             }
                             app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
