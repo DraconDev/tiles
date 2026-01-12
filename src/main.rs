@@ -68,12 +68,6 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         ContextMenuAction::Delete,
                     ]);
 
-                    if !is_starred {
-                        actions.push(ContextMenuAction::AddToFavorites); // Dolphin style "Add to Places"
-                    } else {
-                        actions.push(ContextMenuAction::RemoveFromFavorites);
-                    }
-                    
                         actions.push(ContextMenuAction::TerminalWindow);
                         actions.push(ContextMenuAction::SetColor(None));
                         actions.push(ContextMenuAction::Properties);                }
@@ -848,37 +842,37 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
         }
 
-                        ContextMenuAction::Edit => {
+                                                ContextMenuAction::Edit => {
 
-                            if let ContextMenuTarget::File(idx) = target {
+                                                    if let ContextMenuTarget::File(idx) = target {
 
-                                if let Some(fs) = app.current_file_state() {
+                                                        if let Some(fs) = app.current_file_state() {
 
-                                    if let Some(path) = fs.files.get(*idx) {
+                                                            if let Some(path) = fs.files.get(*idx) {
 
-                                        let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
+                                                                let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
 
-                                        let cmd = format!("{} \"{}\"", editor, path.to_string_lossy());
+                                                                let cmd = format!("{} \"{}\"", editor, path.to_string_lossy());
 
-                                        let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                                                                let _ = event_tx.try_send(AppEvent::SpawnTerminal {
 
-                                            path: path.parent().unwrap_or(Path::new(".")).to_path_buf(),
+                                                                    path: path.parent().unwrap_or(Path::new(".")).to_path_buf(),
 
-                                            new_tab: false,
+                                                                    new_tab: true, // Use working logic
 
-                                            remote: fs.remote_session.clone(),
+                                                                    remote: fs.remote_session.clone(),
 
-                                            command: Some(cmd),
+                                                                    command: Some(cmd),
 
-                                        });
+                                                                });
 
-                                    }
+                                                            }
 
-                                }
+                                                        }
 
-                            }
+                                                    }
 
-                        }
+                                                }
 
                         ContextMenuAction::Run => {
 
@@ -1912,10 +1906,19 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     }
                                     AppMode::Delete => {
                                         if input.to_lowercase() == "y" || input.to_lowercase() == "yes" || !app.confirm_delete {
-                                            if let Some(idx) = fs.selected_index {
-                                                if let Some(path) = fs.files.get(idx) {
-                                                    let _ = event_tx.try_send(AppEvent::Delete(path.clone()));
+                                            let mut paths_to_delete = Vec::new();
+                                            if !fs.multi_select.is_empty() {
+                                                for &idx in &fs.multi_select {
+                                                    if let Some(p) = fs.files.get(idx) { paths_to_delete.push(p.clone()); }
                                                 }
+                                            } else if let Some(idx) = fs.selected_index {
+                                                if let Some(path) = fs.files.get(idx) {
+                                                    paths_to_delete.push(path.clone());
+                                                }
+                                            }
+
+                                            for p in paths_to_delete {
+                                                let _ = event_tx.try_send(AppEvent::Delete(p));
                                             }
                                         }
                                     }
