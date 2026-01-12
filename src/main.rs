@@ -201,6 +201,13 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
              use std::io::Write;
              // OSC 8; rows; cols t
              print!("\x1b[8;{};{}t", h, w);
+             // Enable modifyOtherKeys level 2
+             print!("\x1b[>4;2m");
+             let _ = std::io::stdout().flush();
+        } else {
+             use std::io::Write;
+             // Enable modifyOtherKeys level 2
+             print!("\x1b[>4;2m");
              let _ = std::io::stdout().flush();
         }
     }
@@ -441,6 +448,10 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             let mut app_guard = app.lock().unwrap();
             if !app_guard.running { 
                 let _ = crate::config::save_state(&app_guard);
+                // Disable modifyOtherKeys
+                use std::io::Write;
+                print!("\x1b[>4;0m");
+                let _ = std::io::stdout().flush();
                 break; 
             }
             terminal.draw(|f| {
