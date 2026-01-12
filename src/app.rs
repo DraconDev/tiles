@@ -150,6 +150,7 @@ pub enum DropTarget {
     Folder(PathBuf),
     ImportServers,
     RemotesHeader,
+    Pane(usize),
 }
 
 #[derive(Clone, Debug)]
