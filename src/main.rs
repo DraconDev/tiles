@@ -1306,7 +1306,7 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
                         };
 
-                        let _ = event_tx.try_send(AppEvent::SpawnTerminal { path, new_tab: false, remote: fs.remote_session.clone(), command: None });
+                        let _ = event_tx.try_send(AppEvent::SpawnTerminal { path, new_tab: true, remote: fs.remote_session.clone(), command: None });
 
                     }
 
@@ -1710,7 +1710,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         if let Some(fs) = pane.current_state() {
                             let _ = event_tx.try_send(AppEvent::SpawnTerminal {
                                 path: fs.current_path.clone(),
-                                new_tab: false, // Always open in window for reliability
+                                new_tab: true, // Use 'true' (--tab) as it reliably opens a window on this system
                                 remote: fs.remote_session.clone(),
                                 command: None,
                             });
