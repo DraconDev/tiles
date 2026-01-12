@@ -563,9 +563,10 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
 
         let mut border_style = if is_focused { 
             let pulse = ((SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_millis() % 1500) as f32 / 1500.0 * std::f32::consts::PI * 2.0).sin() * 0.5 + 0.5;
-            let r = (THEME.accent_primary.as_rgb().0 as f32 * (0.7 + 0.3 * pulse)) as u8;
-            let g = (THEME.accent_primary.as_rgb().1 as f32 * (0.7 + 0.3 * pulse)) as u8;
-            let b = (THEME.accent_primary.as_rgb().2 as f32 * (0.7 + 0.3 * pulse)) as u8;
+            // Map THEME.accent_primary (Neon Red/Pink: 255, 0, 85) with pulse
+            let r = (255.0 * (0.7 + 0.3 * pulse)) as u8;
+            let g = (0.0 * (0.7 + 0.3 * pulse)) as u8;
+            let b = (85.0 * (0.7 + 0.3 * pulse)) as u8;
             Style::default().fg(Color::Rgb(r, g, b)).add_modifier(Modifier::BOLD)
         } else { 
             Style::default().fg(THEME.border_inactive) 
