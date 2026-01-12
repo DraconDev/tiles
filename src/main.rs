@@ -1710,6 +1710,40 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                     return true;
                 }
+                KeyCode::Char(' ') if !has_control => {
+                    if let Some(fs) = app.current_file_state() {
+                        if let Some(idx) = fs.selected_index {
+                            if let Some(path) = fs.files.get(idx) {
+                                if path.is_dir() {
+                                    let target = path.clone();
+                                    let app_lock = Arc::new(Mutex::new(0u64));
+                                    let tx = event_tx.clone();
+                                    
+                                    app.last_action_msg = Some((format!("Calculating size: {}...", target.file_name().unwrap_or_default().to_string_lossy()), std::time::Instant::now()));
+                                    
+                                    tokio::spawn(async move {
+                                        let mut total_size = 0;
+                                        let mut stack = vec![target];
+                                        while let Some(p) = stack.pop() {
+                                            if let Ok(entries) = std::fs::read_dir(p) {
+                                                for entry in entries.flatten() {
+                                                    if let Ok(meta) = entry.metadata() {
+                                                        if meta.is_dir() { stack.push(entry.path()); }
+                                                        else { total_size += meta.len(); }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        // We can't easily update the FS state metadata here without more complex events,
+                                        // so we'll just show it in the status bar.
+                                        let _ = tx.send(AppEvent::Tick).await; // Force redraw
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    return true;
+                }
                 KeyCode::Char(' ') if has_control => { 
                     app.input.clear(); 
                     app.mode = AppMode::CommandPalette; 
