@@ -23,6 +23,9 @@ pub enum Icon {
     Search,
     Split,
     Single,
+    Back,
+    Forward,
+    Burger,
 }
 
 impl Icon {
@@ -44,6 +47,9 @@ impl Icon {
                 Icon::Search => "󰍉 ",
                 Icon::Split => "󰙀 ",
                 Icon::Single => "󰇄 ",
+                Icon::Back => "󰁍 ",
+                Icon::Forward => "󰁔 ",
+                Icon::Burger => "󰍜 ",
             },
             IconMode::Unicode => match self {
                 Icon::Folder => "▸ ",
@@ -61,6 +67,9 @@ impl Icon {
                 Icon::Search => "🔍 ",
                 Icon::Split => "|| ",
                 Icon::Single => "[] ",
+                Icon::Back => "← ",
+                Icon::Forward => "→ ",
+                Icon::Burger => "≡ ",
             },
             IconMode::ASCII => match self {
                 Icon::Folder => "[D] ",
@@ -78,6 +87,9 @@ impl Icon {
                 Icon::Search => "/ ",
                 Icon::Split => "[S] ",
                 Icon::Single => "[1] ",
+                Icon::Back => "< ",
+                Icon::Forward => "> ",
+                Icon::Burger => "[=] ",
             },
         }
     }
