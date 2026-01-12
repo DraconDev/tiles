@@ -201,12 +201,6 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     // Force true color pure black background
     f.render_widget(Block::default().style(Style::default().bg(Color::Rgb(0, 0, 0))), f.area());
 
-    // CRT Scanline Effect
-    let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_millis();
-    let scanline_y = ((now / 20) % f.area().height as u128) as u16;
-    let scanline_style = Style::default().fg(Color::Rgb(10, 10, 15)); // Very subtle dark blue
-    f.render_widget(Paragraph::new("—".repeat(f.area().width as usize)).style(scanline_style), Rect::new(0, scanline_y, f.area().width, 1));
-
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)])
@@ -298,9 +292,24 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let logo_width = 10;
     f.render_widget(Paragraph::new(logo_text).style(logo_style), Rect::new(area.x, area.y, logo_width, 1));
 
-    let split_icon = if pane_count > 1 { Icon::Split.get(app.icon_mode) } else { Icon::Single.get(app.icon_mode) };
-    let split_width = split_icon.len() as u16 + 2;
-    f.render_widget(Paragraph::new(format!(" {} ", split_icon)).style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)), Rect::new(area.x + area.width.saturating_sub(split_width), area.y, split_width, 1));
+    let now_dt = chrono::Local::now();
+    let time_str = now_dt.format("%H:%M:%S").to_string();
+    let date_str = now_dt.format("%d %b %Y").to_string();
+
+    let view_name = match app.current_view {
+        CurrentView::Files => "FILES-MODE",
+        CurrentView::Processes => "PROC-MONITOR",
+    };
+
+    let status_text = format!(" {} │ {} │ {} ", view_name, date_str, time_str);
+    let status_width = status_text.len() as u16;
+    
+    f.render_widget(
+        Paragraph::new(status_text)
+            .style(Style::default().fg(Color::Rgb(0, 255, 200)).bg(Color::Rgb(20, 25, 30)))
+            .alignment(ratatui::layout::Alignment::Right),
+        Rect::new(area.x + area.width.saturating_sub(status_width), area.y, status_width, 1)
+    );
 
     if pane_count == 0 { return; }
     let start_x = if app.show_sidebar { 
@@ -308,7 +317,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     } else {
         area.x + logo_width + 1
     };
-    let pane_chunks = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / pane_count as u16); pane_count]).split(Rect::new(start_x, area.y, area.width.saturating_sub(start_x + split_width), 1));
+    let pane_chunks = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / pane_count as u16); pane_count]).split(Rect::new(start_x, area.y, area.width.saturating_sub(start_x + status_width), 1));
 
     app.tab_bounds.clear();
     for (p_i, pane) in app.panes.iter().enumerate() {
