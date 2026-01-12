@@ -572,6 +572,8 @@ impl App {
                     initial_window_size: state.window_size,
                     path_colors: state.path_colors,
                     ignore_resize_until: None,
+                    undo_stack: Vec::new(),
+                    redo_stack: Vec::new(),
                 };
             }
         }
@@ -683,6 +685,8 @@ impl App {
             initial_window_size: None,
             path_colors: HashMap::new(),
             ignore_resize_until: None,
+            undo_stack: Vec::new(),
+            redo_stack: Vec::new(),
         };
         log_debug("App::new finished successfully");
         app
