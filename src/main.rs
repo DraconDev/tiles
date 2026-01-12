@@ -2013,6 +2013,121 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             } 
                             return true;
                         } 
+                        KeyCode::Char('u') if has_control => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                if !fs.search_filter.is_empty() {
+                                    fs.search_filter.clear();
+                                    fs.selected_index = Some(0);
+                                    *fs.table_state.offset_mut() = 0;
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    return true;
+                                }
+                            }
+                        }
+                        KeyCode::Char('w') if has_control => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                if !fs.search_filter.is_empty() {
+                                    let trimmed = fs.search_filter.trim_end();
+                                    if let Some(last_space) = trimmed.rfind(' ') {
+                                        fs.search_filter.truncate(last_space + 1);
+                                    } else {
+                                        fs.search_filter.clear();
+                                    }
+                                    fs.selected_index = Some(0);
+                                    *fs.table_state.offset_mut() = 0;
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    return true;
+                                }
+                            }
+                        }
+                        KeyCode::Backspace if has_control => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                if !fs.search_filter.is_empty() {
+                                    let trimmed = fs.search_filter.trim_end();
+                                    if let Some(last_space) = trimmed.rfind(' ') {
+                                        fs.search_filter.truncate(last_space + 1);
+                                    } else {
+                                        fs.search_filter.clear();
+                                    }
+                                    fs.selected_index = Some(0);
+                                    *fs.table_state.offset_mut() = 0;
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    return true;
+                                }
+                            }
+                        }
+                        KeyCode::Char('l') if has_control => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                fs.search_filter.clear();
+                                fs.selected_index = Some(0);
+                                *fs.table_state.offset_mut() = 0;
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                return true;
+                            }
+                        }
+                        KeyCode::Enter if key.modifiers.contains(KeyModifiers::ALT) => {
+                            app.mode = AppMode::Properties;
+                            return true;
+                        }
+                        KeyCode::F(1) => {
+                            app.mode = AppMode::Settings;
+                            app.settings_section = SettingsSection::Shortcuts;
+                            return true;
+                        }
+                        KeyCode::F(6) => {
+                            if let Some(fs) = app.current_file_state() {
+                                if let Some(idx) = fs.selected_index {
+                                    if let Some(p) = fs.files.get(idx) {
+                                        app.mode = AppMode::Rename;
+                                        app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string());
+                                        app.rename_selected = true;
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                        KeyCode::Delete => {
+                            if let Some(fs) = app.current_file_state() {
+                                if fs.selected_index.is_some() {
+                                    app.mode = AppMode::Delete;
+                                    return true;
+                                }
+                            }
+                        }
+                        KeyCode::Char('~') if key.modifiers.is_empty() => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                if let Some(home) = dirs::home_dir() {
+                                    fs.current_path = home.clone();
+                                    fs.selected_index = Some(0);
+                                    fs.multi_select.clear();
+                                    *fs.table_state.offset_mut() = 0;
+                                    push_history(fs, home);
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    return true;
+                                }
+                            }
+                        }
+                        KeyCode::Enter if key.modifiers.contains(KeyModifiers::SHIFT) => {
+                            // Open in new tab
+                            if let Some(fs) = app.current_file_state() {
+                                if let Some(idx) = fs.selected_index {
+                                    if let Some(path) = fs.files.get(idx).cloned() {
+                                        if path.is_dir() {
+                                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                                let mut new_fs = fs.clone();
+                                                new_fs.current_path = path.clone();
+                                                new_fs.selected_index = Some(0);
+                                                new_fs.history = vec![path];
+                                                new_fs.history_index = 0;
+                                                pane.open_tab(new_fs);
+                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                                return true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         KeyCode::Char(c) if key.modifiers.is_empty() => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } return true; } 
                         KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } return true; } 
                         _ => { return false; } 
