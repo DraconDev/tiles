@@ -16,11 +16,24 @@ impl SystemModule {
     pub fn get_data(&mut self) -> crate::app::SystemData {
         self.sys.refresh_cpu_usage();
         self.sys.refresh_memory();
+        self.sys.refresh_processes();
         self.disks.refresh_list();
 
         let cpu_usage = self.sys.global_cpu_usage();
         let mem_usage = self.sys.used_memory() as f64 / 1024.0 / 1024.0 / 1024.0; // GB
         let total_mem = self.sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0; // GB
+
+        let mut final_processes = Vec::new();
+        for (pid, process) in self.sys.processes() {
+            final_processes.push(crate::app::ProcessInfo {
+                pid: pid.as_u32(),
+                name: process.name().to_string_lossy().to_string(),
+                cpu: process.cpu_usage(),
+                mem: process.memory() as f32 / 1024.0 / 1024.0, // MB
+            });
+        }
+        final_processes.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap_or(std::cmp::Ordering::Equal));
+        final_processes.truncate(50);
 
         let mut final_disks = Vec::new();
 
