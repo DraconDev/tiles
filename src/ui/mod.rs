@@ -790,6 +790,7 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
         let label = match action {
             ContextMenuAction::Open => format!(" {} Open", Icon::Folder.get(app.icon_mode)),
             ContextMenuAction::OpenNewTab => format!(" {} Open in New Tab", Icon::Split.get(app.icon_mode)),
+            ContextMenuAction::OpenWith => format!(" {} Open With...", Icon::Split.get(app.icon_mode)),
             ContextMenuAction::Edit => format!(" {} Edit", Icon::Document.get(app.icon_mode)),
             ContextMenuAction::Run => format!(" {} Run", Icon::Video.get(app.icon_mode)),
             ContextMenuAction::RunTerminal => format!(" {} Run in Terminal", Icon::Script.get(app.icon_mode)),
