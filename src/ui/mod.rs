@@ -679,6 +679,9 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
     if draw_y + menu_height > f.area().height { draw_y = f.area().height.saturating_sub(menu_height); }
 
     let area = Rect::new(draw_x, draw_y, menu_width, menu_height);
+    let shadow_area = Rect::new(draw_x + 1, draw_y + 1, menu_width, menu_height);
+    f.render_widget(Block::default().style(Style::default().bg(Color::Rgb(10, 10, 15))), shadow_area);
+
     f.render_widget(Clear, area);
     f.render_widget(List::new(items).block(Block::default().title(title).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(THEME.accent_secondary))), area);
 }
