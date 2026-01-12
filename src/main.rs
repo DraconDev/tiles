@@ -74,7 +74,6 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         actions.push(ContextMenuAction::RemoveFromFavorites);
                     }
                     
-                        actions.push(ContextMenuAction::TerminalTab);
                         actions.push(ContextMenuAction::TerminalWindow);
                         actions.push(ContextMenuAction::SetColor(None));
                         actions.push(ContextMenuAction::Properties);                }
@@ -98,7 +97,6 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     actions.push(ContextMenuAction::OpenNewTab);
                     actions.push(ContextMenuAction::NewFolder);
                     actions.push(ContextMenuAction::NewFile);
-                    actions.push(ContextMenuAction::TerminalTab);
             actions.push(ContextMenuAction::TerminalWindow);
                     
                     if !app.starred.contains(path) {
@@ -142,7 +140,6 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             actions.push(ContextMenuAction::SelectAll);
             actions.push(ContextMenuAction::Refresh);
             
-            actions.push(ContextMenuAction::TerminalTab);
             actions.push(ContextMenuAction::TerminalWindow);
             
             if let Some(fs) = app.current_file_state() {
@@ -156,13 +153,11 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
         ContextMenuTarget::SidebarFavorite(_) => vec![
             ContextMenuAction::Open,
             ContextMenuAction::OpenNewTab,
-            ContextMenuAction::TerminalTab,
             ContextMenuAction::TerminalWindow,
             ContextMenuAction::RemoveFromFavorites,
         ],
         ContextMenuTarget::SidebarRemote(_) => vec![
             ContextMenuAction::ConnectRemote,
-            ContextMenuAction::TerminalTab,
             ContextMenuAction::TerminalWindow, // Could ssh directly
             ContextMenuAction::DeleteRemote,
         ],
@@ -171,7 +166,6 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             if let Some(disk) = app.system_state.disks.get(*idx) {
                 if disk.is_mounted {
                     actions.push(ContextMenuAction::Open);
-                    actions.push(ContextMenuAction::TerminalTab);
             actions.push(ContextMenuAction::TerminalWindow);
                     actions.push(ContextMenuAction::Unmount);
                 } else {
@@ -1295,28 +1289,6 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
             close_menu = false;
 
         }
-
-                ContextMenuAction::TerminalTab => {
-
-                    if let Some(fs) = app.current_file_state() {
-
-                        let path = match target {
-
-                            ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => {
-
-                                fs.files.get(*idx).and_then(|p| p.parent()).unwrap_or(&fs.current_path).to_path_buf()
-
-                            }
-
-                            _ => fs.current_path.clone()
-
-                        };
-
-                        let _ = event_tx.try_send(AppEvent::SpawnTerminal { path, new_tab: true, remote: fs.remote_session.clone(), command: None });
-
-                    }
-
-                }
 
                 ContextMenuAction::TerminalWindow => {
 
