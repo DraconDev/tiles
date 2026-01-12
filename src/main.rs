@@ -1705,7 +1705,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 KeyCode::F(2) => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; }
                 KeyCode::Char('h') | KeyCode::Char('H') if has_control => { let idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(idx)); return true; }
                 KeyCode::Char('g') | KeyCode::Char('G') if has_control => { app.mode = AppMode::Settings; return true; }
-                KeyCode::Enter if has_control => {
+                KeyCode::Char('o') | KeyCode::Char('O') if has_control => {
                     if let Some(pane) = app.panes.get(app.focused_pane_index) {
                         if let Some(fs) = pane.current_state() {
                             let _ = event_tx.try_send(AppEvent::SpawnTerminal {
