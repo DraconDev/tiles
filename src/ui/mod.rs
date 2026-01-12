@@ -789,6 +789,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             ("Ctrl + h", "Toggle Hidden Files"),
             ("Ctrl + b", "Toggle Sidebar"),
             ("Ctrl + l / u", "Clear Search Filter"),
+            ("Ctrl + z / y", "Undo / Redo (Rename/Move)"),
             ("F1", "Show this Help"),
         ]),
         ("File Operations", vec![

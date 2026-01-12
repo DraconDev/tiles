@@ -1949,17 +1949,39 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return true;
                         }
                         KeyCode::Char('z') if has_control => {
-                            // Placeholder for Undo: For now, maybe just clear search if active?
-                            if let Some(fs) = app.current_file_state_mut() {
-                                if !fs.search_filter.is_empty() {
-                                    fs.search_filter.clear();
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                            if let Some(action) = app.undo_stack.pop() {
+                                match action.clone() {
+                                    crate::app::UndoAction::Rename(old, new) | crate::app::UndoAction::Move(old, new) => {
+                                        let _ = std::fs::rename(&new, &old);
+                                        app.redo_stack.push(action);
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                                    }
+                                    _ => {}
+                                }
+                            } else {
+                                // Fallback: Clear search if active
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    if !fs.search_filter.is_empty() {
+                                        fs.search_filter.clear();
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    }
                                 }
                             }
                             return true;
                         }
                         KeyCode::Char('y') if has_control => {
-                            // Placeholder for Redo
+                            if let Some(action) = app.redo_stack.pop() {
+                                match action.clone() {
+                                    crate::app::UndoAction::Rename(old, new) | crate::app::UndoAction::Move(old, new) => {
+                                        let _ = std::fs::rename(&old, &new);
+                                        app.undo_stack.push(action);
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                                    }
+                                    _ => {}
+                                }
+                            }
                             return true;
                         }
                         KeyCode::Left if key.modifiers.contains(KeyModifiers::ALT) => {
