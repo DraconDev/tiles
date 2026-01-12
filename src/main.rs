@@ -1734,6 +1734,23 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     update_commands(app); 
                     return true; 
                 }
+                KeyCode::Char('e') if !has_control => {
+                    if let Some(fs) = app.current_file_state() {
+                        if let Some(idx) = fs.selected_index {
+                            if let Some(path) = fs.files.get(idx) {
+                                let editor = std::env::var("EDITOR").unwrap_or_else(|_| "nano".to_string());
+                                let cmd = format!("{} \"{}\"", editor, path.to_string_lossy());
+                                let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                                    path: path.parent().unwrap_or(std::path::Path::new(".")).to_path_buf(),
+                                    new_tab: false,
+                                    remote: fs.remote_session.clone(),
+                                    command: Some(cmd),
+                                });
+                            }
+                        }
+                    }
+                    return true;
+                }
                 KeyCode::Left if has_control => {
                     if app.sidebar_focus {
                         app.resize_sidebar(-2);

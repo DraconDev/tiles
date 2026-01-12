@@ -286,6 +286,31 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
+fn highlight_code(content: &str) -> Vec<Line<'static>> {
+    content.lines().map(|line| {
+        let trimmed = line.trim();
+        if trimmed.starts_with("#") || trimmed.starts_with("//") {
+            Line::from(Span::styled(line.to_string(), Style::default().fg(Color::Green)))
+        } else if trimmed.starts_with("[") && trimmed.ends_with("]") {
+             Line::from(Span::styled(line.to_string(), Style::default().fg(Color::Yellow)))
+        } else if let Some(idx) = line.find('=') {
+             let key = line[..idx].to_string();
+             let val = line[idx..].to_string();
+             Line::from(vec![
+                 Span::styled(key, Style::default().fg(Color::Cyan)),
+                 Span::raw(val)
+             ])
+        } else {
+             let keywords = ["pub", "fn", "struct", "impl", "let", "const", "use", "mod", "crate", "import", "from", "class", "def", "func"];
+             if keywords.iter().any(|k| trimmed.starts_with(k)) {
+                  Line::from(Span::styled(line.to_string(), Style::default().fg(Color::Magenta)))
+             } else {
+                  Line::from(Span::raw(line.to_string()))
+             }
+        }
+    }).collect()
+}
+
 fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool, borders: Borders) {
     if let Some(pane) = app.panes.get_mut(pane_idx) {
         if let Some(preview) = &pane.preview {
@@ -295,9 +320,10 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                 .title(format!(" Preview: {} ", preview.path.display()))
                 .border_style(if is_focused { Style::default().fg(THEME.border_active) } else { Style::default().fg(THEME.border_inactive) });
             
-            let text = Paragraph::new(preview.content.as_str())
+            let highlighted = highlight_code(&preview.content);
+            let text = Paragraph::new(highlighted)
                 .block(block)
-                .wrap(ratatui::widgets::Wrap { trim: true });
+                .wrap(ratatui::widgets::Wrap { trim: false }); // Don't trim to preserve indentation
             
             f.render_widget(text, area);
             return;
