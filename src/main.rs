@@ -2664,7 +2664,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             }
                                         }
                                     }
-                                    app.is_dragging = false; app.drag_start_pos = None; app.drag_source = None;
+                                    app.is_dragging = false; app.drag_start_pos = None; app.drag_source = None; app.hovered_drop_target = None;
                                 }
                                 MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                                     app.mouse_pos = (column, row);
