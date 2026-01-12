@@ -203,7 +203,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)])
+        .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(2)])
         .split(f.area());
 
     let workspace_constraints = if app.show_sidebar {
@@ -653,28 +653,60 @@ fn draw_stat_bar(label: &str, value: f32, max: f32) -> Line<'static> {
 }
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Min(0), Constraint::Length(45)]).split(area);
+    let main_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Length(1)])
+        .split(area);
+
+    // Row 1: Activity Log & Stats
+    let row1 = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Min(0), Constraint::Length(45)])
+        .split(main_chunks[0]);
+
+    // Activity Log
+    let log_msg = if let Some((msg, time)) = &app.last_action_msg {
+        if time.elapsed().as_secs() < 5 {
+            Span::styled(format!(" [ SYSTEM ] {} ", msg), Style::default().fg(THEME.accent_secondary).bg(Color::Rgb(20, 25, 30)))
+        } else {
+            Span::styled(" [ SYSTEM ] IDLE ", Style::default().fg(Color::DarkGray))
+        }
+    } else {
+        Span::styled(" [ SYSTEM ] IDLE ", Style::default().fg(Color::DarkGray))
+    };
+    f.render_widget(Paragraph::new(Line::from(log_msg)), row1[0]);
+
+    // CPU/MEM Stats
+    let cpu_bar = draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0);
+    let mem_usage = (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) as f32 * 100.0;
+    let mem_bar = draw_stat_bar("MEM", mem_usage, 100.0);
+    let stats_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(row1[1]);
+    f.render_widget(Paragraph::new(cpu_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[0]);
+    f.render_widget(Paragraph::new(mem_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[1]);
+
+    // Row 2: Shortcuts & Selection Info
+    let row2 = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Min(0), Constraint::Length(30)])
+        .split(main_chunks[1]);
+
     let shortcuts = vec![
         Span::styled(" ^B ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Sidebar "),
         Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Split "),
         Span::styled(" ^T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Tab "),
-        Span::styled(" ^N ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Terminal "),
-        Span::styled(" ^Spc ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Cmd "),
+        Span::styled(" Spc ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Inspect "),
+        Span::styled(" ^N ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Term "),
         Span::styled(" ^H ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Hidden "),
     ];
-    f.render_widget(Paragraph::new(Line::from(shortcuts)), chunks[0]);
+    f.render_widget(Paragraph::new(Line::from(shortcuts)), row2[0]);
 
-    let cpu_bar = draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0);
-    let mem_usage = (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) as f32 * 100.0;
-    let mem_bar = draw_stat_bar("MEM", mem_usage, 100.0);
-
-    let stats_layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(chunks[1]);
-
-    f.render_widget(Paragraph::new(cpu_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[0]);
-    f.render_widget(Paragraph::new(mem_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[1]);
+    // Selection Summary
+    if let Some(fs) = app.current_file_state() {
+        let sel_count = if !fs.multi_select.is_empty() { fs.multi_select.len() } else if fs.selected_index.is_some() { 1 } else { 0 };
+        let total_count = fs.files.len();
+        let summary = format!(" SEL: {} / {} ", sel_count, total_count);
+        f.render_widget(Paragraph::new(summary).style(Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)).alignment(ratatui::layout::Alignment::Right), row2[1]);
+    }
 }
 
 fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::ContextMenuTarget, app: &App) {
