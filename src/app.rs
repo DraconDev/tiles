@@ -99,7 +99,6 @@ pub enum ContextMenuAction {
     Duplicate,
     Compress,
     Delete,
-    TerminalTab,
     TerminalWindow,
     SetColor(Option<u8>),
     Properties,
