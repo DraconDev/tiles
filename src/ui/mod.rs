@@ -279,33 +279,23 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
 
 fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
     let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_millis();
-    let is_glitching = (now / 100) % 50 == 0; // Flicker every ~5 seconds for 100ms
     
-    let logo_text = if is_glitching { " 💀 ERROR " } else { " 👹 TILES " };
-    let logo_style = if is_glitching { 
-        Style::default().fg(Color::Yellow).bg(Color::Red).add_modifier(Modifier::BOLD | Modifier::REVERSED)
-    } else { 
-        Style::default().fg(Color::Red).add_modifier(Modifier::BOLD) 
-    };
-
     let pane_count = app.panes.len();
-    let logo_width = 10;
-    f.render_widget(Paragraph::new(logo_text).style(logo_style), Rect::new(area.x, area.y, logo_width, 1));
 
-    // Toolbar Icons Cluster
+    // Toolbar Icons Cluster (Far Left)
     let back_icon = Icon::Back.get(app.icon_mode);
     let forward_icon = Icon::Forward.get(app.icon_mode);
     let split_icon = Icon::Split.get(app.icon_mode);
     let burger_icon = Icon::Burger.get(app.icon_mode);
 
     app.header_icon_bounds.clear();
-    let mut cur_icon_x = area.x + logo_width + 1;
+    let mut cur_icon_x = area.x;
     
     let icons = [
+        (burger_icon, "burger"),
         (back_icon, "back"),
         (forward_icon, "forward"),
         (split_icon, "split"),
-        (burger_icon, "burger"),
     ];
 
     for (icon, id) in icons {
@@ -315,8 +305,6 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         app.header_icon_bounds.push((rect, id.to_string()));
         cur_icon_x += width + 1;
     }
-
-    let _toolbar_width = cur_icon_x - (area.x + logo_width);
 
     if pane_count == 0 { return; }
     let start_x = if app.show_sidebar { 
