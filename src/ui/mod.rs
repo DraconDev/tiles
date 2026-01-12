@@ -9,9 +9,9 @@ use std::time::SystemTime;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
-use crate::app::{App, AppMode, CurrentView, FileColumn, FileState, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory};
+use crate::app::{App, AppMode, CurrentView, FileColumn, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory};
 use crate::ui::theme::THEME;
-use crate::icons::{Icon, IconMode};
+use crate::icons::Icon;
 use terma::layout::centered_rect;
 use terma::utils::{format_size, format_time, format_permissions};
 
@@ -286,16 +286,16 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
-fn highlight_code(content: &str) -> Vec<Line<'static>> {
+fn highlight_code<'a>(content: &'a str) -> Vec<Line<'a>> {
     content.lines().map(|line| {
         let trimmed = line.trim();
         if trimmed.starts_with("#") || trimmed.starts_with("//") {
-            Line::from(Span::styled(line.to_string(), Style::default().fg(Color::Green)))
+            Line::from(Span::styled(line, Style::default().fg(Color::Green)))
         } else if trimmed.starts_with("[") && trimmed.ends_with("]") {
-             Line::from(Span::styled(line.to_string(), Style::default().fg(Color::Yellow)))
+             Line::from(Span::styled(line, Style::default().fg(Color::Yellow)))
         } else if let Some(idx) = line.find('=') {
-             let key = line[..idx].to_string();
-             let val = line[idx..].to_string();
+             let key = &line[..idx];
+             let val = &line[idx..];
              Line::from(vec![
                  Span::styled(key, Style::default().fg(Color::Cyan)),
                  Span::raw(val)
@@ -303,9 +303,9 @@ fn highlight_code(content: &str) -> Vec<Line<'static>> {
         } else {
              let keywords = ["pub", "fn", "struct", "impl", "let", "const", "use", "mod", "crate", "import", "from", "class", "def", "func"];
              if keywords.iter().any(|k| trimmed.starts_with(k)) {
-                  Line::from(Span::styled(line.to_string(), Style::default().fg(Color::Magenta)))
+                  Line::from(Span::styled(line, Style::default().fg(Color::Magenta)))
              } else {
-                  Line::from(Span::raw(line.to_string()))
+                  Line::from(Span::raw(line))
              }
         }
     }).collect()
@@ -322,8 +322,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             
             let highlighted = highlight_code(&preview.content);
             let text = Paragraph::new(highlighted)
-                .block(block)
-                .wrap(ratatui::widgets::Wrap { trim: false }); // Don't trim to preserve indentation
+                .block(block);
             
             f.render_widget(text, area);
             return;
