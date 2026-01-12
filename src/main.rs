@@ -1520,7 +1520,7 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::app::RemoteSession>, preferred_terminal: Option<&str>, command_to_run: Option<&str>) {
     let mut terminals: Vec<String> = vec![
         "kgx".into(), "gnome-terminal".into(), "konsole".into(), "tilix".into(), "terminator".into(),
-        "xfce4-terminal".into(), "mate-terminal".into(), "lxterminal".into(), 
+        "xfce4-terminal".into(), "mate-terminal".into(), "lxterminal".into(), "wezterm".into(), "foot".into(),
         "xdg-terminal-exec".into(), "x-terminal-emulator".into(), "alacritty".into(), "kitty".into(), "xterm".into()
     ];
     
@@ -1555,23 +1555,34 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                  };
                  
                  let mut command = std::process::Command::new(&t);
-                 if t == "gnome-terminal" || t == "kgx" || t == "xfce4-terminal" || t == "mate-terminal" {
-                     if new_tab { command.arg("--tab"); }
-                     command.args(["--", "ssh", "-t", &ssh_target, &remote_cmd]);
-                 } else if t == "tilix" {
-                     if new_tab { command.args(["--action", "session-add-as-terminal"]); }
-                     command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
-                 } else if t == "terminator" {
-                     if new_tab { command.arg("--new-tab"); }
-                     command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
-                 } else if t == "lxterminal" {
-                     if new_tab { command.arg("--tabs"); }
-                     command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
-                 } else if t == "konsole" {
-                     if new_tab { command.arg("--new-tab"); }
-                     command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
-                 } else {
-                     command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
+                 match t.as_str() {
+                     "gnome-terminal" | "kgx" | "xfce4-terminal" | "mate-terminal" => {
+                         if new_tab { command.arg("--tab"); } else { command.arg("--window"); }
+                         command.args(["--", "ssh", "-t", &ssh_target, &remote_cmd]);
+                     }
+                     "konsole" => {
+                         if new_tab { command.arg("--new-tab"); } else { command.arg("--new-window"); }
+                         command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
+                     }
+                     "tilix" => {
+                         if new_tab { command.args(["--action", "session-add-as-terminal"]); } else { command.arg("--action").arg("session-add-as-window"); }
+                         command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
+                     }
+                     "terminator" => {
+                         if new_tab { command.arg("--new-tab"); }
+                         command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
+                     }
+                     "lxterminal" => {
+                         if new_tab { command.arg("--tabs"); }
+                         command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
+                     }
+                     "wezterm" => {
+                         if new_tab { command.args(["start", "--new-tab"]); } else { command.arg("start"); }
+                         command.args(["ssh", &ssh_target, "-t", &remote_cmd]);
+                     }
+                     _ => {
+                         command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
+                     }
                  }
                  
                  unsafe {
@@ -1593,50 +1604,70 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                     "exec $SHELL".to_string()
                 };
 
-                if t == "gnome-terminal" || t == "kgx" || t == "xfce4-terminal" || t == "mate-terminal" {
-                    if new_tab { command.arg("--tab"); }
-                    command.arg("--working-directory").arg(&*path_str);
-                    if command_to_run.is_some() {
-                        command.arg("--").arg("sh").arg("-c").arg(&local_cmd);
+                match t.as_str() {
+                    "gnome-terminal" | "kgx" | "xfce4-terminal" | "mate-terminal" => {
+                        if new_tab { command.arg("--tab"); } else { command.arg("--window"); }
+                        command.arg("--working-directory").arg(&*path_str);
+                        if command_to_run.is_some() {
+                            command.arg("--").arg("sh").arg("-c").arg(&local_cmd);
+                        }
                     }
-                } else if t == "tilix" {
-                    if new_tab { command.args(["--action", "session-add-as-terminal"]); }
-                    command.arg("--working-directory").arg(&*path_str);
-                    if command_to_run.is_some() {
-                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                    "tilix" => {
+                        if new_tab { command.args(["--action", "session-add-as-terminal"]); } else { command.arg("--action").arg("session-add-as-window"); }
+                        command.arg("--working-directory").arg(&*path_str);
+                        if command_to_run.is_some() {
+                            command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                        }
                     }
-                } else if t == "terminator" {
-                    if new_tab { command.arg("--new-tab"); }
-                    command.arg("--working-directory").arg(&*path_str);
-                    if command_to_run.is_some() {
-                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                    "terminator" => {
+                        if new_tab { command.arg("--new-tab"); }
+                        command.arg("--working-directory").arg(&*path_str);
+                        if command_to_run.is_some() {
+                            command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                        }
                     }
-                } else if t == "lxterminal" {
-                    if new_tab { command.arg("--tabs"); }
-                    command.arg("--working-directory").arg(&*path_str);
-                    if command_to_run.is_some() {
-                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                    "lxterminal" => {
+                        if new_tab { command.arg("--tabs"); }
+                        command.arg("--working-directory").arg(&*path_str);
+                        if command_to_run.is_some() {
+                            command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                        }
                     }
-                } else if t == "konsole" {
-                    if new_tab { command.arg("--new-tab"); }
-                    command.arg("--workdir").arg(&*path_str);
-                    if command_to_run.is_some() {
-                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                    "konsole" => {
+                        if new_tab { command.arg("--new-tab"); } else { command.arg("--new-window"); }
+                        command.arg("--workdir").arg(&*path_str);
+                        if command_to_run.is_some() {
+                            command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                        }
                     }
-                } else if t == "alacritty" {
-                    command.arg("--working-directory").arg(&*path_str);
-                    if command_to_run.is_some() {
-                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                    "wezterm" => {
+                        if new_tab { command.args(["start", "--new-tab", "--cwd"]); } else { command.arg("start").arg("--cwd"); }
+                        command.arg(&*path_str);
+                        if let Some(c) = command_to_run {
+                            command.args(["sh", "-c", c]);
+                        }
                     }
-                } else if t == "kitty" {
-                    command.arg("--directory").arg(&*path_str);
-                    if command_to_run.is_some() {
-                        command.arg("sh").arg("-c").arg(&local_cmd);
+                    "alacritty" => {
+                        command.arg("--working-directory").arg(&*path_str);
+                        if command_to_run.is_some() {
+                            command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                        }
                     }
-                } else {
-                    // Generic fallback (xterm, etc)
-                    if command_to_run.is_some() {
-                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                    "kitty" => {
+                        command.arg("--directory").arg(&*path_str);
+                        if new_tab {
+                            // Kitty needs remote control for tabs, but standard launch is window
+                            // We'll just launch normally for now as most people don't have socket enabled
+                        }
+                        if command_to_run.is_some() {
+                            command.arg("sh").arg("-c").arg(&local_cmd);
+                        }
+                    }
+                    _ => {
+                        // Generic fallback (xterm, etc)
+                        if command_to_run.is_some() {
+                            command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                        }
                     }
                 }
 
