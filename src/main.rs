@@ -74,10 +74,10 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         actions.push(ContextMenuAction::RemoveFromFavorites);
                     }
                     
-                    actions.push(ContextMenuAction::TerminalHere); // "Open Terminal Here" (parent dir)
-                    actions.push(ContextMenuAction::SetColor(None));
-                    actions.push(ContextMenuAction::Properties);
-                }
+                        actions.push(ContextMenuAction::TerminalTab);
+                        actions.push(ContextMenuAction::TerminalWindow);
+                        actions.push(ContextMenuAction::SetColor(None));
+                        actions.push(ContextMenuAction::Properties);                }
             }
             actions
         }
@@ -1528,9 +1528,9 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
 fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::app::RemoteSession>, preferred_terminal: Option<&str>, command_to_run: Option<&str>) {
     let mut terminals: Vec<String> = vec![
-        "kgx".into(), "gnome-terminal".into(), "konsole".into(), "xfce4-terminal".into(),
-        "mate-terminal".into(), "lxterminal".into(), "xdg-terminal-exec".into(), 
-        "x-terminal-emulator".into(), "alacritty".into(), "kitty".into(), "xterm".into()
+        "kgx".into(), "gnome-terminal".into(), "konsole".into(), "tilix".into(), "terminator".into(),
+        "xfce4-terminal".into(), "mate-terminal".into(), "lxterminal".into(), 
+        "xdg-terminal-exec".into(), "x-terminal-emulator".into(), "alacritty".into(), "kitty".into(), "xterm".into()
     ];
     
     let mut resolved_terminals = Vec::new();
@@ -1567,6 +1567,12 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                  if t == "gnome-terminal" || t == "kgx" || t == "xfce4-terminal" || t == "mate-terminal" {
                      if new_tab { command.arg("--tab"); }
                      command.args(["--", "ssh", "-t", &ssh_target, &remote_cmd]);
+                 } else if t == "tilix" {
+                     if new_tab { command.args(["--action", "session-add-as-terminal"]); }
+                     command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
+                 } else if t == "terminator" {
+                     if new_tab { command.arg("--new-tab"); }
+                     command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
                  } else if t == "lxterminal" {
                      if new_tab { command.arg("--tabs"); }
                      command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
@@ -1600,6 +1606,18 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                     command.arg("--working-directory").arg(&*path_str);
                     if command_to_run.is_some() {
                         command.arg("--").arg("sh").arg("-c").arg(&local_cmd);
+                    }
+                } else if t == "tilix" {
+                    if new_tab { command.args(["--action", "session-add-as-terminal"]); }
+                    command.arg("--working-directory").arg(&*path_str);
+                    if command_to_run.is_some() {
+                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
+                    }
+                } else if t == "terminator" {
+                    if new_tab { command.arg("--new-tab"); }
+                    command.arg("--working-directory").arg(&*path_str);
+                    if command_to_run.is_some() {
+                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
                     }
                 } else if t == "lxterminal" {
                     if new_tab { command.arg("--tabs"); }
