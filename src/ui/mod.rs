@@ -760,8 +760,8 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
         ]),
         ("Terminal", vec![
             ("Ctrl + e", "Open External Terminal Tab"),
-            ("Ctrl + n", "Open External Terminal Window"),
-            ("Ctrl + .", "Open External Terminal Window (Alias)"),
+            ("F4 / Ctrl + n", "Open External Terminal Window"),
+            ("Ctrl + .", "Open Terminal Window (Best Effort)"),
             ("g", "Open Terminal Here (Git Mode)"),
         ]),
     ];
