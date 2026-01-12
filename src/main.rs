@@ -1534,6 +1534,7 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
         "xfce4-terminal".into(), "mate-terminal".into(), "lxterminal".into(), "wezterm".into(), "foot".into(),
         "xdg-terminal-exec".into(), "x-terminal-emulator".into(), "alacritty".into(), "kitty".into(), "xterm".into()
     ];
+
     
     let mut resolved_terminals = Vec::new();
     if let Some(pt) = preferred_terminal {
