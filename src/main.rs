@@ -339,36 +339,41 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                 AppEvent::Delete(path) => {
                     let _ = std::fs::remove_file(&path).or_else(|_| std::fs::remove_dir_all(&path));
                     let mut app_guard = app.lock().unwrap();
-                    let idx = app_guard.focused_pane_index;
-                    app_guard.update_files_for_active_tab(idx);
+                    for i in 0..app_guard.panes.len() {
+                        app_guard.update_files_for_active_tab(i);
+                    }
                     needs_draw = true;
                 }
                 AppEvent::Rename(old, new) => {
                     let _ = std::fs::rename(old, new);
                     let mut app_guard = app.lock().unwrap();
-                    let idx = app_guard.focused_pane_index;
-                    app_guard.update_files_for_active_tab(idx);
+                    for i in 0..app_guard.panes.len() {
+                        app_guard.update_files_for_active_tab(i);
+                    }
                     needs_draw = true;
                 }
                 AppEvent::Copy(src, dest) => {
                     let _ = crate::modules::files::copy_recursive(&src, &dest);
                     let mut app_guard = app.lock().unwrap();
-                    let idx = app_guard.focused_pane_index;
-                    app_guard.update_files_for_active_tab(idx);
+                    for i in 0..app_guard.panes.len() {
+                        app_guard.update_files_for_active_tab(i);
+                    }
                     needs_draw = true;
                 }
                 AppEvent::CreateFile(path) => {
                     let _ = std::fs::File::create(&path);
                     let mut app_guard = app.lock().unwrap();
-                    let idx = app_guard.focused_pane_index;
-                    app_guard.update_files_for_active_tab(idx);
+                    for i in 0..app_guard.panes.len() {
+                        app_guard.update_files_for_active_tab(i);
+                    }
                     needs_draw = true;
                 }
                 AppEvent::CreateFolder(path) => {
                     let _ = std::fs::create_dir(&path);
                     let mut app_guard = app.lock().unwrap();
-                    let idx = app_guard.focused_pane_index;
-                    app_guard.update_files_for_active_tab(idx);
+                    for i in 0..app_guard.panes.len() {
+                        app_guard.update_files_for_active_tab(i);
+                    }
                     needs_draw = true;
                 }
                 AppEvent::RemoteConnected(pane_idx, session) => {
@@ -1903,6 +1908,58 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         return true;
                     }
                     match key.code {
+                        KeyCode::Char('c') if has_control => {
+                            if let Some(fs) = app.current_file_state() {
+                                if let Some(idx) = fs.selected_index {
+                                    if let Some(path) = fs.files.get(idx) {
+                                        app.clipboard = Some((path.clone(), crate::app::ClipboardOp::Copy));
+                                    }
+                                }
+                            }
+                            return true;
+                        }
+                        KeyCode::Char('x') if has_control => {
+                            if let Some(fs) = app.current_file_state() {
+                                if let Some(idx) = fs.selected_index {
+                                    if let Some(path) = fs.files.get(idx) {
+                                        app.clipboard = Some((path.clone(), crate::app::ClipboardOp::Cut));
+                                    }
+                                }
+                            }
+                            return true;
+                        }
+                        KeyCode::Char('v') if has_control => {
+                            if let Some((src, op)) = app.clipboard.clone() {
+                                if let Some(fs) = app.current_file_state() {
+                                    let dest = fs.current_path.join(src.file_name().unwrap());
+                                    match op {
+                                        crate::app::ClipboardOp::Copy => { let _ = event_tx.try_send(AppEvent::Copy(src, dest)); }
+                                        crate::app::ClipboardOp::Cut => { let _ = event_tx.try_send(AppEvent::Rename(src, dest)); app.clipboard = None; }
+                                    }
+                                }
+                            }
+                            return true;
+                        }
+                        KeyCode::Char('a') if has_control => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                fs.multi_select = (0..fs.files.len()).collect();
+                            }
+                            return true;
+                        }
+                        KeyCode::Char('z') if has_control => {
+                            // Placeholder for Undo: For now, maybe just clear search if active?
+                            if let Some(fs) = app.current_file_state_mut() {
+                                if !fs.search_filter.is_empty() {
+                                    fs.search_filter.clear();
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                }
+                            }
+                            return true;
+                        }
+                        KeyCode::Char('y') if has_control => {
+                            // Placeholder for Redo
+                            return true;
+                        }
                         KeyCode::Left if key.modifiers.contains(KeyModifiers::ALT) => {
                             if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                                 pane.preview = None;

@@ -388,6 +388,13 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                     } else {
                         Style::default().fg(THEME.fg)
                     };
+
+                    // Dim style if file is currently "Cut" in clipboard
+                    if let Some((ref cb_path, op)) = app.clipboard {
+                        if op == crate::app::ClipboardOp::Cut && cb_path == path {
+                            final_style = final_style.add_modifier(Modifier::DIM);
+                        }
+                    }
                     
                     let icon = if is_dir { 
                         Icon::Folder.get(app.icon_mode) 
