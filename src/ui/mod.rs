@@ -515,8 +515,38 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
     }
 }
 
+fn draw_stat_bar(label: &str, value: f32, max: f32) -> Line<'static> {
+    let width = 10;
+    let ratio = (value / max).clamp(0.0, 1.0);
+    let filled = (ratio * width as f32).round() as usize;
+    
+    let mut spans = vec![
+        Span::styled(format!("{} ", label), Style::default().fg(Color::DarkGray)),
+    ];
+
+    for i in 0..width {
+        let symbol = if i < filled { "█" } else { "░" };
+        let color = if ratio < 0.4 {
+            Color::Rgb(0, 255, 150) // Cyber Green
+        } else if ratio < 0.7 {
+            Color::Rgb(255, 255, 0) // Yellow
+        } else {
+            Color::Rgb(255, 0, 85)  // Neon Red
+        };
+        
+        if i < filled {
+            spans.push(Span::styled(symbol, Style::default().fg(color)));
+        } else {
+            spans.push(Span::styled(symbol, Style::default().fg(Color::Rgb(30, 30, 35))));
+        }
+    }
+
+    spans.push(Span::styled(format!(" {:>3.0}%", ratio * 100.0), Style::default().fg(THEME.fg).add_modifier(Modifier::BOLD)));
+    Line::from(spans)
+}
+
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(75), Constraint::Percentage(25)]).split(area);
+    let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Min(0), Constraint::Length(45)]).split(area);
     let shortcuts = vec![
         Span::styled(" ^Q ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Quit "),
         Span::styled(" ^B ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Sidebar "),
@@ -529,12 +559,17 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     ];
     f.render_widget(Paragraph::new(Line::from(shortcuts)), chunks[0]);
 
-    let mut stats = vec![
-        Span::styled(format!("CPU: {:.0}%", app.system_state.cpu_usage), Style::default().fg(Color::Green)),
-        Span::raw(" | "),
-        Span::styled(format!("Mem: {:.0}%", (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) * 100.0), Style::default().fg(Color::Yellow)),
-    ];
-    f.render_widget(Paragraph::new(Line::from(stats)).alignment(ratatui::layout::Alignment::Right), chunks[1]);
+    let cpu_bar = draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0);
+    let mem_usage = (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) as f32 * 100.0;
+    let mem_bar = draw_stat_bar("MEM", mem_usage, 100.0);
+
+    let stats_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(chunks[1]);
+
+    f.render_widget(Paragraph::new(cpu_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[0]);
+    f.render_widget(Paragraph::new(mem_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[1]);
 }
 
 fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::ContextMenuTarget, app: &App) {
