@@ -869,7 +869,6 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
 
 fn draw_settings_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(80, 80, f.area()); 
-    render_shadow(f, area);
     f.render_widget(Clear, area);
     let block = Block::default().title(" Settings ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Cyan));
     let inner = block.inner(area); f.render_widget(block, area);
@@ -984,7 +983,6 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
 
 fn draw_add_remote_modal(f: &mut Frame, _app: &App) {
     let area = centered_rect(60, 40, f.area()); 
-    render_shadow(f, area);
     f.render_widget(Clear, area);
     f.render_widget(Paragraph::new("Add remote server modal placeholder").block(Block::default().title(" Add Remote ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green))), area);
 }
@@ -999,7 +997,6 @@ fn draw_highlight_modal(f: &mut Frame, _app: &App) {
         5
     );
     
-    render_shadow(f, area);
     f.render_widget(Clear, area);
     let block = Block::default().title(" Highlight ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Cyan));
     let inner = block.inner(area);
