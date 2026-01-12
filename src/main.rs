@@ -2697,7 +2697,23 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                                         if h == "REMOTES" { app.hovered_drop_target = Some(DropTarget::RemotesHeader); } else { app.hovered_drop_target = Some(DropTarget::Favorites); } // Default to favorites if not REMOTES header
                                                     } else { app.hovered_drop_target = Some(DropTarget::Favorites); } // Hovering over a favorite item
                                                 } else { app.hovered_drop_target = Some(DropTarget::Favorites); } // Fallback to favorites if no specific bound found
-                                            } else { app.hovered_drop_target = None; } // Not in sidebar
+                                            } else {
+                                                // Check if hovering over another pane
+                                                let (w, _) = app.terminal_size;
+                                                let content_area_width = w.saturating_sub(sidebar_width);
+                                                let pane_count = app.panes.len();
+                                                if pane_count > 1 {
+                                                    let pane_width = content_area_width / pane_count as u16;
+                                                    let hovered_pane_idx = (column.saturating_sub(sidebar_width) / pane_width) as usize;
+                                                    if hovered_pane_idx < pane_count && hovered_pane_idx != app.focused_pane_index {
+                                                        app.hovered_drop_target = Some(DropTarget::Pane(hovered_pane_idx));
+                                                    } else {
+                                                        app.hovered_drop_target = None;
+                                                    }
+                                                } else {
+                                                    app.hovered_drop_target = None;
+                                                }
+                                            }
                                         }
                                     }
                                 }
