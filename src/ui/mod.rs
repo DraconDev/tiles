@@ -660,69 +660,63 @@ fn draw_stat_bar(label: &str, value: f32, max: f32) -> Line<'static> {
 }
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
-    let main_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Length(1)])
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Min(0),      // Log, Clipboard & Shortcuts
+            Constraint::Length(45), // Stats (CPU/MEM)
+            Constraint::Length(25), // Selection Info
+        ])
         .split(area);
 
-    // Row 1: Activity Log & Stats
-    let row1 = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Min(0), Constraint::Length(45)])
-        .split(main_chunks[0]);
-
-    // Activity Log
-    let mut log_spans = vec![];
+    // 1. Left Section: Activity Log, Clipboard & Essential Shortcuts
+    let mut left_spans = vec![];
+    
+    // Log
     if let Some((msg, time)) = &app.last_action_msg {
         if time.elapsed().as_secs() < 5 {
-            log_spans.push(Span::styled(format!(" [ SYSTEM ] {} ", msg), Style::default().fg(THEME.accent_secondary).bg(Color::Rgb(20, 25, 30))));
-        } else {
-            log_spans.push(Span::styled(" [ SYSTEM ] IDLE ", Style::default().fg(Color::DarkGray)));
+            left_spans.push(Span::styled(format!(" [ SYSTEM ] {} ", msg), Style::default().fg(THEME.accent_secondary).bg(Color::Rgb(20, 25, 30))));
         }
-    } else {
-        log_spans.push(Span::styled(" [ SYSTEM ] IDLE ", Style::default().fg(Color::DarkGray)));
     }
-
+    
+    // Clipboard
     if let Some((ref path, op)) = app.clipboard {
         let op_str = match op { crate::app::ClipboardOp::Copy => "COPY", crate::app::ClipboardOp::Cut => "CUT" };
         let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| path.to_string_lossy().to_string());
-        log_spans.push(Span::styled(format!(" [ {} ] {} ", op_str, name), Style::default().fg(Color::Yellow).bg(Color::Rgb(30, 30, 20))));
+        left_spans.push(Span::styled(format!(" [ {} ] {} ", op_str, name), Style::default().fg(Color::Yellow).bg(Color::Rgb(30, 30, 20))));
     }
 
-    f.render_widget(Paragraph::new(Line::from(log_spans)), row1[0]);
+    // Spacing
+    if !left_spans.is_empty() {
+        left_spans.push(Span::raw("  "));
+    }
 
-    // CPU/MEM Stats
-    let cpu_bar = draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0);
-    let mem_usage = (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) as f32 * 100.0;
-    let mem_bar = draw_stat_bar("MEM", mem_usage, 100.0);
-    let stats_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(row1[1]);
-    f.render_widget(Paragraph::new(cpu_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[0]);
-    f.render_widget(Paragraph::new(mem_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[1]);
-
-    // Row 2: Shortcuts & Selection Info
-    let row2 = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Min(0), Constraint::Length(30)])
-        .split(main_chunks[1]);
-
+    // Reduced Shortcuts for cleaner look
     let shortcuts = vec![
         Span::styled(" F1 ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Help "),
         Span::styled(" ^F ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Zoom "),
-        Span::styled(" ^B ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Sidebar "),
+        Span::styled(" ^B ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Side "),
         Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Split "),
         Span::styled(" ^T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Tab "),
-        Span::styled(" Spc ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Inspect "),
-        Span::styled(" ^N ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Term "),
-        Span::styled(" ^H ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Hidden "),
     ];
-    f.render_widget(Paragraph::new(Line::from(shortcuts)), row2[0]);
+    left_spans.extend(shortcuts);
 
-    // Selection Summary
+    f.render_widget(Paragraph::new(Line::from(left_spans)), chunks[0]);
+
+    // 2. Middle Section: CPU/MEM Stats
+    let cpu_bar = draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0);
+    let mem_usage = (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) as f32 * 100.0;
+    let mem_bar = draw_stat_bar("MEM", mem_usage, 100.0);
+    let stats_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(chunks[1]);
+    f.render_widget(Paragraph::new(cpu_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[0]);
+    f.render_widget(Paragraph::new(mem_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[1]);
+
+    // 3. Right Section: Selection Summary
     if let Some(fs) = app.current_file_state() {
         let sel_count = if !fs.multi_select.is_empty() { fs.multi_select.len() } else if fs.selected_index.is_some() { 1 } else { 0 };
         let total_count = fs.files.len();
         let summary = format!(" SEL: {} / {} ", sel_count, total_count);
-        f.render_widget(Paragraph::new(summary).style(Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)).alignment(ratatui::layout::Alignment::Right), row2[1]);
+        f.render_widget(Paragraph::new(summary).style(Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)).alignment(ratatui::layout::Alignment::Right), chunks[2]);
     }
 }
 
