@@ -486,8 +486,6 @@ pub struct App {
     pub path_colors: HashMap<PathBuf, u8>,
     pub ignore_resize_until: Option<std::time::Instant>,
     pub last_action_msg: Option<(String, std::time::Instant)>,
-
-    pub is_zoomed: bool,
     pub pending_remote: RemoteBookmark,
 
     // Undo/Redo
