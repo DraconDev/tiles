@@ -237,10 +237,60 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::ImportServers) { draw_import_servers_modal(f, app); }
 }
 
+fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
+    let block = Block::default()
+        .title(" System Processes ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Magenta));
+    
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let header_cells = ["PID", "Name", "CPU %", "Memory"]
+        .iter()
+        .map(|h| Cell::from(*h).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
+    let header = Row::new(header_cells).height(1).bottom_margin(1);
+
+    let rows = app.system_state.processes.iter().map(|p| {
+        let cpu_color = if p.cpu > 50.0 { Color::Red } else if p.cpu > 20.0 { Color::Yellow } else { Color::Green };
+        let mem_color = if p.mem > 500.0 { Color::Red } else if p.mem > 100.0 { Color::Yellow } else { Color::Cyan };
+
+        let cpu_bar_width = (p.cpu / 10.0).min(10.0) as usize;
+        let cpu_bar = format!("{}{} {:.1}%", "█".repeat(cpu_bar_width), "░".repeat(10 - cpu_bar_width), p.cpu);
+
+        Row::new(vec![
+            Cell::from(p.pid.to_string()).style(Style::default().fg(Color::DarkGray)),
+            Cell::from(p.name.clone()).style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
+            Cell::from(cpu_bar).style(Style::default().fg(cpu_color)),
+            Cell::from(format!("{:.1} MB", p.mem)).style(Style::default().fg(mem_color)),
+        ])
+    });
+
+    let table = Table::new(rows, [
+        Constraint::Length(8),
+        Constraint::Min(20),
+        Constraint::Length(25),
+        Constraint::Length(15),
+    ]).header(header).column_spacing(2);
+
+    f.render_widget(table, inner);
+}
+
 fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
+    let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_millis();
+    let is_glitching = (now / 100) % 50 == 0; // Flicker every ~5 seconds for 100ms
+    
+    let logo_text = if is_glitching { " 💀 ERROR " } else { " 👹 TILES " };
+    let logo_style = if is_glitching { 
+        Style::default().fg(Color::Yellow).bg(Color::Red).add_modifier(Modifier::BOLD | Modifier::REVERSED)
+    } else { 
+        Style::default().fg(Color::Red).add_modifier(Modifier::BOLD) 
+    };
+
     let pane_count = app.panes.len();
     let logo_width = 10;
-    f.render_widget(Paragraph::new(" 👹 TILES ").style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), Rect::new(area.x, area.y, logo_width, 1));
+    f.render_widget(Paragraph::new(logo_text).style(logo_style), Rect::new(area.x, area.y, logo_width, 1));
 
     let split_icon = if pane_count > 1 { Icon::Split.get(app.icon_mode) } else { Icon::Single.get(app.icon_mode) };
     let split_width = split_icon.len() as u16 + 2;
