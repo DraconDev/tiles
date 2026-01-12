@@ -644,9 +644,9 @@ fn draw_stat_bar(label: &str, value: f32, max: f32) -> Line<'static> {
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Min(0), Constraint::Length(45)]).split(area);
     let shortcuts = vec![
-        Span::styled(" ^Q ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Quit "),
+        Span::styled(" F1 ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Help "),
+        Span::styled(" F2 ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("View "),
         Span::styled(" ^B ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Sidebar "),
-        Span::styled(" ^G ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Settings "),
         Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Split "),
         Span::styled(" ^T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Tab "),
         Span::styled(" ^N ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Terminal "),

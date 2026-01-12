@@ -2147,11 +2147,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 return true;
                             }
                         }
-                        KeyCode::F(1) => {
-                            app.mode = AppMode::Settings;
-                            app.settings_section = SettingsSection::Shortcuts;
-                            return true;
-                        }
+                KeyCode::F(1) => {
+                    app.mode = AppMode::CommandPalette;
+                    update_commands(app);
+                    return true;
+                }
+                KeyCode::F(2) => {
+                    app.switch_view();
+                    return true;
+                }
                         KeyCode::F(6) => {
                             let path_to_rename = if let Some(fs) = app.current_file_state() {
                                 fs.selected_index.and_then(|idx| fs.files.get(idx)).cloned()
