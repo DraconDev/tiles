@@ -1567,6 +1567,7 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                      if new_tab { command.arg("--tab"); }
                      command.args(["--", "ssh", "-t", &ssh_target, &remote_cmd]);
                  } else if t == "konsole" {
+                     if new_tab { command.arg("--new-tab"); }
                      command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
                  } else {
                      command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
@@ -1597,6 +1598,7 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                         command.arg("--").arg("sh").arg("-c").arg(&local_cmd);
                     }
                 } else if t == "konsole" {
+                    if new_tab { command.arg("--new-tab"); }
                     command.arg("--workdir").arg(&*path_str);
                     if command_to_run.is_some() {
                         command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
