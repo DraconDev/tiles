@@ -156,12 +156,14 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
         ContextMenuTarget::SidebarFavorite(_) => vec![
             ContextMenuAction::Open,
             ContextMenuAction::OpenNewTab,
-            ContextMenuAction::TerminalHere,
+            ContextMenuAction::TerminalTab,
+            ContextMenuAction::TerminalWindow,
             ContextMenuAction::RemoveFromFavorites,
         ],
         ContextMenuTarget::SidebarRemote(_) => vec![
             ContextMenuAction::ConnectRemote,
-            ContextMenuAction::TerminalHere, // Could ssh directly
+            ContextMenuAction::TerminalTab,
+            ContextMenuAction::TerminalWindow, // Could ssh directly
             ContextMenuAction::DeleteRemote,
         ],
         ContextMenuTarget::SidebarStorage(idx) => {
