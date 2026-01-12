@@ -235,6 +235,49 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::CommandPalette) { draw_command_palette(f, app); }
     if matches!(app.mode, AppMode::AddRemote(_)) { draw_add_remote_modal(f, app); }
     if matches!(app.mode, AppMode::ImportServers) { draw_import_servers_modal(f, app); }
+    if let AppMode::OpenWith(ref path) = app.mode { draw_open_with_modal(f, app, path); }
+}
+
+fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
+    let area = centered_rect(60, 20, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default()
+        .title(" Open With... ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Yellow));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(2), // Info
+            Constraint::Length(3), // Input
+            Constraint::Min(0),    // Suggestions
+        ])
+        .split(inner);
+
+    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+    f.render_widget(Paragraph::new(format!("Opening: {}", file_name)), chunks[0]);
+
+    let input_block = Block::default().borders(Borders::ALL).title(" Application / Command ").border_style(Style::default().fg(Color::Cyan));
+    f.render_widget(Paragraph::new(app.input.value.as_str()).block(input_block), chunks[1]);
+
+    // Simple common suggestions based on extension
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let suggestions = match ext.as_str() {
+        "txt" | "md" | "rs" | "toml" | "json" | "c" | "cpp" | "py" | "js" | "ts" => vec!["code", "vim", "nano", "kate", "subl", "gedit"],
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "svg" => vec!["gwenview", "feh", "imv", "nomacs", "display"],
+        "pdf" => vec!["okular", "evince", "zathura", "firefox", "chromium"],
+        "mp4" | "mkv" | "avi" | "mov" | "webm" => vec!["vlc", "mpv", "totem"],
+        "mp3" | "wav" | "ogg" | "flac" => vec!["vlc", "clementine", "audacious"],
+        "zip" | "tar" | "gz" | "7z" => vec!["ark", "file-roller"],
+        _ => vec!["xdg-open", "dolphin", "code", "vim"],
+    };
+
+    let sug_text = format!("Common: {}", suggestions.join(", "));
+    f.render_widget(Paragraph::new(sug_text).style(Style::default().fg(Color::DarkGray)), chunks[2]);
 }
 
 fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {

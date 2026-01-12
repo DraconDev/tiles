@@ -40,6 +40,7 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     let _is_starred = app.starred.contains(path);
                     
                     actions.push(ContextMenuAction::Open);
+                    actions.push(ContextMenuAction::OpenWith);
                     actions.push(ContextMenuAction::Edit);
                     
                     // Categorized actions
@@ -828,51 +829,79 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
         }
 
-        ContextMenuAction::OpenNewTab => {
+                ContextMenuAction::OpenNewTab => {
 
-            let path = match target {
+                    let path = match target {
 
-                ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+                        ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
 
-                ContextMenuTarget::SidebarFavorite(p) => Some(p.clone()),
+                        ContextMenuTarget::SidebarFavorite(p) => Some(p.clone()),
 
-                _ => None,
+                        _ => None,
 
-            };
+                    };
 
-            if let Some(path) = path {
+        
 
-                if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                    if let Some(path) = path {
 
-                    if let Some(fs) = pane.current_state() {
+                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
 
-                        let mut new_fs = fs.clone();
+                            if let Some(fs) = pane.current_state() {
 
-                        new_fs.current_path = path.clone();
+                                let mut new_fs = fs.clone();
 
-                        new_fs.selected_index = Some(0);
+                                new_fs.current_path = path.clone();
 
-                        new_fs.search_filter.clear();
+                                new_fs.selected_index = Some(0);
 
-                        *new_fs.table_state.offset_mut() = 0;
+                                new_fs.search_filter.clear();
 
-                        new_fs.history = vec![path];
+                                *new_fs.table_state.offset_mut() = 0;
 
-                        new_fs.history_index = 0;
+                                new_fs.history = vec![path];
 
-                        pane.open_tab(new_fs);
+                                new_fs.history_index = 0;
 
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                pane.open_tab(new_fs);
+
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+
+                            }
+
+                        }
 
                     }
 
                 }
 
-            }
+        
 
-        }
+                ContextMenuAction::OpenWith => {
 
-                                                ContextMenuAction::Edit => {
+                    let path = match target {
+
+                        ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+
+                        _ => None,
+
+                    };
+
+                    if let Some(p) = path {
+
+                        app.mode = AppMode::OpenWith(p);
+
+                        app.input.clear();
+
+                        close_menu = false;
+
+                    }
+
+                }
+
+        
+
+                                                        ContextMenuAction::Edit => {
 
                                                     if let ContextMenuTarget::File(idx) = target {
 

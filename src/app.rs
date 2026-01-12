@@ -146,6 +146,7 @@ pub enum AppMode {
     AddRemote(usize),
     ImportServers,
     Header(usize),
+    OpenWith(PathBuf),
 }
 
 #[derive(Clone, Debug, PartialEq)]
