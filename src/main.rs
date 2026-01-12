@@ -2011,6 +2011,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                     return true;
                 }
+                AppMode::OpenWith(path) => {
+                    match key.code {
+                        KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
+                        KeyCode::Enter => {
+                            let cmd = app.input.value.clone();
+                            if !cmd.is_empty() {
+                                let _ = event_tx.try_send(AppEvent::SpawnDetached {
+                                    cmd,
+                                    args: vec![path.to_string_lossy().to_string()],
+                                });
+                            }
+                            app.mode = AppMode::Normal;
+                            app.input.clear();
+                            return true;
+                        }
+                        _ => { return app.input.handle_event(&evt); }
+                    }
+                }
                 AppMode::Highlight => {
                     if let KeyCode::Char(c) = key.code {
                         if let Some(digit) = c.to_digit(10) {
@@ -2598,13 +2616,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                     return true;
                 }
-                AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::CommandPalette | AppMode::AddRemote(_) => {
+                AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) => {
                     if let MouseEventKind::Down(_) = me.kind {
                         let (area_w, area_h) = match app.mode {
                             AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete => ((w as f32 * 0.4) as u16, (h as f32 * 0.1) as u16),
                             AppMode::Properties => ((w as f32 * 0.5) as u16, (h as f32 * 0.5) as u16),
                             AppMode::CommandPalette => ((w as f32 * 0.6) as u16, (h as f32 * 0.2) as u16),
                             AppMode::AddRemote(_) => ((w as f32 * 0.6) as u16, (h as f32 * 0.4) as u16),
+                            AppMode::OpenWith(_) => ((w as f32 * 0.6) as u16, (h as f32 * 0.2) as u16),
                             _ => (0, 0)
                         };
                         let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
