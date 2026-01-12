@@ -542,7 +542,7 @@ fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: 
         crate::app::CommandAction::Quit => { app.running = false; },
         crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
         crate::app::CommandAction::SwitchView(view) => app.current_view = view,
-        crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote; app.input.clear(); },
+        crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote(0); app.input.clear(); },
         crate::app::CommandAction::ConnectToRemote(idx) => {
             if let Some(bookmark) = app.remote_bookmarks.get(idx).cloned() {
                 let tx = _event_tx.clone();
@@ -1876,6 +1876,42 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
                             return handled;
                         }
+                    }
+                }
+                AppMode::AddRemote(idx) => {
+                    match key.code {
+                        KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
+                        KeyCode::Tab | KeyCode::Enter => {
+                            let val = app.input.value.clone();
+                            match idx {
+                                0 => app.pending_remote.name = val,
+                                1 => app.pending_remote.host = val,
+                                2 => app.pending_remote.user = val,
+                                3 => app.pending_remote.port = val.parse().unwrap_or(22),
+                                4 => app.pending_remote.key_path = if val.is_empty() { None } else { Some(std::path::PathBuf::from(val)) },
+                                _ => {}
+                            }
+                            
+                            if idx < 4 {
+                                app.mode = AppMode::AddRemote(idx + 1);
+                                let next_val = match idx + 1 {
+                                    1 => app.pending_remote.host.clone(),
+                                    2 => app.pending_remote.user.clone(),
+                                    3 => app.pending_remote.port.to_string(),
+                                    4 => app.pending_remote.key_path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default(),
+                                    _ => String::new(),
+                                };
+                                app.input.set_value(next_val);
+                            } else {
+                                // Save
+                                app.remote_bookmarks.push(app.pending_remote.clone());
+                                let _ = crate::config::save_state(app);
+                                app.mode = AppMode::Normal;
+                                app.input.clear();
+                            }
+                            return true;
+                        }
+                        _ => { return app.input.handle_event(&evt); }
                     }
                 }
                 AppMode::Highlight => {

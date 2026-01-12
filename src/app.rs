@@ -585,6 +585,14 @@ impl App {
                     ignore_resize_until: None,
                     last_action_msg: None,
                     is_zoomed: false,
+                    pending_remote: RemoteBookmark {
+                        name: String::new(),
+                        host: String::new(),
+                        user: String::new(),
+                        port: 22,
+                        last_path: PathBuf::from("/"),
+                        key_path: None,
+                    },
                     undo_stack: Vec::new(),
                     redo_stack: Vec::new(),
                 };
@@ -701,6 +709,14 @@ impl App {
             ignore_resize_until: None,
             last_action_msg: None,
             is_zoomed: false,
+            pending_remote: RemoteBookmark {
+                name: String::new(),
+                host: String::new(),
+                user: String::new(),
+                port: 22,
+                last_path: PathBuf::from("/"),
+                key_path: None,
+            },
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
         };

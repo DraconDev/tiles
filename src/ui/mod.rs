@@ -1068,10 +1068,64 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(list.block(Block::default().borders(Borders::TOP).title(" Bookmarks ")), chunks[1]);
 }
 
-fn draw_add_remote_modal(f: &mut Frame, _app: &App) {
-    let area = centered_rect(60, 40, f.area()); 
+fn draw_add_remote_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(60, 50, f.area()); 
     f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new("Add remote server modal placeholder").block(Block::default().title(" Add Remote ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green))), area);
+    let block = Block::default()
+        .title(" Add Remote Server ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Green));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // Name
+            Constraint::Length(3), // Host
+            Constraint::Length(3), // User
+            Constraint::Length(3), // Port
+            Constraint::Length(3), // Key Path
+            Constraint::Min(0),    // Help
+        ])
+        .split(inner);
+
+    let active_idx = if let AppMode::AddRemote(idx) = app.mode { idx } else { 0 };
+
+    let fields = [
+        ("Name", &app.pending_remote.name),
+        ("Host", &app.pending_remote.host),
+        ("User", &app.pending_remote.user),
+        ("Port", &app.pending_remote.port.to_string()),
+        ("Key Path", &app.pending_remote.key_path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default()),
+    ];
+
+    for (i, (label, value)) in fields.iter().enumerate() {
+        let is_active = i == active_idx;
+        let mut style = Style::default().fg(Color::DarkGray);
+        if is_active { style = Style::default().fg(Color::Yellow); }
+
+        let block = Block::default().borders(Borders::ALL).title(format!(" {} ", label)).border_style(style);
+        let field_area = chunks[i];
+        
+        if is_active {
+            f.render_widget(Paragraph::new(app.input.value.as_str()).block(block), field_area);
+        } else {
+            f.render_widget(Paragraph::new(value.as_str()).block(block), field_area);
+        }
+    }
+
+    let help_text = vec![
+        Line::from(vec![
+            Span::styled(" [Tab/Enter] ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::raw("Next Field  "),
+            Span::styled(" [Esc] ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+            Span::raw("Cancel"),
+        ]),
+        Line::from("On the last field, [Enter] will save the bookmark."),
+    ];
+    f.render_widget(Paragraph::new(help_text), chunks[5]);
 }
 
 fn draw_highlight_modal(f: &mut Frame, _app: &App) {
