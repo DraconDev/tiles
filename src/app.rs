@@ -104,6 +104,18 @@ pub enum ContextMenuAction {
     SetColor(Option<u8>),
     Properties,
     GitStatus,
+    AddToFavorites,
+    RemoveFromFavorites,
+    Refresh,
+    SelectAll,
+    ToggleHidden,
+    ConnectRemote,
+    DeleteRemote,
+    Mount,
+    Unmount,
+    SetWallpaper,
+    GitInit,
+    SortBy(crate::app::FileColumn),
 }
 
 #[derive(Clone, Debug, PartialEq)]
