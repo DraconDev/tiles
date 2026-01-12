@@ -2360,15 +2360,31 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         if row >= inner.y && row < inner.y + 3 {
                                             let content_x = column.saturating_sub(inner.x + 15);
                                             if content_x < 12 { app.settings_target = SettingsTarget::SingleMode; } else if content_x < 25 { app.settings_target = SettingsTarget::SplitMode; }
-                                        } else if row >= inner.y + 3 {
-                                            let rel_y = row.saturating_sub(inner.y + 3);
-                                            match rel_y { 0 => app.toggle_column(crate::app::FileColumn::Size), 1 => app.toggle_column(crate::app::FileColumn::Modified), 2 => app.toggle_column(crate::app::FileColumn::Permissions), _ => {} } // TODO: Add Name toggle
+                                        } else if row >= inner.y + 4 {
+                                            let rel_y = row.saturating_sub(inner.y + 4);
+                                            match rel_y { 
+                                                0 => app.toggle_column(crate::app::FileColumn::Size), 
+                                                1 => app.toggle_column(crate::app::FileColumn::Modified), 
+                                                2 => app.toggle_column(crate::app::FileColumn::Permissions), 
+                                                _ => {} 
+                                            }
                                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                         }
                                     }
                                     SettingsSection::General => {
-                                        let rel_y = row.saturating_sub(inner.y);
-                                        match rel_y { 0 => app.default_show_hidden = !app.default_show_hidden, 1 => app.confirm_delete = !app.confirm_delete, _ => {} } // TODO: Add other general settings
+                                        let rel_y = row.saturating_sub(inner.y + 1);
+                                        match rel_y { 
+                                            0 => app.default_show_hidden = !app.default_show_hidden, 
+                                            1 => app.confirm_delete = !app.confirm_delete, 
+                                            2 => {
+                                                app.icon_mode = match app.icon_mode {
+                                                    IconMode::Nerd => IconMode::Unicode,
+                                                    IconMode::Unicode => IconMode::ASCII,
+                                                    IconMode::ASCII => IconMode::Nerd,
+                                                };
+                                            }
+                                            _ => {} 
+                                        }
                                     }
                                     _ => {} 
                                 }
