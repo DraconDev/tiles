@@ -298,18 +298,31 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let split_icon = Icon::Split.get(app.icon_mode);
     let burger_icon = Icon::Burger.get(app.icon_mode);
 
-    let toolbar_text = format!(" {} {} {} {} ", back_icon, forward_icon, split_icon, burger_icon);
-    let toolbar_width = toolbar_text.len() as u16;
-    f.render_widget(
-        Paragraph::new(toolbar_text).style(Style::default().fg(THEME.accent_secondary)), 
-        Rect::new(area.x + logo_width, area.y, toolbar_width, 1)
-    );
+    app.header_icon_bounds.clear();
+    let mut cur_icon_x = area.x + logo_width + 1;
+    
+    let icons = [
+        (back_icon, "back"),
+        (forward_icon, "forward"),
+        (split_icon, "split"),
+        (burger_icon, "burger"),
+    ];
+
+    for (icon, id) in icons {
+        let width = icon.len() as u16;
+        let rect = Rect::new(cur_icon_x, area.y, width, 1);
+        f.render_widget(Paragraph::new(icon).style(Style::default().fg(THEME.accent_secondary)), rect);
+        app.header_icon_bounds.push((rect, id.to_string()));
+        cur_icon_x += width + 1;
+    }
+
+    let toolbar_width = cur_icon_x - (area.x + logo_width);
 
     if pane_count == 0 { return; }
     let start_x = if app.show_sidebar { 
-        std::cmp::max(area.x + sidebar_width, area.x + logo_width + toolbar_width + 1)
+        std::cmp::max(area.x + sidebar_width, cur_icon_x + 1)
     } else {
-        area.x + logo_width + toolbar_width + 1
+        cur_icon_x + 1
     };
     let pane_chunks = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / pane_count as u16); pane_count]).split(Rect::new(start_x, area.y, area.width.saturating_sub(start_x), 1));
 
