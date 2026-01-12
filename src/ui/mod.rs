@@ -964,6 +964,7 @@ fn draw_highlight_modal(f: &mut Frame, _app: &App) {
         5
     );
     
+    render_shadow(f, area);
     f.render_widget(Clear, area);
     let block = Block::default().title(" Highlight ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Cyan));
     let inner = block.inner(area);
