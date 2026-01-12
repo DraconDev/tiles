@@ -424,7 +424,7 @@ use crate::icons::{IconMode, guess_icon_mode};
 pub enum UndoAction {
     Rename(PathBuf, PathBuf), // old, new
     Move(PathBuf, PathBuf),   // src, dest
-    Copy(PathBuf),            // new_path (Undo = Delete it)
+    Copy(PathBuf, PathBuf),   // src, dest (Undo = Delete dest, Redo = Copy src to dest)
     Delete(PathBuf),          // Note: Hard to undo without trash, but we record it
 }
 

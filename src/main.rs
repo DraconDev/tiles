@@ -369,6 +369,8 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                 AppEvent::Copy(src, dest) => {
                     let _ = crate::modules::files::copy_recursive(&src, &dest);
                     let mut app_guard = app.lock().unwrap();
+                    app_guard.undo_stack.push(crate::app::UndoAction::Copy(src.clone(), dest.clone()));
+                    app_guard.redo_stack.clear();
                     for i in 0..app_guard.panes.len() {
                         app_guard.update_files_for_active_tab(i);
                     }
