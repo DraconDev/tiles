@@ -468,17 +468,41 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         let components: Vec<_> = path.components().collect();
         let mut cur_p = PathBuf::new();
         let mut cur_x = area.x + 2;
+
+        let total_comps = components.len();
         for (i, comp) in components.iter().enumerate() {
             match comp { std::path::Component::RootDir => cur_p.push("/"), std::path::Component::Prefix(p) => cur_p.push(p.as_os_str()), std::path::Component::Normal(name) => cur_p.push(name), _ => continue }
             let d_name = if comp.as_os_str() == "/" { "/".to_string() } else { comp.as_os_str().to_string_lossy().to_string() };
+            
             if !d_name.is_empty() {
                 let s_path = cur_p.clone();
-                let style = if file_state.hovered_breadcrumb.as_ref() == Some(&s_path) { Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD | Modifier::UNDERLINED) } else { Style::default().fg(THEME.fg) };
-                let width = d_name.len() as u16;
-                breadcrumb_spans.push(Span::styled(d_name, style));
+                let is_hovered = file_state.hovered_breadcrumb.as_ref() == Some(&s_path);
+                
+                // Powerline Colors: Gradient from dark to lighter or consistent theme colors
+                let bg_color = if i == total_comps - 1 { 
+                    THEME.accent_primary 
+                } else { 
+                    Color::Rgb(30 + (i as u8 * 10), 30 + (i as u8 * 10), 40 + (i as u8 * 10))
+                };
+                let fg_color = if i == total_comps - 1 { Color::Black } else { Color::White };
+
+                let mut style = Style::default().bg(bg_color).fg(fg_color);
+                if is_hovered { style = style.add_modifier(Modifier::UNDERLINED).fg(Color::Yellow); }
+
+                let segment = format!(" {} ", d_name);
+                let width = segment.len() as u16;
+                breadcrumb_spans.push(Span::styled(segment, style));
                 file_state.breadcrumb_bounds.push((Rect::new(cur_x, area.y, width, 1), s_path));
                 cur_x += width;
-                if i < components.len() - 1 && comp.as_os_str() != "/" { breadcrumb_spans.push(Span::styled("/", Style::default().fg(Color::DarkGray))); cur_x += 1; }
+
+                // Separator
+                if i < total_comps - 1 {
+                    let next_bg = Color::Rgb(30 + ((i+1) as u8 * 10), 30 + ((i+1) as u8 * 10), 40 + ((i+1) as u8 * 10));
+                    breadcrumb_spans.push(Span::styled("", Style::default().fg(bg_color).bg(next_bg)));
+                } else {
+                    breadcrumb_spans.push(Span::styled("", Style::default().fg(bg_color).bg(Color::Black)));
+                }
+                cur_x += 1;
             }
         }
         if let Some(branch) = &file_state.git_branch { breadcrumb_spans.push(Span::styled(format!(" ({})", branch), Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD))); }
