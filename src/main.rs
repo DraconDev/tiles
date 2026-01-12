@@ -1569,7 +1569,7 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                  let mut command = std::process::Command::new(&t);
                  match t.as_str() {
                      "gnome-terminal" | "xfce4-terminal" | "mate-terminal" => {
-                         if new_tab { command.arg("--tab"); } else { command.arg("--window"); }
+                         if new_tab { command.arg("--tab"); }
                          command.args(["--", "ssh", "-t", &ssh_target, &remote_cmd]);
                      }
                      "kgx" => {
