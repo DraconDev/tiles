@@ -570,10 +570,9 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         } else { 
             Style::default().fg(THEME.border_inactive) 
         };
-        if matches!(app.hovered_drop_target, Some(DropTarget::Pane(idx)) if idx == pane_idx) {
-            border_style = Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD);
-        }
-
+                    if matches!(app.hovered_drop_target, Some(DropTarget::Pane(idx)) if idx == pane_idx) {
+                        border_style = Style::default().fg(Color::Rgb(0, 255, 200)).add_modifier(Modifier::BOLD);
+                    }
         let block = Block::default().borders(borders).border_type(BorderType::Rounded).title(Line::from(breadcrumb_spans))
             .border_style(border_style);
 
