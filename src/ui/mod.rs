@@ -686,8 +686,16 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
     f.render_widget(List::new(items).block(Block::default().title(title).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(THEME.accent_secondary))), area);
 }
 
+fn render_shadow(f: &mut Frame, area: Rect) {
+    if area.width > 1 && area.height > 1 {
+        let shadow_area = Rect::new(area.x + 1, area.y + 1, area.width, area.height);
+        f.render_widget(Block::default().style(Style::default().bg(Color::Rgb(10, 10, 15))), shadow_area);
+    }
+}
+
 fn draw_import_servers_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 20, f.area());
+    render_shadow(f, area);
     f.render_widget(Clear, area);
     let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Import Servers (TOML) ").border_style(Style::default().fg(THEME.accent_primary));
     let inner = block.inner(area);
