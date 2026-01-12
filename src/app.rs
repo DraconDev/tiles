@@ -419,6 +419,13 @@ pub enum SettingsTarget {
 
 use crate::icons::{IconMode, guess_icon_mode};
 
+#[derive(Clone, Debug)]
+pub enum UndoAction {
+    Rename(PathBuf, PathBuf), // old, new
+    Move(PathBuf, PathBuf),   // src, dest
+    Delete(PathBuf),          // Note: Hard to undo without trash, but we record it
+}
+
 pub struct App {
     pub running: bool,
     pub current_view: CurrentView,
@@ -472,6 +479,10 @@ pub struct App {
     pub initial_window_size: Option<(u16, u16)>,
     pub path_colors: HashMap<PathBuf, u8>,
     pub ignore_resize_until: Option<std::time::Instant>,
+
+    // Undo/Redo
+    pub undo_stack: Vec<UndoAction>,
+    pub redo_stack: Vec<UndoAction>,
 }
 
 impl App {
