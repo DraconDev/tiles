@@ -989,13 +989,16 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             ("F1", "Show this Help"),
         ]),
         ("File Operations", vec![
+            ("Ctrl + c", "Copy Selected"),
+            ("Ctrl + x", "Cut Selected"),
+            ("Ctrl + v", "Paste Selected"),
+            ("Ctrl + a", "Select All"),
             ("F6", "Rename Selected"),
             ("Delete", "Delete Selected"),
             ("Alt + Enter", "Show Properties"),
         ]),
         ("Terminal", vec![
-            ("Ctrl + n / o", "Open External Terminal"),
-            ("g", "Open Terminal Here (Git Mode)"),
+            ("Ctrl + n", "Open External Terminal"),
         ]),
     ];
 
