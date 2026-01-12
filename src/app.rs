@@ -142,7 +142,7 @@ pub enum AppMode {
     CommandPalette,
     Location,
     Settings,
-    AddRemote,
+    AddRemote(usize),
     ImportServers,
 }
 
@@ -488,6 +488,7 @@ pub struct App {
     pub last_action_msg: Option<(String, std::time::Instant)>,
 
     pub is_zoomed: bool,
+    pub pending_remote: RemoteBookmark,
 
     // Undo/Redo
     pub undo_stack: Vec<UndoAction>,

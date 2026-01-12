@@ -1098,25 +1098,91 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
         }
 
-        ContextMenuAction::Copy => {
+                ContextMenuAction::Copy => {
 
-             let paths = match target {
+                     let paths = match target {
 
-                ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => get_targets(app, Some(*idx)),
+                        ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => get_targets(app, Some(*idx)),
 
-                _ => vec![],
+                        _ => vec![],
 
-            };
+                    };
 
-            if let Some(p) = paths.first() {
+                    if let Some(p) = paths.first() {
 
-                app.clipboard = Some((p.clone(), crate::app::ClipboardOp::Copy));
+                        app.clipboard = Some((p.clone(), crate::app::ClipboardOp::Copy));
 
-            }
+                    }
 
-        }
+                }
 
-        ContextMenuAction::Paste => {
+        
+
+                ContextMenuAction::CopyPath => {
+
+                    let paths = match target {
+
+                        ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => get_targets(app, Some(*idx)),
+
+                        _ => vec![],
+
+                    };
+
+                    if let Some(p) = paths.first() {
+
+                        let path_str = p.to_string_lossy();
+
+                        let encoded = terma::visuals::osc::simple_base64_encode(path_str.as_bytes());
+
+                        print!("\x1b]52;c;{}\x07", encoded);
+
+                        use std::io::Write;
+
+                        let _ = std::io::stdout().flush();
+
+                        app.last_action_msg = Some(("Path copied to clipboard".to_string(), std::time::Instant::now()));
+
+                    }
+
+                }
+
+        
+
+                ContextMenuAction::CopyName => {
+
+                    let paths = match target {
+
+                        ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => get_targets(app, Some(*idx)),
+
+                        _ => vec![],
+
+                    };
+
+                    if let Some(p) = paths.first() {
+
+                        if let Some(name) = p.file_name() {
+
+                            let name_str = name.to_string_lossy();
+
+                            let encoded = terma::visuals::osc::simple_base64_encode(name_str.as_bytes());
+
+                            print!("\x1b]52;c;{}\x07", encoded);
+
+                            use std::io::Write;
+
+                            let _ = std::io::stdout().flush();
+
+                            app.last_action_msg = Some(("Name copied to clipboard".to_string(), std::time::Instant::now()));
+
+                        }
+
+                    }
+
+                }
+
+        
+
+                ContextMenuAction::Paste => {
 
             if let Some((src, op)) = app.clipboard.clone() {
 
