@@ -2003,7 +2003,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 if let Some(idx) = fs.selected_index { 
                                     if let Some(path) = fs.files.get(idx).cloned() { 
                                         if path.is_dir() {
-                                            if app.starred.contains(&path) { app.starred.retain(|x| x != &path); } else { app.starred.push(path.clone()); } 
+                                            app.mode = AppMode::Properties;
                                         } else {
                                             let target_pane = if app.focused_pane_index == 0 { 1 } else { 0 };
                                             let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path));
