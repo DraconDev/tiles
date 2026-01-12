@@ -292,11 +292,24 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let logo_width = 10;
     f.render_widget(Paragraph::new(logo_text).style(logo_style), Rect::new(area.x, area.y, logo_width, 1));
 
+    // Toolbar Icons Cluster
+    let back_icon = Icon::Back.get(app.icon_mode);
+    let forward_icon = Icon::Forward.get(app.icon_mode);
+    let split_icon = Icon::Split.get(app.icon_mode);
+    let burger_icon = Icon::Burger.get(app.icon_mode);
+
+    let toolbar_text = format!(" {} {} {} {} ", back_icon, forward_icon, split_icon, burger_icon);
+    let toolbar_width = toolbar_text.len() as u16;
+    f.render_widget(
+        Paragraph::new(toolbar_text).style(Style::default().fg(THEME.accent_secondary)), 
+        Rect::new(area.x + logo_width, area.y, toolbar_width, 1)
+    );
+
     if pane_count == 0 { return; }
     let start_x = if app.show_sidebar { 
-        std::cmp::max(area.x + sidebar_width, area.x + logo_width + 1)
+        std::cmp::max(area.x + sidebar_width, area.x + logo_width + toolbar_width + 1)
     } else {
-        area.x + logo_width + 1
+        area.x + logo_width + toolbar_width + 1
     };
     let pane_chunks = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / pane_count as u16); pane_count]).split(Rect::new(start_x, area.y, area.width.saturating_sub(start_x), 1));
 

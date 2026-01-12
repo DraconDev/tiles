@@ -460,6 +460,7 @@ pub struct App {
     pub starred: Vec<PathBuf>,
     pub sidebar_bounds: Vec<SidebarBounds>,
     pub tab_bounds: Vec<(Rect, usize, usize)>, // (Rect, pane_idx, tab_idx)
+    pub header_icon_bounds: Vec<(Rect, String)>, // (Rect, action_id)
 
     pub mouse_last_click: std::time::Instant,
     pub mouse_click_pos: (u16, u16),
