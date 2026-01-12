@@ -1595,11 +1595,17 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                     "exec $SHELL".to_string()
                 };
 
-                if t == "gnome-terminal" || t == "kgx" {
+                if t == "gnome-terminal" || t == "kgx" || t == "xfce4-terminal" || t == "mate-terminal" {
                     if new_tab { command.arg("--tab"); }
                     command.arg("--working-directory").arg(&*path_str);
                     if command_to_run.is_some() {
                         command.arg("--").arg("sh").arg("-c").arg(&local_cmd);
+                    }
+                } else if t == "lxterminal" {
+                    if new_tab { command.arg("--tabs"); }
+                    command.arg("--working-directory").arg(&*path_str);
+                    if command_to_run.is_some() {
+                        command.arg("-e").arg("sh").arg("-c").arg(&local_cmd);
                     }
                 } else if t == "konsole" {
                     if new_tab { command.arg("--new-tab"); }
