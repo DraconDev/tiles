@@ -784,10 +784,6 @@ impl App {
         self.focused_pane_index
     }
 
-    pub fn toggle_zoom(&mut self) {
-        self.is_zoomed = !self.is_zoomed;
-    }
-
     pub fn toggle_column(&mut self, col: FileColumn) {
         // Name is mandatory
         if col == FileColumn::Name {
