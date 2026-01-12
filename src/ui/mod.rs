@@ -691,6 +691,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
         .split(main_chunks[1]);
 
     let shortcuts = vec![
+        Span::styled(" F1 ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Help "),
         Span::styled(" ^B ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Sidebar "),
         Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Split "),
         Span::styled(" ^T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Tab "),
