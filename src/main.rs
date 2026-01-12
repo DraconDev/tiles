@@ -1699,25 +1699,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 KeyCode::F(2) => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; }
                 KeyCode::Char('h') | KeyCode::Char('H') if has_control => { let idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(idx)); return true; }
                 KeyCode::Char('g') | KeyCode::Char('G') if has_control => { app.mode = AppMode::Settings; return true; }
-                KeyCode::Char('o') | KeyCode::Char('O') if has_control => {
+                KeyCode::Char('e') | KeyCode::Char('E') | KeyCode::Char('n') | KeyCode::Char('N') if has_control => {
                     if let Some(pane) = app.panes.get(app.focused_pane_index) {
                         if let Some(fs) = pane.current_state() {
                             let _ = event_tx.try_send(AppEvent::SpawnTerminal {
                                 path: fs.current_path.clone(),
-                                new_tab: true, 
-                                remote: fs.remote_session.clone(),
-                                command: None,
-                            });
-                        }
-                    }
-                    return true;
-                }
-                KeyCode::F(4) => {
-                    if let Some(pane) = app.panes.get(app.focused_pane_index) {
-                        if let Some(fs) = pane.current_state() {
-                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
-                                path: fs.current_path.clone(),
-                                new_tab: true,
+                                new_tab: true, // Use 'true' (--tab) as it reliably opens a window on this system
                                 remote: fs.remote_session.clone(),
                                 command: None,
                             });
@@ -1905,7 +1892,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         }
                                     }
                                     AppMode::Delete => {
-                                        if input.to_lowercase() == "y" || input.to_lowercase() == "yes" || !app.confirm_delete {
+                                        let input_clean = input.trim().to_lowercase();
+                                        if input_clean == "y" || input_clean == "yes" || !app.confirm_delete {
                                             let mut paths_to_delete = Vec::new();
                                             if !fs.multi_select.is_empty() {
                                                 for &idx in &fs.multi_select {
