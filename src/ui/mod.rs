@@ -278,7 +278,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
-    let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_millis();
+    let _now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_millis();
     
     let pane_count = app.panes.len();
 
