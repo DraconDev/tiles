@@ -653,18 +653,20 @@ fn draw_stat_bar(label: &str, value: f32, max: f32) -> Line<'static> {
     Line::from(spans)
 }
 
-fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
+fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Min(0),      // Log, Clipboard & Shortcuts
+            Constraint::Length(20), // Selection Info
             Constraint::Length(45), // Stats (CPU/MEM)
-            Constraint::Length(25), // Selection Info
         ])
         .split(area);
 
-    // 1. Left Section: Activity Log, Clipboard & Essential Shortcuts
-    let mut left_spans = vec![];
+    // 1. Left Section: ^Q Quit, Activity Log, Clipboard & Essential Shortcuts
+    let mut left_spans = vec![
+        Span::styled(" ^Q ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), Span::raw("Quit "),
+    ];
     
     // Log
     if let Some((msg, time)) = &app.last_action_msg {
@@ -681,11 +683,11 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     }
 
     // Spacing
-    if !left_spans.is_empty() {
+    if left_spans.len() > 2 {
         left_spans.push(Span::raw("  "));
     }
 
-    // Reduced Shortcuts for cleaner look
+    // Reduced Shortcuts
     let shortcuts = vec![
         Span::styled(" F1 ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Help "),
         Span::styled(" ^B ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Side "),
@@ -696,21 +698,21 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
 
     f.render_widget(Paragraph::new(Line::from(left_spans)), chunks[0]);
 
-    // 2. Middle Section: CPU/MEM Stats
-    let cpu_bar = draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0);
-    let mem_usage = (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) as f32 * 100.0;
-    let mem_bar = draw_stat_bar("MEM", mem_usage, 100.0);
-    let stats_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(chunks[1]);
-    f.render_widget(Paragraph::new(cpu_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[0]);
-    f.render_widget(Paragraph::new(mem_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[1]);
-
-    // 3. Right Section: Selection Summary
+    // 2. Middle Section: Selection Summary
     if let Some(fs) = app.current_file_state() {
         let sel_count = if !fs.multi_select.is_empty() { fs.multi_select.len() } else if fs.selected_index.is_some() { 1 } else { 0 };
         let total_count = fs.files.len();
         let summary = format!(" SEL: {} / {} ", sel_count, total_count);
-        f.render_widget(Paragraph::new(summary).style(Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)).alignment(ratatui::layout::Alignment::Right), chunks[2]);
+        f.render_widget(Paragraph::new(summary).style(Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)).alignment(ratatui::layout::Alignment::Right), chunks[1]);
     }
+
+    // 3. Right Section: CPU/MEM Stats
+    let cpu_bar = draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0);
+    let mem_usage = (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) as f32 * 100.0;
+    let mem_bar = draw_stat_bar("MEM", mem_usage, 100.0);
+    let stats_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(chunks[2]);
+    f.render_widget(Paragraph::new(cpu_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[0]);
+    f.render_widget(Paragraph::new(mem_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[1]);
 }
 
 fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::ContextMenuTarget, app: &App) {
