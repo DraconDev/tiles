@@ -345,8 +345,10 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     needs_draw = true;
                 }
                 AppEvent::Rename(old, new) => {
-                    let _ = std::fs::rename(old, new);
+                    let _ = std::fs::rename(&old, &new);
                     let mut app_guard = app.lock().unwrap();
+                    app_guard.undo_stack.push(crate::app::UndoAction::Rename(old.clone(), new.clone()));
+                    app_guard.redo_stack.clear();
                     for i in 0..app_guard.panes.len() {
                         app_guard.update_files_for_active_tab(i);
                     }
