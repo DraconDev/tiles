@@ -699,6 +699,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
 
     let shortcuts = vec![
         Span::styled(" F1 ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Help "),
+        Span::styled(" ^F ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Zoom "),
         Span::styled(" ^B ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Sidebar "),
         Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Split "),
         Span::styled(" ^T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Tab "),
@@ -989,6 +990,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
         ]),
         ("View & Tabs", vec![
             ("Ctrl + s", "Toggle Split View"),
+            ("Ctrl + f", "Zoom Focus Pane"),
             ("Ctrl + t", "New Duplicate Tab"),
             ("Ctrl + h", "Toggle Hidden Files"),
             ("Ctrl + b", "Toggle Sidebar"),
