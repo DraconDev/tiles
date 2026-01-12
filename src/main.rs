@@ -1672,8 +1672,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 KeyCode::Char('b') | KeyCode::Char('B') if has_control => { app.show_sidebar = !app.show_sidebar; return true; }
                 KeyCode::Char('s') | KeyCode::Char('S') if has_control => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; }
                 KeyCode::Char('\\') if has_control => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; }
-                KeyCode::F(1) => { app.input.clear(); app.mode = AppMode::CommandPalette; update_commands(app); return true; }
-                KeyCode::F(2) => { app.switch_view(); return true; }
                 KeyCode::Char('h') | KeyCode::Char('H') if has_control => { let idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(idx)); return true; }
                 KeyCode::Char('g') | KeyCode::Char('G') if has_control => { app.mode = AppMode::Settings; return true; }
                 KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Char('o') | KeyCode::Char('O') if has_control => {
@@ -1870,7 +1868,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     }
                                     AppMode::Delete => {
                                         let input_clean = input.trim().to_lowercase();
-                                        if input_clean == "y" || input_clean == "yes" || !app.confirm_delete {
+                                        // Allow "y", "yes", or immediate "Enter" (empty string) to confirm
+                                        if input_clean == "y" || input_clean == "yes" || input_clean.is_empty() || !app.confirm_delete {
                                             let mut paths_to_delete = Vec::new();
                                             if !fs.multi_select.is_empty() {
                                                 for &idx in &fs.multi_select {

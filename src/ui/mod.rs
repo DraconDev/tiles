@@ -292,32 +292,13 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let logo_width = 10;
     f.render_widget(Paragraph::new(logo_text).style(logo_style), Rect::new(area.x, area.y, logo_width, 1));
 
-    let now_dt = chrono::Local::now();
-    let time_str = now_dt.format("%H:%M:%S").to_string();
-    let date_str = now_dt.format("%d %b %Y").to_string();
-
-    let view_name = match app.current_view {
-        CurrentView::Files => "FILES-MODE",
-        CurrentView::Processes => "PROC-MONITOR",
-    };
-
-    let status_text = format!(" {} │ {} │ {} ", view_name, date_str, time_str);
-    let status_width = status_text.len() as u16;
-    
-    f.render_widget(
-        Paragraph::new(status_text)
-            .style(Style::default().fg(Color::Rgb(0, 255, 200)).bg(Color::Rgb(20, 25, 30)))
-            .alignment(ratatui::layout::Alignment::Right),
-        Rect::new(area.x + area.width.saturating_sub(status_width), area.y, status_width, 1)
-    );
-
     if pane_count == 0 { return; }
     let start_x = if app.show_sidebar { 
         std::cmp::max(area.x + sidebar_width, area.x + logo_width + 1)
     } else {
         area.x + logo_width + 1
     };
-    let pane_chunks = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / pane_count as u16); pane_count]).split(Rect::new(start_x, area.y, area.width.saturating_sub(start_x + status_width), 1));
+    let pane_chunks = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / pane_count as u16); pane_count]).split(Rect::new(start_x, area.y, area.width.saturating_sub(start_x), 1));
 
     app.tab_bounds.clear();
     for (p_i, pane) in app.panes.iter().enumerate() {
@@ -644,8 +625,6 @@ fn draw_stat_bar(label: &str, value: f32, max: f32) -> Line<'static> {
 fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
     let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Min(0), Constraint::Length(45)]).split(area);
     let shortcuts = vec![
-        Span::styled(" F1 ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Help "),
-        Span::styled(" F2 ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("View "),
         Span::styled(" ^B ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Sidebar "),
         Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Split "),
         Span::styled(" ^T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Tab "),
