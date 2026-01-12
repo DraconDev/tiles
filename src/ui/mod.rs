@@ -233,7 +233,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::NewFile) { draw_new_file_modal(f, app); }
     if matches!(app.mode, AppMode::Settings) { draw_settings_modal(f, app); }
     if matches!(app.mode, AppMode::CommandPalette) { draw_command_palette(f, app); }
-    if matches!(app.mode, AppMode::AddRemote) { draw_add_remote_modal(f, app); }
+    if matches!(app.mode, AppMode::AddRemote(_)) { draw_add_remote_modal(f, app); }
     if matches!(app.mode, AppMode::ImportServers) { draw_import_servers_modal(f, app); }
 }
 

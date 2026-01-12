@@ -2340,7 +2340,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         KeyCode::Delete => {
                             if let Some(fs) = app.current_file_state() {
                                 if fs.selected_index.is_some() {
-                                    app.mode = AppMode::Delete;
+                                    if !app.confirm_delete {
+                                        let mut paths_to_delete = Vec::new();
+                                        if !fs.multi_select.is_empty() {
+                                            for &idx in &fs.multi_select {
+                                                if let Some(p) = fs.files.get(idx) { paths_to_delete.push(p.clone()); }
+                                            }
+                                        } else if let Some(idx) = fs.selected_index {
+                                            if let Some(path) = fs.files.get(idx) {
+                                                paths_to_delete.push(path.clone());
+                                            }
+                                        }
+
+                                        for p in paths_to_delete {
+                                            let _ = event_tx.try_send(AppEvent::Delete(p));
+                                        }
+                                    } else {
+                                        app.mode = AppMode::Delete;
+                                    }
                                     return true;
                                 }
                             }
@@ -2538,7 +2555,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         }
                     }
 
-                    if matches!(app.mode, AppMode::AddRemote) {
+                    if matches!(app.mode, AppMode::AddRemote(_)) {
                         let area_w = (w as f32 * 0.6) as u16; let area_h = (h as f32 * 0.4) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
                         if column < area_x || column >= area_x + area_w || row < area_y || row >= area_y + area_h {
                             app.mode = AppMode::Normal; app.input.clear();
