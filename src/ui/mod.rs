@@ -508,7 +508,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
         Span::styled(" ^G ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Settings "),
         Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Split "),
         Span::styled(" ^T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Tab "),
-        Span::styled(" ^O ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Terminal "),
+        Span::styled(" ^N ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Terminal "),
         Span::styled(" ^Spc ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Cmd "),
         Span::styled(" ^H ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Hidden "),
     ];
@@ -790,7 +790,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             ("Alt + Enter", "Show Properties"),
         ]),
         ("Terminal", vec![
-            ("Ctrl + o / F4", "Open External Terminal"),
+            ("Ctrl + n / o", "Open External Terminal"),
             ("g", "Open Terminal Here (Git Mode)"),
         ]),
     ];
