@@ -715,6 +715,7 @@ fn draw_import_servers_modal(f: &mut Frame, app: &App) {
 
 fn draw_command_palette(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 20, f.area());
+    render_shadow(f, area);
     f.render_widget(Clear, area);
     let inner = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Command Palette ").border_style(Style::default().fg(Color::Magenta)).inner(area);
     f.render_widget(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Command Palette ").border_style(Style::default().fg(Color::Magenta)), area);
@@ -730,7 +731,9 @@ fn draw_command_palette(f: &mut Frame, app: &App) {
 }
 
 fn draw_rename_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
+    let area = centered_rect(40, 10, f.area()); 
+    render_shadow(f, area);
+    f.render_widget(Clear, area);
     let block = Block::default().title(" Rename ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Yellow));
     let inner = block.inner(area);
     f.render_widget(block, area);
@@ -757,7 +760,9 @@ fn draw_rename_modal(f: &mut Frame, app: &App) {
 }
 
 fn draw_new_folder_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
+    let area = centered_rect(40, 10, f.area()); 
+    render_shadow(f, area);
+    f.render_widget(Clear, area);
     let block = Block::default().title(" New Folder ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green));
     let inner = block.inner(area);
     f.render_widget(block, area);
@@ -765,7 +770,9 @@ fn draw_new_folder_modal(f: &mut Frame, app: &App) {
 }
 
 fn draw_new_file_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
+    let area = centered_rect(40, 10, f.area()); 
+    render_shadow(f, area);
+    f.render_widget(Clear, area);
     let block = Block::default().title(" New File ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green));
     let inner = block.inner(area);
     f.render_widget(block, area);
@@ -773,12 +780,15 @@ fn draw_new_file_modal(f: &mut Frame, app: &App) {
 }
 
 fn draw_delete_modal(f: &mut Frame, _app: &App) {
-    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
+    let area = centered_rect(40, 10, f.area()); 
+    render_shadow(f, area);
+    f.render_widget(Clear, area);
     f.render_widget(Paragraph::new("Delete selected item(s)? (y/n)").block(Block::default().title(" Delete ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Red))), area);
 }
 
 fn draw_properties_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(50, 50, f.area()); 
+    render_shadow(f, area);
     f.render_widget(Clear, area);
     
     let mut text = Vec::new();
@@ -823,7 +833,9 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
 }
 
 fn draw_settings_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(80, 80, f.area()); f.render_widget(Clear, area);
+    let area = centered_rect(80, 80, f.area()); 
+    render_shadow(f, area);
+    f.render_widget(Clear, area);
     let block = Block::default().title(" Settings ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Cyan));
     let inner = block.inner(area); f.render_widget(block, area);
     let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Length(15), Constraint::Min(0)]).split(inner);
@@ -936,7 +948,9 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_add_remote_modal(f: &mut Frame, _app: &App) {
-    let area = centered_rect(60, 40, f.area()); f.render_widget(Clear, area);
+    let area = centered_rect(60, 40, f.area()); 
+    render_shadow(f, area);
+    f.render_widget(Clear, area);
     f.render_widget(Paragraph::new("Add remote server modal placeholder").block(Block::default().title(" Add Remote ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green))), area);
 }
 
