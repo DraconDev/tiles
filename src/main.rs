@@ -1997,6 +1997,35 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             } else { app.move_right(); } 
                             return true;
                         } 
+                        KeyCode::Enter if key.modifiers.contains(KeyModifiers::ALT) => {
+                            app.mode = AppMode::Properties;
+                            return true;
+                        }
+                        KeyCode::Enter if key.modifiers.contains(KeyModifiers::SHIFT) => {
+                            let path_to_open = if let Some(fs) = app.current_file_state() {
+                                if let Some(idx) = fs.selected_index {
+                                    fs.files.get(idx).cloned()
+                                } else { None }
+                            } else { None };
+
+                            if let Some(path) = path_to_open {
+                                if path.is_dir() {
+                                    if let Some(fs) = app.current_file_state() {
+                                        let new_fs = fs.clone();
+                                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                            let mut fs_tab = new_fs;
+                                            fs_tab.current_path = path.clone();
+                                            fs_tab.selected_index = Some(0);
+                                            fs_tab.history = vec![path];
+                                            fs_tab.history_index = 0;
+                                            pane.open_tab(fs_tab);
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } return true; } 
                         KeyCode::Char(' ') => { 
                             if let Some(fs) = app.current_file_state() { 
@@ -2065,25 +2094,21 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 return true;
                             }
                         }
-                        KeyCode::Enter if key.modifiers.contains(KeyModifiers::ALT) => {
-                            app.mode = AppMode::Properties;
-                            return true;
-                        }
                         KeyCode::F(1) => {
                             app.mode = AppMode::Settings;
                             app.settings_section = SettingsSection::Shortcuts;
                             return true;
                         }
                         KeyCode::F(6) => {
-                            if let Some(fs) = app.current_file_state() {
-                                if let Some(idx) = fs.selected_index {
-                                    if let Some(p) = fs.files.get(idx) {
-                                        app.mode = AppMode::Rename;
-                                        app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string());
-                                        app.rename_selected = true;
-                                        return true;
-                                    }
-                                }
+                            let path_to_rename = if let Some(fs) = app.current_file_state() {
+                                fs.selected_index.and_then(|idx| fs.files.get(idx)).cloned()
+                            } else { None };
+
+                            if let Some(p) = path_to_rename {
+                                app.mode = AppMode::Rename;
+                                app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string());
+                                app.rename_selected = true;
+                                return true;
                             }
                         }
                         KeyCode::Delete => {
@@ -2104,27 +2129,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     push_history(fs, home);
                                     let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     return true;
-                                }
-                            }
-                        }
-                        KeyCode::Enter if key.modifiers.contains(KeyModifiers::SHIFT) => {
-                            // Open in new tab
-                            if let Some(fs) = app.current_file_state() {
-                                if let Some(idx) = fs.selected_index {
-                                    if let Some(path) = fs.files.get(idx).cloned() {
-                                        if path.is_dir() {
-                                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                                                let mut new_fs = fs.clone();
-                                                new_fs.current_path = path.clone();
-                                                new_fs.selected_index = Some(0);
-                                                new_fs.history = vec![path];
-                                                new_fs.history_index = 0;
-                                                pane.open_tab(new_fs);
-                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                                return true;
-                                            }
-                                        }
-                                    }
                                 }
                             }
                         }
