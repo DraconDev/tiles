@@ -1949,6 +1949,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         }
                         _ => { return app.input.handle_event(&evt); }
                     }
+                }
                 AppMode::Header(idx) => {
                     let total_icons = 4;
                     let total_tabs: usize = app.panes.iter().map(|p| p.tabs.len()).sum();
