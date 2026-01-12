@@ -298,10 +298,18 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         (split_icon, "split"),
     ];
 
-    for (icon, id) in icons {
+    for (i, (icon, id)) in icons.into_iter().enumerate() {
         let width = icon.len() as u16;
         let rect = Rect::new(cur_icon_x, area.y, width, 1);
-        f.render_widget(Paragraph::new(icon).style(Style::default().fg(THEME.accent_secondary)), rect);
+        
+        let mut style = Style::default().fg(THEME.accent_secondary);
+        if let AppMode::Header(idx) = app.mode {
+            if idx == i {
+                style = style.bg(Color::Rgb(50, 50, 60)).fg(Color::Yellow).add_modifier(Modifier::BOLD);
+            }
+        }
+
+        f.render_widget(Paragraph::new(icon).style(style), rect);
         app.header_icon_bounds.push((rect, id.to_string()));
         cur_icon_x += width + 1;
     }
@@ -315,6 +323,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let pane_chunks = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / pane_count as u16); pane_count]).split(Rect::new(start_x, area.y, area.width.saturating_sub(start_x), 1));
 
     app.tab_bounds.clear();
+    let mut global_tab_idx = 4; // Start after 4 icons
     for (p_i, pane) in app.panes.iter().enumerate() {
         let chunk = pane_chunks[p_i];
         let mut current_x = chunk.x;
@@ -324,8 +333,16 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
             if let Some(branch) = &tab.git_branch { name = format!("{} ({})", name, branch); }
             let is_active_tab = t_i == pane.active_tab_index;
             let is_focused_pane = p_i == app.focused_pane_index && !app.sidebar_focus;
-            let style = if is_active_tab { if is_focused_pane { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(THEME.accent_primary) } } 
+            
+            let mut style = if is_active_tab { if is_focused_pane { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(THEME.accent_primary) } } 
                         else { Style::default().fg(Color::DarkGray) };
+            
+            if let AppMode::Header(idx) = app.mode {
+                if idx == global_tab_idx {
+                    style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+                }
+            }
+
             let text = format!(" {} ", name);
             let width = text.len() as u16;
             if current_x + width > chunk.x + chunk.width { break; }
@@ -333,6 +350,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
             f.render_widget(Paragraph::new(text).style(style), rect);
             app.tab_bounds.push((rect, p_i, t_i));
             current_x += width + 1;
+            global_tab_idx += 1;
         }
     }
 }
