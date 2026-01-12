@@ -559,10 +559,17 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                 }
             }
         }
-        if let Some(branch) = &file_state.git_branch { breadcrumb_spans.push(Span::styled(format!(" ({})", branch), Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD))); }
         if !file_state.search_filter.is_empty() { breadcrumb_spans.push(Span::styled(format!(" [ {} ]", file_state.search_filter), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))); }
 
-        let mut border_style = if is_focused { Style::default().fg(THEME.border_active) } else { Style::default().fg(THEME.border_inactive) };
+        let mut border_style = if is_focused { 
+            let pulse = ((SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_millis() % 1500) as f32 / 1500.0 * std::f32::consts::PI * 2.0).sin() * 0.5 + 0.5;
+            let r = (THEME.accent_primary.as_rgb().0 as f32 * (0.7 + 0.3 * pulse)) as u8;
+            let g = (THEME.accent_primary.as_rgb().1 as f32 * (0.7 + 0.3 * pulse)) as u8;
+            let b = (THEME.accent_primary.as_rgb().2 as f32 * (0.7 + 0.3 * pulse)) as u8;
+            Style::default().fg(Color::Rgb(r, g, b)).add_modifier(Modifier::BOLD)
+        } else { 
+            Style::default().fg(THEME.border_inactive) 
+        };
         if matches!(app.hovered_drop_target, Some(DropTarget::Pane(idx)) if idx == pane_idx) {
             border_style = Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD);
         }
