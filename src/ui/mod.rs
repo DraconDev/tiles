@@ -343,12 +343,6 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             let pane_count = app.panes.len();
             if pane_count == 0 { return; }
 
-            if app.is_zoomed {
-                let i = app.focused_pane_index;
-                draw_file_view(f, area, app, i, true, Borders::ALL);
-                return;
-            }
-
             let constraints = vec![Constraint::Percentage(100 / pane_count as u16); pane_count];
             let chunks = Layout::default().direction(Direction::Horizontal).constraints(constraints).split(area);
             for i in 0..pane_count {
@@ -995,7 +989,6 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
         ]),
         ("View & Tabs", vec![
             ("Ctrl + s", "Toggle Split View"),
-            ("Ctrl + f", "Zoom Focus Pane"),
             ("Ctrl + t", "New Duplicate Tab"),
             ("Ctrl + h", "Toggle Hidden Files"),
             ("Ctrl + b", "Toggle Sidebar"),

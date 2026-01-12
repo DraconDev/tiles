@@ -582,7 +582,6 @@ impl App {
                     path_colors: state.path_colors,
                     ignore_resize_until: None,
                     last_action_msg: None,
-                    is_zoomed: false,
                     pending_remote: RemoteBookmark {
                         name: String::new(),
                         host: String::new(),
@@ -706,7 +705,6 @@ impl App {
             path_colors: HashMap::new(),
             ignore_resize_until: None,
             last_action_msg: None,
-            is_zoomed: false,
             pending_remote: RemoteBookmark {
                 name: String::new(),
                 host: String::new(),

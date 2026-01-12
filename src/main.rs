@@ -1758,7 +1758,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             match key.code {
                 KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return true; }
                 KeyCode::Char('b') | KeyCode::Char('B') if has_control => { app.show_sidebar = !app.show_sidebar; return true; }
-                KeyCode::Char('f') | KeyCode::Char('F') if has_control => { app.toggle_zoom(); return true; }
                 KeyCode::Char('i') | KeyCode::Char('I') if has_control => {
                     let state = crate::modules::introspection::WorldState::capture(app);
                     if let Ok(json) = serde_json::to_string_pretty(&state) {
