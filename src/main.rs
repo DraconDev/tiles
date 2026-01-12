@@ -1530,7 +1530,7 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
 fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::app::RemoteSession>, preferred_terminal: Option<&str>, command_to_run: Option<&str>) {
     let mut terminals: Vec<String> = vec![
-        "kgx".into(), "gnome-terminal".into(), "konsole".into(), "tilix".into(), "terminator".into(),
+        "gnome-terminal".into(), "kgx".into(), "konsole".into(), "tilix".into(), "terminator".into(),
         "xfce4-terminal".into(), "mate-terminal".into(), "lxterminal".into(), "wezterm".into(), "foot".into(),
         "xdg-terminal-exec".into(), "x-terminal-emulator".into(), "alacritty".into(), "kitty".into(), "xterm".into()
     ];
