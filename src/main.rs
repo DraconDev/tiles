@@ -1584,6 +1584,7 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                  }
             } else {
                 let mut command = std::process::Command::new(&t);
+                command.current_dir(path);
                 
                 // Helper to build local command string
                 let local_cmd = if let Some(c) = command_to_run {
