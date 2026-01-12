@@ -1968,10 +1968,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     crate::app::UndoAction::Rename(old, new) | crate::app::UndoAction::Move(old, new) => {
                                         let _ = std::fs::rename(&new, &old);
                                         app.redo_stack.push(action);
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                                    }
+                                    crate::app::UndoAction::Copy(_src, dest) => {
+                                        let _ = if dest.is_dir() { std::fs::remove_dir_all(&dest) } else { std::fs::remove_file(&dest) };
+                                        app.redo_stack.push(action);
                                     }
                                     _ => {}
+                                }
+                                for i in 0..app.panes.len() {
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
                                 }
                             } else {
                                 // Fallback: Clear search if active
@@ -1990,10 +1995,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     crate::app::UndoAction::Rename(old, new) | crate::app::UndoAction::Move(old, new) => {
                                         let _ = std::fs::rename(&old, &new);
                                         app.undo_stack.push(action);
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                                    }
+                                    crate::app::UndoAction::Copy(src, dest) => {
+                                        let _ = crate::modules::files::copy_recursive(&src, &dest);
+                                        app.undo_stack.push(action);
                                     }
                                     _ => {}
+                                }
+                                for i in 0..app.panes.len() {
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
                                 }
                             }
                             return true;
