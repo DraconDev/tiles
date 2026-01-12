@@ -1622,7 +1622,7 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
 
                 match t.as_str() {
                     "gnome-terminal" | "xfce4-terminal" | "mate-terminal" => {
-                        if new_tab { command.arg("--tab"); } else { command.arg("--window"); }
+                        if new_tab { command.arg("--tab"); }
                         command.arg("--working-directory").arg(&*path_str);
                         if command_to_run.is_some() {
                             command.arg("--").arg("sh").arg("-c").arg(&local_cmd);
