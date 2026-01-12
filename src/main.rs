@@ -448,6 +448,11 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         spawn_detached(&cmd, args.iter().map(|s| s.as_str()).collect());
                     });
                 }
+                AppEvent::StatusMsg(msg) => {
+                    let mut app_guard = app.lock().unwrap();
+                    app_guard.last_action_msg = Some((msg, std::time::Instant::now()));
+                    needs_draw = true;
+                }
                 AppEvent::Tick => { needs_draw = true; } 
             }
         }
