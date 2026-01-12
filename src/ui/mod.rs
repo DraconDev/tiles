@@ -794,7 +794,18 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
     let area = Rect::new(draw_x, draw_y, menu_width, menu_height);
 
     f.render_widget(Clear, area);
-    f.render_widget(List::new(items).block(Block::default().title(title).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(THEME.accent_secondary))), area);
+    let menu_block = Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(THEME.accent_secondary));
+    
+    // Add 1 cell of padding on the left by using a nested layout or margin
+    let inner_area = menu_block.inner(area);
+    let padded_area = Rect::new(inner_area.x + 1, inner_area.y, inner_area.width.saturating_sub(1), inner_area.height);
+    
+    f.render_widget(menu_block, area);
+    f.render_widget(List::new(items), padded_area);
 }
 
 fn draw_import_servers_modal(f: &mut Frame, app: &App) {
