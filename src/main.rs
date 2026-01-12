@@ -1731,7 +1731,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 KeyCode::F(2) => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; }
                 KeyCode::Char('h') | KeyCode::Char('H') if has_control => { let idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(idx)); return true; }
                 KeyCode::Char('g') | KeyCode::Char('G') if has_control => { app.mode = AppMode::Settings; return true; }
-                KeyCode::Char('e') | KeyCode::Char('E') | KeyCode::Char('t') | KeyCode::Char('T') if has_control => {
+                KeyCode::Char('e') | KeyCode::Char('E') if has_control => {
                     if let Some(pane) = app.panes.get(app.focused_pane_index) {
                         if let Some(fs) = pane.current_state() {
                             let _ = event_tx.try_send(AppEvent::SpawnTerminal {
@@ -1740,6 +1740,21 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 remote: fs.remote_session.clone(),
                                 command: None,
                             });
+                        }
+                    }
+                    return true;
+                }
+                KeyCode::Char('t') | KeyCode::Char('T') if has_control => {
+                    if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                        if let Some(fs) = pane.current_state() {
+                            let mut new_fs = fs.clone();
+                            new_fs.selected_index = Some(0);
+                            new_fs.search_filter.clear();
+                            *new_fs.table_state.offset_mut() = 0;
+                            new_fs.history = vec![new_fs.current_path.clone()];
+                            new_fs.history_index = 0;
+                            pane.open_tab(new_fs);
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                         }
                     }
                     return true;
