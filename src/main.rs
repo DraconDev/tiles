@@ -2220,6 +2220,39 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     let (w, h) = app.terminal_size;
                     
                     let sidebar_width = app.sidebar_width();
+                    
+                    // Check Header Icons
+                    if row == 0 {
+                        if let Some((_, action_id)) = app.header_icon_bounds.iter().find(|(rect, _)| {
+                            column >= rect.x && column < rect.x + rect.width && row == rect.y
+                        }) {
+                            match action_id.as_str() {
+                                "back" => {
+                                    if let Some(fs) = app.current_file_state_mut() {
+                                        navigate_back(fs);
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    }
+                                }
+                                "forward" => {
+                                    if let Some(fs) = app.current_file_state_mut() {
+                                        navigate_forward(fs);
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    }
+                                }
+                                "split" => {
+                                    app.toggle_split();
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                                }
+                                "burger" => {
+                                    app.mode = AppMode::Settings;
+                                }
+                                _ => {}
+                            }
+                            return true;
+                        }
+                    }
+
                     if button == MouseButton::Left && column >= sidebar_width.saturating_sub(1) && column <= sidebar_width && row >= 1 {
                         app.is_resizing_sidebar = true;
                         return true;

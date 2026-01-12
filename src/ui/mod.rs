@@ -316,7 +316,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         cur_icon_x += width + 1;
     }
 
-    let toolbar_width = cur_icon_x - (area.x + logo_width);
+    let _toolbar_width = cur_icon_x - (area.x + logo_width);
 
     if pane_count == 0 { return; }
     let start_x = if app.show_sidebar { 
