@@ -43,6 +43,7 @@ pub enum AppEvent {
         cmd: String,
         args: Vec<String>,
     },
+    StatusMsg(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
