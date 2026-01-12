@@ -482,6 +482,7 @@ pub struct App {
     pub initial_window_size: Option<(u16, u16)>,
     pub path_colors: HashMap<PathBuf, u8>,
     pub ignore_resize_until: Option<std::time::Instant>,
+    pub last_action_msg: Option<(String, std::time::Instant)>,
 
     // Undo/Redo
     pub undo_stack: Vec<UndoAction>,
