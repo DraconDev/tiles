@@ -672,16 +672,24 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
         .split(main_chunks[0]);
 
     // Activity Log
-    let log_msg = if let Some((msg, time)) = &app.last_action_msg {
+    let mut log_spans = vec![];
+    if let Some((msg, time)) = &app.last_action_msg {
         if time.elapsed().as_secs() < 5 {
-            Span::styled(format!(" [ SYSTEM ] {} ", msg), Style::default().fg(THEME.accent_secondary).bg(Color::Rgb(20, 25, 30)))
+            log_spans.push(Span::styled(format!(" [ SYSTEM ] {} ", msg), Style::default().fg(THEME.accent_secondary).bg(Color::Rgb(20, 25, 30))));
         } else {
-            Span::styled(" [ SYSTEM ] IDLE ", Style::default().fg(Color::DarkGray))
+            log_spans.push(Span::styled(" [ SYSTEM ] IDLE ", Style::default().fg(Color::DarkGray)));
         }
     } else {
-        Span::styled(" [ SYSTEM ] IDLE ", Style::default().fg(Color::DarkGray))
-    };
-    f.render_widget(Paragraph::new(Line::from(log_msg)), row1[0]);
+        log_spans.push(Span::styled(" [ SYSTEM ] IDLE ", Style::default().fg(Color::DarkGray)));
+    }
+
+    if let Some((ref path, op)) = app.clipboard {
+        let op_str = match op { crate::app::ClipboardOp::Copy => "COPY", crate::app::ClipboardOp::Cut => "CUT" };
+        let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| path.to_string_lossy().to_string());
+        log_spans.push(Span::styled(format!(" [ {} ] {} ", op_str, name), Style::default().fg(Color::Yellow).bg(Color::Rgb(30, 30, 20))));
+    }
+
+    f.render_widget(Paragraph::new(Line::from(log_spans)), row1[0]);
 
     // CPU/MEM Stats
     let cpu_bar = draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0);
@@ -979,6 +987,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             ("Ctrl + g", "Open Settings"),
             ("Ctrl + Space", "Open Command Palette"),
             ("Ctrl + b", "Toggle Sidebar"),
+            ("Ctrl + i", "AI Introspect (State Dump)"),
         ]),
         ("Navigation", vec![
             ("↑ / ↓", "Move Selection"),
