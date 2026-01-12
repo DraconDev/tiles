@@ -289,7 +289,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let burger_icon = Icon::Burger.get(app.icon_mode);
 
     app.header_icon_bounds.clear();
-    let mut cur_icon_x = area.x + 1;
+    let mut cur_icon_x = area.x + 2;
     
     let icons = [
         (burger_icon, "burger"),
