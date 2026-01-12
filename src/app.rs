@@ -485,6 +485,8 @@ pub struct App {
     pub ignore_resize_until: Option<std::time::Instant>,
     pub last_action_msg: Option<(String, std::time::Instant)>,
 
+    pub is_zoomed: bool,
+
     // Undo/Redo
     pub undo_stack: Vec<UndoAction>,
     pub redo_stack: Vec<UndoAction>,
