@@ -87,6 +87,7 @@ pub enum FileCategory {
 pub enum ContextMenuAction {
     Open,
     OpenNewTab,
+    OpenWith,
     Edit,
     Run,
     RunTerminal,
