@@ -1060,7 +1060,6 @@ fn draw_add_remote_modal(f: &mut Frame, _app: &App) {
 }
 
 fn draw_highlight_modal(f: &mut Frame, _app: &App) {
-    let area = centered_rect(30, 10, f.area()); // Fixed-ish percentage or small
     // Actually let's use absolute sizing for palette
     let area = Rect::new(
         (f.area().width.saturating_sub(34)) / 2,
