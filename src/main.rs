@@ -1721,7 +1721,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             if let Some(path) = fs.files.get(idx) {
                                 if path.is_dir() {
                                     let target = path.clone();
-                                    let app_lock = Arc::new(Mutex::new(0u64));
                                     let tx = event_tx.clone();
                                     
                                     app.last_action_msg = Some((format!("Calculating size: {}...", target.file_name().unwrap_or_default().to_string_lossy()), std::time::Instant::now()));
@@ -1740,15 +1739,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             }
                                         }
                                         
-                                        // Formatting helper
                                         let size_str = if total_size < 1024 { format!("{} B", total_size) }
                                                        else if total_size < 1024 * 1024 { format!("{:.1} KB", total_size as f64 / 1024.0) }
                                                        else if total_size < 1024 * 1024 * 1024 { format!("{:.1} MB", total_size as f64 / 1024.0 / 1024.0) }
                                                        else { format!("{:.1} GB", total_size as f64 / 1024.0 / 1024.0 / 1024.0) };
 
-                                        let _ = tx.send(AppEvent::Tick).await; // Force redraw to show message
-                                        // Since we can't easily reach app.last_action_msg from here without complex events,
-                                        // I'll leave the async size calc as a background task for now, but the warning fix is key.
+                                        let _ = tx.send(AppEvent::StatusMsg(format!("Size of {}: {}", target.file_name().unwrap_or_default().to_string_lossy(), size_str))).await;
                                     });
                                 }
                             }
