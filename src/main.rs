@@ -2398,7 +2398,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             // If we are in a modal mode, it MUST consume the event or close.
             match app.mode.clone() {
                 AppMode::Highlight => {
-                    if let MouseEventKind::Down(button) = me.kind {
+                    if let MouseEventKind::Down(_) = me.kind {
                         let area_w = 34; let area_h = 5; let area_x = (w.saturating_sub(area_w)) / 2; let area_y = (h.saturating_sub(area_h)) / 2;
                         if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
                             let rel_x = column.saturating_sub(area_x + 3);
@@ -2427,7 +2427,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     return true; 
                 }
                 AppMode::Settings => {
-                    if let MouseEventKind::Down(button) = me.kind {
+                    if let MouseEventKind::Down(_) = me.kind {
                         let area_w = (w as f32 * 0.8) as u16; let area_h = (h as f32 * 0.8) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
                         if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
                             let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
@@ -2481,7 +2481,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     return true;
                 }
                 AppMode::ImportServers => {
-                    if let MouseEventKind::Down(button) = me.kind {
+                    if let MouseEventKind::Down(_) = me.kind {
                         let area_w = (w as f32 * 0.6) as u16; let area_h = (h as f32 * 0.2) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
                         if !(column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h) {
                             let mut handled = false;
@@ -2495,7 +2495,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     return true;
                 }
                 AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::CommandPalette | AppMode::AddRemote(_) => {
-                    if let MouseEventKind::Down(button) = me.kind {
+                    if let MouseEventKind::Down(_) = me.kind {
                         let (area_w, area_h) = match app.mode {
                             AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete => ((w as f32 * 0.4) as u16, (h as f32 * 0.1) as u16),
                             AppMode::Properties => ((w as f32 * 0.5) as u16, (h as f32 * 0.5) as u16),
@@ -2511,7 +2511,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     return true;
                 }
                 AppMode::ContextMenu { x, y, target, actions } => {
-                    if let MouseEventKind::Down(button) = me.kind {
+                    if let MouseEventKind::Down(_) = me.kind {
                         let menu_width = 25; 
                         let menu_height = actions.len() as u16 + 2;
                         let mut draw_x = x; let mut draw_y = y;
@@ -2533,8 +2533,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             match me.kind {
                 MouseEventKind::Down(button) => {
                     crate::app::log_debug(&format!("MOUSE DOWN: button={:?} row={} col={}", button, row, column));
-                    
-                    let sidebar_width = app.sidebar_width();
                     
                     if row >= 3 {
                         let index = fs_mouse_index(row, app);
