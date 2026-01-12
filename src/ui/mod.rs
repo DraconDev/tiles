@@ -481,8 +481,13 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         if let Some(branch) = &file_state.git_branch { breadcrumb_spans.push(Span::styled(format!(" ({})", branch), Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD))); }
         if !file_state.search_filter.is_empty() { breadcrumb_spans.push(Span::styled(format!(" [ {} ]", file_state.search_filter), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))); }
 
+        let mut border_style = if is_focused { Style::default().fg(THEME.border_active) } else { Style::default().fg(THEME.border_inactive) };
+        if matches!(app.hovered_drop_target, Some(DropTarget::Pane(idx)) if idx == pane_idx) {
+            border_style = Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD);
+        }
+
         let block = Block::default().borders(borders).border_type(BorderType::Rounded).title(Line::from(breadcrumb_spans))
-            .border_style(if is_focused { Style::default().fg(THEME.border_active) } else { Style::default().fg(THEME.border_inactive) });
+            .border_style(border_style);
 
         let table = Table::new(rows, constraints.clone()).header(Row::new(header_cells).height(1)).block(block.clone()).column_spacing(0)
             .row_highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD));
