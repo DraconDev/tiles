@@ -338,7 +338,18 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     }
                 }
                 AppEvent::Delete(path) => {
-                    let _ = std::fs::remove_file(&path).or_else(|_| std::fs::remove_dir_all(&path));
+                    let res = if path.is_dir() {
+                        std::fs::remove_dir_all(&path)
+                    } else {
+                        std::fs::remove_file(&path)
+                    };
+                    
+                    if let Err(e) = res {
+                        crate::app::log_debug(&format!("DELETE FAILED for {:?}: {}", path, e));
+                    } else {
+                        crate::app::log_debug(&format!("DELETED {:?}", path));
+                    }
+
                     let mut app_guard = app.lock().unwrap();
                     for i in 0..app_guard.panes.len() {
                         app_guard.update_files_for_active_tab(i);
