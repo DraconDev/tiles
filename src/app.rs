@@ -144,6 +144,7 @@ pub enum AppMode {
     Settings,
     AddRemote(usize),
     ImportServers,
+    Header(usize),
 }
 
 #[derive(Clone, Debug, PartialEq)]
