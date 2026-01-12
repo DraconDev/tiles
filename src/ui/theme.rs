@@ -21,7 +21,7 @@ pub struct DraconTheme {
 impl DraconTheme {
     pub fn cyberpunk() -> Self {
         Self {
-            bg: Color::Rgb(10, 10, 15),                // Deep dark blue/black
+            bg: Color::Black,                          // Pure Black
             fg: Color::Rgb(220, 220, 230),             // Off-white
             accent_primary: Color::Rgb(255, 0, 85),    // Neon Red/Pink
             accent_secondary: Color::Rgb(0, 255, 200), // Cyan
