@@ -483,8 +483,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &App) {
         Span::styled(" ^G ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Settings "),
         Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Split "),
         Span::styled(" ^T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Tab "),
-        Span::styled(" ^E ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Term-T "),
-        Span::styled(" ^. ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Term-W "),
+        Span::styled(" ^E ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Terminal "),
         Span::styled(" ^Spc ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Cmd "),
         Span::styled(" ^H ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Hidden "),
     ];
@@ -758,9 +757,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             ("Ctrl + b", "Toggle Sidebar"),
         ]),
         ("Terminal", vec![
-            ("Ctrl + e", "Open External Terminal Tab"),
-            ("F4 / Ctrl + n", "Open External Terminal Window"),
-            ("Ctrl + .", "Open External Terminal Window (Alias)"),
+            ("Ctrl + e", "Open External Terminal Window"),
             ("g", "Open Terminal Here (Git Mode)"),
         ]),
     ];
