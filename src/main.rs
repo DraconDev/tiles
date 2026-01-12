@@ -2616,6 +2616,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                                         DropTarget::Favorites => {
                                                             if source.is_dir() { if !app.starred.contains(source) { app.starred.push(source.clone()); let _ = crate::config::save_state(app); } } // Add to favorites if it's a directory
                                                         }
+                                                        DropTarget::Pane(target_pane_idx) => {
+                                                            if let Some(dest_path) = app.panes.get(*target_pane_idx).and_then(|p| p.current_state()).map(|fs| fs.current_path.clone()) {
+                                                                if let Some(filename) = source.file_name() {
+                                                                    let dest = dest_path.join(filename);
+                                                                    if me.modifiers.contains(KeyModifiers::SHIFT) {
+                                                                        let _ = event_tx.try_send(AppEvent::Copy(source.clone(), dest));
+                                                                    } else {
+                                                                        let _ = event_tx.try_send(AppEvent::Rename(source.clone(), dest));
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
                                                         _ => {} 
                                                     }
                                                 }
