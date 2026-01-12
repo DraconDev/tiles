@@ -129,7 +129,7 @@ impl SystemModule {
             mem_usage,
             total_mem,
             disks: final_disks,
-            processes: Vec::new(),
+            processes: final_processes,
         }
     }
 }

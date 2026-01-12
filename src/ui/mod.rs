@@ -278,14 +278,21 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 }
 
 fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
-    let pane_count = app.panes.len();
-    if pane_count == 0 { return; }
-    let constraints = vec![Constraint::Percentage(100 / pane_count as u16); pane_count];
-    let chunks = Layout::default().direction(Direction::Horizontal).constraints(constraints).split(area);
-    for i in 0..pane_count {
-        let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
-        let borders = if pane_count > 1 { if i == 0 { Borders::ALL } else { Borders::ALL } } else { Borders::ALL };
-        draw_file_view(f, chunks[i], app, i, is_focused, borders);
+    match app.current_view {
+        CurrentView::Files => {
+            let pane_count = app.panes.len();
+            if pane_count == 0 { return; }
+            let constraints = vec![Constraint::Percentage(100 / pane_count as u16); pane_count];
+            let chunks = Layout::default().direction(Direction::Horizontal).constraints(constraints).split(area);
+            for i in 0..pane_count {
+                let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
+                let borders = if pane_count > 1 { if i == 0 { Borders::ALL } else { Borders::ALL } } else { Borders::ALL };
+                draw_file_view(f, chunks[i], app, i, is_focused, borders);
+            }
+        }
+        CurrentView::Processes => {
+            draw_processes_view(f, area, app);
+        }
     }
 }
 
