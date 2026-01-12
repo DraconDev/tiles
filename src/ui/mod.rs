@@ -201,6 +201,12 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     // Force true color pure black background
     f.render_widget(Block::default().style(Style::default().bg(Color::Rgb(0, 0, 0))), f.area());
 
+    // CRT Scanline Effect
+    let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_millis();
+    let scanline_y = ((now / 20) % f.area().height as u128) as u16;
+    let scanline_style = Style::default().fg(Color::Rgb(10, 10, 15)); // Very subtle dark blue
+    f.render_widget(Paragraph::new("—".repeat(f.area().width as usize)).style(scanline_style), Rect::new(0, scanline_y, f.area().width, 1));
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)])

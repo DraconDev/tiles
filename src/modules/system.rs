@@ -16,7 +16,7 @@ impl SystemModule {
     pub fn get_data(&mut self) -> crate::app::SystemData {
         self.sys.refresh_cpu_usage();
         self.sys.refresh_memory();
-        self.sys.refresh_processes();
+        self.sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
         self.disks.refresh_list();
 
         let cpu_usage = self.sys.global_cpu_usage();
