@@ -730,23 +730,13 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
     if draw_y + menu_height > f.area().height { draw_y = f.area().height.saturating_sub(menu_height); }
 
     let area = Rect::new(draw_x, draw_y, menu_width, menu_height);
-    let shadow_area = Rect::new(draw_x + 1, draw_y + 1, menu_width, menu_height);
-    f.render_widget(Block::default().style(Style::default().bg(Color::Rgb(10, 10, 15))), shadow_area);
 
     f.render_widget(Clear, area);
     f.render_widget(List::new(items).block(Block::default().title(title).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(THEME.accent_secondary))), area);
 }
 
-fn render_shadow(f: &mut Frame, area: Rect) {
-    if area.width > 1 && area.height > 1 {
-        let shadow_area = Rect::new(area.x + 1, area.y + 1, area.width, area.height);
-        f.render_widget(Block::default().style(Style::default().bg(Color::Rgb(10, 10, 15))), shadow_area);
-    }
-}
-
 fn draw_import_servers_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 20, f.area());
-    render_shadow(f, area);
     f.render_widget(Clear, area);
     let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Import Servers (TOML) ").border_style(Style::default().fg(THEME.accent_primary));
     let inner = block.inner(area);
@@ -766,7 +756,6 @@ fn draw_import_servers_modal(f: &mut Frame, app: &App) {
 
 fn draw_command_palette(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 20, f.area());
-    render_shadow(f, area);
     f.render_widget(Clear, area);
     let inner = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Command Palette ").border_style(Style::default().fg(Color::Magenta)).inner(area);
     f.render_widget(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title(" Command Palette ").border_style(Style::default().fg(Color::Magenta)), area);
@@ -783,7 +772,6 @@ fn draw_command_palette(f: &mut Frame, app: &App) {
 
 fn draw_rename_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); 
-    render_shadow(f, area);
     f.render_widget(Clear, area);
     let block = Block::default().title(" Rename ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Yellow));
     let inner = block.inner(area);
@@ -812,7 +800,6 @@ fn draw_rename_modal(f: &mut Frame, app: &App) {
 
 fn draw_new_folder_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); 
-    render_shadow(f, area);
     f.render_widget(Clear, area);
     let block = Block::default().title(" New Folder ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green));
     let inner = block.inner(area);
@@ -822,7 +809,6 @@ fn draw_new_folder_modal(f: &mut Frame, app: &App) {
 
 fn draw_new_file_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); 
-    render_shadow(f, area);
     f.render_widget(Clear, area);
     let block = Block::default().title(" New File ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Green));
     let inner = block.inner(area);
@@ -832,14 +818,12 @@ fn draw_new_file_modal(f: &mut Frame, app: &App) {
 
 fn draw_delete_modal(f: &mut Frame, _app: &App) {
     let area = centered_rect(40, 10, f.area()); 
-    render_shadow(f, area);
     f.render_widget(Clear, area);
     f.render_widget(Paragraph::new("Delete selected item(s)? (y/n)").block(Block::default().title(" Delete ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Red))), area);
 }
 
 fn draw_properties_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(50, 50, f.area()); 
-    render_shadow(f, area);
     f.render_widget(Clear, area);
     
     let mut text = Vec::new();
