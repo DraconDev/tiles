@@ -95,6 +95,8 @@ pub enum ContextMenuAction {
     NewFile,
     Cut,
     Copy,
+    CopyPath,
+    CopyName,
     Paste,
     Rename,
     Duplicate,

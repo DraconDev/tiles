@@ -740,6 +740,8 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
             ContextMenuAction::NewFile => format!(" {} New File", Icon::File.get(app.icon_mode)),
             ContextMenuAction::Cut => " 󰆐 Cut".to_string(), // Keep some standard ones or update all
             ContextMenuAction::Copy => " 󰆏 Copy".to_string(),
+            ContextMenuAction::CopyPath => " 󰆏 Copy Path".to_string(),
+            ContextMenuAction::CopyName => " 󰆏 Copy Name".to_string(),
             ContextMenuAction::Paste => " 󰆒 Paste".to_string(),
             ContextMenuAction::Rename => " 󰏫 Rename".to_string(),
             ContextMenuAction::Duplicate => " 󰆏 Duplicate".to_string(),

@@ -62,6 +62,8 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     actions.extend(vec![
                         ContextMenuAction::Cut,
                         ContextMenuAction::Copy,
+                        ContextMenuAction::CopyPath,
+                        ContextMenuAction::CopyName,
                         ContextMenuAction::Rename,
                         ContextMenuAction::Duplicate,
                         ContextMenuAction::Compress,
@@ -102,6 +104,8 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     actions.extend(vec![
                         ContextMenuAction::Cut,
                         ContextMenuAction::Copy,
+                        ContextMenuAction::CopyPath,
+                        ContextMenuAction::CopyName,
                         ContextMenuAction::Paste,
                         ContextMenuAction::Rename,
                         ContextMenuAction::Duplicate,
