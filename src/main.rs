@@ -1731,6 +1731,19 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                     return true;
                 }
+                KeyCode::F(4) => {
+                    if let Some(pane) = app.panes.get(app.focused_pane_index) {
+                        if let Some(fs) = pane.current_state() {
+                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                                path: fs.current_path.clone(),
+                                new_tab: false, // Window
+                                remote: fs.remote_session.clone(),
+                                command: None,
+                            });
+                        }
+                    }
+                    return true;
+                }
                 KeyCode::Char(' ') if has_control => { 
                     app.input.clear(); 
                     app.mode = AppMode::CommandPalette; 
