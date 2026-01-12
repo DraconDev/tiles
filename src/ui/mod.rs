@@ -759,9 +759,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             ("Ctrl + b", "Toggle Sidebar"),
         ]),
         ("Terminal", vec![
-            ("Ctrl + e", "Open External Terminal Tab"),
-            ("Ctrl + n", "Open External Terminal Window"),
-            ("Ctrl + .", "Open External Terminal Window (Alias)"),
+            ("Ctrl + .", "Open Terminal Window"),
             ("g", "Open Terminal Here (Git Mode)"),
         ]),
     ];
