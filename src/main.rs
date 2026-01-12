@@ -540,7 +540,7 @@ fn update_commands(app: &mut App) {
 fn execute_command(action: crate::app::CommandAction, app: &mut App, _event_tx: mpsc::Sender<AppEvent>) {
     match action {
         crate::app::CommandAction::Quit => { app.running = false; },
-        crate::app::CommandAction::ToggleZoom => app.toggle_zoom(),
+        crate::app::CommandAction::ToggleZoom => {},
         crate::app::CommandAction::SwitchView(view) => app.current_view = view,
         crate::app::CommandAction::AddRemote => { app.mode = AppMode::AddRemote(0); app.input.clear(); },
         crate::app::CommandAction::ConnectToRemote(idx) => {
