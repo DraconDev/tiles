@@ -37,7 +37,7 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                 }
 
                 if let Some(path) = fs.files.get(*idx) {
-                    let is_starred = app.starred.contains(path);
+                    let _is_starred = app.starred.contains(path);
                     
                     actions.push(ContextMenuAction::Open);
                     actions.push(ContextMenuAction::Edit);
@@ -1189,57 +1189,35 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
         }
 
         ContextMenuAction::Compress => {
-
             let path = match target {
-
-                ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => {
-
-                    app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned())
-
-                }
-
+                ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
                 _ => None,
-
             };
-
             if let Some(src) = path {
-
                 let mut dest = src.clone();
-
                 dest.set_extension("zip");
-
-                // Try zip, then tar
-
-                let _ = std::process::Command::new("zip")
-
-                    .arg("-r")
-
-                    .arg(&dest)
-
-                    .arg(&src)
-
-                    .spawn()
-
-                    .or_else(|_| {
-
+                let tx = event_tx.clone();
+                let pane_idx = app.focused_pane_index;
+                tokio::spawn(async move {
+                    let success = std::process::Command::new("zip")
+                        .arg("-r")
+                        .arg(&dest)
+                        .arg(&src)
+                        .status()
+                        .map(|s| s.success())
+                        .unwrap_or(false);
+                    
+                    if !success {
                         dest.set_extension("tar.gz");
-
-                        std::process::Command::new("tar")
-
+                        let _ = std::process::Command::new("tar")
                             .arg("-czf")
-
                             .arg(&dest)
-
                             .arg(&src)
-
-                            .spawn()
-
-                    });
-
-                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-
+                            .status();
+                    }
+                    let _ = tx.send(AppEvent::RefreshFiles(pane_idx)).await;
+                });
             }
-
         }
 
         ContextMenuAction::Delete => {
