@@ -104,200 +104,56 @@ pub enum ContextMenuAction {
     SetColor(Option<u8>),
     Properties,
     GitStatus,
-    AddToFavorites,
-    RemoveFromFavorites,
-    Refresh,
-    SelectAll,
-    ToggleHidden,
-    ConnectRemote,
-    DeleteRemote,
-    Mount,
-    Unmount,
-    SetWallpaper,
-    GitInit,
-    SortBy(crate::app::FileColumn),
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum FileColumn {
-    Name,
-    Size,
-    Modified,
-    Permissions,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct FileMetadata {
-    pub size: u64,
-    pub modified: u64,
-    pub created: u64,
-    pub permissions: u32,
-    pub is_dir: bool,
-    pub is_symlink: bool,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct RemoteSession {
-    pub name: String,
-    pub host: String,
-    pub user: String,
-    pub port: u16,
-    pub auth_method: AuthMethod,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum AuthMethod {
-    Password,
-    Key(PathBuf),
-}
-
-#[derive(Clone, Debug)]
-pub struct SystemData {
-    pub hostname: String,
-    pub os: String,
-    pub kernel: String,
-    pub uptime: u64,
-    pub memory_total: u64,
-    pub memory_used: u64,
-    pub cpu_usage: f32,
-    pub disks: Vec<DiskInfo>,
-}
-
-#[derive(Clone, Debug)]
-pub struct DiskInfo {
-    pub name: String,
-    pub mount_point: String,
-    pub total: u64,
-    pub used: u64,
-    pub device: String,
-    pub is_mounted: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AppMode {
     Normal,
-    CommandPalette,
-    Settings,
+    Rename,
+    Delete,
+    NewFolder,
+    NewFile,
+    Search,
+    Command,
+    RemoteAdd,
+    TabSearch,
+    Properties,
+    Highlight,
     ContextMenu {
         x: u16,
         y: u16,
         target: ContextMenuTarget,
         actions: Vec<ContextMenuAction>,
     },
-    NewFile,
-    NewFolder,
-    Rename,
-    Delete,
-    ImportServers,
-    Properties,
+    CommandPalette,
+    Location,
+    Settings,
     AddRemote,
-    Highlight,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum SidebarTarget {
-    Favorite(usize),
-    Remote(usize),
-    Storage(usize),
-    Header(&'static str),
-}
-
-#[derive(Clone, Debug)]
-pub struct SidebarBound {
-    pub y: u16,
-    pub index: usize,
-    pub target: crate::main::SidebarTarget,
+    ImportServers,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum DropTarget {
     Favorites,
-    RemotesHeader,
+    SidebarArea,
+    Folder(PathBuf),
     ImportServers,
+    RemotesHeader,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum SettingsTarget {
-    SingleMode,
-    SplitMode,
+#[derive(Clone, Debug)]
+pub struct SidebarBounds {
+    pub y: u16,
+    pub index: usize,
+    pub target: SidebarTarget,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PersistentState {
-    pub panes: Vec<PaneState>,
-    pub focused_pane_index: usize,
-    pub starred: Vec<PathBuf>,
-    pub remote_bookmarks: Vec<RemoteSession>,
-    pub current_view: CurrentView,
-    pub window_size: (u16, u16),
-    pub path_colors: HashMap<PathBuf, u8>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PaneState {
-    pub tabs: Vec<FileState>,
-    pub active_tab_index: usize,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct FileState {
-    pub current_path: PathBuf,
-    pub files: Vec<PathBuf>,
-    pub metadata: HashMap<PathBuf, FileMetadata>,
-    pub git_status: HashMap<PathBuf, String>,
-    pub git_branch: Option<String>,
-    pub selected_index: Option<usize>,
-    pub multi_select: HashSet<usize>,
-    pub selection_anchor: Option<usize>,
-    pub search_filter: String,
-    #[serde(skip)]
-    pub table_state: TableState,
-    pub history: Vec<PathBuf>,
-    pub history_index: usize,
-    pub remote_session: Option<RemoteSession>,
-    pub view_height: usize,
-    pub local_count: usize,
-}
-
-pub struct App {
-    pub running: bool,
-    pub panes: Vec<PaneState>,
-    pub focused_pane_index: usize,
-    pub terminal_size: (u16, u16),
-    pub mode: AppMode,
-    pub input: TextInput,
-    pub command_index: usize,
-    pub filtered_commands: Vec<CommandItem>,
-    pub starred: Vec<PathBuf>,
-    pub remote_bookmarks: Vec<RemoteSession>,
-    pub system_state: SystemData,
-    pub current_view: CurrentView,
-    pub sidebar_width_percent: u16,
-    pub show_sidebar: bool,
-    pub sidebar_focus: bool,
-    pub sidebar_index: usize,
-    pub sidebar_bounds: Vec<SidebarBound>,
-    pub is_resizing_sidebar: bool,
-    pub is_dragging: bool,
-    pub drag_start_pos: Option<(u16, u16)>,
-    pub drag_source: Option<PathBuf>,
-    pub hovered_drop_target: Option<DropTarget>,
-    pub mouse_pos: (u16, u16),
-    pub mouse_last_click: std::time::Instant,
-    pub mouse_click_pos: (u16, u16),
-    pub tab_bounds: Vec<(Rect, usize, usize)>,
-    pub rename_selected: bool,
-    pub settings_section: SettingsSection,
-    pub settings_target: SettingsTarget,
-    pub column_settings_single: Vec<FileColumn>,
-    pub column_settings_split: Vec<FileColumn>,
-    pub icon_mode: IconMode,
-    pub confirm_delete: bool,
-    pub default_show_hidden: bool,
-    pub path_colors: HashMap<PathBuf, u8>,
-    pub preferred_terminal: Option<String>,
-    pub clipboard: Option<ClipboardItem>,
-    pub ignore_resize_until: Option<std::time::Instant>,
+#[derive(Clone, Debug, PartialEq)]
+pub enum SidebarTarget {
+    Header(String),
+    Favorite(PathBuf),
+    Remote(usize),
+    Storage(usize),
 }
 
 #[derive(Clone, Debug)]
@@ -307,220 +163,226 @@ pub struct CommandItem {
     pub action: CommandAction,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CommandAction {
     Quit,
     ToggleZoom,
     SwitchView(CurrentView),
     AddRemote,
+    ConnectToRemote(usize), // index into remote_bookmarks
     ImportServers,
-    ConnectToRemote(usize),
+    CommandPalette,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ClipboardOp {
+    Copy,
+    Cut,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum FileColumn {
+    Name,
+    Size,
+    Modified,
+    Permissions,
+}
+
+#[derive(Clone)]
+pub struct RemoteSession {
+    pub name: String,
+    pub host: String,
+    pub user: String,
+    pub session: Arc<Mutex<ssh2::Session>>,
+}
+
+impl std::fmt::Debug for RemoteSession {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RemoteSession")
+            .field("name", &self.name)
+            .field("host", &self.host)
+            .field("user", &self.user)
+            .field("session", &"<ssh2 session>")
+            .finish()
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RemoteBookmark {
+    pub name: String,
+    pub host: String,
+    pub user: String,
+    pub port: u16,
+    pub last_path: PathBuf,
+    pub key_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug)]
-pub enum ClipboardItem {
-    Copy(Vec<PathBuf>),
-    Cut(Vec<PathBuf>),
+pub struct DiskInfo {
+    pub name: String,
+    pub device: String,
+    pub used_space: f64,
+    pub available_space: f64,
+    pub total_space: f64,
+    pub is_mounted: bool,
 }
 
-impl App {
-    pub fn new() -> Self {
-        let mut app = Self {
-            running: true,
-            panes: vec![
-                PaneState {
-                    tabs: vec![FileState::default()],
-                    active_tab_index: 0,
-                },
-                PaneState {
-                    tabs: vec![FileState::default()],
-                    active_tab_index: 0,
-                },
-            ],
-            focused_pane_index: 0,
-            terminal_size: (0, 0),
-            mode: AppMode::Normal,
-            input: TextInput::new("> ".to_string()),
-            command_index: 0,
-            filtered_commands: Vec::new(),
-            starred: Vec::new(),
-            remote_bookmarks: Vec::new(),
-            system_state: SystemData::default(),
-            current_view: CurrentView::Files,
-            sidebar_width_percent: 20,
-            show_sidebar: true,
-            sidebar_focus: false,
-            sidebar_index: 0,
-            sidebar_bounds: Vec::new(),
-            is_resizing_sidebar: false,
-            is_dragging: false,
-            drag_start_pos: None,
-            drag_source: None,
-            hovered_drop_target: None,
-            mouse_pos: (0, 0),
-            mouse_last_click: std::time::Instant::now(),
-            mouse_click_pos: (0, 0),
-            tab_bounds: Vec::new(),
-            rename_selected: false,
-            settings_section: SettingsSection::Columns,
-            settings_target: SettingsTarget::SingleMode,
-            column_settings_single: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
-            column_settings_split: vec![FileColumn::Name, FileColumn::Size],
-            icon_mode: IconMode::Nerd,
-            confirm_delete: true,
-            default_show_hidden: false,
-            path_colors: HashMap::new(),
-            preferred_terminal: None,
-            clipboard: None,
-            ignore_resize_until: None,
-        };
+#[derive(Clone, Debug)]
+pub struct ProcessInfo {
+    pub pid: u32,
+    pub name: String,
+    pub cpu: f32,
+    pub mem: f32,
+}
 
-        let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-        app.panes[0].tabs[0].current_path = PathBuf::from(&home);
-        app.panes[0].tabs[0].history = vec![PathBuf::from(&home)];
-        app.panes[1].tabs[0].current_path = PathBuf::from(&home);
-        app.panes[1].tabs[0].history = vec![PathBuf::from(&home)];
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct FileMetadata {
+    pub size: u64,
+    pub modified: std::time::SystemTime,
+    pub created: std::time::SystemTime,
+    pub permissions: u32,
+    pub extension: String,
+    pub is_dir: bool,
+}
 
-        app
-    }
-
-    pub fn current_file_state(&self) -> Option<&FileState> {
-        self.panes.get(self.focused_pane_index).and_then(|p| p.tabs.get(p.active_tab_index))
-    }
-
-    pub fn current_file_state_mut(&mut self) -> Option<&mut FileState> {
-        let idx = self.focused_pane_index;
-        self.panes.get_mut(idx).and_then(|p| {
-            let t_idx = p.active_tab_index;
-            p.tabs.get_mut(t_idx)
-        })
-    }
-
-    pub fn toggle_split(&mut self) {
-        if self.panes.len() > 1 {
-            self.panes.truncate(1);
-            self.focused_pane_index = 0;
-        } else {
-            let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-            self.panes.push(PaneState {
-                tabs: vec![FileState {
-                    current_path: PathBuf::from(&home),
-                    history: vec![PathBuf::from(&home)],
-                    ..FileState::default()
-                }],
-                active_tab_index: 0,
-            });
+impl Default for FileMetadata {
+    fn default() -> Self {
+        Self {
+            size: 0,
+            modified: std::time::SystemTime::UNIX_EPOCH,
+            created: std::time::SystemTime::UNIX_EPOCH,
+            permissions: 0,
+            extension: String::new(),
+            is_dir: false,
         }
-    }
-
-    pub fn move_left(&mut self) {
-        if self.sidebar_focus { return; }
-        if self.focused_pane_index > 0 {
-            self.focused_pane_index -= 1;
-        } else if self.show_sidebar {
-            self.sidebar_focus = true;
-        }
-    }
-
-    pub fn move_right(&mut self) {
-        if self.sidebar_focus {
-            self.sidebar_focus = false;
-            self.focused_pane_index = 0;
-        } else if self.focused_pane_index + 1 < self.panes.len() {
-            self.focused_pane_index += 1;
-        }
-    }
-
-    pub fn move_up(&mut self, shift: bool) {
-        if self.sidebar_focus {
-            if self.sidebar_index > 0 { self.sidebar_index -= 1; }
-        } else if let Some(fs) = self.current_file_state_mut() {
-            let current = fs.selected_index.unwrap_or(0);
-            if current > 0 {
-                fs.selected_index = Some(current - 1);
-                fs.table_state.select(Some(current - 1));
-                if shift {
-                    let anchor = fs.selection_anchor.unwrap_or(current);
-                    fs.selection_anchor = Some(anchor);
-                    fs.multi_select.clear();
-                    let start = std::cmp::min(anchor, current - 1);
-                    let end = std::cmp::max(anchor, current - 1);
-                    for i in start..=end { fs.multi_select.insert(i); }
-                } else {
-                    fs.multi_select.clear();
-                    fs.selection_anchor = Some(current - 1);
-                }
-            }
-        }
-    }
-
-    pub fn move_down(&mut self, shift: bool) {
-        if self.sidebar_focus {
-            if self.sidebar_index + 1 < self.sidebar_bounds.len() { self.sidebar_index += 1; }
-        } else if let Some(fs) = self.current_file_state_mut() {
-            let current = fs.selected_index.unwrap_or(0);
-            if current + 1 < fs.files.len() {
-                fs.selected_index = Some(current + 1);
-                fs.table_state.select(Some(current + 1));
-                 if shift {
-                    let anchor = fs.selection_anchor.unwrap_or(current);
-                    fs.selection_anchor = Some(anchor);
-                    fs.multi_select.clear();
-                    let start = std::cmp::min(anchor, current + 1);
-                    let end = std::cmp::max(anchor, current + 1);
-                    for i in start..=end { fs.multi_select.insert(i); }
-                } else {
-                    fs.multi_select.clear();
-                    fs.selection_anchor = Some(current + 1);
-                }
-            }
-        }
-    }
-
-    pub fn sidebar_width(&self) -> u16 {
-        if !self.show_sidebar { return 0; }
-        (self.terminal_size.0 as f32 * (self.sidebar_width_percent as f32 / 100.0)) as u16
-    }
-
-    pub fn toggle_column(&mut self, col: FileColumn) {
-        let cols = if self.panes.len() > 1 { &mut self.column_settings_split } else { &mut self.column_settings_single };
-        if let Some(pos) = cols.iter().position(|c| c == &col) {
-            if cols.len() > 1 { cols.remove(pos); }
-        } else {
-            cols.push(col);
-        }
-    }
-
-    pub fn toggle_hidden(&mut self) -> usize {
-        if let Some(fs) = self.current_file_state_mut() {
-            // This is just a toggle, the actual filtering happens in update_files
-            // But we need to signal it. We'll use a hidden field in FileState.
-            // For now, let's just toggle a global or per-pane hidden flag.
-        }
-        self.focused_pane_index
-    }
-
-    pub fn toggle_zoom(&mut self) {
-        // Implement zoom/maximize pane logic
-    }
-
-    pub fn move_to_other_pane(&mut self) {
-        if self.panes.len() > 1 {
-            self.focused_pane_index = if self.focused_pane_index == 0 { 1 } else { 0 };
-        }
-    }
-
-    pub fn copy_to_other_pane(&mut self) {
-        // Implement copy selection to other pane logic
-    }
-
-    pub fn import_servers(&mut self, _path: PathBuf) -> std::io::Result<()> {
-        // Implement import servers from toml logic
-        Ok(())
     }
 }
 
-impl PaneState {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct FileState {
+    pub current_path: PathBuf,
+    #[serde(skip)]
+    pub remote_session: Option<RemoteSession>,
+    pub selected_index: Option<usize>,
+    pub selection_anchor: Option<usize>,
+    pub multi_select: std::collections::HashSet<usize>,
+    #[serde(skip)]
+    pub table_state: TableState,
+    #[serde(skip)]
+    pub files: Vec<PathBuf>,
+    #[serde(skip)]
+    pub metadata: HashMap<PathBuf, FileMetadata>,
+    #[serde(skip)]
+    pub git_status: HashMap<PathBuf, String>,
+    pub show_hidden: bool,
+    pub search_filter: String,
+    pub columns: Vec<FileColumn>,
+    pub history: Vec<PathBuf>,
+    pub history_index: usize,
+    #[serde(skip)]
+    pub view_height: usize,
+    pub sort_column: FileColumn,
+    pub sort_ascending: bool,
+    #[serde(skip)]
+    pub breadcrumb_bounds: Vec<(Rect, PathBuf)>,
+    #[serde(skip)]
+    pub column_bounds: Vec<(Rect, FileColumn)>,
+    #[serde(skip)]
+    pub hovered_breadcrumb: Option<PathBuf>,
+    #[serde(skip)]
+    pub git_branch: Option<String>,
+    #[serde(skip)]
+    pub local_count: usize,
+}
+
+impl FileState {
+    pub fn new(
+        path: PathBuf,
+        remote: Option<RemoteSession>,
+        show_hidden: bool,
+        columns: Vec<FileColumn>,
+        sort_column: FileColumn,
+        sort_ascending: bool,
+    ) -> Self {
+        Self {
+            current_path: path.clone(),
+            remote_session: remote,
+            selected_index: None,
+            selection_anchor: None,
+            multi_select: std::collections::HashSet::new(),
+            table_state: TableState::default(),
+            files: Vec::new(),
+            metadata: HashMap::new(),
+            git_status: HashMap::new(),
+            show_hidden,
+            search_filter: String::new(),
+            columns,
+            history: vec![path],
+            history_index: 0,
+            view_height: 0,
+            sort_column,
+            sort_ascending,
+            breadcrumb_bounds: Vec::new(),
+            column_bounds: Vec::new(),
+            hovered_breadcrumb: None,
+            git_branch: None,
+            local_count: 0,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SystemData {
+    pub cpu_usage: f32,
+    pub mem_usage: f64,
+    pub total_mem: f64,
+    pub disks: Vec<DiskInfo>,
+    pub processes: Vec<ProcessInfo>,
+}
+
+#[derive(Clone, Debug)]
+pub struct SystemState {
+    pub last_update: std::time::Instant,
+    pub disks: Vec<DiskInfo>,
+    pub processes: Vec<ProcessInfo>,
+    pub cpu_usage: f32,
+    pub mem_usage: f64,
+    pub total_mem: f64,
+}
+
+#[derive(Debug)]
+pub enum LicenseStatus {
+    Valid,
+    Invalid(String),
+    TrialExpired,
+    Commercial(String),
+    FreeMode,
+}
+
+#[derive(Clone, Debug)]
+pub struct PreviewState {
+    pub path: PathBuf,
+    pub content: String,
+    pub scroll: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Pane {
+    pub tabs: Vec<FileState>,
+    pub active_tab_index: usize,
+    #[serde(skip)]
+    pub preview: Option<PreviewState>,
+}
+
+impl Pane {
+    pub fn new(initial_state: FileState) -> Self {
+        Self {
+            tabs: vec![initial_state],
+            active_tab_index: 0,
+            preview: None,
+        }
+    }
+
     pub fn current_state(&self) -> Option<&FileState> {
         self.tabs.get(self.active_tab_index)
     }
@@ -530,44 +392,675 @@ impl PaneState {
     }
 
     pub fn open_tab(&mut self, state: FileState) {
+        if self.tabs.len() >= 3 {
+            self.tabs.remove(0);
+        }
         self.tabs.push(state);
         self.active_tab_index = self.tabs.len() - 1;
     }
 }
 
-impl Default for FileState {
-    fn default() -> Self {
-        Self {
-            current_path: PathBuf::from("."),
-            files: Vec::new(),
-            metadata: HashMap::new(),
-            git_status: HashMap::new(),
-            git_branch: None,
-            selected_index: Some(0),
-            multi_select: HashSet::new(),
-            selection_anchor: None,
-            search_filter: String::new(),
-            table_state: TableState::default(),
-            history: Vec::new(),
-            history_index: 0,
-            remote_session: None,
-            view_height: 0,
-            local_count: 0,
+#[derive(Clone, Debug, PartialEq)]
+pub enum SettingsTarget {
+    SingleMode,
+    SplitMode,
+}
+
+use crate::icons::{IconMode, guess_icon_mode};
+
+pub struct App {
+    pub running: bool,
+    pub current_view: CurrentView,
+    pub mode: AppMode,
+    pub input: TextInput,
+    pub icon_mode: IconMode,
+
+    pub panes: Vec<Pane>,
+    pub focused_pane_index: usize,
+
+    pub terminal_size: (u16, u16),
+    pub mouse_pos: (u16, u16),
+    pub system_state: SystemState,
+    pub license: LicenseStatus,
+    pub sidebar_focus: bool,
+    pub sidebar_index: usize,
+    pub remote_bookmarks: Vec<RemoteBookmark>,
+    pub active_sessions: HashMap<String, Arc<Mutex<ssh2::Session>>>,
+    pub filtered_commands: Vec<CommandItem>,
+    pub command_index: usize,
+    pub last_click: Option<(std::time::Instant, u16, u16)>,
+    pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
+    pub git_status_check_in_progress: bool,
+
+    pub drag_source: Option<PathBuf>,
+    pub is_dragging: bool,
+    pub drag_start_pos: Option<(u16, u16)>,
+    pub hovered_drop_target: Option<DropTarget>,
+
+    pub starred: Vec<PathBuf>,
+    pub sidebar_bounds: Vec<SidebarBounds>,
+    pub tab_bounds: Vec<(Rect, usize, usize)>, // (Rect, pane_idx, tab_idx)
+
+    pub mouse_last_click: std::time::Instant,
+    pub mouse_click_pos: (u16, u16),
+    pub settings_section: SettingsSection,
+    pub settings_target: SettingsTarget,
+    pub rename_selected: bool,
+    pub clipboard: Option<(PathBuf, ClipboardOp)>,
+    
+    // Global Preferences
+    pub default_show_hidden: bool,
+    pub confirm_delete: bool,
+    pub preferred_terminal: Option<String>,
+
+    pub single_columns: Vec<FileColumn>,
+    pub split_columns: Vec<FileColumn>,
+    pub sidebar_width_percent: u16,
+    pub is_resizing_sidebar: bool,
+    pub show_sidebar: bool,
+    pub initial_window_size: Option<(u16, u16)>,
+    pub path_colors: HashMap<PathBuf, u8>,
+    pub ignore_resize_until: Option<std::time::Instant>,
+}
+
+impl App {
+    pub fn new(tile_queue: Arc<Mutex<Vec<TilePlacement>>>) -> Self {
+        log_debug("App::new start");
+        let system_state = SystemState {
+            last_update: std::time::Instant::now(),
+            disks: Vec::new(),
+            processes: Vec::new(),
+            cpu_usage: 0.0,
+            mem_usage: 0.0,
+            total_mem: 0.0,
+        };
+
+        let license = check_license();
+        log_debug("License checked");
+
+        if let Some(mut state) = crate::config::load_state() {
+            log_debug("State loaded from config");
+            if !state.panes.is_empty() {
+                // FORCE RESTORE mandatory columns and sensible defaults if missing or corrupted in saved state
+                for pane in &mut state.panes {
+                    for tab in &mut pane.tabs {
+                        // Clear any search state that might have been saved
+                        tab.search_filter.clear();
+                        tab.local_count = 0;
+
+                        // Ensure Name is always there
+                        if !tab.columns.contains(&FileColumn::Name) {
+                            tab.columns.insert(0, FileColumn::Name);
+                        }
+                        
+                        // If columns list became empty for some reason, restore defaults
+                        if tab.columns.len() <= 1 { // Only has Name or is empty
+                             tab.columns = vec![
+                                 FileColumn::Name,
+                                 FileColumn::Size,
+                                 FileColumn::Modified,
+                             ];
+                        }
+                    }
+                }
+
+                log_debug("Returning early with loaded state");
+                return Self {
+                    running: true,
+                    current_view: state.current_view,
+                    mode: AppMode::Normal,
+                    input: TextInput::new(),
+                    icon_mode: guess_icon_mode(),
+                    panes: state.panes,
+                    focused_pane_index: state.focused_pane_index,
+                    terminal_size: (0, 0),
+                    mouse_pos: (0, 0),
+                    system_state,
+                    license,
+                    sidebar_focus: false,
+                    sidebar_index: 0,
+                    remote_bookmarks: state.remote_bookmarks,
+                    active_sessions: HashMap::new(),
+                    filtered_commands: Vec::new(),
+                    command_index: 0,
+                    last_click: None,
+                    tile_queue,
+                    git_status_check_in_progress: false,
+                    drag_source: None,
+                    is_dragging: false,
+                    drag_start_pos: None,
+                    hovered_drop_target: None,
+                    starred: state.starred,
+                    sidebar_bounds: Vec::new(),
+                    tab_bounds: Vec::new(),
+                    mouse_last_click: std::time::Instant::now(),
+                    mouse_click_pos: (0, 0),
+                    settings_section: SettingsSection::Columns,
+                    settings_target: SettingsTarget::SingleMode,
+                    rename_selected: false,
+                    clipboard: None,
+                    default_show_hidden: false,
+                    confirm_delete: true,
+                    preferred_terminal: None,
+                    single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
+                    split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
+                    sidebar_width_percent: 20,
+                    is_resizing_sidebar: false,
+                    show_sidebar: true,
+                    initial_window_size: state.window_size,
+                    path_colors: state.path_colors,
+                    ignore_resize_until: None,
+                };
+            }
         }
+
+        log_debug("No valid state found, starting fresh");
+        let initial_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        log_debug(&format!("Initial path: {:?}", initial_path));
+        let mut file_state = FileState::new(
+            initial_path.clone(),
+            None,
+            false,
+            vec![
+                FileColumn::Name,
+                FileColumn::Size,
+                FileColumn::Modified,
+                FileColumn::Permissions,
+            ],
+            FileColumn::Name,
+            true,
+        );
+        file_state.table_state.select(Some(0));
+        log_debug("Initial file state created");
+        update_files(&mut file_state, None);
+        log_debug("Initial files updated");
+
+        let license = check_license();
+
+        let app = Self {
+            running: true,
+            current_view: CurrentView::Files,
+            mode: AppMode::Normal,
+            input: TextInput::new(),
+            icon_mode: guess_icon_mode(),
+
+            panes: vec![Pane::new(file_state)],
+            focused_pane_index: 0,
+
+            terminal_size: (0, 0),
+            mouse_pos: (0, 0),
+            system_state,
+            license,
+            sidebar_focus: false,
+            sidebar_index: 0,
+            remote_bookmarks: Vec::new(),
+            active_sessions: HashMap::new(),
+            filtered_commands: Vec::new(),
+            command_index: 0,
+            last_click: None,
+            tile_queue,
+            git_status_check_in_progress: false,
+
+            drag_source: None,
+            is_dragging: false,
+            drag_start_pos: None,
+            hovered_drop_target: None,
+
+            starred: {
+                let mut s = Vec::new();
+                if let Some(p) = dirs::home_dir() {
+                    if !s.contains(&p) { s.push(p.clone()); }
+                    
+                    // Common folders relative to home if standard dirs fail or just to be safe
+                    let common = vec!["Desktop", "Downloads", "Documents", "Pictures", "Music", "Videos"];
+                    for c in common {
+                        let path = p.join(c);
+                        if path.exists() && !s.contains(&path) {
+                            s.push(path);
+                        }
+                    }
+
+                    // Developer folders
+                    let dev_names = vec!["Dev", "Development", "Projects", "Code", "git", "source", "work"];
+                    for d in dev_names {
+                        let path = p.join(d);
+                        if path.exists() && !s.contains(&path) {
+                            s.push(path);
+                            break; // Only add the first found dev folder to avoid clutter
+                        }
+                    }
+                }
+                
+                // Fallback to dirs crate specific functions if not found above (though constructing from home usually works on Linux)
+                if let Some(p) = dirs::download_dir() { if !s.contains(&p) { s.push(p); } }
+                if let Some(p) = dirs::document_dir() { if !s.contains(&p) { s.push(p); } }
+                if let Some(p) = dirs::picture_dir() { if !s.contains(&p) { s.push(p); } }
+                if let Some(p) = dirs::desktop_dir() { if !s.contains(&p) { s.push(p); } }
+                if let Some(p) = dirs::audio_dir() { if !s.contains(&p) { s.push(p); } }
+                if let Some(p) = dirs::video_dir() { if !s.contains(&p) { s.push(p); } }
+
+                s
+            },
+            sidebar_bounds: Vec::new(),
+            tab_bounds: Vec::new(),
+
+            mouse_last_click: std::time::Instant::now(),
+            mouse_click_pos: (0, 0),
+            settings_section: SettingsSection::Columns,
+            settings_target: SettingsTarget::SingleMode,
+            rename_selected: false,
+            clipboard: None,
+            default_show_hidden: false,
+            confirm_delete: true,
+            preferred_terminal: None,
+            single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
+            split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
+            sidebar_width_percent: 20,
+            is_resizing_sidebar: false,
+            show_sidebar: true,
+            initial_window_size: None,
+            path_colors: HashMap::new(),
+            ignore_resize_until: None,
+        };
+        log_debug("App::new finished successfully");
+        app
+    }
+
+    pub fn current_file_state_mut(&mut self) -> Option<&mut FileState> {
+        self.panes
+            .get_mut(self.focused_pane_index)
+            .and_then(|p| p.current_state_mut())
+    }
+
+    pub fn current_file_state(&self) -> Option<&FileState> {
+        self.panes
+            .get(self.focused_pane_index)
+            .and_then(|p| p.current_state())
+    }
+
+    pub fn toggle_split(&mut self) {
+        if self.panes.len() == 1 {
+            // Entering Split Mode
+            if let Some(fs) = self.current_file_state() {
+                let mut new_fs = fs.clone();
+                self.panes.push(Pane::new(new_fs));
+            }
+            
+            // Apply Split Mode columns to all panes/tabs
+            for pane in &mut self.panes {
+                for tab in &mut pane.tabs {
+                    tab.columns = self.split_columns.clone();
+                }
+            }
+        } else {
+            // Entering Single Mode
+            self.panes.pop();
+            self.focused_pane_index = 0;
+            
+            // Apply Single Mode columns to the remaining pane/tabs
+            if let Some(pane) = self.panes.get_mut(0) {
+                for tab in &mut pane.tabs {
+                    tab.columns = self.single_columns.clone();
+                }
+            }
+        }
+    }
+
+    pub fn update_files_for_active_tab(&mut self, pane_idx: usize) {
+        if let Some(pane) = self.panes.get_mut(pane_idx) {
+            if let Some(fs) = pane.current_state_mut() {
+                update_files(fs, None);
+            }
+        }
+    }
+
+    pub fn switch_view(&mut self) {
+        self.current_view = match self.current_view {
+            CurrentView::Files => CurrentView::Processes,
+            CurrentView::Processes => CurrentView::Files,
+        };
+    }
+
+    pub fn toggle_hidden(&mut self) -> usize {
+        if let Some(fs) = self.current_file_state_mut() {
+            fs.show_hidden = !fs.show_hidden;
+            fs.multi_select.clear();
+            fs.selection_anchor = None;
+        }
+        self.focused_pane_index
+    }
+
+    pub fn toggle_zoom(&mut self) {
+        // Implementation here if needed
+    }
+
+    pub fn toggle_column(&mut self, col: FileColumn) {
+        // Name is mandatory
+        if col == FileColumn::Name {
+            return;
+        }
+
+        let target_cols = match self.settings_target {
+            SettingsTarget::SingleMode => &mut self.single_columns,
+            SettingsTarget::SplitMode => &mut self.split_columns,
+        };
+
+        if target_cols.contains(&col) {
+            target_cols.retain(|c| c != &col);
+        } else {
+            target_cols.push(col);
+        }
+
+                        // Maintain a consistent default order
+                        let order = [
+                            FileColumn::Name,
+                            FileColumn::Size,
+                            FileColumn::Modified,
+                            FileColumn::Permissions,
+                        ];
+        let mut sorted = Vec::new();
+        for &c in &order {
+            if target_cols.contains(&c) {
+                sorted.push(c);
+            }
+        }
+        *target_cols = sorted;
+
+        // Apply to active panes immediately if the target matches the current view mode
+        let current_mode = if self.panes.len() == 1 { SettingsTarget::SingleMode } else { SettingsTarget::SplitMode };
+        if self.settings_target == current_mode {
+            for pane in &mut self.panes {
+                for tab in &mut pane.tabs {
+                    tab.columns = target_cols.clone();
+                }
+            }
+        }
+    }
+
+    pub fn move_up(&mut self, shift: bool) {
+        if self.sidebar_focus {
+            if self.sidebar_index > 0 {
+                self.sidebar_index -= 1;
+            }
+            return;
+        }
+        if let Some(fs) = self.current_file_state_mut() {
+            let old_idx = fs.selected_index.unwrap_or(0);
+            let mut i = if old_idx == 0 {
+                fs.files.len().saturating_sub(1)
+            } else {
+                old_idx - 1
+            };
+
+            // Skip divider
+            if fs.files[i].to_string_lossy() == "__DIVIDER__" {
+                i = if i == 0 { fs.files.len().saturating_sub(1) } else { i - 1 };
+            }
+
+            fs.selected_index = Some(i);
+            fs.table_state.select(Some(i));
+
+            if shift {
+                if fs.selection_anchor.is_none() {
+                    fs.selection_anchor = Some(old_idx);
+                }
+                let anchor = fs.selection_anchor.unwrap();
+                fs.multi_select.clear();
+                let start = std::cmp::min(anchor, i);
+                let end = std::cmp::max(anchor, i);
+                for idx in start..=end {
+                    fs.multi_select.insert(idx);
+                }
+            } else {
+                fs.selection_anchor = None;
+                fs.multi_select.clear();
+            }
+        }
+    }
+
+    pub fn move_down(&mut self, shift: bool) {
+        if self.sidebar_focus {
+            if self.sidebar_index < self.sidebar_bounds.len().saturating_sub(1) {
+                self.sidebar_index += 1;
+            }
+            return;
+        }
+        if let Some(fs) = self.current_file_state_mut() {
+            let old_idx = fs.selected_index.unwrap_or(0);
+            let mut i = if old_idx >= fs.files.len().saturating_sub(1) {
+                0
+            } else {
+                old_idx + 1
+            };
+
+            // Skip divider
+            if i < fs.files.len() && fs.files[i].to_string_lossy() == "__DIVIDER__" {
+                i = if i >= fs.files.len().saturating_sub(1) { 0 } else { i + 1 };
+            }
+
+            fs.selected_index = Some(i);
+            fs.table_state.select(Some(i));
+
+            if shift {
+                if fs.selection_anchor.is_none() {
+                    fs.selection_anchor = Some(old_idx);
+                }
+                let anchor = fs.selection_anchor.unwrap();
+                fs.multi_select.clear();
+                let start = std::cmp::min(anchor, i);
+                let end = std::cmp::max(anchor, i);
+                for idx in start..=end {
+                    fs.multi_select.insert(idx);
+                }
+            } else {
+                fs.selection_anchor = None;
+                fs.multi_select.clear();
+            }
+        }
+    }
+
+    pub fn move_left(&mut self) {
+        if self.focused_pane_index == 0 && !self.sidebar_focus {
+            self.sidebar_focus = true;
+        } else if self.focused_pane_index > 0 {
+            self.focused_pane_index -= 1;
+            self.sidebar_focus = false;
+        }
+    }
+
+    pub fn move_right(&mut self) {
+        if self.sidebar_focus {
+            self.sidebar_focus = false;
+            self.focused_pane_index = 0;
+        } else if self.focused_pane_index < self.panes.len().saturating_sub(1) {
+            self.focused_pane_index += 1;
+        }
+    }
+
+    pub fn sidebar_width(&self) -> u16 {
+        if !self.show_sidebar {
+            return 0;
+        }
+        use ratatui::layout::{Constraint, Direction, Layout, Rect};
+        let layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(self.sidebar_width_percent), Constraint::Min(0)])
+            .split(Rect::new(0, 0, self.terminal_size.0, self.terminal_size.1));
+        layout[0].width
+    }
+
+    pub fn resize_sidebar(&mut self, delta: i16) {
+        let new_val = self.sidebar_width_percent as i16 + delta;
+        self.sidebar_width_percent = new_val.clamp(5, 50) as u16;
+    }
+
+    pub fn copy_to_other_pane(&mut self) {
+        if self.panes.len() < 2 {
+            return;
+        }
+        let other_pane_idx = if self.focused_pane_index == 0 { 1 } else { 0 };
+
+        let dest_path = if let Some(other_fs) = self.panes[other_pane_idx].current_state() {
+            other_fs.current_path.clone()
+        } else {
+            return;
+        };
+
+        if let Some(fs) = self.current_file_state_mut() {
+            let mut paths_to_copy = Vec::new();
+            if !fs.multi_select.is_empty() {
+                for &idx in &fs.multi_select {
+                    if let Some(p) = fs.files.get(idx) {
+                        paths_to_copy.push(p.clone());
+                    }
+                }
+            } else if let Some(idx) = fs.selected_index {
+                if let Some(p) = fs.files.get(idx) {
+                    paths_to_copy.push(p.clone());
+                }
+            }
+
+            for src in paths_to_copy {
+                if let Some(filename) = src.file_name() {
+                    let dest = dest_path.join(filename);
+                    let _ = crate::modules::files::copy_recursive(&src, &dest);
+                }
+            }
+        }
+    }
+
+    pub fn move_to_other_pane(&mut self) {
+        log_debug("move_to_other_pane start");
+        if self.panes.len() < 2 {
+            log_debug("Not enough panes for move");
+            return;
+        }
+        let other_pane_idx = if self.focused_pane_index == 0 { 1 } else { 0 };
+
+        let dest_path = if let Some(other_fs) = self.panes[other_pane_idx].current_state() {
+            other_fs.current_path.clone()
+        } else {
+            log_debug("Target pane has no state");
+            return;
+        };
+
+        if let Some(fs) = self.current_file_state_mut() {
+            let mut paths_to_move = Vec::new();
+            if !fs.multi_select.is_empty() {
+                for &idx in &fs.multi_select {
+                    if let Some(p) = fs.files.get(idx) {
+                        paths_to_move.push(p.clone());
+                    }
+                }
+            } else if let Some(idx) = fs.selected_index {
+                if let Some(p) = fs.files.get(idx) {
+                    paths_to_move.push(p.clone());
+                }
+            }
+
+            log_debug(&format!("Found {} paths to move to {:?}", paths_to_move.len(), dest_path));
+
+            for src in paths_to_move {
+                if let Some(filename) = src.file_name() {
+                    let dest = dest_path.join(filename);
+                    log_debug(&format!("Moving {:?} to {:?}", src, dest));
+                    if let Err(e) = crate::modules::files::move_recursive(&src, &dest) {
+                        log_debug(&format!("Move failed from {:?} to {:?}: {}", src, dest, e));
+                    }
+                }
+            }
+            // Clear multi-select after move
+            fs.multi_select.clear();
+            fs.selection_anchor = None;
+        } else {
+            log_debug("Current pane has no state");
+        }
+    }
+
+    pub fn import_servers(&mut self, path: PathBuf) -> anyhow::Result<()> {
+        #[derive(Deserialize)]
+        struct ServerEntry {
+            name: String,
+            host: String,
+            user: String,
+            key_path: Option<String>,
+        }
+        #[derive(Deserialize)]
+        struct Config {
+            servers: Vec<ServerEntry>,
+        }
+
+        let content = std::fs::read_to_string(path)?;
+        let config: Config = toml::from_str(&content)?;
+
+        for s in config.servers {
+            // Check if already exists
+            if !self.remote_bookmarks.iter().any(|b| b.host == s.host && b.user == s.user) {
+                self.remote_bookmarks.push(RemoteBookmark {
+                    name: s.name,
+                    host: s.host,
+                    last_path: PathBuf::from("/home/").join(&s.user),
+                    user: s.user,
+                    port: 22,
+                    key_path: s.key_path.map(PathBuf::from),
+                });
+            }
+        }
+        Ok(())
     }
 }
 
-impl SystemData {
-    pub fn default() -> Self {
-        Self {
-            hostname: String::new(),
-            os: String::new(),
-            kernel: String::new(),
-            uptime: 0,
-            memory_total: 0,
-            memory_used: 0,
-            cpu_usage: 0.0,
-            disks: Vec::new(),
-        }
+pub fn log_debug(msg: &str) {
+    use std::io::Write;
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open("debug.log")
+    {
+        let _ = writeln!(file, "[{}] {}", chrono::Local::now(), msg);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_scroll_logic() {
+        let mut fs = FileState::new(
+            PathBuf::from("/"),
+            None,
+            false,
+            vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
+            FileColumn::Name,
+            true,
+        );
+
+        fs.files = (0..100)
+            .map(|i| PathBuf::from(format!("/file_{}", i)))
+            .collect();
+        fs.view_height = 20;
+
+        fs.selected_index = Some(0);
+        fs.table_state.select(Some(0));
+        assert_eq!(fs.table_state.offset(), 0);
+    }
+
+    #[test]
+    fn test_scroll_logic_small_files() {
+        let mut fs = FileState::new(
+            PathBuf::from("/"),
+            None,
+            false,
+            vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
+            FileColumn::Name,
+            true,
+        );
+
+        fs.files = (0..10)
+            .map(|i| PathBuf::from(format!("/file_{}", i)))
+            .collect();
+        fs.view_height = 20;
+        assert_eq!(fs.table_state.offset(), 0);
     }
 }
