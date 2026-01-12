@@ -581,6 +581,7 @@ impl App {
                     path_colors: state.path_colors,
                     ignore_resize_until: None,
                     last_action_msg: None,
+                    is_zoomed: false,
                     undo_stack: Vec::new(),
                     redo_stack: Vec::new(),
                 };
@@ -696,6 +697,7 @@ impl App {
             path_colors: HashMap::new(),
             ignore_resize_until: None,
             last_action_msg: None,
+            is_zoomed: false,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
         };
@@ -768,7 +770,7 @@ impl App {
     }
 
     pub fn toggle_zoom(&mut self) {
-        // Implementation here if needed
+        self.is_zoomed = !self.is_zoomed;
     }
 
     pub fn toggle_column(&mut self, col: FileColumn) {
