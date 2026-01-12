@@ -198,8 +198,8 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 pub fn draw(f: &mut Frame, app: &mut App) {
-    // Force pure black background
-    f.render_widget(Block::default().style(Style::default().bg(Color::Black)), f.area());
+    // Force true color pure black background
+    f.render_widget(Block::default().style(Style::default().bg(Color::Rgb(0, 0, 0))), f.area());
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
