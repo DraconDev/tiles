@@ -203,7 +203,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(2)])
+        .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)])
         .split(f.area());
 
     let workspace_constraints = if app.show_sidebar {
