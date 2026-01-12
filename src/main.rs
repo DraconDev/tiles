@@ -1528,7 +1528,8 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
 fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::app::RemoteSession>, preferred_terminal: Option<&str>, command_to_run: Option<&str>) {
     let mut terminals: Vec<String> = vec![
-        "kgx".into(), "gnome-terminal".into(), "konsole".into(), "xdg-terminal-exec".into(), 
+        "kgx".into(), "gnome-terminal".into(), "konsole".into(), "xfce4-terminal".into(),
+        "mate-terminal".into(), "lxterminal".into(), "xdg-terminal-exec".into(), 
         "x-terminal-emulator".into(), "alacritty".into(), "kitty".into(), "xterm".into()
     ];
     
@@ -1563,9 +1564,12 @@ fn spawn_terminal(path: &std::path::Path, new_tab: bool, remote: Option<&crate::
                  };
                  
                  let mut command = std::process::Command::new(&t);
-                 if t == "gnome-terminal" || t == "kgx" {
+                 if t == "gnome-terminal" || t == "kgx" || t == "xfce4-terminal" || t == "mate-terminal" {
                      if new_tab { command.arg("--tab"); }
                      command.args(["--", "ssh", "-t", &ssh_target, &remote_cmd]);
+                 } else if t == "lxterminal" {
+                     if new_tab { command.arg("--tabs"); }
+                     command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
                  } else if t == "konsole" {
                      if new_tab { command.arg("--new-tab"); }
                      command.args(["-e", "ssh", "-t", &ssh_target, &remote_cmd]);
