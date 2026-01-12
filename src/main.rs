@@ -2340,7 +2340,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
                             let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
                             if column < inner.x + 15 {
-                                let rel_y = row.saturating_sub(inner.y + 1);
+                                let rel_y = row.saturating_sub(inner.y);
                                 match rel_y {
                                     0 => app.settings_section = SettingsSection::Columns,
                                     1 => app.settings_section = SettingsSection::Tabs,
@@ -2355,14 +2355,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         if row >= inner.y && row < inner.y + 3 {
                                             let content_x = column.saturating_sub(inner.x + 15);
                                             if content_x < 12 { app.settings_target = SettingsTarget::SingleMode; } else if content_x < 25 { app.settings_target = SettingsTarget::SplitMode; }
-                                        } else if row >= inner.y + 4 {
-                                            let rel_y = row.saturating_sub(inner.y + 5);
+                                        } else if row >= inner.y + 3 {
+                                            let rel_y = row.saturating_sub(inner.y + 3);
                                             match rel_y { 0 => app.toggle_column(crate::app::FileColumn::Size), 1 => app.toggle_column(crate::app::FileColumn::Modified), 2 => app.toggle_column(crate::app::FileColumn::Permissions), _ => {} } // TODO: Add Name toggle
                                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                         }
                                     }
                                     SettingsSection::General => {
-                                        let rel_y = row.saturating_sub(inner.y + 2);
+                                        let rel_y = row.saturating_sub(inner.y);
                                         match rel_y { 0 => app.default_show_hidden = !app.default_show_hidden, 1 => app.confirm_delete = !app.confirm_delete, _ => {} } // TODO: Add other general settings
                                     }
                                     _ => {} 
