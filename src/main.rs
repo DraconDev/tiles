@@ -98,7 +98,8 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     actions.push(ContextMenuAction::OpenNewTab);
                     actions.push(ContextMenuAction::NewFolder);
                     actions.push(ContextMenuAction::NewFile);
-                    actions.push(ContextMenuAction::TerminalHere);
+                    actions.push(ContextMenuAction::TerminalTab);
+            actions.push(ContextMenuAction::TerminalWindow);
                     
                     if !app.starred.contains(path) {
                         actions.push(ContextMenuAction::AddToFavorites);
@@ -141,7 +142,8 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             actions.push(ContextMenuAction::SelectAll);
             actions.push(ContextMenuAction::Refresh);
             
-            actions.push(ContextMenuAction::TerminalHere);
+            actions.push(ContextMenuAction::TerminalTab);
+            actions.push(ContextMenuAction::TerminalWindow);
             
             if let Some(fs) = app.current_file_state() {
                 if fs.current_path.join(".git").exists() {
@@ -167,7 +169,8 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             if let Some(disk) = app.system_state.disks.get(*idx) {
                 if disk.is_mounted {
                     actions.push(ContextMenuAction::Open);
-                    actions.push(ContextMenuAction::TerminalHere);
+                    actions.push(ContextMenuAction::TerminalTab);
+            actions.push(ContextMenuAction::TerminalWindow);
                     actions.push(ContextMenuAction::Unmount);
                 } else {
                     actions.push(ContextMenuAction::Mount);
