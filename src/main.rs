@@ -1280,63 +1280,49 @@ fn handle_context_menu_action(action: &ContextMenuAction, target: &ContextMenuTa
 
         }
 
-        ContextMenuAction::TerminalHere => {
+                ContextMenuAction::TerminalTab => {
 
-            let path = match target {
+                    if let Some(fs) = app.current_file_state() {
 
-                ContextMenuTarget::File(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).and_then(|p| p.parent().map(|parent| parent.to_path_buf()))),
+                        let path = match target {
 
-                ContextMenuTarget::Folder(idx) => app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned()),
+                            ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => {
 
-                ContextMenuTarget::EmptySpace => app.current_file_state().map(|fs| fs.current_path.clone()),
+                                fs.files.get(*idx).and_then(|p| p.parent()).unwrap_or(&fs.current_path).to_path_buf()
 
-                ContextMenuTarget::SidebarFavorite(p) => Some(p.clone()),
+                            }
 
-                ContextMenuTarget::SidebarStorage(idx) => {
+                            _ => fs.current_path.clone()
 
-                    app.system_state.disks.get(*idx).map(|d| std::path::PathBuf::from(&d.name))
+                        };
 
-                }
+                        let _ = event_tx.try_send(AppEvent::SpawnTerminal { path, new_tab: true, remote: fs.remote_session.clone(), command: None });
 
-                ContextMenuTarget::SidebarRemote(idx) => {
-
-                    app.remote_bookmarks.get(*idx).map(|b| b.last_path.clone())
+                    }
 
                 }
 
-            };
+                ContextMenuAction::TerminalWindow => {
 
-            if let Some(p) = path {
+                    if let Some(fs) = app.current_file_state() {
 
-                let remote = match target {
+                        let path = match target {
 
-                                    ContextMenuTarget::SidebarRemote(idx) => {
+                            ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => {
 
-                                            let bookmark = &app.remote_bookmarks[*idx];
+                                fs.files.get(*idx).and_then(|p| p.parent()).unwrap_or(&fs.current_path).to_path_buf()
 
-                                            app.active_sessions.get(&bookmark.host).map(|_s| None).flatten()
+                            }
 
-                                        }
+                            _ => fs.current_path.clone()
 
-                                                                                _ => app.current_file_state().and_then(|fs| fs.remote_session.as_ref())
+                        };
 
-                                                                            };
+                        let _ = event_tx.try_send(AppEvent::SpawnTerminal { path, new_tab: false, remote: fs.remote_session.clone(), command: None });
 
-                                                                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                    }
 
-                                                                                path: p,
-
-                                                                                new_tab: false,
-
-                                                                                remote: remote.cloned(),
-
-                                                                                command: None,
-
-                                                                            });
-
-                                                                        }
-
-                                                                    }
+                }
 
                             ContextMenuAction::Refresh => {
 
