@@ -238,24 +238,6 @@ pub struct RemoteBookmark {
     pub key_path: Option<PathBuf>,
 }
 
-#[derive(Clone, Debug)]
-pub struct DiskInfo {
-    pub name: String,
-    pub device: String,
-    pub used_space: f64,
-    pub available_space: f64,
-    pub total_space: f64,
-    pub is_mounted: bool,
-}
-
-#[derive(Clone, Debug)]
-pub struct ProcessInfo {
-    pub pid: u32,
-    pub name: String,
-    pub cpu: f32,
-    pub mem: f32,
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FileMetadata {
     pub size: u64,
@@ -350,15 +332,6 @@ impl FileState {
             local_count: 0,
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct SystemData {
-    pub cpu_usage: f32,
-    pub mem_usage: f64,
-    pub total_mem: f64,
-    pub disks: Vec<DiskInfo>,
-    pub processes: Vec<ProcessInfo>,
 }
 
 #[derive(Clone, Debug)]
