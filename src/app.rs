@@ -314,7 +314,6 @@ pub struct FileState {
     pub git_branch: Option<String>,
     #[serde(skip)]
     pub local_count: usize,
-    pub column_widths: HashMap<FileColumn, u16>,
 }
 
 impl FileState {
@@ -326,14 +325,6 @@ impl FileState {
         sort_column: FileColumn,
         sort_ascending: bool,
     ) -> Self {
-        let mut column_widths = HashMap::new();
-        column_widths.insert(FileColumn::Name, 25);
-        column_widths.insert(FileColumn::Size, 9);
-        column_widths.insert(FileColumn::Modified, 14);
-        column_widths.insert(FileColumn::Created, 14);
-        column_widths.insert(FileColumn::Extension, 6);
-        column_widths.insert(FileColumn::Permissions, 10);
-
         Self {
             current_path: path.clone(),
             remote_session: remote,
@@ -357,7 +348,6 @@ impl FileState {
             hovered_breadcrumb: None,
             git_branch: None,
             local_count: 0,
-            column_widths,
         }
     }
 }
