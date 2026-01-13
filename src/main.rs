@@ -2104,7 +2104,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     } else { app.mode = AppMode::Normal; }
                     return true;
                 },
-                AppMode::Settings | AppMode::ImportServers | AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) | AppMode::ConfirmReset => {
+                AppMode::Settings | AppMode::ImportServers | AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) => {
                     if let MouseEventKind::Down(_) = me.kind {
                         let (aw, ah) = match app.mode { AppMode::Settings => ((w as f32 * 0.8) as u16, (h as f32 * 0.8) as u16), AppMode::Properties => ((w as f32 * 0.5) as u16, (h as f32 * 0.5) as u16), AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) => ((w as f32 * 0.6) as u16, (h as f32 * 0.2) as u16), _ => ((w as f32 * 0.4) as u16, (h as f32 * 0.1) as u16) };
                         let (ax, ay) = ((w - aw) / 2, (h - ah) / 2);
@@ -2125,12 +2125,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             match action_id.as_str() {
                                 "back" => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
                                 "forward" => if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
-                                "split" => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
-                                "burger" => app.mode = AppMode::Settings,
-                                "reset" => app.mode = AppMode::ConfirmReset,
-                                _ => {} 
-                            }
-                            return true;
+                                                                "split" => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
+                                                                "burger" => app.mode = AppMode::Settings,
+                                                                _ => {}
+                                                            }                            return true;
                         }
                     }
 
