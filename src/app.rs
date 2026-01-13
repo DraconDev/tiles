@@ -362,10 +362,23 @@ pub struct SystemState {
     pub disks: Vec<DiskInfo>,
     pub processes: Vec<ProcessInfo>,
     pub cpu_usage: f32,
+    pub cpu_cores: Vec<f32>,
     pub mem_usage: f64,
     pub total_mem: f64,
     pub cpu_history: Vec<u64>,
+    pub core_history: Vec<Vec<u64>>,
     pub mem_history: Vec<u64>,
+    pub net_in: u64,
+    pub net_out: u64,
+    pub net_in_history: Vec<u64>,
+    pub net_out_history: Vec<u64>,
+    pub last_net_in: u64,
+    pub last_net_out: u64,
+    pub uptime: u64,
+    pub os_name: String,
+    pub os_version: String,
+    pub kernel_version: String,
+    pub hostname: String,
 }
 
 #[derive(Debug)]
