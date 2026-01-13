@@ -2025,11 +2025,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     _ => return app.input.handle_event(&evt)
                 },
                 _ => {
-                    if key.code == KeyCode::Esc {
-                        app.mode = AppMode::Normal; for pane in &mut app.panes { pane.preview = None; }
-                        if let Some(fs) = app.current_file_state_mut() { fs.multi_select.clear(); fs.selection_anchor = None; if !fs.search_filter.is_empty() { fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
-                        return true;
-                    }
+                                        if key.code == KeyCode::Esc {
+                                            app.mode = AppMode::Normal;
+                                            if let Some(fs) = app.current_file_state_mut() { fs.multi_select.clear(); fs.selection_anchor = None; if !fs.search_filter.is_empty() { fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
+                                            return true;
+                                        }
                     match key.code {
                         KeyCode::Char('c') if has_control => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx) { app.clipboard = Some((path.clone(), crate::app::ClipboardOp::Copy)); } } } return true; }
                         KeyCode::Char('x') if has_control => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx) { app.clipboard = Some((path.clone(), crate::app::ClipboardOp::Cut)); } } } return true; }
