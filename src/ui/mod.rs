@@ -335,16 +335,56 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
-    let main_layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
-        .split(area);
-
-    // Left Column: CPU & Memory
-    let left_chunks = Layout::default()
+    let chunks = Layout::default()
         .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(6),  // System Info
+            Constraint::Percentage(40), // CPU/Mem Gauges
+            Constraint::Min(0)      // Storage
+        ])
+        .split(area);
+    
+    // 1. System Info Banner
+    let info_block = Block::default()
+        .title(" System Information ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Rgb(61, 174, 233)));
+    let info_inner = info_block.inner(chunks[0]);
+    f.render_widget(info_block, chunks[0]);
+
+    let uptime_days = app.system_state.uptime / 86400;
+    let uptime_hours = (app.system_state.uptime % 86400) / 3600;
+    let uptime_mins = (app.system_state.uptime % 3600) / 60;
+    let uptime_str = format!("{}d {}h {}m", uptime_days, uptime_hours, uptime_mins);
+
+    let info_text = vec![
+        Line::from(vec![
+            Span::styled(" OS: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(format!("{} {}", app.system_state.os_name, app.system_state.os_version), Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled("   Kernel: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(&app.system_state.kernel_version, Style::default().add_modifier(Modifier::BOLD)),
+        ]),
+        Line::from(vec![
+            Span::styled(" Host: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(&app.system_state.hostname, Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled("   Uptime: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(uptime_str, Style::default().add_modifier(Modifier::BOLD)),
+        ]),
+        Line::from(vec![
+            Span::styled(" Net In: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(format_size(app.system_state.net_in), Style::default().fg(Color::Green)),
+            Span::styled("   Net Out: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(format_size(app.system_state.net_out), Style::default().fg(Color::Blue)),
+        ]),
+    ];
+    f.render_widget(Paragraph::new(info_text), info_inner);
+
+    // 2. CPU & Memory Dashboard
+    let stats_layout = Layout::default()
+        .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(main_layout[0]);
+        .split(chunks[1]);
 
     // CPU Card
     let cpu_block = Block::default()
@@ -352,8 +392,8 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::Rgb(40, 45, 50)));
-    let cpu_inner = cpu_block.inner(left_chunks[0]);
-    f.render_widget(cpu_block, left_chunks[0]);
+    let cpu_inner = cpu_block.inner(stats_layout[0]);
+    f.render_widget(cpu_block, stats_layout[0]);
 
     let cpu_card_layout = Layout::default()
         .direction(Direction::Vertical)
@@ -375,8 +415,8 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::Rgb(40, 45, 50)));
-    let mem_inner = mem_block.inner(left_chunks[1]);
-    f.render_widget(mem_block, left_chunks[1]);
+    let mem_inner = mem_block.inner(stats_layout[1]);
+    f.render_widget(mem_block, stats_layout[1]);
 
     let mem_card_layout = Layout::default()
         .direction(Direction::Vertical)
@@ -395,31 +435,30 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let mem_history: Vec<u64> = app.system_state.mem_history.iter().copied().collect();
     f.render_widget(Sparkline::default().data(&mem_history).style(Style::default().fg(Color::Rgb(155, 89, 182))), mem_card_layout[1]);
 
-    // Right Column: Storage
+    // 3. Storage Bottom Section
     let storage_block = Block::default()
         .title(Span::styled(" Storage Devices ", Style::default().fg(Color::Rgb(241, 196, 15)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::Rgb(40, 45, 50)));
-    let storage_inner = storage_block.inner(main_layout[1]);
-    f.render_widget(storage_block, main_layout[1]);
+    let storage_inner = storage_block.inner(chunks[2]);
+    f.render_widget(storage_block, chunks[2]);
 
     let disk_list: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let ratio = (disk.used_space / disk.total_space).clamp(0.0, 1.0);
         let color = if ratio > 0.9 { Color::Red } else if ratio > 0.7 { Color::Yellow } else { Color::Rgb(241, 196, 15) };
         
-        let bar_width = 20;
+        let bar_width = 30;
         let filled = (ratio * bar_width as f64) as usize;
         let bar = format!("|{}{}|", "█".repeat(filled), "░".repeat(bar_width - filled));
 
         ListItem::new(vec![
-            Line::from(vec![Span::styled(&disk.name, Style::default().add_modifier(Modifier::BOLD))]),
             Line::from(vec![
-                Span::styled(bar, Style::default().fg(color)),
-                Span::raw(format!(" {:.0}% used", ratio * 100.0))
+                Span::styled(&disk.name, Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(format!("  {} used", bar), Style::default().fg(color)),
+                Span::raw(format!(" {:.0}%", ratio * 100.0)),
+                Span::styled(format!("   Available: {:.1}GB", disk.available_space / 1024.0 / 1024.0 / 1024.0), Style::default().fg(Color::DarkGray)),
             ]),
-            Line::from(vec![Span::styled(format!("Free: {:.1}GB", disk.available_space / 1024.0 / 1024.0 / 1024.0), Style::default().fg(Color::DarkGray))]),
-            Line::from(""),
         ])
     }).collect();
 
