@@ -10,7 +10,8 @@ use terma::input::event::{Event, KeyCode, MouseEventKind, KeyModifiers};
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, CurrentView, AppEvent, MonitorSubview};
+use crate::app::{App, AppMode, CurrentView, AppEvent, SidebarTarget, ContextMenuTarget, MonitorSubview, ProcessColumn, ContextMenuAction, FileColumn, SettingsSection, SettingsTarget, DropTarget};
+use crate::icons::IconMode;
 
 mod app;
 mod ui;
@@ -40,13 +41,14 @@ async fn main() -> color_eyre::Result<()> {
 }
 
 async fn run_tty() -> color_eyre::Result<()> {
+    crate::app::log_debug("run_tty start");
     let backend = TermaBackend::new(std::io::stdout())?;
     let tile_queue = backend.tile_queue();
     let mut terminal = Terminal::new(backend)?;
 
     let (app, event_tx, mut event_rx) = setup_app(tile_queue);
 
-    // 1. Input Loop
+    // 1. Input Loop (Thread)
     {
         let tx = event_tx.clone();
         std::thread::spawn(move || {
@@ -65,21 +67,29 @@ async fn run_tty() -> color_eyre::Result<()> {
                             Ok(n) => {
                                 for i in 0..n {
                                     if let Some(evt) = parser.advance(buffer[i]) {
-                                         if let Some(converted) = crate::event::convert_event(evt) { let _ = tx.blocking_send(AppEvent::Raw(converted)); }
+                                         if let Some(converted) = crate::event::convert_event(evt) {
+                                             let _ = tx.blocking_send(AppEvent::Raw(converted));
+                                         }
                                     }
                                 }
                             }
                             Err(_) => break,
                         }
                     }
-                    Ok(false) => { if let Some(evt) = parser.check_timeout() { if let Some(converted) = crate::event::convert_event(evt) { let _ = tx.blocking_send(AppEvent::Raw(converted)); } } }
+                    Ok(false) => {
+                        if let Some(evt) = parser.check_timeout() {
+                             if let Some(converted) = crate::event::convert_event(evt) {
+                                 let _ = tx.blocking_send(AppEvent::Raw(converted));
+                             }
+                        }
+                    }
                     Err(_) => break,
                 }
             }
         });
     }
 
-    // 2. System Stats
+    // 2. System Stats Loop (Tokio)
     {
         let tx = event_tx.clone();
         tokio::spawn(async move {
@@ -87,12 +97,12 @@ async fn run_tty() -> color_eyre::Result<()> {
             loop {
                 let data = sys_mod.get_data();
                 let _ = tx.send(AppEvent::SystemUpdated(data)).await;
-                tokio::time::sleep(Duration::from_millis(500)).await;
+                tokio::time::sleep(Duration::from_millis(1000)).await;
             }
         });
     }
 
-    // 3. Tick
+    // 3. Tick Loop (Tokio)
     {
         let tx = event_tx.clone();
         tokio::spawn(async move {
@@ -103,91 +113,130 @@ async fn run_tty() -> color_eyre::Result<()> {
         });
     }
 
+    // Initial State Setup
+    {
+        let mut app_guard = app.lock().unwrap();
+        app_guard.running = true;
+        if let Ok(size) = terminal.size() {
+            app_guard.terminal_size = (size.width, size.height);
+        }
+        for i in 0..app_guard.panes.len() {
+            let _ = event_tx.send(AppEvent::RefreshFiles(i)).await;
+        }
+    }
+
+    crate::app::log_debug("Entering main loop");
     loop {
         let mut needs_draw = false;
+        
+        // Process ALL pending events
         while let Ok(event) = event_rx.try_recv() {
             match event {
+                AppEvent::Tick => {
+                    needs_draw = true;
+                }
                 AppEvent::Raw(raw) => {
                     let mut app_guard = app.lock().unwrap();
-                    if handle_event(raw, &mut app_guard, event_tx.clone()) { needs_draw = true; }
+                    if handle_event(raw, &mut app_guard, event_tx.clone()) {
+                        needs_draw = true;
+                    }
                 }
-                AppEvent::Tick => { needs_draw = true; }
                 AppEvent::SystemUpdated(data) => {
                     let mut app_guard = app.lock().unwrap();
-                    app_guard.system_state.cpu_usage = data.cpu_usage;
-                    app_guard.system_state.cpu_cores = data.cpu_cores.clone();
-                    app_guard.system_state.mem_usage = data.mem_usage;
-                    app_guard.system_state.total_mem = data.total_mem;
-                    app_guard.system_state.swap_usage = data.swap_usage;
-                    app_guard.system_state.total_swap = data.total_swap;
-                    app_guard.system_state.disks = data.disks;
-                    app_guard.system_state.processes = data.processes;
-                    app_guard.system_state.os_name = data.os_name;
-                    app_guard.system_state.os_version = data.os_version;
-                    app_guard.system_state.kernel_version = data.kernel_version;
-                    app_guard.system_state.hostname = data.hostname;
-                    app_guard.system_state.uptime = data.uptime;
-                    
-                    app_guard.system_state.cpu_history.push(data.cpu_usage as u64);
-                    if app_guard.system_state.cpu_history.len() > 100 { app_guard.system_state.cpu_history.remove(0); }
-                    
-                    if app_guard.system_state.core_history.len() != data.cpu_cores.len() {
-                        app_guard.system_state.core_history = vec![vec![0; 100]; data.cpu_cores.len()];
-                    }
-                    for (i, &usage) in data.cpu_cores.iter().enumerate() {
-                        app_guard.system_state.core_history[i].push(usage as u64);
-                        if app_guard.system_state.core_history[i].len() > 100 { app_guard.system_state.core_history[i].remove(0); }
-                    }
-
-                    if app_guard.system_state.last_net_in > 0 {
-                        let diff_in = data.net_in.saturating_sub(app_guard.system_state.last_net_in);
-                        let diff_out = data.net_out.saturating_sub(app_guard.system_state.last_net_out);
-                        app_guard.system_state.net_in_history.push(diff_in);
-                        app_guard.system_state.net_out_history.push(diff_out);
-                        if app_guard.system_state.net_in_history.len() > 100 { app_guard.system_state.net_in_history.remove(0); }
-                        if app_guard.system_state.net_out_history.len() > 100 { app_guard.system_state.net_out_history.remove(0); }
-                    }
-                    app_guard.system_state.last_net_in = data.net_in;
-                    app_guard.system_state.last_net_out = data.net_out;
-                    app_guard.system_state.net_in = data.net_in;
-                    app_guard.system_state.net_out = data.net_out;
-
-                    let mem_p = if data.total_mem > 0.0 { (data.mem_usage / data.total_mem) * 100.0 } else { 0.0 };
-                    app_guard.system_state.mem_history.push(mem_p as u64);
-                    if app_guard.system_state.mem_history.len() > 100 { app_guard.system_state.mem_history.remove(0); }
-
-                    let swap_p = if data.total_swap > 0.0 { (data.swap_usage / data.total_swap) * 100.0 } else { 0.0 };
-                    app_guard.system_state.swap_history.push(swap_p as u64);
-                    if app_guard.system_state.swap_history.len() > 100 { app_guard.system_state.swap_history.remove(0); }
-
-                    app_guard.apply_process_sort();
+                    update_system_state(&mut app_guard, data);
                     needs_draw = true;
                 }
                 AppEvent::RefreshFiles(idx) => {
                     let mut app_guard = app.lock().unwrap();
-                    if let Some(fs) = app_guard.panes.get_mut(idx).and_then(|p| p.current_state_mut()) {
-                        crate::modules::files::update_files(fs, None);
-                        needs_draw = true;
+                    if let Some(pane) = app_guard.panes.get_mut(idx) {
+                        if let Some(fs) = pane.current_state_mut() {
+                            crate::modules::files::update_files(fs, None);
+                            needs_draw = true;
+                        }
                     }
+                }
+                AppEvent::KillProcess(pid) => {
+                    let _ = std::process::Command::new("kill").arg("-9").arg(pid.to_string()).status();
                 }
                 _ => {}
             }
         }
 
-        if needs_draw {
+        // Always check running status
+        {
             let mut app_guard = app.lock().unwrap();
-            if !app_guard.running { break; }
-            terminal.draw(|f| crate::ui::draw(f, &mut app_guard))?;
+            if !app_guard.running {
+                crate::app::log_debug("App.running is false, exiting loop");
+                break;
+            }
+            if needs_draw {
+                app_guard.terminal_size = (terminal.size()?.width, terminal.size()?.height);
+                terminal.draw(|f| ui::draw(f, &mut app_guard))?;
+            }
         }
-        tokio::time::sleep(Duration::from_millis(10)).await;
+
+        tokio::time::sleep(Duration::from_millis(16)).await;
     }
+
+    crate::app::log_debug("run_tty finishing");
     Ok(())
 }
 
+fn update_system_state(app: &mut App, data: terma::system::SystemData) {
+    let s = &mut app.system_state;
+    s.cpu_usage = data.cpu_usage;
+    s.cpu_cores = data.cpu_cores.clone();
+    s.mem_usage = data.mem_usage;
+    s.total_mem = data.total_mem;
+    s.swap_usage = data.swap_usage;
+    s.total_swap = data.total_swap;
+    s.disks = data.disks;
+    s.processes = data.processes;
+    s.os_name = data.os_name;
+    s.os_version = data.os_version;
+    s.kernel_version = data.kernel_version;
+    s.hostname = data.hostname;
+    s.uptime = data.uptime;
+
+    s.cpu_history.push(data.cpu_usage as u64);
+    if s.cpu_history.len() > 100 { s.cpu_history.remove(0); }
+
+    if s.core_history.len() != data.cpu_cores.len() {
+        s.core_history = vec![vec![0; 100]; data.cpu_cores.len()];
+    }
+    for (i, &usage) in data.cpu_cores.iter().enumerate() {
+        s.core_history[i].push(usage as u64);
+        if s.core_history[i].len() > 100 { s.core_history[i].remove(0); }
+    }
+
+    let mem_p = if data.total_mem > 0.0 { (data.mem_usage / data.total_mem) * 100.0 } else { 0.0 };
+    s.mem_history.push(mem_p as u64);
+    if s.mem_history.len() > 100 { s.mem_history.remove(0); }
+
+    let swap_p = if data.total_swap > 0.0 { (data.swap_usage / data.total_swap) * 100.0 } else { 0.0 };
+    s.swap_history.push(swap_p as u64);
+    if s.swap_history.len() > 100 { s.swap_history.remove(0); }
+
+    if s.last_net_in > 0 {
+        let diff_in = data.net_in.saturating_sub(s.last_net_in);
+        let diff_out = data.net_out.saturating_sub(s.last_net_out);
+        s.net_in_history.push(diff_in);
+        s.net_out_history.push(diff_out);
+        if s.net_in_history.len() > 100 { s.net_in_history.remove(0); }
+        if s.net_out_history.len() > 100 { s.net_out_history.remove(0); }
+    }
+    s.last_net_in = data.net_in;
+    s.last_net_out = data.net_out;
+    s.net_in = data.net_in;
+    s.net_out = data.net_out;
+
+    app.apply_process_sort();
+}
+
 fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>>>) -> (Arc<Mutex<App>>, mpsc::Sender<AppEvent>, mpsc::Receiver<AppEvent>) {
-    let (logic_tx, event_rx) = mpsc::channel(100);
+    let (tx, rx) = mpsc::channel(1000);
     let app = Arc::new(Mutex::new(App::new(tile_queue)));
-    (app, logic_tx, event_rx)
+    (app, tx, rx)
 }
 
 fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> bool {
@@ -211,6 +260,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 KeyCode::Char('m') | KeyCode::Char('M') if has_control => { app.current_view = if app.current_view == CurrentView::Processes { CurrentView::Files } else { CurrentView::Processes }; return true; }
                 KeyCode::Up => { app.move_up(false); return true; }
                 KeyCode::Down => { app.move_down(false); return true; }
+                KeyCode::Left => { app.move_left(); return true; }
+                KeyCode::Right => { app.move_right(); return true; }
                 _ => {}
             }
         }
@@ -220,7 +271,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 if app.current_view == CurrentView::Processes {
                     for (rect, view) in &app.monitor_subview_bounds {
                         if rect.contains(ratatui::layout::Position { x: col, y: row }) {
-                            app.monitor_subview = *view; return true;
+                            app.monitor_subview = *view; app.process_search_filter.clear(); return true;
                         }
                     }
                     if row >= 6 {
@@ -230,6 +281,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         return true;
                     }
                 }
+                if row == 0 {
+                    if let Some((_, id)) = app.header_icon_bounds.iter().find(|(r, _)| r.contains(ratatui::layout::Position { x: col, y: row })) {
+                        if id == "monitor" { app.current_view = if app.current_view == CurrentView::Processes { CurrentView::Files } else { CurrentView::Processes }; return true; }
+                    }
+                }
             }
         }
         _ => {}
@@ -237,11 +293,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
     false
 }
 
-pub fn get_context_menu_actions(_target: &crate::app::ContextMenuTarget, _app: &App) -> Vec<crate::app::ContextMenuAction> { vec![] }
 fn push_history(_fs: &mut crate::app::FileState, _path: std::path::PathBuf) {}
-fn spawn_detached(_cmd: &str, _args: Vec<&str>) {
-    let mut command = std::process::Command::new(_cmd);
-    command.args(_args);
+fn spawn_detached(cmd: &str, args: Vec<&str>) {
+    let mut command = std::process::Command::new(cmd);
+    command.args(args);
     unsafe {
         let _ = command.stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null())
             .pre_exec(|| { libc::setsid(); Ok(()) }).spawn();
