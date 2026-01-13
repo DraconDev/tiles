@@ -413,12 +413,14 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let back_icon = Icon::Back.get(app.icon_mode);
     let forward_icon = Icon::Forward.get(app.icon_mode);
     let split_icon = Icon::Split.get(app.icon_mode);
+    let monitor_icon = Icon::Monitor.get(app.icon_mode);
 
     let icons = vec![
         (burger_icon, "burger", "Settings"),
         (back_icon, "back", "Back"),
         (forward_icon, "forward", "Forward"),
         (split_icon, "split", "Split View"),
+        (monitor_icon, "monitor", "System Monitor"),
     ];
 
     // Start icons at the left side of the sidebar with 1 padding
