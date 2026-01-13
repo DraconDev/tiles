@@ -285,6 +285,8 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     app_guard.system_state.cpu_cores = data.cpu_cores.clone();
                     app_guard.system_state.mem_usage = data.mem_usage;
                     app_guard.system_state.total_mem = data.total_mem;
+                    app_guard.system_state.swap_usage = data.swap_usage;
+                    app_guard.system_state.total_swap = data.total_swap;
                     app_guard.system_state.disks = data.disks;
                     app_guard.system_state.processes = data.processes;
                     app_guard.system_state.os_name = data.os_name;
