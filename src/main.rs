@@ -2248,6 +2248,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         let pw = if pc > 0 { cw / pc as u16 } else { cw };
                         let cp = (column.saturating_sub(sw) / pw) as usize;
                         if cp < pc {
+                            // Delegation to Editor
+                            let mut delegated = false;
+                            if let Some(pane) = app.panes.get_mut(cp) {
+                                if let Some(preview) = &mut pane.preview {
+                                    if let Some(editor) = &mut preview.editor {
+                                        // Calculate pane area (rough estimate matching UI logic)
+                                        let pane_x = sw + (cp as u16 * pw);
+                                        let editor_area = ratatui::layout::Rect::new(pane_x + 1, 1, pw.saturating_sub(2), h.saturating_sub(2));
+                                        if editor_area.contains(ratatui::layout::Position { x: column, y: row }) {
+                                            if editor.handle_mouse_event(me, editor_area) {
+                                                delegated = true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if delegated { app.focused_pane_index = cp; return true; }
+
                             if row == 1 || row == 2 {
                                 if let Some(fs) = app.panes.get_mut(cp).and_then(|p| p.current_state_mut()) {
                                     for (r, col) in &fs.column_bounds {
