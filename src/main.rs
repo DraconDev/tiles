@@ -2383,21 +2383,20 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         // Handle clicking inside the content of specific subviews
                         match app.monitor_subview {
                             MonitorSubview::Processes | MonitorSubview::Applications => {
-                                // 1. Header sorting (Row 4 relative to area start)
+                                // 1. Header sorting (Row 5 relative to area start)
                                 for (rect, col) in &app.process_column_bounds {
                                     if column >= rect.x && column < rect.x + rect.width && row == rect.y {
                                         app.sort_processes(*col);
                                         return true;
                                     }
                                 }
-                                // 2. Row selection (Data starts at Row 5 relative to area start)
-                                // Top Bar (3) + Margin (1) + Block Border (1) = 5
-                                if row >= 5 {
-                                    let table_row = (row as usize).saturating_sub(5) + app.process_table_state.offset();
+                                // 2. Row selection (Data starts at Row 6 relative to area start)
+                                // Top Bar (3) + Margin (1) + Block Border (1) + Header (1) = 6
+                                if row >= 6 {
+                                    let table_row = (row as usize).saturating_sub(6) + app.process_table_state.offset();
                                     let proc_count = if app.monitor_subview == MonitorSubview::Processes {
                                         app.system_state.processes.len()
                                     } else {
-                                        // Applications view filters processes
                                         let current_user = std::env::var("USER").unwrap_or_else(|_| "dracon".to_string());
                                         app.system_state.processes.iter()
                                             .filter(|p| p.user == current_user && !p.name.starts_with('[') && !p.name.contains("kworker"))
