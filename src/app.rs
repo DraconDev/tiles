@@ -746,6 +746,7 @@ impl App {
             process_sort_asc: false,
             process_selected_idx: Some(0),
             process_scroll: 0,
+            process_search_filter: String::new(),
         };
         log_debug("App::new finished successfully");
         app
@@ -1130,6 +1131,16 @@ impl App {
     }
 
     pub fn apply_process_sort(&mut self) {
+        // First filter
+        if !self.process_search_filter.is_empty() {
+            let filter = self.process_search_filter.to_lowercase();
+            self.system_state.processes.retain(|p| {
+                p.name.to_lowercase().contains(&filter) || 
+                p.pid.to_string().contains(&filter) || 
+                p.user.to_lowercase().contains(&filter)
+            });
+        }
+
         let asc = self.process_sort_asc;
         match self.process_sort_col {
             ProcessColumn::Pid => self.system_state.processes.sort_by(|a, b| if asc { a.pid.cmp(&b.pid) } else { b.pid.cmp(&a.pid) }),
