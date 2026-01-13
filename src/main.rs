@@ -6,6 +6,7 @@ use std::os::unix::process::CommandExt;
 // Terma Imports
 use terma::integration::ratatui::TermaBackend;
 use terma::input::event::{Event, KeyCode, MouseEventKind, KeyModifiers, MouseButton};
+use terma::widgets::TextEditor;
 
 // Ratatui Imports
 use ratatui::Terminal;
@@ -1861,18 +1862,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             }
 
             // Route to Editor if focused pane is in preview mode
+            let (w, h) = app.terminal_size;
+            let sw = app.sidebar_width();
+            let pane_count = app.panes.len();
+            let content_w = w.saturating_sub(sw);
+            let pane_w = if pane_count > 1 { content_w / 2 } else { content_w };
+            let editor_area = ratatui::layout::Rect::new(0, 0, pane_w.saturating_sub(2), h.saturating_sub(4));
+
             if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                 if let Some(preview) = &mut pane.preview {
                     if let Some(editor) = &mut preview.editor {
                         if !app.sidebar_focus && app.mode == AppMode::Normal {
-                            // Estimate area for scrolling logic (rough but effective)
-                            let (w, h) = app.terminal_size;
-                            let sw = app.sidebar_width();
-                            let content_w = w.saturating_sub(sw);
-                            let pane_w = if app.panes.len() > 1 { content_w / 2 } else { content_w };
-                            let area = ratatui::layout::Rect::new(0, 0, pane_w.saturating_sub(2), h.saturating_sub(4));
-                            
-                            if editor.handle_event(&evt, area) {
+                            if editor.handle_event(&evt, editor_area) {
                                 return true;
                             }
                         }
