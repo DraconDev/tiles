@@ -125,30 +125,63 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
     let nav_inner = nav_block.inner(chunks[0]);
     f.render_widget(nav_block, chunks[0]);
 
-    let nav_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Min(60), Constraint::Length(35), Constraint::Length(12)]).split(nav_inner);
-    let subviews = [(MonitorSubview::Overview, " 󰊚 ", "OVERVIEW"), (MonitorSubview::Applications, " 󰀻 ", "APPLICATIONS"), (MonitorSubview::Processes, " 󰑮 ", "PROCESSES")];
+    let nav_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Min(60), Constraint::Length(35)])
+        .split(nav_inner);
+
+    // Navigation Tabs
+    let subviews: [(MonitorSubview, &str, &str); 3] = [
+        (MonitorSubview::Overview, " 󰊚 ", "OVERVIEW"),
+        (MonitorSubview::Applications, " 󰀻 ", "APPLICATIONS"),
+        (MonitorSubview::Processes, " 󰑮 ", "PROCESSES"),
+    ];
 
     app.monitor_subview_bounds.clear();
     let mut cur_x = nav_layout[0].x + 1;
+    
     for (view, icon, name) in subviews {
         let is_active = app.monitor_subview == view;
         let text = format!("{}{}", icon, name);
         let width = text.len() as u16 + 2;
         let rect = Rect::new(cur_x, nav_layout[0].y, width, 1);
-        let mut style = if is_active { Style::default().fg(Color::Rgb(61, 174, 233)).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::Rgb(140, 145, 150)) };
-        if app.mouse_pos.1 == nav_layout[0].y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width { style = style.fg(Color::White).bg(Color::Rgb(45, 50, 60)); }
+        
+        let mut style = if is_active {
+            Style::default().fg(Color::Rgb(61, 174, 233)).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::Rgb(140, 145, 150))
+        };
+
+        if app.mouse_pos.1 == nav_layout[0].y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width {
+            style = style.fg(Color::White).bg(Color::Rgb(45, 50, 60));
+        }
+
         f.render_widget(Paragraph::new(text).style(style), rect);
-        if is_active { f.render_widget(Paragraph::new("▔".repeat(width as usize)).style(Style::default().fg(Color::Rgb(61, 174, 233))), Rect::new(rect.x, rect.y + 1, rect.width, 1)); }
+        if is_active {
+            f.render_widget(Paragraph::new("▔".repeat(width as usize)).style(Style::default().fg(Color::Rgb(61, 174, 233))), Rect::new(rect.x, rect.y + 1, rect.width, 1));
+        }
+
         app.monitor_subview_bounds.push((rect, view));
         cur_x += width + 4;
     }
 
-    let search_text = if app.process_search_filter.is_empty() { Line::from(vec![Span::styled(" 󰍉 Search... ", Style::default().fg(Color::DarkGray))]) } else { Line::from(vec![Span::styled(" 󰍉 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::styled(&app.process_search_filter, Style::default().fg(Color::White).add_modifier(Modifier::BOLD))]) };
-    f.render_widget(Paragraph::new(search_text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(60, 60, 65)))), nav_layout[1]);
-
-    let mut exit_style = Style::default().fg(Color::Rgb(231, 76, 60)).add_modifier(Modifier::BOLD);
-    if app.mouse_pos.1 == nav_layout[2].y && app.mouse_pos.0 >= nav_layout[2].x && app.mouse_pos.0 < nav_layout[2].x + nav_layout[2].width { exit_style = exit_style.bg(Color::Rgb(80, 20, 20)).fg(Color::White); }
-    f.render_widget(Paragraph::new(" 󰅖 CLOSE ").style(exit_style).alignment(ratatui::layout::Alignment::Right), nav_layout[2]);
+    // Centered Search Box
+    let search_text = if app.process_search_filter.is_empty() {
+        Line::from(vec![Span::styled(" 󰍉 Search... ", Style::default().fg(Color::DarkGray))])
+    } else {
+        Line::from(vec![
+            Span::styled(" 󰍉 ", Style::default().fg(Color::Rgb(61, 174, 233))),
+            Span::styled(&app.process_search_filter, Style::default().fg(Color::White).add_modifier(Modifier::BOLD))
+        ])
+    };
+    f.render_widget(
+        Paragraph::new(search_text)
+            .block(Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(Color::Rgb(60, 60, 65)))),
+        nav_layout[1]
+    );
 
     let content_area = chunks[1].inner(ratatui::layout::Margin { horizontal: 1, vertical: 1 });
     match app.monitor_subview {
