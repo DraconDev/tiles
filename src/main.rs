@@ -10,8 +10,7 @@ use terma::input::event::{Event, KeyCode, MouseEventKind, KeyModifiers};
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppMode, CurrentView, AppEvent, SidebarTarget, ContextMenuTarget, MonitorSubview, ProcessColumn, ContextMenuAction, FileColumn, SettingsSection, SettingsTarget, DropTarget};
-use crate::icons::IconMode;
+use crate::app::{App, CurrentView, AppEvent, MonitorSubview};
 
 mod app;
 mod ui;
@@ -129,7 +128,6 @@ async fn run_tty() -> color_eyre::Result<()> {
     loop {
         let mut needs_draw = false;
         
-        // Process ALL pending events
         while let Ok(event) = event_rx.try_recv() {
             match event {
                 AppEvent::Tick => {
@@ -162,13 +160,9 @@ async fn run_tty() -> color_eyre::Result<()> {
             }
         }
 
-        // Always check running status
         {
             let mut app_guard = app.lock().unwrap();
-            if !app_guard.running {
-                crate::app::log_debug("App.running is false, exiting loop");
-                break;
-            }
+            if !app_guard.running { break; }
             if needs_draw {
                 app_guard.terminal_size = (terminal.size()?.width, terminal.size()?.height);
                 terminal.draw(|f| ui::draw(f, &mut app_guard))?;
@@ -178,7 +172,6 @@ async fn run_tty() -> color_eyre::Result<()> {
         tokio::time::sleep(Duration::from_millis(16)).await;
     }
 
-    crate::app::log_debug("run_tty finishing");
     Ok(())
 }
 
@@ -258,10 +251,28 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             match key.code {
                 KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return true; }
                 KeyCode::Char('m') | KeyCode::Char('M') if has_control => { app.current_view = if app.current_view == CurrentView::Processes { CurrentView::Files } else { CurrentView::Processes }; return true; }
+                KeyCode::Char('p') | KeyCode::Char('P') if has_control => { app.toggle_split(); return true; }
+                KeyCode::Char('b') | KeyCode::Char('B') if has_control => { app.show_sidebar = !app.show_sidebar; return true; }
                 KeyCode::Up => { app.move_up(false); return true; }
                 KeyCode::Down => { app.move_down(false); return true; }
                 KeyCode::Left => { app.move_left(); return true; }
                 KeyCode::Right => { app.move_right(); return true; }
+                KeyCode::Enter => {
+                    if let Some(fs) = app.current_file_state_mut() {
+                        if let Some(idx) = fs.selected_index {
+                            if let Some(path) = fs.files.get(idx).cloned() {
+                                if path.is_dir() {
+                                    fs.current_path = path.clone();
+                                    fs.selected_index = Some(0);
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                } else {
+                                    let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
+                                }
+                            }
+                        }
+                    }
+                    return true;
+                }
                 _ => {}
             }
         }
@@ -269,7 +280,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             let (col, row) = (me.column, me.row);
             if let MouseEventKind::Down(_) = me.kind {
                 if app.current_view == CurrentView::Processes {
-                    // 1. Subview Tabs (Top Bar)
                     for (rect, view) in &app.monitor_subview_bounds {
                         if rect.contains(ratatui::layout::Position { x: col, y: row }) {
                             app.monitor_subview = *view;
@@ -277,42 +287,21 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return true;
                         }
                     }
-
-                    // 2. Table Content (Processes/Applications)
-                    match app.monitor_subview {
-                        MonitorSubview::Processes | MonitorSubview::Applications => {
-                            // Column Headers (Sorting)
-                            for (rect, col_id) in &app.process_column_bounds {
-                                if rect.contains(ratatui::layout::Position { x: col, y: row }) {
-                                    app.sort_processes(*col_id);
-                                    return true;
-                                }
-                            }
-
-                            // Row Selection
-                            // Offset logic: Top Nav(3) + Margin(1) + Border(1) + Header(1) = 6
-                            if row >= 6 {
-                                let table_row = (row as usize).saturating_sub(6) + app.process_table_state.offset();
-                                
-                                let proc_count = if app.monitor_subview == MonitorSubview::Processes {
-                                    app.system_state.processes.len()
-                                } else {
-                                    let user = std::env::var("USER").unwrap_or_default();
-                                    app.system_state.processes.iter().filter(|p| p.user == user && !p.name.starts_with('[')).count()
-                                };
-
-                                if table_row < proc_count {
-                                    app.process_selected_idx = Some(table_row);
-                                    app.process_table_state.select(app.process_selected_idx);
-                                }
-                                return true;
-                            }
+                    if row >= 6 {
+                        let table_row = (row as usize).saturating_sub(6) + app.process_table_state.offset();
+                        let proc_count = if app.monitor_subview == MonitorSubview::Processes {
+                            app.system_state.processes.len()
+                        } else {
+                            let user = std::env::var("USER").unwrap_or_default();
+                            app.system_state.processes.iter().filter(|p| p.user == user && !p.name.starts_with('[')).count()
+                        };
+                        if table_row < proc_count {
+                            app.process_selected_idx = Some(table_row);
+                            app.process_table_state.select(app.process_selected_idx);
                         }
-                        _ => {}
+                        return true;
                     }
                 }
-                
-                // Header Monitor Icon Toggle
                 if row == 0 {
                     if let Some((_, id)) = app.header_icon_bounds.iter().find(|(r, _)| r.contains(ratatui::layout::Position { x: col, y: row })) {
                         if id == "monitor" {
@@ -326,14 +315,4 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
         _ => {}
     }
     false
-}
-
-fn push_history(_fs: &mut crate::app::FileState, _path: std::path::PathBuf) {}
-fn spawn_detached(cmd: &str, args: Vec<&str>) {
-    let mut command = std::process::Command::new(cmd);
-    command.args(args);
-    unsafe {
-        let _ = command.stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null())
-            .pre_exec(|| { libc::setsid(); Ok(()) }).spawn();
-    }
 }
