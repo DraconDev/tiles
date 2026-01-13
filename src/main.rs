@@ -2336,8 +2336,23 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 MouseEventKind::Down(button) => {
                     let sw = app.sidebar_width();
                     
+                    if app.current_view == CurrentView::Processes {
+                        // Monitor Navigation Tabs
+                        for (rect, view) in &app.monitor_subview_bounds {
+                            if rect.contains(ratatui::layout::Position { x: column, y: row }) {
+                                app.monitor_subview = *view;
+                                return true;
+                            }
+                        }
+                        // Close Button (Far Right top)
+                        if row == 1 && column > w.saturating_sub(15) { // Roughly where Close is
+                            app.current_view = CurrentView::Files;
+                            return true;
+                        }
+                    }
+
                     // Header Icons
-                    if row == 0 {
+                    if row == 0 && app.current_view != CurrentView::Processes {
                         if let Some((_, action_id)) = app.header_icon_bounds.iter().find(|(r, _)| column >= r.x && column < r.x + r.width && row == r.y) {
                             match action_id.as_str() {
                                 "back" => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
