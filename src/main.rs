@@ -2007,15 +2007,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } return true; } 
                         KeyCode::Char(' ') => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { app.mode = AppMode::Properties; } else { let target_pane = if app.focused_pane_index == 0 { 1 } else { 0 }; let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path)); } } } } return true; } 
                         KeyCode::F(6) => {
-                            if let Some(fs) = app.current_file_state() {
-                                if let Some(idx) = fs.selected_index {
-                                    if let Some(p) = fs.files.get(idx) {
-                                        app.mode = AppMode::Rename;
-                                        app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string());
-                                        app.rename_selected = true;
-                                        return true;
-                                    }
-                                }
+                            let path_to_rename = if let Some(fs) = app.current_file_state() {
+                                if let Some(idx) = fs.selected_index { fs.files.get(idx).cloned() } else { None }
+                            } else { None };
+
+                            if let Some(p) = path_to_rename {
+                                app.mode = AppMode::Rename;
+                                app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string());
+                                app.rename_selected = true;
+                                return true;
                             }
                             return false;
                         }
@@ -2233,7 +2233,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 _ => {} 
                             }
                         }
-                    } else if column < sw {
+                    } else if column < app.sidebar_width() {
                         if let Some(b) = app.sidebar_bounds.iter().find(|b| b.y == row) {
                             match &b.target {
                                 SidebarTarget::Header(h) if h == "REMOTES" => { app.mode = AppMode::ImportServers; app.input.set_value("servers.toml".to_string()); }
