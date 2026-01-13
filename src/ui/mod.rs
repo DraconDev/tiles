@@ -306,12 +306,14 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
         .constraints([Constraint::Length(1), Constraint::Min(0)])
         .split(stats_layout[0]);
     
-    let cpu_label = format!("CPU Usage: {:.1}%", app.system_state.cpu_usage);
     let cpu_gauge = Gauge::default()
         .gauge_style(Style::default().fg(if app.system_state.cpu_usage > 80.0 { Color::Red } else { Color::Green }))
         .ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0) as f64);
     
     f.render_widget(Paragraph::new(cpu_label).style(Style::default().add_modifier(Modifier::BOLD)), cpu_chunks[0]);
+    f.render_widget(cpu_gauge, cpu_chunks[0]); // Overlays or use different layout? cpu_chunks[0] is only 1 high.
+    // Better: change cpu_chunks to have space for gauge.
+    // Let's adjust cpu_chunks.
     
     let cpu_data: Vec<u64> = app.system_state.cpu_history.iter().map(|&x| x).collect();
     let cpu_sparkline = Sparkline::default()
@@ -852,6 +854,7 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
         crate::app::ContextMenuTarget::SidebarFavorite(_) => " Favorite ",
         crate::app::ContextMenuTarget::SidebarRemote(_) => " Remote ",
         crate::app::ContextMenuTarget::SidebarStorage(_) => " Storage ",
+        crate::app::ContextMenuTarget::Process(_) => " Process ",
     };
     
     let menu_width = 25;
