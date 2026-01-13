@@ -656,7 +656,51 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             Row::new(cells).style(row_style)
         });
 
-        // ... breadcrumbs logic ...
+        // Minimalist Tactical Breadcrumbs
+        let mut breadcrumb_spans = Vec::new();
+        file_state.breadcrumb_bounds.clear();
+        let path = file_state.current_path.clone();
+        let components: Vec<_> = path.components().collect();
+        let mut cur_p = std::path::PathBuf::new();
+        let mut cur_x = area.x + 2;
+
+        let total_comps = components.len();
+        for (i, comp) in components.iter().enumerate() {
+            match comp { std::path::Component::RootDir => cur_p.push("/"), std::path::Component::Prefix(p) => cur_p.push(p.as_os_str()), std::path::Component::Normal(name) => cur_p.push(name), _ => continue }
+            let d_name = if comp.as_os_str() == "/" { "/".to_string() } else { comp.as_os_str().to_string_lossy().to_string() };
+            
+            if !d_name.is_empty() {
+                let s_path = cur_p.clone();
+                let is_hovered = file_state.hovered_breadcrumb.as_ref() == Some(&s_path);
+                let is_last = i == total_comps - 1;
+                
+                let fg_color = if is_hovered {
+                    Color::Rgb(255, 255, 0) // Yellow on hover
+                } else if is_last {
+                    THEME.accent_secondary // Neon Cyan for active
+                } else {
+                    Color::Rgb(100, 100, 110) // Ghost Gray for parents
+                };
+
+                let mut style = Style::default().fg(fg_color);
+                if is_last { style = style.add_modifier(Modifier::BOLD); }
+                if is_hovered { style = style.add_modifier(Modifier::UNDERLINED); }
+
+                let segment = if is_last { format!(" [ {} ] ", d_name) } else { format!(" {} ", d_name) };
+                let width = segment.len() as u16;
+                
+                breadcrumb_spans.push(Span::styled(segment, style));
+                file_state.breadcrumb_bounds.push((Rect::new(cur_x, area.y, width, 1), s_path));
+                cur_x += width;
+
+                // Sharp Separator
+                if !is_last {
+                    breadcrumb_spans.push(Span::styled("›", Style::default().fg(Color::Rgb(60, 60, 70))));
+                    cur_x += 1;
+                }
+            }
+        }
+        if !file_state.search_filter.is_empty() { breadcrumb_spans.push(Span::styled(format!(" [ {} ]", file_state.search_filter), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))); }
 
         let mut border_style = if is_focused { 
             let pulse = ((SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_millis() % 1500) as f32 / 1500.0 * std::f32::consts::PI * 2.0).sin() * 0.5 + 0.5;
