@@ -325,8 +325,9 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let pane_count = app.panes.len();
 
     // Toolbar Icons Cluster (Far Left)
+    let burger_icon = Icon::Burger.get(app.icon_mode);
     let back_icon = Icon::Back.get(app.icon_mode);
-    let forward_icon = Icon::ChevronRight.get(app.icon_mode);
+    let forward_icon = Icon::Forward.get(app.icon_mode);
     let split_icon = Icon::Split.get(app.icon_mode);
 
     let icons = vec![
@@ -338,9 +339,12 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 
     // Start icons at the left side of the sidebar with 1 padding
     let mut cur_icon_x = area.x + 1;
+    app.header_icon_bounds.clear();
+    let mut hovered_tip = None;
     
-    for (i, (icon, id, _desc)) in icons.into_iter().enumerate() {
+    for (i, (icon, id, desc)) in icons.into_iter().enumerate() {
         let rect = Rect::new(cur_icon_x, area.y, 3, 1);
+        let id_str = id.to_string();
         
         let is_hovered = app.mouse_pos.1 == area.y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width;
         let is_kb_focused = matches!(app.mode, AppMode::Header(idx) if idx == i);
@@ -349,12 +353,13 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         if is_kb_focused || is_hovered {
             style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
             if is_hovered {
-                app.hovered_header_icon = Some(id.to_string());
+                app.hovered_header_icon = Some(id_str.clone());
+                hovered_tip = Some(desc.to_string());
             }
         }
 
         f.render_widget(Paragraph::new(format!(" {} ", icon)).style(style), rect);
-        app.header_icon_bounds.push((rect, id.to_string()));
+        app.header_icon_bounds.push((rect, id_str));
         cur_icon_x += 3; 
     }
 
