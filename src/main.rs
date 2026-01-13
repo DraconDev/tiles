@@ -414,7 +414,7 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
                     needs_draw = true;
                 }
-                AppEvent::PreviewRequested(target_pane_idx, path) => {
+                AppEvent::PreviewRequested(_target_pane_idx, path) => {
                     let app_clone = app.clone();
                     let tx = event_tx.clone();
                     tokio::spawn(async move {
@@ -423,21 +423,16 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                             let editor = if content.len() < 50000 { Some(TextEditor::with_content(&content)) } else { None };
                             let preview_content = content.chars().take(5000).collect::<String>();
                             let mut app_guard = app_clone.lock().unwrap();
-                            if app_guard.panes.len() < 2 { app_guard.toggle_split(); }
-                            if let Some(pane) = app_guard.panes.get_mut(target_pane_idx) {
-                                pane.preview = Some(crate::app::PreviewState { path, content: preview_content, scroll: 0, editor });
-                            }
+                            app_guard.mode = AppMode::Editor;
+                            app_guard.editor_state = Some(crate::app::PreviewState { path, content: preview_content, scroll: 0, editor });
                         } else if path.is_dir() {
                              {
                                  let mut app_guard = app_clone.lock().unwrap();
-                                 if app_guard.panes.len() < 2 { app_guard.toggle_split(); }
-                                 if let Some(pane) = app_guard.panes.get_mut(target_pane_idx) {
-                                     if let Some(fs) = pane.current_state_mut() {
-                                         fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path);
-                                     }
+                                 if let Some(fs) = app_guard.current_file_state_mut() {
+                                     fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path);
                                  }
                              }
-                             let _ = tx.send(AppEvent::RefreshFiles(target_pane_idx)).await;
+                             let _ = tx.send(AppEvent::RefreshFiles(0)).await;
                         }
                     });
                     needs_draw = true;
