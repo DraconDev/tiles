@@ -3,5 +3,7 @@ a big question i have is how much interaction we can have, cause seemingly some 
 
 can we add a text editor to the preview panel? so we are not only seeing it but edit the text in preview mode
 
+can we have mouse and scroll on the, preview page? also we will 
+
 ## Done
 
