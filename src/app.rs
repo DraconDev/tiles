@@ -204,6 +204,8 @@ pub enum FileColumn {
     Name,
     Size,
     Modified,
+    Created,
+    Extension,
     Permissions,
 }
 
