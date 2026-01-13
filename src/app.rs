@@ -330,6 +330,8 @@ impl FileState {
         column_widths.insert(FileColumn::Name, 30);
         column_widths.insert(FileColumn::Size, 10);
         column_widths.insert(FileColumn::Modified, 20);
+        column_widths.insert(FileColumn::Created, 20);
+        column_widths.insert(FileColumn::Extension, 8);
         column_widths.insert(FileColumn::Permissions, 12);
 
         Self {
@@ -554,7 +556,17 @@ impl App {
                             tab.column_widths.insert(FileColumn::Name, 30);
                             tab.column_widths.insert(FileColumn::Size, 10);
                             tab.column_widths.insert(FileColumn::Modified, 20);
+                            tab.column_widths.insert(FileColumn::Created, 20);
+                            tab.column_widths.insert(FileColumn::Extension, 8);
                             tab.column_widths.insert(FileColumn::Permissions, 12);
+                        }
+                        
+                        // Patch missing widths for new columns
+                        if !tab.column_widths.contains_key(&FileColumn::Created) {
+                            tab.column_widths.insert(FileColumn::Created, 20);
+                        }
+                        if !tab.column_widths.contains_key(&FileColumn::Extension) {
+                            tab.column_widths.insert(FileColumn::Extension, 8);
                         }
                     }
                 }
