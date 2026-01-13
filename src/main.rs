@@ -1798,18 +1798,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     return true;
                 }
                 KeyCode::Char('p') | KeyCode::Char('P') if has_control => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; }
-                KeyCode::Char('s') | KeyCode::Char('S') if has_control => {
-                    if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                        if let Some(preview) = &mut pane.preview {
-                            if let Some(editor) = &mut preview.editor {
-                                let _ = event_tx.try_send(AppEvent::SaveFile(preview.path.clone(), editor.get_content()));
-                                editor.modified = false;
-                                return true;
-                            }
-                        }
-                    }
-                    return true; 
-                }
                 KeyCode::Char('\\') if has_control => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; }
                 KeyCode::Char('h') | KeyCode::Char('H') if has_control => { let idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(idx)); return true; }
                 KeyCode::Char('g') | KeyCode::Char('G') if has_control => { app.mode = AppMode::Settings; app.settings_scroll = 0; return true; }
@@ -1841,17 +1829,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     if app.sidebar_focus { app.resize_sidebar(2); } 
                     else { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
                     return true;
-                }
-                KeyCode::Char('s') if has_control => {
-                    if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                        if let Some(preview) = &mut pane.preview {
-                            if let Some(editor) = &mut preview.editor {
-                                let _ = event_tx.try_send(AppEvent::SaveFile(preview.path.clone(), editor.get_content()));
-                                editor.modified = false;
-                                return true;
-                            }
-                        }
-                    }
                 }
                 _ => {}
             }
