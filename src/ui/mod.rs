@@ -303,44 +303,50 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
     // CPU Section
     let cpu_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Min(0)])
+        .constraints([Constraint::Length(1), Constraint::Length(2), Constraint::Min(0)])
         .split(stats_layout[0]);
     
+    let cpu_label = format!("CPU Usage: {:.1}%", app.system_state.cpu_usage);
     let cpu_gauge = Gauge::default()
         .gauge_style(Style::default().fg(if app.system_state.cpu_usage > 80.0 { Color::Red } else { Color::Green }))
-        .ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0) as f64);
+        .ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0) as f64)
+        .label(cpu_label.clone());
     
     f.render_widget(Paragraph::new(cpu_label).style(Style::default().add_modifier(Modifier::BOLD)), cpu_chunks[0]);
-    f.render_widget(cpu_gauge, cpu_chunks[0]); // Overlays or use different layout? cpu_chunks[0] is only 1 high.
-    // Better: change cpu_chunks to have space for gauge.
-    // Let's adjust cpu_chunks.
+    f.render_widget(cpu_gauge, cpu_chunks[1]);
     
     let cpu_data: Vec<u64> = app.system_state.cpu_history.iter().map(|&x| x).collect();
     let cpu_sparkline = Sparkline::default()
         .block(Block::default().borders(Borders::NONE))
         .data(&cpu_data)
         .style(Style::default().fg(Color::Cyan));
-    f.render_widget(cpu_sparkline, cpu_chunks[1]);
+    f.render_widget(cpu_sparkline, cpu_chunks[2]);
 
     // Memory Section
     let mem_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Min(0)])
+        .constraints([Constraint::Length(1), Constraint::Length(2), Constraint::Min(0)])
         .split(stats_layout[1]);
 
     let mem_used_gb = app.system_state.mem_usage;
     let mem_total_gb = app.system_state.total_mem;
-    let mem_percent = (mem_used_gb / mem_total_gb) * 100.0;
+    let mem_percent = if mem_total_gb > 0.0 { (mem_used_gb / mem_total_gb) * 100.0 } else { 0.0 };
     
     let mem_label = format!("Memory: {:.1} GB / {:.1} GB ({:.1}%)", mem_used_gb, mem_total_gb, mem_percent);
-    f.render_widget(Paragraph::new(mem_label).style(Style::default().add_modifier(Modifier::BOLD)), mem_chunks[0]);
+    let mem_gauge = Gauge::default()
+        .gauge_style(Style::default().fg(if mem_percent > 80.0 { Color::Red } else { Color::Magenta }))
+        .ratio((mem_percent / 100.0).clamp(0.0, 1.0) as f64)
+        .label(format!("{:.1}%", mem_percent));
+
+    f.render_widget(Paragraph::new("Memory").style(Style::default().add_modifier(Modifier::BOLD)), mem_chunks[0]);
+    f.render_widget(mem_gauge, mem_chunks[1]);
 
     let mem_data: Vec<u64> = app.system_state.mem_history.iter().map(|&x| x).collect();
     let mem_sparkline = Sparkline::default()
         .block(Block::default().borders(Borders::NONE))
         .data(&mem_data)
         .style(Style::default().fg(Color::Magenta));
-    f.render_widget(mem_sparkline, mem_chunks[1]);
+    f.render_widget(mem_sparkline, mem_chunks[2]);
 
     // 2. Process Table
     let table_block = Block::default()
