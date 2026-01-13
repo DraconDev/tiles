@@ -2715,6 +2715,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         for (rect, col) in &fs.column_bounds {
                                             if column >= rect.x && column < rect.x + rect.width {
                                                 app.is_resizing_column = Some((clicked_pane, *col));
+                                                app.initial_col_width = fs.column_widths.get(col).copied().unwrap_or(10);
                                                 app.drag_start_pos = Some((column, row));
                                                 handled_resize = true;
                                                 break;
@@ -2975,20 +2976,19 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                                                                                     MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                                                                                                         app.mouse_pos = (column, row);
                                                                   
-                                                                                                        if let Some((pane_idx, col)) = app.is_resizing_column {
-                                                                                                            if let Some(pane) = app.panes.get_mut(pane_idx) {
-                                                                                                                if let Some(fs) = pane.current_state_mut() {
-                                                                                                                    if let Some((rect, _)) = fs.column_bounds.iter().find(|(_, c)| c == &col) {
-                                                                                                                        let new_width = column.saturating_sub(rect.x);
-                                                                                                                        if new_width >= 2 {
-                                                                                                                            fs.column_widths.insert(col, new_width.min(100));
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                }
-                                                                                                            }
-                                                                                                            return true;
-                                                                                                        }
-                                                                  
+                                                                                                                                              if let Some((pane_idx, col)) = app.is_resizing_column {
+                                                                                                                                                  if let Some((sx, _)) = app.drag_start_pos {
+                                                                                                                                                      let delta = column as i16 - sx as i16;
+                                                                                                                                                      let new_width = (app.initial_col_width as i16 + delta).max(2).min(100) as u16;
+                                                                                                                                                      
+                                                                                                                                                      if let Some(pane) = app.panes.get_mut(pane_idx) {
+                                                                                                                                                          if let Some(fs) = pane.current_state_mut() {
+                                                                                                                                                              fs.column_widths.insert(col, new_width);
+                                                                                                                                                          }
+                                                                                                                                                      }
+                                                                                                                                                  }
+                                                                                                                                                  return true;
+                                                                                                                                              }                                                                  
                                                                                                         if app.is_resizing_sidebar {
                                                                                                             let (w, _) = app.terminal_size;
                                                                                                             if w > 0 {
