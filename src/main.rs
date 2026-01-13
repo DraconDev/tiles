@@ -1852,6 +1852,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 return true;
                             }
                         }
+                        if let KeyCode::Char('c') | KeyCode::Char('C') = key.code {
+                            if has_control {
+                                let line = editor.lines[editor.cursor_row].clone();
+                                let mut stdout = std::io::stdout();
+                                let _ = terma::visuals::osc::copy_to_clipboard(&mut stdout, &line);
+                                let _ = event_tx.try_send(AppEvent::StatusMsg("Copied line to clipboard".to_string()));
+                                return true;
+                            }
+                        }
+                        // Paste is harder without a crate, but we can support internal or wait for 'Paste' event from crossterm
+                        // Actually, let's assume standard typing handles paste for many terminals or they emit Paste event.
+                        
                         if editor.handle_event(&evt, editor_area) {
                             if app.auto_save && editor.modified {
                                 let _ = event_tx.try_send(AppEvent::SaveFile(preview.path.clone(), editor.get_content()));
