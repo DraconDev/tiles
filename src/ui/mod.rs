@@ -1119,7 +1119,7 @@ fn draw_editor_overlay(f: &mut Frame, app: &App) {
     f.render_widget(Clear, area);
     
     if let Some(preview) = &app.editor_state {
-        let mut spans = vec![Span::raw(format!(" Editing: {} ", preview.path.display()))];
+        let mut spans = vec![Span::styled(" Engage Overlay: ", Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)), Span::raw(format!(" {} ", preview.path.display()))];
         if let Some(ed) = &preview.editor {
             if ed.modified { spans.push(Span::styled("[Modified] ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))); }
             spans.push(Span::styled("(Ctrl+S to Save, Esc to Close) ", Style::default().fg(Color::Cyan)));
