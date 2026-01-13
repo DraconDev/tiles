@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Chart, Dataset, Axis},
+    widgets::{Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Chart, Dataset, Axis, GraphType},
     symbols,
     Frame,
 };
@@ -179,7 +179,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         f.render_widget(Paragraph::new(Span::styled(label, Style::default().fg(Color::Rgb(60, 65, 75)).add_modifier(Modifier::BOLD))), chunks[0]);
 
         let val_text = if total > 0.0 { format!("{:.1} ", cur) } else { format!("{:.1}", cur) };
-        let track_w = chunks[1].width.saturating_sub(val_text.len() as u16 + 6);
+        let track_w: u16 = chunks[1].width.saturating_sub(val_text.len() as u16 + 6);
         let pos = (intensity * track_w as f32) as u16;
         let track = format!("{}{}{}", "─".repeat(pos as usize), "●", "─".repeat(track_w.saturating_sub(pos + 1) as usize));
 
@@ -196,12 +196,12 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
             let datasets = vec![
                 Dataset::default()
                     .marker(symbols::Marker::Braille)
-                    .graph_type(symbols::GraphType::Line)
+                    .graph_type(GraphType::Line)
                     .style(Style::default().fg(color).add_modifier(Modifier::DIM))
                     .data(&data),
                 Dataset::default()
                     .marker(symbols::Marker::Braille)
-                    .graph_type(symbols::GraphType::Line)
+                    .graph_type(GraphType::Line)
                     .style(Style::default().fg(Color::White))
                     .data(&data.iter().rev().take(20).rev().cloned().collect::<Vec<_>>()),
             ];
@@ -244,7 +244,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                     if idx < app.system_state.core_history.len() {
                         let spark_area = Rect::new(slot.x + 6, slot.y, slot.width.saturating_sub(7), 2);
                         let data: Vec<(f64, f64)> = app.system_state.core_history[idx].iter().enumerate().map(|(i, &v)| (i as f64, v as f64)).collect();
-                        let chart = Chart::new(vec![Dataset::default().marker(symbols::Marker::Braille).graph_type(symbols::GraphType::Line).style(Style::default().fg(color)).data(&data)])
+                        let chart = Chart::new(vec![Dataset::default().marker(symbols::Marker::Braille).graph_type(GraphType::Line).style(Style::default().fg(color)).data(&data)])
                             .x_axis(Axis::default().bounds([0.0, 100.0]))
                             .y_axis(Axis::default().bounds([0.0, 100.0]));
                         f.render_widget(chart, spark_area);
@@ -276,7 +276,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         let max_v = history.iter().max().cloned().unwrap_or(1024) as f64;
         
         f.render_widget(Paragraph::new(Span::styled(format!("{} {:>8}/s", label, format_size(val)), Style::default().fg(color).add_modifier(Modifier::BOLD))), Rect::new(area.x, area.y, area.width, 1));
-        let chart = Chart::new(vec![Dataset::default().marker(symbols::Marker::Braille).graph_type(symbols::GraphType::Line).style(Style::default().fg(color)).data(&data)])
+        let chart = Chart::new(vec![Dataset::default().marker(symbols::Marker::Braille).graph_type(GraphType::Line).style(Style::default().fg(color)).data(&data)])
             .x_axis(Axis::default().bounds([0.0, 100.0]))
             .y_axis(Axis::default().bounds([0.0, max_v]));
         f.render_widget(chart, Rect::new(area.x, area.y + 1, area.width, area.height.saturating_sub(1)));
