@@ -2380,6 +2380,25 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
 
                     // Pane focus & Sorting
                     if column >= sw {
+                        if app.current_view == CurrentView::Processes {
+                            // Header sorting
+                            for (rect, col) in &app.process_column_bounds {
+                                if column >= rect.x && column < rect.x + rect.width && row == rect.y {
+                                    app.sort_processes(*col);
+                                    return true;
+                                }
+                            }
+                            // Row selection
+                            if row >= 14 { // Table starts at y=11 + 3 (approx)
+                                let table_row = (row - 14) as usize + app.process_table_state.offset();
+                                if table_row < app.system_state.processes.len() {
+                                    app.process_selected_idx = Some(table_row);
+                                    app.process_table_state.select(app.process_selected_idx);
+                                    return true;
+                                }
+                            }
+                        }
+
                         let cw = w.saturating_sub(sw); let pc = app.panes.len();
                         let pw = if pc > 0 { cw / pc as u16 } else { cw };
                         let cp = (column.saturating_sub(sw) / pw) as usize;
@@ -2475,6 +2494,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 }
                 MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                     app.mouse_pos = (column, row);
+                    if app.current_view == CurrentView::Processes && row >= 14 {
+                        let table_row = (row - 14) as usize + app.process_table_state.offset();
+                        if table_row < app.system_state.processes.len() {
+                            app.process_selected_idx = Some(table_row);
+                            app.process_table_state.select(app.process_selected_idx);
+                        }
+                    }
                     if app.is_resizing_sidebar { app.sidebar_width_percent = (column as f32 / w as f32 * 100.0) as u16; app.sidebar_width_percent = app.sidebar_width_percent.clamp(5, 50); return true; }
                     if let Some((sx, sy)) = app.drag_start_pos { if ((column as i16 - sx as i16).pow(2) + (row as i16 - sy as i16).pow(2)) as f32 >= 1.0 { app.is_dragging = true; } }
                     if app.is_dragging {
