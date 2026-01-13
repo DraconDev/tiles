@@ -847,8 +847,10 @@ impl App {
                         // Maintain a consistent default order
                         let order = [
                             FileColumn::Name,
+                            FileColumn::Extension,
                             FileColumn::Size,
                             FileColumn::Modified,
+                            FileColumn::Created,
                             FileColumn::Permissions,
                         ];
         let mut sorted = Vec::new();

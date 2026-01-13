@@ -61,6 +61,16 @@ fn sort_files(state: &mut FileState) {
                     .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
                 a_mod.cmp(&b_mod)
             }
+            crate::app::FileColumn::Created => {
+                let a_time = a_meta.map(|m| m.created).unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                let b_time = b_meta.map(|m| m.created).unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                a_time.cmp(&b_time)
+            }
+            crate::app::FileColumn::Extension => {
+                let a_ext = a_meta.map(|m| m.extension.as_str()).unwrap_or("").to_lowercase();
+                let b_ext = b_meta.map(|m| m.extension.as_str()).unwrap_or("").to_lowercase();
+                a_ext.cmp(&b_ext)
+            }
             crate::app::FileColumn::Permissions => {
                 let a_perm = a_meta.map(|m| m.permissions).unwrap_or(0);
                 let b_perm = b_meta.map(|m| m.permissions).unwrap_or(0);
