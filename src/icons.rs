@@ -26,6 +26,7 @@ pub enum Icon {
     Back,
     Forward,
     Burger,
+    Refresh,
 }
 
 impl Icon {
@@ -50,6 +51,7 @@ impl Icon {
                 Icon::Back => "󰁍 ",
                 Icon::Forward => "󰁔 ",
                 Icon::Burger => "󰍜 ",
+                Icon::Refresh => "󰑓 ",
             },
             IconMode::Unicode => match self {
                 Icon::Folder => "▸ ",
@@ -70,6 +72,7 @@ impl Icon {
                 Icon::Back => "← ",
                 Icon::Forward => "→ ",
                 Icon::Burger => "≡ ",
+                Icon::Refresh => "↻ ",
             },
             IconMode::ASCII => match self {
                 Icon::Folder => "[D] ",
@@ -90,6 +93,7 @@ impl Icon {
                 Icon::Back => "< ",
                 Icon::Forward => "> ",
                 Icon::Burger => "[=] ",
+                Icon::Refresh => "[R] ",
             },
         }
     }
