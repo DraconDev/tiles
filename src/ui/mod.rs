@@ -247,7 +247,7 @@ fn draw_confirm_reset_modal(f: &mut Frame, _app: &App) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::Red));
-    f.render_widget(Paragraph::new("Reset all columns to defaults? (y/n)").block(block), area);
+    f.render_widget(Paragraph::new("Reset all columns to defaults? (y/Enter/n)").block(block), area);
 }
 
 fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
