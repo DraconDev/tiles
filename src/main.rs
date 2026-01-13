@@ -2168,9 +2168,20 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     } else { app.mode = AppMode::Normal; }
                     return true;
                 },
-                AppMode::Settings | AppMode::ImportServers | AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) => {
+                AppMode::Settings | AppMode::ImportServers | AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) | AppMode::Editor => {
                     match me.kind {
                         MouseEventKind::Down(_) => {
+                            if let AppMode::Editor = app.mode {
+                                if let Some(preview) = &mut app.editor_state {
+                                    if let Some(editor) = &mut preview.editor {
+                                        let editor_area = ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1));
+                                        if editor_area.contains(ratatui::layout::Position { x: column, y: row }) {
+                                            editor.handle_mouse_event(me, editor_area);
+                                        }
+                                    }
+                                }
+                                return true;
+                            }
                             let (aw, ah) = match app.mode { AppMode::Settings => ((w as f32 * 0.8) as u16, (h as f32 * 0.8) as u16), AppMode::Properties => ((w as f32 * 0.5) as u16, (h as f32 * 0.5) as u16), AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) => ((w as f32 * 0.6) as u16, (h as f32 * 0.2) as u16), _ => ((w as f32 * 0.4) as u16, (h as f32 * 0.1) as u16) };
                             let (ax, ay) = ((w - aw) / 2, (h - ah) / 2);
                             if column >= ax && column < ax + aw && row >= ay && row < ay + ah {
@@ -2197,10 +2208,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             } else { app.mode = AppMode::Normal; app.input.clear(); }
                         }
                         MouseEventKind::ScrollUp => {
-                            if let AppMode::Settings = app.mode { app.settings_scroll = app.settings_scroll.saturating_sub(2); }
+                            if let AppMode::Editor = app.mode {
+                                if let Some(preview) = &mut app.editor_state { if let Some(editor) = &mut preview.editor { editor.handle_mouse_event(me, ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1))); } }
+                            } else if let AppMode::Settings = app.mode { app.settings_scroll = app.settings_scroll.saturating_sub(2); }
                         }
                         MouseEventKind::ScrollDown => {
-                            if let AppMode::Settings = app.mode { app.settings_scroll = app.settings_scroll.saturating_add(2); }
+                            if let AppMode::Editor = app.mode {
+                                if let Some(preview) = &mut app.editor_state { if let Some(editor) = &mut preview.editor { editor.handle_mouse_event(me, ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1))); } }
+                            } else if let AppMode::Settings = app.mode { app.settings_scroll = app.settings_scroll.saturating_add(2); }
                         }
                         _ => {}
                     }
