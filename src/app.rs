@@ -147,7 +147,6 @@ pub enum AppMode {
     ImportServers,
     Header(usize),
     OpenWith(PathBuf),
-    ConfirmReset,
 }
 
 #[derive(Clone, Debug, PartialEq)]
