@@ -1,12 +1,3 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub enum IconMode {
-    Nerd,
-    Unicode,
-    ASCII,
-}
-
 pub enum Icon {
     Folder,
     File,
