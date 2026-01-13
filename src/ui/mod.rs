@@ -1151,7 +1151,13 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
     let titles = vec![" [Single] ", " [Split] "];
     let sel = match app.settings_target { SettingsTarget::SingleMode => 0, SettingsTarget::SplitMode => 1 };
     f.render_widget(Tabs::new(titles).block(Block::default().borders(Borders::BOTTOM).title(" Configure Mode ")).select(sel).highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), chunks[0]);
-    let options = vec![(FileColumn::Size, "Size (s)"), (FileColumn::Modified, "Modified (m)"), (FileColumn::Permissions, "Permissions (p)")];
+    let options = vec![
+        (FileColumn::Extension, "Extension (e)"),
+        (FileColumn::Size, "Size (s)"), 
+        (FileColumn::Modified, "Modified (m)"), 
+        (FileColumn::Created, "Created (c)"),
+        (FileColumn::Permissions, "Permissions (p)")
+    ];
     let target = match app.settings_target { SettingsTarget::SingleMode => &app.single_columns, SettingsTarget::SplitMode => &app.split_columns };
     let items: Vec<ListItem> = options.iter().map(|(col, label)| {
         let prefix = if target.contains(col) { "[x] " } else { "[ ] " };
