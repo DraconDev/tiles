@@ -2069,28 +2069,38 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return true;
                         }
                         KeyCode::F(6) => {
-                            if let Some(fs) = app.current_file_state() {
-                                if let Some(p) = fs.selected_index.and_then(|idx| fs.files.get(idx)) {
-                                    app.mode = AppMode::Rename;
-                                    app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string());
-                                    app.rename_selected = true;
-                                    return true;
-                                }
+                            let path_to_rename = app.current_file_state()
+                                .and_then(|fs| fs.selected_index.and_then(|idx| fs.files.get(idx)))
+                                .cloned();
+
+                            if let Some(p) = path_to_rename {
+                                app.mode = AppMode::Rename;
+                                app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string());
+                                app.rename_selected = true;
+                                return true;
                             }
                             return false;
                         }
                         KeyCode::Delete => {
-                            if let Some(fs) = app.current_file_state() {
+                            let (should_delete, paths) = if let Some(fs) = app.current_file_state() {
                                 if fs.selected_index.is_some() {
-                                    if app.confirm_delete { app.mode = AppMode::Delete; }
-                                    else {
-                                        let mut paths = Vec::new();
-                                        if !fs.multi_select.is_empty() { for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } } 
-                                        else if let Some(idx) = fs.selected_index { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } }
-                                        for p in paths { let _ = event_tx.try_send(AppEvent::Delete(p)); }
+                                    let mut paths = Vec::new();
+                                    if !fs.multi_select.is_empty() { 
+                                        for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } 
+                                    } else if let Some(idx) = fs.selected_index { 
+                                        if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } 
                                     }
-                                    return true;
+                                    (true, paths)
+                                } else { (false, vec![]) }
+                            } else { (false, vec![]) };
+
+                            if should_delete {
+                                if app.confirm_delete { 
+                                    app.mode = AppMode::Delete; 
+                                } else {
+                                    for p in paths { let _ = event_tx.try_send(AppEvent::Delete(p)); }
                                 }
+                                return true;
                             }
                             return false;
                         }
