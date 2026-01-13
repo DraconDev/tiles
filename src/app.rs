@@ -581,6 +581,7 @@ impl App {
                     clipboard: None,
                     default_show_hidden: false,
                     confirm_delete: true,
+                    smart_date: true,
                     preferred_terminal: None,
                     single_columns: vec![FileColumn::Name, FileColumn::Extension, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
                     split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
