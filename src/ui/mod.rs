@@ -143,89 +143,69 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let left_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(10), // Heartbeat Pulse
-            Constraint::Min(0),     // Processing Fabric
+            Constraint::Length(9),  // System Vitality
+            Constraint::Min(0),     // Fabric Grid
         ])
         .split(main_layout[0]);
 
-    // --- 1. HEARTBEAT PULSE (Top Row) ---
+    // --- 1. SYSTEM VITALITY (Top Heartbeat) ---
     let metrics_layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(34)])
         .split(left_chunks[0]);
 
-    let draw_heartbeat = |f: &mut Frame, area: Rect, label: &str, cur: f32, total: f32, unit: &str, color: Color, history: &[u64]| {
-        let block = Block::default()
-            .borders(Borders::LEFT)
-            .border_style(Style::default().fg(color).add_modifier(Modifier::DIM));
-        let inner = block.inner(area);
-        f.render_widget(block, area);
-
+    let draw_vitality = |f: &mut Frame, area: Rect, label: &str, cur: f32, total: f32, unit: &str, color: Color, history: &[u64]| {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(1), // Label
+                Constraint::Length(1), // Header
                 Constraint::Length(2), // Value
-                Constraint::Min(0),    // Sparkline
+                Constraint::Min(0),    // Waveform
             ])
-            .split(inner);
+            .split(area.inner(ratatui::layout::Margin { horizontal: 2, vertical: 0 }));
 
-        // Label with Icon
+        // Minimalist Header (No box)
         let icon = match label {
-            "CPU" => "󰍛 ",
-            "MEM" => "󰘚 ",
-            "SWP" => "󰓡 ",
-            _ => "󰋊 ",
+            "CPU" => "󰍛", "MEM" => "󰘚", "SWP" => "󰓡", _ => "󰋊"
         };
         f.render_widget(Paragraph::new(Line::from(vec![
-            Span::styled(icon, Style::default().fg(color)),
-            Span::styled(label, Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("{} ", icon), Style::default().fg(color)),
+            Span::styled(label, Style::default().fg(Color::Rgb(80, 85, 95)).add_modifier(Modifier::BOLD)),
         ])), chunks[0]);
 
-        // Dynamic Value
-        let val_text = if total > 0.0 {
-            format!("{:.1} / {:.1}", cur, total)
-        } else {
-            format!("{:.1}", cur)
-        };
+        // Floating Value
+        let val_text = if total > 0.0 { format!("{:.1} / {:.1}", cur, total) } else { format!("{:.1}", cur) };
         f.render_widget(Paragraph::new(Line::from(vec![
             Span::styled(val_text, Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
             Span::styled(format!(" {}", unit), Style::default().fg(color).add_modifier(Modifier::DIM)),
         ])), chunks[1]);
 
-        // Sparkline
+        // Fluid Waveform (Sparkline)
         if !history.is_empty() {
             f.render_widget(Sparkline::default().data(history).style(Style::default().fg(color)), chunks[2]);
         }
+        
+        // Soft separator
+        f.render_widget(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(Color::Rgb(30, 30, 35))), area);
     };
 
-    draw_heartbeat(f, metrics_layout[0], "CPU", app.system_state.cpu_usage, 0.0, "%", Color::Rgb(0, 255, 150), &app.system_state.cpu_history);
-    draw_heartbeat(f, metrics_layout[1], "MEM", app.system_state.mem_usage as f32, app.system_state.total_mem as f32, "GB", Color::Rgb(0, 180, 255), &app.system_state.mem_history);
-    draw_heartbeat(f, metrics_layout[2], "SWP", app.system_state.swap_usage as f32, app.system_state.total_swap as f32, "GB", Color::Rgb(255, 100, 255), &app.system_state.swap_history);
+    draw_vitality(f, metrics_layout[0], "CPU", app.system_state.cpu_usage, 0.0, "%", Color::Rgb(0, 255, 150), &app.system_state.cpu_history);
+    draw_vitality(f, metrics_layout[1], "MEM", app.system_state.mem_usage as f32, app.system_state.total_mem as f32, "GB", Color::Rgb(0, 180, 255), &app.system_state.mem_history);
+    draw_vitality(f, metrics_layout[2], "SWP", app.system_state.swap_usage as f32, app.system_state.total_swap as f32, "GB", Color::Rgb(255, 100, 255), &app.system_state.swap_history);
 
-    // --- 2. PROCESSING FABRIC (Core Grid Heatmap) ---
+    // --- 2. THE FABRIC (High-Density Core Map) ---
+    let fabric_area = left_chunks[1].inner(ratatui::layout::Margin { horizontal: 2, vertical: 1 });
     let core_count = app.system_state.cpu_cores.len();
     if core_count > 0 {
-        let fabric_block = Block::default()
-            .title(vec![
-                Span::raw("── "),
-                Span::styled("󰓅 PROCESSING FABRIC ", Style::default().fg(Color::Rgb(100, 100, 110)).add_modifier(Modifier::BOLD)),
-                Span::raw("─".repeat(area.width as usize)),
-            ])
-            .borders(Borders::TOP)
-            .border_style(Style::default().fg(Color::Rgb(40, 40, 45)));
-        
-        let fabric_inner = fabric_block.inner(left_chunks[1]);
-        f.render_widget(fabric_block, left_chunks[1]);
+        f.render_widget(Paragraph::new(Span::styled("󰓅 PROCESSING FABRIC MAP", Style::default().fg(Color::Rgb(60, 65, 75)).add_modifier(Modifier::BOLD))), Rect::new(fabric_area.x, fabric_area.y - 1, 30, 1));
 
-        // Calculate grid (Fluid layout)
-        let cols = if core_count > 32 { 16 } else if core_count > 16 { 8 } else if core_count > 8 { 4 } else { 2 };
+        let cols = if core_count > 16 { 8 } else if core_count > 8 { 4 } else { 2 };
         let rows = (core_count as f32 / cols as f32).ceil() as u16;
         
         let fabric_rows = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Length(4); rows as usize])
-            .split(fabric_inner);
+            .constraints(vec![Constraint::Length(3); rows as usize])
+            .split(fabric_area);
 
         for r in 0..rows {
             if r as usize >= fabric_rows.len() { break; }
@@ -239,97 +219,70 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                 if idx < core_count {
                     let usage = app.system_state.cpu_cores[idx];
                     let color = if usage > 90.0 { Color::Rgb(255, 50, 50) } 
-                               else if usage > 70.0 { Color::Rgb(255, 150, 0) }
-                               else if usage > 30.0 { Color::Rgb(0, 255, 150) }
-                               else { Color::Rgb(40, 45, 55) };
+                               else if usage > 50.0 { Color::Rgb(255, 180, 0) }
+                               else { Color::Rgb(0, 255, 150) };
 
-                    let core_area = core_cols[c as usize].inner(ratatui::layout::Margin { horizontal: 1, vertical: 0 });
+                    let slot = core_cols[c as usize].inner(ratatui::layout::Margin { horizontal: 1, vertical: 0 });
                     
-                    // Core HUD Mini-widget
-                    let label = format!("{:>2}", idx);
-                    f.render_widget(Paragraph::new(Span::styled(label, Style::default().fg(Color::DarkGray))), Rect::new(core_area.x, core_area.y, 2, 1));
+                    // Core Dot & ID
+                    f.render_widget(Paragraph::new(Span::styled("●", Style::default().fg(color))), Rect::new(slot.x, slot.y, 1, 1));
+                    f.render_widget(Paragraph::new(Span::styled(format!("{:>2}", idx), Style::default().fg(Color::Rgb(50, 55, 65)))), Rect::new(slot.x + 2, slot.y, 2, 1));
                     
-                    let gauge_area = Rect::new(core_area.x + 3, core_area.y, core_area.width.saturating_sub(3), 1);
-                    let filled = (usage / 100.0 * gauge_area.width as f32) as u16;
-                    let bar = format!("{}{}", "█".repeat(filled as usize), "░".repeat(gauge_area.width.saturating_sub(filled) as usize));
-                    f.render_widget(Paragraph::new(Span::styled(bar, Style::default().fg(color))), gauge_area);
+                    // Thin Thread Gauge
+                    let thread_w = slot.width.saturating_sub(6);
+                    let filled = (usage / 100.0 * thread_w as f32) as u16;
+                    let thread = format!("{}{}", "─".repeat(filled as usize), " ".repeat(thread_w.saturating_sub(filled) as usize));
+                    f.render_widget(Paragraph::new(Span::styled(thread, Style::default().fg(color))), Rect::new(slot.x + 5, slot.y, thread_w, 1));
                     
-                    // Mini Sparkline under gauge
+                    // Micro Pulse Line
                     if idx < app.system_state.core_history.len() {
-                        let spark_area = Rect::new(core_area.x + 3, core_area.y + 1, gauge_area.width, 2);
-                        f.render_widget(Sparkline::default().data(&app.system_state.core_history[idx]).style(Style::default().fg(color).add_modifier(Modifier::DIM)), spark_area);
+                        f.render_widget(Sparkline::default().data(&app.system_state.core_history[idx]).style(Style::default().fg(color).add_modifier(Modifier::DIM)), Rect::new(slot.x + 5, slot.y + 1, thread_w, 1));
                     }
                 }
             }
         }
     }
 
-    // --- 3. SYSTEM PULSE SIDEBAR ---
+    // --- 3. FLOATING SIDEBAR ---
+    let right_area = main_layout[1].inner(ratatui::layout::Margin { horizontal: 1, vertical: 0 });
     let right_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(10), // OS Info
-            Constraint::Length(12), // Network HUD
-            Constraint::Min(0),     // Storage HUD
+            Constraint::Length(8),  // Info
+            Constraint::Length(10), // Network
+            Constraint::Min(0),     // Storage
         ])
-        .split(main_layout[1]);
+        .split(right_area);
 
-    // OS Info Card
-    let os_info = vec![
-        Line::from(vec![Span::styled("󰣇 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::styled(&app.system_state.hostname, Style::default().add_modifier(Modifier::BOLD))]),
+    // Host Identity
+    let host_info = vec![
+        Line::from(vec![Span::styled("󰣇 ", Style::default().fg(Color::Rgb(0, 180, 255))), Span::styled(&app.system_state.hostname, Style::default().add_modifier(Modifier::BOLD))]),
         Line::from(vec![Span::styled("󰔠 ", Style::default().fg(Color::Rgb(255, 200, 0))), Span::raw(format!("{}d {}h", app.system_state.uptime / 86400, (app.system_state.uptime % 86400) / 3600))]),
-        Line::from(vec![Span::styled("󰌢 ", Style::default().fg(Color::DarkGray)), Span::raw(&app.system_state.kernel_version)]).style(Style::default().fg(Color::DarkGray)),
-        Line::from(vec![Span::styled("󰏗 ", Style::default().fg(Color::DarkGray)), Span::raw(&app.system_state.os_name)]),
+        Line::from(Span::styled(&app.system_state.kernel_version, Style::default().fg(Color::Rgb(60, 65, 75)))),
     ];
-    f.render_widget(Paragraph::new(os_info).block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(40, 40, 45)))), right_chunks[0]);
+    f.render_widget(Paragraph::new(host_info), right_chunks[0]);
 
-    // Network Flow HUD
-    let net_block = Block::default()
-        .title(Span::styled(" 󰛳 NETWORK FLOW ", Style::default().fg(Color::Rgb(100, 100, 110)).add_modifier(Modifier::BOLD)))
-        .borders(Borders::LEFT | Borders::TOP)
-        .border_style(Style::default().fg(Color::Rgb(40, 40, 45)));
-    let net_inner = net_block.inner(right_chunks[1]);
-    f.render_widget(net_block, right_chunks[1]);
-
+    // Floating Network HUD
+    let net_inner = right_chunks[1].inner(ratatui::layout::Margin { horizontal: 1, vertical: 0 });
     let net_sub = Layout::default().direction(Direction::Vertical).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(net_inner);
     
-    // Download
-    let in_text = format!(" ↓ {:>8}/s ", format_size(app.system_state.net_in_history.last().cloned().unwrap_or(0)));
-    f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(in_text, Style::default().fg(Color::Rgb(0, 255, 150))))).data(&app.system_state.net_in_history).style(Style::default().fg(Color::Rgb(0, 255, 150))), net_sub[0]);
-    
-    // Upload
-    let out_text = format!(" ↑ {:>8}/s ", format_size(app.system_state.net_out_history.last().cloned().unwrap_or(0)));
-    f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(out_text, Style::default().fg(Color::Rgb(0, 180, 255))))).data(&app.system_state.net_out_history).style(Style::default().fg(Color::Rgb(0, 180, 255))), net_sub[1]);
+    f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(format!("↓ {:>8}/s", format_size(app.system_state.net_in_history.last().cloned().unwrap_or(0))), Style::default().fg(Color::Rgb(0, 255, 150))))).data(&app.system_state.net_in_history).style(Style::default().fg(Color::Rgb(0, 255, 150))), net_sub[0]);
+    f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(format!("↑ {:>8}/s", format_size(app.system_state.net_out_history.last().cloned().unwrap_or(0))), Style::default().fg(Color::Rgb(0, 180, 255))))).data(&app.system_state.net_out_history).style(Style::default().fg(Color::Rgb(0, 180, 255))), net_sub[1]);
 
-    // Storage Stack HUD
-    let storage_block = Block::default()
-        .title(Span::styled(" 󰋊 STORAGE HUD ", Style::default().fg(Color::Rgb(100, 100, 110)).add_modifier(Modifier::BOLD)))
-        .borders(Borders::LEFT | Borders::TOP)
-        .border_style(Style::default().fg(Color::Rgb(40, 40, 45)));
-    let storage_inner = storage_block.inner(right_chunks[2]);
-    f.render_widget(storage_block, right_chunks[2]);
-
+    // Minimal Storage HUD
     let disk_list: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let ratio = (disk.used_space / disk.total_space).clamp(0.0, 1.0);
         let color = if ratio > 0.9 { Color::Rgb(255, 50, 50) } else if ratio > 0.7 { Color::Rgb(255, 150, 0) } else { Color::Rgb(0, 255, 150) };
-        
-        let filled = (ratio * 12.0) as usize;
-        let bar = format!("{}{}", "█".repeat(filled), " ".repeat(12 - filled));
+        let filled = (ratio * 10.0) as usize;
+        let bar = format!("{}{}", "━".repeat(filled), "─".repeat(10 - filled));
         
         ListItem::new(vec![
-            Line::from(vec![
-                Span::styled("󰋊 ", Style::default().fg(color)),
-                Span::styled(&disk.name, Style::default().add_modifier(Modifier::BOLD)),
-            ]),
-            Line::from(vec![
-                Span::styled(format!(" [{}] ", bar), Style::default().fg(Color::Rgb(40, 45, 55))),
-                Span::styled(format!("{:.0}%", ratio * 100.0), Style::default().fg(Color::White)),
-            ]),
-            Line::from(Span::styled(format!("  {} / {}", format_size(disk.used_space as u64), format_size(disk.total_space as u64)), Style::default().fg(Color::DarkGray))),
+            Line::from(vec![Span::styled("󰋊 ", Style::default().fg(color)), Span::styled(&disk.name, Style::default().fg(Color::White))]),
+            Line::from(vec![Span::styled(bar, Style::default().fg(color)), Span::styled(format!(" {:.0}%", ratio * 100.0), Style::default().fg(Color::DarkGray))]),
             Line::from(""),
         ])
     }).collect();
-    f.render_widget(List::new(disk_list), storage_inner);
+    f.render_widget(List::new(disk_list).block(Block::default().title(Span::styled(" 󰋊 STORAGE ", Style::default().fg(Color::Rgb(60, 65, 75)).add_modifier(Modifier::BOLD)))), right_chunks[2]);
 }
 
 fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
