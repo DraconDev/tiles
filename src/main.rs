@@ -2470,6 +2470,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 MouseEventKind::ScrollUp => {
                     if let AppMode::Settings = app.mode {
                         app.settings_scroll = app.settings_scroll.saturating_sub(2);
+                    } else if app.current_view == CurrentView::Processes {
+                        if let Some(sel) = app.process_selected_idx {
+                            if sel > 0 {
+                                app.process_selected_idx = Some(sel.saturating_sub(3));
+                                app.process_table_state.select(app.process_selected_idx);
+                            }
+                        }
                     } else if let Some(fs) = app.current_file_state_mut() {
                         let new_offset = fs.table_state.offset().saturating_sub(3);
                         *fs.table_state.offset_mut() = new_offset;
@@ -2479,6 +2486,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 MouseEventKind::ScrollDown => {
                     if let AppMode::Settings = app.mode {
                         app.settings_scroll = app.settings_scroll.saturating_add(2);
+                    } else if app.current_view == CurrentView::Processes {
+                        let max_idx = app.system_state.processes.len().saturating_sub(1);
+                        if let Some(sel) = app.process_selected_idx {
+                            if sel < max_idx {
+                                app.process_selected_idx = Some(std::cmp::min(sel + 3, max_idx));
+                                app.process_table_state.select(app.process_selected_idx);
+                            }
+                        }
                     } else if let Some(fs) = app.current_file_state_mut() {
                         let max_offset = fs.files.len().saturating_sub(fs.view_height.saturating_sub(4));
                         let new_offset = (fs.table_state.offset() + 3).min(max_offset);
