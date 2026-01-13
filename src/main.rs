@@ -2389,6 +2389,26 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 _ => {} 
             }
         }
+        Event::Paste(text) => {
+            if let AppMode::Editor = app.mode {
+                if let Some(preview) = &mut app.editor_state {
+                    if let Some(editor) = &mut preview.editor {
+                        for c in text.chars() {
+                            editor.handle_event(&Event::Key(terma::input::event::KeyEvent {
+                                code: KeyCode::Char(c),
+                                modifiers: terma::input::event::KeyModifiers::empty(),
+                                kind: terma::input::event::KeyEventKind::Press,
+                            }), ratatui::layout::Rect::new(0, 0, app.terminal_size.0, app.terminal_size.1));
+                        }
+                        if app.auto_save {
+                            let _ = event_tx.try_send(AppEvent::SaveFile(preview.path.clone(), editor.get_content()));
+                            editor.modified = false;
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
         _ => {} 
     }
     false
