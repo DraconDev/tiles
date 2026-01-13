@@ -200,44 +200,170 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     // Force true color pure black background
     f.render_widget(Block::default().style(Style::default().bg(Color::Rgb(0, 0, 0))), f.area());
 
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)])
-        .split(f.area());
-
     let is_processes = app.current_view == CurrentView::Processes;
-    let workspace_constraints = if app.show_sidebar && !is_processes {
-        [Constraint::Percentage(app.sidebar_width_percent), Constraint::Min(0)]
+
+    if is_processes {
+        draw_monitor_page(f, f.area(), app);
     } else {
-        [Constraint::Percentage(0), Constraint::Min(0)]
-    };
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)])
+            .split(f.area());
 
-    let workspace = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(workspace_constraints)
-        .split(chunks[1]);
+        let workspace_constraints = if app.show_sidebar {
+            [Constraint::Percentage(app.sidebar_width_percent), Constraint::Min(0)]
+        } else {
+            [Constraint::Percentage(0), Constraint::Min(0)]
+        };
 
-    draw_global_header(f, chunks[0], workspace[0].width, app);
-    if app.show_sidebar && !is_processes {
-        draw_sidebar(f, workspace[0], app);
+        let workspace = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(workspace_constraints)
+            .split(chunks[1]);
+
+        draw_global_header(f, chunks[0], workspace[0].width, app);
+        if app.show_sidebar {
+            draw_sidebar(f, workspace[0], app);
+        }
+        draw_main_stage(f, workspace[1], app);
+        draw_footer(f, chunks[2], app);
     }
-    draw_main_stage(f, workspace[1], app);
-    draw_footer(f, chunks[2], app);
 
     if let AppMode::ContextMenu { x, y, ref target, .. } = app.mode { draw_context_menu(f, x, y, target, app); }
-    if matches!(app.mode, AppMode::Highlight) { draw_highlight_modal(f, app); }
-    if matches!(app.mode, AppMode::Rename) { draw_rename_modal(f, app); }
-    if matches!(app.mode, AppMode::Delete) { draw_delete_modal(f, app); }
-    if matches!(app.mode, AppMode::Properties) { draw_properties_modal(f, app); }
-    if matches!(app.mode, AppMode::NewFolder) { draw_new_folder_modal(f, app); }
-    if matches!(app.mode, AppMode::NewFile) { draw_new_file_modal(f, app); }
-    if matches!(app.mode, AppMode::Settings) { draw_settings_modal(f, app); }
-    if matches!(app.mode, AppMode::CommandPalette) { draw_command_palette(f, app); }
-    if matches!(app.mode, AppMode::AddRemote(_)) { draw_add_remote_modal(f, app); }
-    if matches!(app.mode, AppMode::ImportServers) { draw_import_servers_modal(f, app); }
-          if let AppMode::OpenWith(path) = &app.mode { draw_open_with_modal(f, app, path); }
-          if matches!(app.mode, AppMode::Engage) { draw_editor_overlay(f, app); }
-      }
+    // ... rest of modals ...
+}
+
+fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(area);
+
+    // Monitor Navigation Bar
+    let nav_block = Block::default()
+        .borders(Borders::BOTTOM)
+        .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
+    let nav_inner = nav_block.inner(chunks[0]);
+    f.render_widget(nav_block, chunks[0]);
+
+    let subviews = [
+        (MonitorSubview::Overview, " Overview "),
+        (MonitorSubview::Applications, " Applications "),
+        (MonitorSubview::History, " History "),
+        (MonitorSubview::Processes, " Processes "),
+    ];
+
+    app.monitor_subview_bounds.clear();
+    let mut cur_x = nav_inner.x + 1;
+    
+    for (view, label) in subviews {
+        let is_active = app.monitor_subview == view;
+        let width = label.len() as u16;
+        let rect = Rect::new(cur_x, nav_inner.y, width, 1);
+        
+        let mut style = if is_active {
+            Style::default().fg(Color::Rgb(61, 174, 233)).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::DarkGray)
+        };
+
+        // Hover effect
+        if app.mouse_pos.1 == nav_inner.y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width {
+            style = style.fg(Color::White).bg(Color::Rgb(40, 40, 40));
+        }
+
+        f.render_widget(Paragraph::new(label), rect);
+        if is_active {
+            // Draw an underline for active tab
+            f.render_widget(Paragraph::new("▔".repeat(width as usize)).style(Style::default().fg(Color::Rgb(61, 174, 233))), Rect::new(rect.x, rect.y + 1, rect.width, 1));
+        }
+
+        app.monitor_subview_bounds.push((rect, view));
+        cur_x += width + 2;
+    }
+
+    // Exit Button / Close icon on the far right
+    let exit_text = " [X] Close ";
+    let exit_rect = Rect::new(area.width.saturating_sub(exit_text.len() as u16 + 1), nav_inner.y, exit_text.len() as u16, 1);
+    let mut exit_style = Style::default().fg(Color::Red);
+    if app.mouse_pos.1 == exit_rect.y && app.mouse_pos.0 >= exit_rect.x && app.mouse_pos.0 < exit_rect.x + exit_rect.width {
+        exit_style = exit_style.bg(Color::Rgb(60, 0, 0));
+    }
+    f.render_widget(Paragraph::new(exit_text).style(exit_style), exit_rect);
+
+    let content_area = chunks[1];
+    match app.monitor_subview {
+        MonitorSubview::Overview => draw_monitor_overview(f, content_area, app),
+        MonitorSubview::Processes => draw_processes_view(f, content_area, app),
+        MonitorSubview::History => draw_monitor_history(f, content_area, app),
+        MonitorSubview::Applications => draw_monitor_applications(f, content_area, app),
+    }
+}
+
+fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
+    // A simplified view with main stats
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(area);
+    
+    // Top: Large CPU Gauge
+    let cpu_block = Block::default().title(" CPU Overview ").borders(Borders::ALL).border_type(BorderType::Rounded);
+    let cpu_inner = cpu_block.inner(chunks[0]);
+    f.render_widget(cpu_block, chunks[0]);
+    
+    let cpu_gauge = Gauge::default()
+        .block(Block::default().borders(Borders::NONE))
+        .gauge_style(Style::default().fg(Color::Rgb(46, 204, 113)))
+        .ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0) as f64)
+        .label(format!("Total CPU Usage: {:.1}%", app.system_state.cpu_usage));
+    f.render_widget(cpu_gauge, centered_rect(80, 20, cpu_inner));
+
+    // Bottom: Large Memory Gauge
+    let mem_block = Block::default().title(" Memory Overview ").borders(Borders::ALL).border_type(BorderType::Rounded);
+    let mem_inner = mem_block.inner(chunks[1]);
+    f.render_widget(mem_block, chunks[1]);
+
+    let mem_used = app.system_state.mem_usage;
+    let mem_total = app.system_state.total_mem;
+    let mem_ratio = if mem_total > 0.0 { (mem_used / mem_total).clamp(0.0, 1.0) } else { 0.0 };
+
+    let mem_gauge = Gauge::default()
+        .block(Block::default().borders(Borders::NONE))
+        .gauge_style(Style::default().fg(Color::Rgb(155, 89, 182)))
+        .ratio(mem_ratio)
+        .label(format!("Memory Used: {:.1} GB / {:.1} GB ({:.1}%)", mem_used, mem_total, mem_ratio * 100.0));
+    f.render_widget(mem_gauge, centered_rect(80, 20, mem_inner));
+}
+
+fn draw_monitor_history(f: &mut Frame, area: Rect, app: &mut App) {
+    // Full screen history charts
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(area);
+
+    let cpu_data: Vec<u64> = app.system_state.cpu_history.iter().copied().collect();
+    let cpu_spark = Sparkline::default()
+        .block(Block::default().title(" CPU Load History ").borders(Borders::ALL))
+        .data(&cpu_data)
+        .style(Style::default().fg(Color::Cyan));
+    f.render_widget(cpu_spark, chunks[0]);
+
+    let mem_data: Vec<u64> = app.system_state.mem_history.iter().copied().collect();
+    let mem_spark = Sparkline::default()
+        .block(Block::default().title(" Memory Usage History ").borders(Borders::ALL))
+        .data(&mem_data)
+        .style(Style::default().fg(Color::Magenta));
+    f.render_widget(mem_spark, chunks[1]);
+}
+
+fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
+    // Filter processes that look like "applications" (e.g. have a UI or are common desktop apps)
+    // For now, let's just reuse processes but filtered/sorted differently
+    f.render_widget(Paragraph::new("Applications view placeholder - filtering desktop apps...").block(Block::default().borders(Borders::ALL)), area);
+}
+
 fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
     let area = centered_rect(60, 20, f.area());
     f.render_widget(Clear, area);
