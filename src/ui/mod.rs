@@ -341,24 +341,22 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     ];
 
     // Center the icons above the sidebar area
-    let total_icons_width: u16 = icons.iter().map(|(icon, _)| icon.len() as u16).sum::<u16>() + (icons.len() as u16 - 1) * 2;
+    let total_icons_width: u16 = icons.len() as u16 * 3; // 1 space + 1 icon + 1 space
     let mut cur_icon_x = area.x + (sidebar_width.saturating_sub(total_icons_width) / 2);
     
     for (i, (icon, id)) in icons.into_iter().enumerate() {
-        let width = icon.len() as u16;
-        let rect = Rect::new(cur_icon_x, area.y, width, 1);
+        let rect = Rect::new(cur_icon_x, area.y, 3, 1);
         
         let mut style = Style::default().fg(THEME.accent_secondary);
         if let AppMode::Header(idx) = app.mode {
             if idx == i {
-                // Tactical highlight with 1 cell padding visually
                 style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
             }
         }
 
-        f.render_widget(Paragraph::new(icon).style(style), rect);
+        f.render_widget(Paragraph::new(format!(" {} ", icon)).style(style), rect);
         app.header_icon_bounds.push((rect, id.to_string()));
-        cur_icon_x += width + 2; // Spacing between icons
+        cur_icon_x += 3; 
     }
 
     if pane_count == 0 { return; }
