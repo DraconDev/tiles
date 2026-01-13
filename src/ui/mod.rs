@@ -498,10 +498,25 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                     if let Some((ref cb_path, op)) = app.clipboard { if op == crate::app::ClipboardOp::Cut && cb_path == path { final_style = final_style.add_modifier(Modifier::DIM); } }
                     let icon = if is_dir { Icon::Folder.get(app.icon_mode) } 
                               else { match crate::modules::files::get_file_category(path) { FileCategory::Archive => Icon::Archive.get(app.icon_mode), FileCategory::Image => Icon::Image.get(app.icon_mode), FileCategory::Audio => Icon::Audio.get(app.icon_mode), FileCategory::Video => Icon::Video.get(app.icon_mode), FileCategory::Script => Icon::Script.get(app.icon_mode), FileCategory::Document => Icon::Document.get(app.icon_mode), _ => Icon::File.get(app.icon_mode) } };
-                    let mut dn = if i > file_state.local_count { let fs = path.to_string_lossy(); if fs.starts_with("/home/dracon") { fs.replacen("/home/dracon", "~", 1) } else { fs.to_string() } } else { name.to_string() };
-                    if app.starred.contains(path) { dn.push_str(" [*]"); }
-                    dn.push(' ');
-                    if dn.len() > name_col_width && name_col_width > 5 { let kl = name_col_width - 3; dn = format!("...{}", &dn[dn.len() - kl..]); }
+                    let mut dn = if i > file_state.local_count {
+                        let fs = path.to_string_lossy();
+                        if fs.starts_with("/home/dracon") {
+                            fs.replacen("/home/dracon", "~", 1)
+                        } else {
+                            fs.to_string()
+                        }
+                    } else {
+                        name.to_string()
+                    };
+
+                    if app.starred.contains(path) {
+                        dn.push_str(" [*]");
+                    }
+
+                    if dn.len() > name_col_width && name_col_width > 5 {
+                        let kl = name_col_width.saturating_sub(4);
+                        dn = format!("{}...", &dn[..kl]);
+                    }
                     Cell::from(format!("{}{}", icon, dn)).style(final_style)
                 }
                 FileColumn::Size => { let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false); let style = if is_dir { Style::default().fg(THEME.accent_secondary) } else { Style::default().fg(THEME.fg) }; if is_dir { Cell::from("<DIR>").style(style) } else { Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))).style(style) } }
