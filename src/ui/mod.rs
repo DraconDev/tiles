@@ -516,7 +516,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         let name_col_width = column_layout.get(0).map(|r| r.width as usize).unwrap_or(20);
 
         let header_cells = file_state.columns.iter().enumerate().map(|(_i, c)| {
-            let base_name = match c; {
+            let base_name = match c { 
                 FileColumn::Name => "Name", 
                 FileColumn::Size => "Size", 
                 FileColumn::Modified => "Modified", 
