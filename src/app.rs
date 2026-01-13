@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 use terma::compositor::engine::TilePlacement;
 use terma::input::event::Event as TermaEvent;
 use terma::widgets::TextInput;
+pub use terma::system::{DiskInfo, ProcessInfo, SystemData};
 
 #[derive(Clone, Debug)]
 pub enum AppEvent {
