@@ -641,10 +641,12 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     // 3. Right Section: CPU/MEM Stats
-    let cpu_bar = draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0, THEME.fg);
-    let mem_usage = (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) as f32 * 100.0;
-    let mem_bar = draw_stat_bar("MEM", mem_usage, 100.0, THEME.fg);
     let stats_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(chunks[2]);
+    
+    let cpu_bar = draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0, stats_layout[0].width, THEME.fg);
+    let mem_usage = (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) as f32 * 100.0;
+    let mem_bar = draw_stat_bar("MEM", mem_usage, 100.0, stats_layout[1].width, THEME.fg);
+    
     f.render_widget(Paragraph::new(cpu_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[0]);
     f.render_widget(Paragraph::new(mem_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[1]);
 }
