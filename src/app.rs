@@ -367,8 +367,6 @@ pub struct PreviewState {
 pub struct Pane {
     pub tabs: Vec<FileState>,
     pub active_tab_index: usize,
-    #[serde(skip)]
-    pub preview: Option<PreviewState>,
 }
 
 impl Pane {
@@ -376,7 +374,6 @@ impl Pane {
         Self {
             tabs: vec![initial_state],
             active_tab_index: 0,
-            preview: None,
         }
     }
 
@@ -472,6 +469,7 @@ pub struct App {
     pub ignore_resize_until: Option<std::time::Instant>,
     pub last_action_msg: Option<(String, std::time::Instant)>,
     pub pending_remote: RemoteBookmark,
+    pub editor_state: Option<PreviewState>,
 
     // Undo/Redo
     pub undo_stack: Vec<UndoAction>,
