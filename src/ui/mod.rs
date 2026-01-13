@@ -312,43 +312,68 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
-    // A simplified view with main stats
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(34)])
         .split(area);
     
-    // Top: Large CPU Gauge
-    let cpu_block = Block::default().title(" CPU Overview ").borders(Borders::ALL).border_type(BorderType::Rounded);
+    // 1. CPU Overview
+    let cpu_block = Block::default().title(" CPU Load ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(46, 204, 113)));
     let cpu_inner = cpu_block.inner(chunks[0]);
     f.render_widget(cpu_block, chunks[0]);
     
+    let cpu_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(30), Constraint::Min(0)]).split(cpu_inner);
     let cpu_gauge = Gauge::default()
-        .block(Block::default().borders(Borders::NONE))
         .gauge_style(Style::default().fg(Color::Rgb(46, 204, 113)))
         .ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0) as f64)
-        .label(format!("Total CPU Usage: {:.1}%", app.system_state.cpu_usage));
-    f.render_widget(cpu_gauge, centered_rect(80, 20, cpu_inner));
+        .label(format!("{:.1}%", app.system_state.cpu_usage));
+    f.render_widget(cpu_gauge, centered_rect(90, 40, cpu_layout[0]));
+    
+    let cpu_data: Vec<u64> = app.system_state.cpu_history.iter().copied().collect();
+    let cpu_spark = Sparkline::default().data(&cpu_data).style(Style::default().fg(Color::Rgb(46, 204, 113)));
+    f.render_widget(cpu_spark, cpu_layout[1]);
 
-    // Bottom: Large Memory Gauge
-    let mem_block = Block::default().title(" Memory Overview ").borders(Borders::ALL).border_type(BorderType::Rounded);
+    // 2. Memory Overview
+    let mem_block = Block::default().title(" Memory Usage ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(155, 89, 182)));
     let mem_inner = mem_block.inner(chunks[1]);
     f.render_widget(mem_block, chunks[1]);
 
+    let mem_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(30), Constraint::Min(0)]).split(mem_inner);
     let mem_used = app.system_state.mem_usage;
     let mem_total = app.system_state.total_mem;
     let mem_ratio = if mem_total > 0.0 { (mem_used / mem_total).clamp(0.0, 1.0) } else { 0.0 };
-
     let mem_gauge = Gauge::default()
-        .block(Block::default().borders(Borders::NONE))
         .gauge_style(Style::default().fg(Color::Rgb(155, 89, 182)))
         .ratio(mem_ratio)
-        .label(format!("Memory Used: {:.1} GB / {:.1} GB ({:.1}%)", mem_used, mem_total, mem_ratio * 100.0));
-    f.render_widget(mem_gauge, centered_rect(80, 20, mem_inner));
+        .label(format!("{:.1}%", mem_ratio * 100.0));
+    f.render_widget(mem_gauge, centered_rect(90, 40, mem_layout[0]));
+
+    let mem_data: Vec<u64> = app.system_state.mem_history.iter().copied().collect();
+    let mem_spark = Sparkline::default().data(&mem_data).style(Style::default().fg(Color::Rgb(155, 89, 182)));
+    f.render_widget(mem_spark, mem_layout[1]);
+
+    // 3. Storage Overview
+    let storage_block = Block::default().title(" Disks ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(241, 196, 15)));
+    let storage_inner = storage_block.inner(chunks[2]);
+    f.render_widget(storage_block, chunks[2]);
+
+    let disk_count = app.system_state.disks.len().max(1);
+    let disk_constraints = vec![Constraint::Percentage(100 / disk_count as u16); disk_count];
+    let disk_layout = Layout::default().direction(Direction::Horizontal).constraints(disk_constraints).split(storage_inner);
+
+    for (i, disk) in app.system_state.disks.iter().enumerate() {
+        if i >= disk_layout.len() { break; }
+        let ratio = (disk.used_space / disk.total_space).clamp(0.0, 1.0);
+        let label = format!("{} ({:.0}%)", disk.name, ratio * 100.0);
+        let gauge = Gauge::default()
+            .block(Block::default().title(label))
+            .gauge_style(Style::default().fg(if ratio > 0.9 { Color::Red } else { Color::Rgb(241, 196, 15) }))
+            .ratio(ratio);
+        f.render_widget(gauge, disk_layout[i]);
+    }
 }
 
 fn draw_monitor_history(f: &mut Frame, area: Rect, app: &mut App) {
-    // Full screen history charts
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -356,23 +381,66 @@ fn draw_monitor_history(f: &mut Frame, area: Rect, app: &mut App) {
 
     let cpu_data: Vec<u64> = app.system_state.cpu_history.iter().copied().collect();
     let cpu_spark = Sparkline::default()
-        .block(Block::default().title(" CPU Load History ").borders(Borders::ALL))
+        .block(Block::default().title(" CPU Load History (Last 100 ticks) ").borders(Borders::ALL).border_style(Style::default().fg(Color::Rgb(46, 204, 113))))
         .data(&cpu_data)
-        .style(Style::default().fg(Color::Cyan));
+        .max(100)
+        .style(Style::default().fg(Color::Rgb(46, 204, 113)));
     f.render_widget(cpu_spark, chunks[0]);
 
     let mem_data: Vec<u64> = app.system_state.mem_history.iter().copied().collect();
     let mem_spark = Sparkline::default()
-        .block(Block::default().title(" Memory Usage History ").borders(Borders::ALL))
+        .block(Block::default().title(" Memory Usage History (Last 100 ticks) ").borders(Borders::ALL).border_style(Style::default().fg(Color::Rgb(155, 89, 182))))
         .data(&mem_data)
-        .style(Style::default().fg(Color::Magenta));
+        .max(100)
+        .style(Style::default().fg(Color::Rgb(155, 89, 182)));
     f.render_widget(mem_spark, chunks[1]);
 }
 
-fn draw_monitor_applications(f: &mut Frame, area: Rect, _app: &mut App) {
-    // Filter processes that look like "applications" (e.g. have a UI or are common desktop apps)
-    // For now, let's just reuse processes but filtered/sorted differently
-    f.render_widget(Paragraph::new("Applications view placeholder - filtering desktop apps...").block(Block::default().borders(Borders::ALL)), area);
+fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
+    // Plasma-like "Applications" view usually focuses on user processes.
+    // We'll filter for processes that aren't 'root' or 'system' and show them in a friendly way.
+    let current_user = std::env::var("USER").unwrap_or_else(|_| "dracon".to_string());
+    
+    let mut app_procs: Vec<_> = app.system_state.processes.iter()
+        .filter(|p| p.user == current_user && !p.name.starts_with('[') && p.cpu > 0.1)
+        .collect();
+
+    // Sort by CPU by default for applications
+    app_procs.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap_or(std::cmp::Ordering::Equal));
+
+    let block = Block::default().title(" Active Applications ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(61, 174, 233)));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    if app_procs.is_empty() {
+        f.render_widget(Paragraph::new("No high-activity user applications detected.").alignment(ratatui::layout::Alignment::Center), centered_rect(60, 10, inner));
+        return;
+    }
+
+    let rows = app_procs.iter().map(|p| {
+        let name_icon = if p.name.to_lowercase().contains("chrome") || p.name.to_lowercase().contains("browser") { "󰈹 " }
+                        else if p.name.to_lowercase().contains("code") || p.name.to_lowercase().contains("vim") { "󰨞 " }
+                        else if p.name.to_lowercase().contains("term") { "󰆍 " }
+                        else { "󰀻 " };
+
+        Row::new(vec![
+            Cell::from(format!("{}{}", name_icon, p.name)).style(Style::default().add_modifier(Modifier::BOLD)),
+            Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(if p.cpu > 20.0 { Color::Red } else { Color::Green })),
+            Cell::from(format!("{:.1} MB", p.mem)).style(Style::default().fg(Color::Cyan)),
+            Cell::from(p.pid.to_string()).style(Style::default().fg(Color::DarkGray)),
+        ])
+    });
+
+    let table = Table::new(rows, [
+        Constraint::Min(30),
+        Constraint::Length(10),
+        Constraint::Length(15),
+        Constraint::Length(10),
+    ])
+    .header(Row::new(vec!["Application", "CPU", "Memory", "PID"]).style(Style::default().add_modifier(Modifier::BOLD)))
+    .column_spacing(2);
+
+    f.render_widget(table, inner);
 }
 
 fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
