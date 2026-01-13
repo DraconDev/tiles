@@ -397,7 +397,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
         Constraint::Length(10),
     ])
     .header(header)
-    .highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD))
+    .row_highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD))
     .column_spacing(1);
 
     f.render_stateful_widget(table, table_inner, &mut app.process_table_state);
