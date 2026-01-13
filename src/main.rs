@@ -2871,7 +2871,30 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                 }
                                 MouseEventKind::Up(_) => {
-                                    if let Some(_) = app.is_resizing_column.take() {
+                                    if let Some((pane_idx, col)) = app.is_resizing_column.take() {
+                                        let mut is_click = true;
+                                        if let Some((sx, _)) = app.drag_start_pos {
+                                            if (column as i16 - sx as i16).abs() > 1 {
+                                                is_click = false;
+                                            }
+                                        }
+
+                                        if is_click {
+                                            if let Some(pane) = app.panes.get_mut(pane_idx) {
+                                                if let Some(fs) = pane.current_state_mut() {
+                                                    if fs.sort_column == col {
+                                                        fs.sort_ascending = !fs.sort_ascending;
+                                                    } else {
+                                                        fs.sort_column = col;
+                                                        fs.sort_ascending = true;
+                                                    }
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
+                                                }
+                                            }
+                                        }
+
+                                        app.is_dragging = false;
+                                        app.drag_start_pos = None;
                                         let _ = crate::config::save_state(app);
                                         return true;
                                     }
