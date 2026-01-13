@@ -2069,6 +2069,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 }
                                 return true;
                             }
+                            KeyCode::Char(c) if !has_control => {
+                                app.process_search_filter.push(c);
+                                app.process_selected_idx = Some(0);
+                                app.apply_process_sort();
+                                return true;
+                            }
+                            KeyCode::Backspace => {
+                                app.process_search_filter.pop();
+                                app.process_selected_idx = Some(0);
+                                app.apply_process_sort();
+                                return true;
+                            }
                             _ => {}
                         }
                     }
