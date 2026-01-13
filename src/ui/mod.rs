@@ -378,7 +378,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::ContextMenuTarget, app: &App) {
-    let actions = crate::ui::layout::get_context_menu_actions(target, app);
+    let actions = get_context_menu_actions(target, app);
     let items: Vec<ListItem> = actions.iter().map(|a| ListItem::new(format!("{:?}", a))).collect();
     let area = Rect::new(x, y, 25, (items.len() + 2) as u16);
     f.render_widget(Clear, area);
