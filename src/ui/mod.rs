@@ -155,6 +155,12 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         ])
         .split(main_layout[0]);
 
+    // --- 1. SYSTEM VITALITY (Top Heartbeat) ---
+    let metrics_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(34)])
+        .split(left_chunks[0]);
+
     let draw_vitality = |f: &mut Frame, area: Rect, label: &str, cur: f32, total: f32, unit: &str, history: &[u64]| {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
