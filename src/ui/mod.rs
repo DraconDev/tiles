@@ -230,7 +230,18 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     }
 
     if let AppMode::ContextMenu { x, y, ref target, .. } = app.mode { draw_context_menu(f, x, y, target, app); }
-    // ... rest of modals ...
+    if matches!(app.mode, AppMode::Highlight) { draw_highlight_modal(f, app); }
+    if matches!(app.mode, AppMode::Rename) { draw_rename_modal(f, app); }
+    if matches!(app.mode, AppMode::Delete) { draw_delete_modal(f, app); }
+    if matches!(app.mode, AppMode::Properties) { draw_properties_modal(f, app); }
+    if matches!(app.mode, AppMode::NewFolder) { draw_new_folder_modal(f, app); }
+    if matches!(app.mode, AppMode::NewFile) { draw_new_file_modal(f, app); }
+    if matches!(app.mode, AppMode::Settings) { draw_settings_modal(f, app); }
+    if matches!(app.mode, AppMode::CommandPalette) { draw_command_palette(f, app); }
+    if matches!(app.mode, AppMode::AddRemote(_)) { draw_add_remote_modal(f, app); }
+    if matches!(app.mode, AppMode::ImportServers) { draw_import_servers_modal(f, app); }
+    if let AppMode::OpenWith(path) = &app.mode { draw_open_with_modal(f, app, path); }
+    if matches!(app.mode, AppMode::Engage) { draw_editor_overlay(f, app); }
 }
 
 fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
