@@ -2,23 +2,17 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Scrollbar, ScrollbarOrientation, ScrollbarState, Sparkline, Gauge},
+    widgets::{Block, BorderType, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Sparkline},
     Frame,
 };
-use std::collections::HashMap;
 
-use crate::app::{App, AppMode, CurrentView, MonitorSubview, FileColumn, ProcessColumn, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory, ContextMenuAction, ContextMenuTarget};
+use crate::app::{App, CurrentView, MonitorSubview, FileColumn, ProcessColumn, SidebarTarget, SidebarBounds, DropTarget};
 use crate::ui::theme::THEME;
 use crate::icons::Icon;
-use terma::layout::centered_rect;
-use terma::utils::{format_size, format_time, format_permissions, format_datetime_smart, highlight_code, draw_stat_bar};
+use terma::utils::{format_size, draw_stat_bar};
 
 pub mod theme;
 pub mod layout;
-
-pub fn get_context_menu_actions(_target: &ContextMenuTarget, _app: &App) -> Vec<ContextMenuAction> {
-    vec![]
-}
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
@@ -28,7 +22,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
 
-            let mut active_storage_markers: HashMap<String, Vec<usize>> = HashMap::new();
+            let mut active_storage_markers: std::collections::HashMap<String, Vec<usize>> = std::collections::HashMap::new();
             
             for (p_idx, pane) in app.panes.iter().enumerate() {
                 let panel_num = p_idx + 1;
@@ -99,10 +93,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         draw_footer(f, chunks[2], app);
     }
 
-    if matches!(app.mode, AppMode::Rename) { draw_rename_modal(f, app); }
-    if matches!(app.mode, AppMode::Delete) { draw_delete_modal(f, app); }
-    if matches!(app.mode, AppMode::NewFolder) { draw_new_folder_modal(f, app); }
-    if matches!(app.mode, AppMode::NewFile) { draw_new_file_modal(f, app); }
+    if matches!(app.mode, crate::app::AppMode::Rename) { draw_rename_modal(f, app); }
+    if matches!(app.mode, crate::app::AppMode::Delete) { draw_delete_modal(f, app); }
+    if matches!(app.mode, crate::app::AppMode::NewFolder) { draw_new_folder_modal(f, app); }
+    if matches!(app.mode, crate::app::AppMode::NewFile) { draw_new_file_modal(f, app); }
 }
 
 fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
@@ -432,18 +426,20 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
 
     let rows = app.system_state.processes.iter().enumerate().map(|(i, p)| {
         let mut style = if i % 2 == 0 { Style::default().bg(Color::Rgb(15, 17, 20)) } else { Style::default() };
+        let mut is_selected = false;
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Processes { 
             style = style.bg(Color::Rgb(61, 174, 233)).fg(Color::Black).add_modifier(Modifier::BOLD); 
+            is_selected = true;
         }
         
         let cpu_color = if p.cpu > 50.0 { Color::Red } else if p.cpu > 10.0 { Color::Yellow } else { Color::Rgb(0, 255, 150) };
 
         Row::new(vec![
-            Cell::from(p.pid.to_string()).style(Style::default().fg(Color::DarkGray)),
+            Cell::from(p.pid.to_string()).style(Style::default().fg(if is_selected { Color::Black } else { Color::DarkGray })),
             Cell::from(p.name.clone()).style(Style::default().add_modifier(Modifier::BOLD)),
-            Cell::from(p.user.clone()).style(Style::default().fg(Color::Rgb(61, 174, 233))),
+            Cell::from(p.user.clone()).style(Style::default().fg(if is_selected { Color::Black } else { Color::Rgb(61, 174, 233) })),
             Cell::from(p.status.clone()),
-            Cell::from(format!("{:.1}", p.cpu)).style(Style::default().fg(if app.process_selected_idx == Some(i) { Color::Black } else { cpu_color })),
+            Cell::from(format!("{:.1}", p.cpu)).style(Style::default().fg(if is_selected { Color::Black } else { cpu_color })),
             Cell::from(format!("{:.1}", p.mem)),
         ]).style(style)
     });
@@ -457,20 +453,34 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
-    let icons = vec![(Icon::Burger.get(app.icon_mode), "burger", "Settings"), (Icon::Back.get(app.icon_mode), "back", "Back"), (Icon::Forward.get(app.icon_mode), "forward", "Forward"), (Icon::Split.get(app.icon_mode), "split", "Split View"), (Icon::Monitor.get(app.icon_mode), "monitor", "System Monitor")];
+    let icons = vec![
+        (Icon::Burger.get(app.icon_mode), "burger", "Settings"), 
+        (Icon::Back.get(app.icon_mode), "back", "Back"), 
+        (Icon::Forward.get(app.icon_mode), "forward", "Forward"), 
+        (Icon::Split.get(app.icon_mode), "split", "Split View"), 
+        (Icon::Monitor.get(app.icon_mode), "monitor", "System Monitor")
+    ];
     let mut cur_icon_x = area.x + 1;
     app.header_icon_bounds.clear();
     let mut hovered_tip = None;
     for (i, (icon, id, desc)) in icons.iter().enumerate() {
         let rect = Rect::new(cur_icon_x, area.y, 3, 1);
         let is_hovered = app.mouse_pos.1 == area.y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width;
-        let is_kb_focused = matches!(app.mode, AppMode::Header(idx) if idx == i);
+        let is_kb_focused = matches!(app.mode, crate::app::AppMode::Header(idx) if idx == i);
         let mut style = Style::default().fg(THEME.accent_secondary);
-        if is_kb_focused || is_hovered { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); if is_hovered { app.hovered_header_icon = Some(id.to_string()); hovered_tip = Some(desc.to_string()); } }
+        if is_kb_focused || is_hovered { 
+            style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); 
+            if is_hovered { 
+                app.hovered_header_icon = Some(id.to_string()); 
+                hovered_tip = Some(desc.to_string()); 
+            } 
+        }
         f.render_widget(Paragraph::new(format!(" {} ", icon)).style(style), rect);
         app.header_icon_bounds.push((rect, id.to_string())); cur_icon_x += 3;
     }
-    if let Some(desc) = hovered_tip { f.render_widget(Paragraph::new(format!(" [ {} ] ", desc)).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Rect::new(cur_icon_x + 1, area.y, (desc.len() + 6) as u16, 1)); }
+    if let Some(desc) = hovered_tip { 
+        f.render_widget(Paragraph::new(format!(" [ {} ] ", desc)).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Rect::new(cur_icon_x + 1, area.y, (desc.len() + 6) as u16, 1)); 
+    }
     let start_x = if app.show_sidebar { std::cmp::max(area.x + sidebar_width, cur_icon_x + 1) } else { cur_icon_x + 1 };
     let pane_count = app.panes.len();
     if pane_count > 0 {
@@ -483,7 +493,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                 let name = if !tab.search_filter.is_empty() { format!("Search: {}", tab.search_filter) } else { tab.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("/".to_string()) };
                 let is_active = t_i == pane.active_tab_index;
                 let mut style = if is_active { if p_i == app.focused_pane_index && !app.sidebar_focus { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(THEME.accent_primary) } } else { Style::default().fg(Color::DarkGray) };
-                if let AppMode::Header(idx) = app.mode { if idx == global_tab_idx { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); } }
+                if let crate::app::AppMode::Header(idx) = app.mode { if idx == global_tab_idx { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); } }
                 let text = format!(" {} ", name); let width = text.len() as u16;
                 if current_x + width > chunk.x + chunk.width { break; }
                 let rect = Rect::new(current_x, area.y, width, 1);
@@ -531,21 +541,21 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_rename_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
+    let area = terma::layout::centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
     f.render_widget(Paragraph::new(format!("{}", &app.input.value)).block(Block::default().borders(Borders::ALL).title(" Rename ")), area);
 }
 
 fn draw_delete_modal(f: &mut Frame, _app: &App) {
-    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
+    let area = terma::layout::centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
     f.render_widget(Paragraph::new("Confirm Delete? (y/n)").block(Block::default().borders(Borders::ALL).title(" Delete ")), area);
 }
 
 fn draw_new_folder_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
+    let area = terma::layout::centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
     f.render_widget(Paragraph::new(format!("{}", &app.input.value)).block(Block::default().borders(Borders::ALL).title(" New Folder ")), area);
 }
 
 fn draw_new_file_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
+    let area = terma::layout::centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
     f.render_widget(Paragraph::new(format!("{}", &app.input.value)).block(Block::default().borders(Borders::ALL).title(" New File ")), area);
 }
