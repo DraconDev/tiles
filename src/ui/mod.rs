@@ -510,7 +510,14 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         let name_col_width = column_layout.get(0).map(|r| r.width as usize).unwrap_or(20);
 
         let header_cells = file_state.columns.iter().enumerate().map(|(i, c)| {
-            let base_name = match c { FileColumn::Name => "Name", FileColumn::Size => "Size", FileColumn::Modified => "Modified", FileColumn::Permissions => "Permissions" };
+            let base_name = match c { 
+                FileColumn::Name => "Name", 
+                FileColumn::Size => "Size", 
+                FileColumn::Modified => "Modified", 
+                FileColumn::Created => "Created",
+                FileColumn::Extension => "Ext",
+                FileColumn::Permissions => "Permissions" 
+            };
             let name = if *c == file_state.sort_column { if file_state.sort_ascending { format!("{} ▲", base_name) } else { format!("{} ▼", base_name) } } else { base_name.to_string() };
             
             let style = Style::default().fg(THEME.header_fg).add_modifier(Modifier::BOLD);
