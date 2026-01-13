@@ -2950,89 +2950,91 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     }
                                     app.is_dragging = false; app.drag_start_pos = None; app.drag_source = None; app.hovered_drop_target = None;
                                 }
-                                                                  MouseEventKind::Moved | MouseEventKind::Drag(_) => {
-                                                                      app.mouse_pos = (column, row);
-                                
-                                                                      if let Some((pane_idx, col)) = app.is_resizing_column {
-                                                                          if let Some(pane) = app.panes.get_mut(pane_idx) {
-                                                                              if let Some(fs) = pane.current_state_mut() {
-                                                                                  if let Some((rect, _)) = fs.column_bounds.iter().find(|(_, c)| c == &col) {
-                                                                                      let new_width = column.saturating_sub(rect.x);
-                                                                                      if new_width >= 2 {
-                                                                                          fs.column_widths.insert(col, new_width.min(100));
-                                                                                      }
-                                                                                  }
-                                                                              }
-                                                                          }
-                                                                          return true;
-                                                                      }
-                                
-                                                                      if app.is_resizing_sidebar {                                        let (w, _) = app.terminal_size;
-                                        if w > 0 {
-                                            let new_percent = (column as f32 / w as f32 * 100.0) as u16;
-                                            app.sidebar_width_percent = new_percent.clamp(5, 50);
-                                        }
-                                        return true;
-                                    }
-
-                                    // Check if drag has started
-                                    if let Some((sx, sy)) = app.drag_start_pos { if ((column as i16 - sx as i16).pow(2) + (row as i16 - sy as i16).pow(2)) as f32 >= 1.0 { app.is_dragging = true; } } // Threshold for drag start
-                                    // Update hovered drop target
-                                    if app.is_dragging {
-                                        let sidebar_width = app.sidebar_width();
-                                        
-                                        // Live Reorder Logic
-                                        if let Some((sx, _)) = app.drag_start_pos {
-                                            if sx < sidebar_width {
-                                                if let Some(source_path) = &app.drag_source {
-                                                    if let Some(hovered_bound) = app.sidebar_bounds.iter().find(|b| b.y == row).cloned() {
-                                                        if let SidebarTarget::Favorite(target_path) = hovered_bound.target {
-                                                            if source_path != &target_path {
-                                                                if let Some(s_idx) = app.starred.iter().position(|p| p == source_path) {
-                                                                    if let Some(e_idx) = app.starred.iter().position(|p| p == &target_path) {
-                                                                        let item = app.starred.remove(s_idx);
-                                                                        app.starred.insert(e_idx, item);
-                                                                        app.sidebar_index = hovered_bound.index;
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        if app.mode == AppMode::ImportServers {
-                                            let (w, h) = app.terminal_size; let area_w = (w as f32 * 0.6) as u16; let area_h = (h as f32 * 0.2) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
-                                            if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h { app.hovered_drop_target = Some(DropTarget::ImportServers); } else { app.hovered_drop_target = None; } // Inside import modal
-                                        } else {
-                                            if column < sidebar_width {
-                                                // Check if hovering over REMOTES header specifically
-                                                if let Some(bound) = app.sidebar_bounds.iter().find(|b| b.y == row) {
-                                                    if let SidebarTarget::Header(h) = &bound.target {
-                                                        if h == "REMOTES" { app.hovered_drop_target = Some(DropTarget::RemotesHeader); } else { app.hovered_drop_target = Some(DropTarget::Favorites); } // Default to favorites if not REMOTES header
-                                                    } else { app.hovered_drop_target = Some(DropTarget::Favorites); } // Hovering over a favorite item
-                                                } else { app.hovered_drop_target = Some(DropTarget::Favorites); } // Fallback to favorites if no specific bound found
-                                            } else {
-                                                // Check if hovering over another pane
-                                                let (w, _) = app.terminal_size;
-                                                let content_area_width = w.saturating_sub(sidebar_width);
-                                                let pane_count = app.panes.len();
-                                                if pane_count > 1 {
-                                                    let pane_width = content_area_width / pane_count as u16;
-                                                    let hovered_pane_idx = (column.saturating_sub(sidebar_width) / pane_width) as usize;
-                                                    if hovered_pane_idx < pane_count && hovered_pane_idx != app.focused_pane_index {
-                                                        app.hovered_drop_target = Some(DropTarget::Pane(hovered_pane_idx));
-                                                    } else {
-                                                        app.hovered_drop_target = None;
-                                                    }
-                                                } else {
-                                                    app.hovered_drop_target = None;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                                                                                    MouseEventKind::Moved | MouseEventKind::Drag(_) => {
+                                                                                                        app.mouse_pos = (column, row);
+                                                                  
+                                                                                                        if let Some((pane_idx, col)) = app.is_resizing_column {
+                                                                                                            if let Some(pane) = app.panes.get_mut(pane_idx) {
+                                                                                                                if let Some(fs) = pane.current_state_mut() {
+                                                                                                                    if let Some((rect, _)) = fs.column_bounds.iter().find(|(_, c)| c == &col) {
+                                                                                                                        let new_width = column.saturating_sub(rect.x);
+                                                                                                                        if new_width >= 2 {
+                                                                                                                            fs.column_widths.insert(col, new_width.min(100));
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                            return true;
+                                                                                                        }
+                                                                  
+                                                                                                        if app.is_resizing_sidebar {
+                                                                                                            let (w, _) = app.terminal_size;
+                                                                                                            if w > 0 {
+                                                                                                                let new_percent = (column as f32 / w as f32 * 100.0) as u16;
+                                                                                                                app.sidebar_width_percent = new_percent.clamp(5, 50);
+                                                                                                            }
+                                                                                                            return true;
+                                                                                                        }
+                                                                  
+                                                                                                        // Check if drag has started
+                                                                                                        if let Some((sx, sy)) = app.drag_start_pos { if ((column as i16 - sx as i16).pow(2) + (row as i16 - sy as i16).pow(2)) as f32 >= 1.0 { app.is_dragging = true; } } // Threshold for drag start
+                                                                                                        // Update hovered drop target
+                                                                                                        if app.is_dragging {
+                                                                                                            let sidebar_width = app.sidebar_width();
+                                                                                                            
+                                                                                                            // Live Reorder Logic
+                                                                                                            if let Some((sx, _)) = app.drag_start_pos {
+                                                                                                                if sx < sidebar_width {
+                                                                                                                    if let Some(source_path) = &app.drag_source {
+                                                                                                                        if let Some(hovered_bound) = app.sidebar_bounds.iter().find(|b| b.y == row).cloned() {
+                                                                                                                            if let SidebarTarget::Favorite(target_path) = hovered_bound.target {
+                                                                                                                                if source_path != &target_path {
+                                                                                                                                    if let Some(s_idx) = app.starred.iter().position(|p| p == source_path) {
+                                                                                                                                        if let Some(e_idx) = app.starred.iter().position(|p| p == &target_path) {
+                                                                                                                                            let item = app.starred.remove(s_idx);
+                                                                                                                                            app.starred.insert(e_idx, item);
+                                                                                                                                            app.sidebar_index = hovered_bound.index;
+                                                                                                                                        }
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                  
+                                                                                                            if app.mode == AppMode::ImportServers {
+                                                                                                                let (w, h) = app.terminal_size; let area_w = (w as f32 * 0.6) as u16; let area_h = (h as f32 * 0.2) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
+                                                                                                                if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h { app.hovered_drop_target = Some(DropTarget::ImportServers); } else { app.hovered_drop_target = None; } // Inside import modal
+                                                                                                            } else {
+                                                                                                                if column < sidebar_width {
+                                                                                                                    // Check if hovering over REMOTES header specifically
+                                                                                                                    if let Some(bound) = app.sidebar_bounds.iter().find(|b| b.y == row) {
+                                                                                                                        if let SidebarTarget::Header(h) = &bound.target {
+                                                                                                                            if h == "REMOTES" { app.hovered_drop_target = Some(DropTarget::RemotesHeader); } else { app.hovered_drop_target = Some(DropTarget::Favorites); } // Default to favorites if not REMOTES header
+                                                                                                                        } else { app.hovered_drop_target = Some(DropTarget::Favorites); } // Hovering over a favorite item
+                                                                                                                    } else { app.hovered_drop_target = Some(DropTarget::Favorites); } // Fallback to favorites if no specific bound found
+                                                                                                                } else {
+                                                                                                                    // Check if hovering over another pane
+                                                                                                                    let (w, _) = app.terminal_size;
+                                                                                                                    let content_area_width = w.saturating_sub(sidebar_width);
+                                                                                                                    let pane_count = app.panes.len();
+                                                                                                                    if pane_count > 1 {
+                                                                                                                        let pane_width = content_area_width / pane_count as u16;
+                                                                                                                        let hovered_pane_idx = (column.saturating_sub(sidebar_width) / pane_width) as usize;
+                                                                                                                        if hovered_pane_idx < pane_count && hovered_pane_idx != app.focused_pane_index {
+                                                                                                                            app.hovered_drop_target = Some(DropTarget::Pane(hovered_pane_idx));
+                                                                                                                        } else {
+                                                                                                                            app.hovered_drop_target = None;
+                                                                                                                        }
+                                                                                                                    } else {
+                                                                                                                        app.hovered_drop_target = None;
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }
+                                                                                                        return true;
+                                                                                                    }
                                 MouseEventKind::ScrollUp => { if let Some(fs) = app.current_file_state_mut() { let new_offset = fs.table_state.offset().saturating_sub(3); *fs.table_state.offset_mut() = new_offset; } return true; } 
                 MouseEventKind::ScrollDown => { if let Some(fs) = app.current_file_state_mut() { let max_offset = fs.files.len().saturating_sub(fs.view_height.saturating_sub(4)); let new_offset = (fs.table_state.offset() + 3).min(max_offset); *fs.table_state.offset_mut() = new_offset; } return true; } 
                 _ => {} 
