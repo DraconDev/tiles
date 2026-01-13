@@ -2108,7 +2108,27 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     if let MouseEventKind::Down(_) = me.kind {
                         let (aw, ah) = match app.mode { AppMode::Settings => ((w as f32 * 0.8) as u16, (h as f32 * 0.8) as u16), AppMode::Properties => ((w as f32 * 0.5) as u16, (h as f32 * 0.5) as u16), AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) => ((w as f32 * 0.6) as u16, (h as f32 * 0.2) as u16), _ => ((w as f32 * 0.4) as u16, (h as f32 * 0.1) as u16) };
                         let (ax, ay) = ((w - aw) / 2, (h - ah) / 2);
-                        if column < ax || column >= ax + aw || row < ay || row >= ay + ah { app.mode = AppMode::Normal; app.input.clear(); }
+                        if column >= ax && column < ax + aw && row >= ay && row < ay + ah {
+                            if let AppMode::Settings = app.mode {
+                                let inner_x = ax + 1; let inner_y = ay + 1;
+                                if column < inner_x + 15 {
+                                    let rel_y = row.saturating_sub(inner_y);
+                                    match rel_y { 0 => app.settings_section = SettingsSection::Columns, 1 => app.settings_section = SettingsSection::Tabs, 2 => app.settings_section = SettingsSection::General, 3 => app.settings_section = SettingsSection::Remotes, 4 => app.settings_section = SettingsSection::Shortcuts, _ => {} }
+                                } else if app.settings_section == SettingsSection::General {
+                                    let rel_y = row.saturating_sub(inner_y + 1);
+                                    match rel_y { 0 => app.default_show_hidden = !app.default_show_hidden, 1 => app.confirm_delete = !app.confirm_delete, 2 => app.smart_date = !app.smart_date, 3 => app.icon_mode = match app.icon_mode { IconMode::Nerd => IconMode::Unicode, IconMode::Unicode => IconMode::ASCII, IconMode::ASCII => IconMode::Nerd }, _ => {} }
+                                } else if app.settings_section == SettingsSection::Columns {
+                                    if row >= inner_y && row < inner_y + 3 {
+                                        let cx = column.saturating_sub(inner_x + 15);
+                                        if cx < 12 { app.settings_target = SettingsTarget::SingleMode; } else if cx < 25 { app.settings_target = SettingsTarget::SplitMode; }
+                                    } else if row >= inner_y + 4 {
+                                        let ry = row.saturating_sub(inner_y + 4);
+                                        match ry { 0 => app.toggle_column(crate::app::FileColumn::Extension), 1 => app.toggle_column(crate::app::FileColumn::Size), 2 => app.toggle_column(crate::app::FileColumn::Modified), 3 => app.toggle_column(crate::app::FileColumn::Created), 4 => app.toggle_column(crate::app::FileColumn::Permissions), _ => {} }
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    }
+                                }
+                            }
+                        } else { app.mode = AppMode::Normal; app.input.clear(); }
                     }
                     return true;
                 }
