@@ -579,6 +579,7 @@ impl App {
                     },
                     undo_stack: Vec::new(),
                     redo_stack: Vec::new(),
+                    editor_state: None,
                 };
             }
         }
