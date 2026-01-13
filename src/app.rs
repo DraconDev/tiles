@@ -533,27 +533,10 @@ impl App {
                         if tab.columns.len() <= 1 { // Only has Name or is empty
                              tab.columns = vec![
                                  FileColumn::Name,
+                                 FileColumn::Extension,
                                  FileColumn::Size,
                                  FileColumn::Modified,
                              ];
-                        }
-
-                        // Ensure column widths exist
-                        if tab.column_widths.is_empty() {
-                            tab.column_widths.insert(FileColumn::Name, 30);
-                            tab.column_widths.insert(FileColumn::Size, 10);
-                            tab.column_widths.insert(FileColumn::Modified, 20);
-                            tab.column_widths.insert(FileColumn::Created, 20);
-                            tab.column_widths.insert(FileColumn::Extension, 8);
-                            tab.column_widths.insert(FileColumn::Permissions, 12);
-                        }
-                        
-                        // Patch missing widths for new columns
-                        if !tab.column_widths.contains_key(&FileColumn::Created) {
-                            tab.column_widths.insert(FileColumn::Created, 20);
-                        }
-                        if !tab.column_widths.contains_key(&FileColumn::Extension) {
-                            tab.column_widths.insert(FileColumn::Extension, 8);
                         }
                     }
                 }
@@ -598,12 +581,10 @@ impl App {
                     default_show_hidden: false,
                     confirm_delete: true,
                     preferred_terminal: None,
-                    single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
+                    single_columns: vec![FileColumn::Name, FileColumn::Extension, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
                     split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
                     sidebar_width_percent: 20,
                     is_resizing_sidebar: false,
-                    is_resizing_column: None,
-                    initial_col_width: 0,
                     show_sidebar: true,
                     initial_window_size: state.window_size,
                     path_colors: state.path_colors,
@@ -725,12 +706,10 @@ impl App {
             default_show_hidden: false,
             confirm_delete: true,
             preferred_terminal: None,
-            single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
+            single_columns: vec![FileColumn::Name, FileColumn::Extension, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
             split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
             sidebar_width_percent: 20,
             is_resizing_sidebar: false,
-            is_resizing_column: None,
-            initial_col_width: 0,
             show_sidebar: true,
             initial_window_size: None,
             path_colors: HashMap::new(),
