@@ -2514,11 +2514,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 }
                 MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                     app.mouse_pos = (column, row);
-                    if app.current_view == CurrentView::Processes && row >= 14 {
-                        let table_row = (row - 14) as usize + app.process_table_state.offset();
-                        if table_row < app.system_state.processes.len() {
-                            app.process_selected_idx = Some(table_row);
-                            app.process_table_state.select(app.process_selected_idx);
+                    if app.current_view == CurrentView::Processes {
+                        if row >= 14 && app.monitor_subview == crate::app::MonitorSubview::Processes {
+                            let table_row = (row - 14) as usize + app.process_table_state.offset();
+                            if table_row < app.system_state.processes.len() {
+                                app.process_selected_idx = Some(table_row);
+                                app.process_table_state.select(app.process_selected_idx);
+                            }
                         }
                     }
                     if app.is_resizing_sidebar { app.sidebar_width_percent = (column as f32 / w as f32 * 100.0) as u16; app.sidebar_width_percent = app.sidebar_width_percent.clamp(5, 50); return true; }
