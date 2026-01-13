@@ -234,19 +234,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::CommandPalette) { draw_command_palette(f, app); }
     if matches!(app.mode, AppMode::AddRemote(_)) { draw_add_remote_modal(f, app); }
     if matches!(app.mode, AppMode::ImportServers) { draw_import_servers_modal(f, app); }
-    if let AppMode::OpenWith(ref path) = app.mode { draw_open_with_modal(f, app, path); }
-    if matches!(app.mode, AppMode::ConfirmReset) { draw_confirm_reset_modal(f, app); }
-}
-
-fn draw_confirm_reset_modal(f: &mut Frame, _app: &App) {
-    let area = centered_rect(40, 10, f.area());
-    f.render_widget(Clear, area);
-    let block = Block::default()
-        .title(" Reset Column Widths? ")
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Red));
-    f.render_widget(Paragraph::new("Reset all columns to defaults? (y/Enter/n)").block(block), area);
+    if let AppMode::OpenWith(path) = &app.mode { draw_open_with_modal(f, app, path); }
 }
 
 fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
