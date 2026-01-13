@@ -2319,15 +2319,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             match action_id.as_str() {
                                 "back" => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
                                 "forward" => if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
-                                                                "split" => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
+                                                                                                "split" => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
+                                                                                                "monitor" => { app.current_view = CurrentView::Processes; }
                                                                                                 "burger" => { app.mode = AppMode::Settings; app.settings_scroll = 0; }
                                                                                                 _ => {} 
                                                                                             }
-                                                                                            return true;                        }
-                    }
-
-                    // Tabs
-                    if row == 0 {
+                                                                                            return true;
+                                                                                        }
+                                                                                    }
+                                                                
+                                                                                    // Footer Click (Right side for Processes)
+                                                                                    if row == h.saturating_sub(1) {
+                                                                                        if column > w.saturating_sub(40) { // Approx region for CPU/MEM
+                                                                                             app.current_view = CurrentView::Processes;
+                                                                                             return true;
+                                                                                        }
+                                                                                    }
+                                                                
+                                                                                    // Tabs                    if row == 0 {
                         if let Some((_, p_idx, t_idx)) = app.tab_bounds.iter().find(|(r, _, _)| r.contains(ratatui::layout::Position { x: column, y: row })).cloned() {
                             if button == MouseButton::Left { if let Some(p) = app.panes.get_mut(p_idx) { p.active_tab_index = t_idx; app.focused_pane_index = p_idx; let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx)); } } 
                             else if button == MouseButton::Right { if let Some(p) = app.panes.get_mut(p_idx) { if p.tabs.len() > 1 { p.tabs.remove(t_idx); if p.active_tab_index >= p.tabs.len() { p.active_tab_index = p.tabs.len() - 1; } let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx)); } } } 
