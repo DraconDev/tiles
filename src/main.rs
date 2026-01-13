@@ -423,7 +423,7 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                             let editor = if content.len() < 50000 { Some(TextEditor::with_content(&content)) } else { None };
                             let preview_content = content.chars().take(5000).collect::<String>();
                             let mut app_guard = app_clone.lock().unwrap();
-                            app_guard.mode = AppMode::Editor;
+                            app_guard.mode = AppMode::Engage;
                             app_guard.editor_state = Some(crate::app::PreviewState { path, content: preview_content, scroll: 0, editor });
                         } else if path.is_dir() {
                              {
@@ -1789,7 +1789,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             let _has_alt = key.modifiers.contains(KeyModifiers::ALT);
 
             // 1. Full-Screen Editor Priority (Traps all input)
-            if let AppMode::Editor = app.mode {
+            if let AppMode::Engage = app.mode {
                 if let Some(preview) = &mut app.editor_state {
                     if let Some(editor) = &mut preview.editor {
                         if key.code == KeyCode::Esc {
@@ -2159,10 +2159,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     } else { app.mode = AppMode::Normal; }
                     return true;
                 },
-                AppMode::Settings | AppMode::ImportServers | AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) | AppMode::Editor => {
+                AppMode::Settings | AppMode::ImportServers | AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) | AppMode::Engage => {
                     match me.kind {
                         MouseEventKind::Down(_) => {
-                            if let AppMode::Editor = app.mode {
+                            if let AppMode::Engage = app.mode {
                                 if let Some(preview) = &mut app.editor_state {
                                     if let Some(editor) = &mut preview.editor {
                                         let editor_area = ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1));
@@ -2224,12 +2224,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             } else { app.mode = AppMode::Normal; app.input.clear(); }
                         }
                         MouseEventKind::ScrollUp => {
-                            if let AppMode::Editor = app.mode {
+                            if let AppMode::Engage = app.mode {
                                 if let Some(preview) = &mut app.editor_state { if let Some(editor) = &mut preview.editor { editor.handle_mouse_event(me, ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1))); } }
                             } else if let AppMode::Settings = app.mode { app.settings_scroll = app.settings_scroll.saturating_sub(2); }
                         }
                         MouseEventKind::ScrollDown => {
-                            if let AppMode::Editor = app.mode {
+                            if let AppMode::Engage = app.mode {
                                 if let Some(preview) = &mut app.editor_state { if let Some(editor) = &mut preview.editor { editor.handle_mouse_event(me, ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1))); } }
                             } else if let AppMode::Settings = app.mode { app.settings_scroll = app.settings_scroll.saturating_add(2); }
                         }
@@ -2412,7 +2412,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             }
         }
         Event::Paste(text) => {
-            if let AppMode::Editor = app.mode {
+            if let AppMode::Engage = app.mode {
                 if let Some(preview) = &mut app.editor_state {
                     if let Some(editor) = &mut preview.editor {
                         for c in text.chars() {
