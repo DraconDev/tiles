@@ -507,6 +507,7 @@ pub struct App {
     pub process_search_filter: String,
     pub process_column_bounds: Vec<(Rect, ProcessColumn)>,
     pub monitor_subview: MonitorSubview,
+    pub monitor_subview_bounds: Vec<(Rect, MonitorSubview)>,
 }
 
 impl App {
@@ -760,6 +761,7 @@ impl App {
             process_scroll: 0,
             process_search_filter: String::new(),
             process_column_bounds: Vec::new(),
+            monitor_subview: MonitorSubview::Processes,
         };
         log_debug("App::new finished successfully");
         app
