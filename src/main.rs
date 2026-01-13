@@ -2744,7 +2744,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
 
                     // Footer interaction
                     if row == h.saturating_sub(1) {
-                        let mut current_x = 0;
+                        let current_x = 0;
                         if column >= current_x && column < current_x + 9 { app.running = false; return true; } 
                         // Skip some spacing or log area if needed, but let's just handle basic buttons
                         if column < 50 { // Rough estimate for left side

@@ -6,7 +6,6 @@ use ratatui::{
     Frame,
 };
 use std::time::SystemTime;
-use std::path::PathBuf;
 use std::collections::HashMap;
 
 use crate::app::{App, AppMode, CurrentView, FileColumn, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory};
