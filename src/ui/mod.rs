@@ -2,11 +2,12 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Sparkline, Chart, Dataset, Axis, symbols},
+    widgets::{Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Chart, Dataset, Axis},
+    symbols,
     Frame,
 };
 
-use crate::app::{App, CurrentView, MonitorSubview, FileColumn, ProcessColumn, SidebarTarget, SidebarBounds};
+use crate::app::{App, CurrentView, MonitorSubview, ProcessColumn, SidebarTarget, SidebarBounds};
 use crate::ui::theme::THEME;
 use crate::icons::Icon;
 use terma::utils::{format_size, draw_stat_bar};
@@ -287,7 +288,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let disk_list: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let ratio = (disk.used_space / disk.total_space).clamp(0.0, 1.0);
         let color = if ratio > 0.9 { Color::Rgb(255, 60, 60) } else if ratio > 0.7 { Color::Rgb(255, 180, 0) } else { Color::Rgb(0, 255, 150) };
-        let track_w = 12;
+        let track_w: u16 = 12;
         let pos = (ratio * track_w as f64) as u16;
         let track = format!("{}{}{}", "─".repeat(pos as usize), "●", "─".repeat(track_w.saturating_sub(pos + 1) as usize));
         
