@@ -2009,6 +2009,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 fs.column_widths.insert(crate::app::FileColumn::Modified, 20);
                                 fs.column_widths.insert(crate::app::FileColumn::Permissions, 12);
                                 let _ = crate::config::save_state(app);
+                                let _ = event_tx.try_send(AppEvent::StatusMsg("Column widths reset to defaults".to_string()));
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             }
                             app.mode = AppMode::Normal;
                             return true;
