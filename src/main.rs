@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use std::os::unix::process::CommandExt;
@@ -239,7 +239,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
 
 pub fn get_context_menu_actions(_target: &crate::app::ContextMenuTarget, _app: &App) -> Vec<crate::app::ContextMenuAction> { vec![] }
 fn push_history(_fs: &mut crate::app::FileState, _path: std::path::PathBuf) {}
-fn spawn_detached(_cmd: &str, _args: Vec<&str>) {}
+fn spawn_detached(_cmd: &str, _args: Vec<&str>) {
+    let mut command = std::process::Command::new(_cmd);
+    command.args(_args);
+    unsafe {
+        let _ = command
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .pre_exec(|| { libc::setsid(); Ok(()) })
+            .spawn();
+    }
+}
 fn navigate_back(_fs: &mut crate::app::FileState) {}
 fn navigate_forward(_fs: &mut crate::app::FileState) {}
 fn update_commands(_app: &mut App) {}
