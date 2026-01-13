@@ -726,8 +726,9 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         if let Some(sel) = render_state.selected() { if sel < offset || sel >= offset + height { display_state.select(None); } }
 
         file_state.column_bounds.clear();
-        let column_layout = Layout::default().direction(Direction::Horizontal).constraints(constraints.clone()).spacing(0).split(block.inner(area));
-        for (i, col_type) in file_state.columns.iter().enumerate() { file_state.column_bounds.push((column_layout[i], *col_type)); }
+        for (i, col_type) in file_state.columns.iter().enumerate() {
+            file_state.column_bounds.push((column_layout[i], *col_type));
+        }
 
         f.render_stateful_widget(table, area, &mut display_state);
         *file_state.table_state.offset_mut() = display_state.offset();
