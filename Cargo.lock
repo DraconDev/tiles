@@ -1072,6 +1072,7 @@ dependencies = [
  "ratatui",
  "serde",
  "signal-hook",
+ "sysinfo",
  "unicode-width 0.1.14",
 ]
 
@@ -1118,7 +1119,6 @@ dependencies = [
  "serde",
  "serde_json",
  "ssh2",
- "sysinfo",
  "terma",
  "tokio",
  "toml",
