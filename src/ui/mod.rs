@@ -9,6 +9,7 @@ use std::time::SystemTime;
 use std::collections::HashMap;
 
 use crate::app::{App, AppMode, CurrentView, MonitorSubview, FileColumn, ProcessColumn, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory};
+use crate::get_context_menu_actions;
 use crate::ui::theme::THEME;
 use crate::icons::Icon;
 use terma::layout::centered_rect;
