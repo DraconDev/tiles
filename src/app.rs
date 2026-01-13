@@ -457,6 +457,7 @@ pub struct App {
     pub default_show_hidden: bool,
     pub confirm_delete: bool,
     pub smart_date: bool,
+    pub auto_save: bool,
     pub preferred_terminal: Option<String>,
 
     pub single_columns: Vec<FileColumn>,
