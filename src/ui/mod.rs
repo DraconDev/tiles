@@ -332,7 +332,6 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let burger_icon = Icon::Burger.get(app.icon_mode);
 
     app.header_icon_bounds.clear();
-    let mut cur_icon_x = area.x + 2;
     
     let icons = [
         (burger_icon, "burger"),
@@ -341,6 +340,10 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         (split_icon, "split"),
     ];
 
+    // Center the icons above the sidebar area
+    let total_icons_width: u16 = icons.iter().map(|(icon, _)| icon.len() as u16).sum::<u16>() + (icons.len() as u16 - 1) * 2;
+    let mut cur_icon_x = area.x + (sidebar_width.saturating_sub(total_icons_width) / 2);
+    
     for (i, (icon, id)) in icons.into_iter().enumerate() {
         let width = icon.len() as u16;
         let rect = Rect::new(cur_icon_x, area.y, width, 1);
@@ -348,13 +351,14 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         let mut style = Style::default().fg(THEME.accent_secondary);
         if let AppMode::Header(idx) = app.mode {
             if idx == i {
-                style = style.bg(Color::Rgb(50, 50, 60)).fg(Color::Yellow).add_modifier(Modifier::BOLD);
+                // Tactical highlight with 1 cell padding visually
+                style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
             }
         }
 
         f.render_widget(Paragraph::new(icon).style(style), rect);
         app.header_icon_bounds.push((rect, id.to_string()));
-        cur_icon_x += width + 1;
+        cur_icon_x += width + 2; // Spacing between icons
     }
 
     if pane_count == 0 { return; }
