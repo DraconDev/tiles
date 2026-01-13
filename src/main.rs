@@ -1858,50 +1858,63 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 let next_val = match idx + 1 { 1 => app.pending_remote.host.clone(), 2 => app.pending_remote.user.clone(), 3 => app.pending_remote.port.to_string(), 4 => app.pending_remote.key_path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default(), _ => String::new() };
                                 app.input.set_value(next_val);
                             } else {
-                                let bookmark = app.pending_remote.clone();
-                                app.remote_bookmarks.push(bookmark);
-                                let _ = crate::config::save_state(app);
-                                app.mode = AppMode::Normal;
-                                app.input.clear();
+                                app.remote_bookmarks.push(app.pending_remote.clone()); let _ = crate::config::save_state(app);
+                                app.mode = AppMode::Normal; app.input.clear();
                             }
                             return true;
                         }
                         _ => return app.input.handle_event(&evt)
                     }
-                },
+                }
                 AppMode::Header(idx) => {
                     let idx = *idx;
+                    let total_icons = 4;
+                    let total_tabs: usize = app.panes.iter().map(|p| p.tabs.len()).sum();
+                    let total_items = total_icons + total_tabs;
                     match key.code {
                         KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
-                        KeyCode::Left => { if idx > 0 { app.mode = AppMode::Header(idx - 1); } return true; }
-                        KeyCode::Right => { if idx < 3 { app.mode = AppMode::Header(idx + 1); } return true; }
+                        KeyCode::Left => { app.mode = AppMode::Header(idx.saturating_sub(1)); return true; }
+                        KeyCode::Right => { if idx < total_items.saturating_sub(1) { app.mode = AppMode::Header(idx + 1); } return true; }
+                        KeyCode::Down => { app.mode = AppMode::Normal; return true; }
                         KeyCode::Enter => {
-                            match idx {
-                                0 => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
-                                1 => if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
-                                2 => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
-                                3 => { app.mode = AppMode::Settings; app.settings_scroll = 0; }
-                                _ => {}
+                            if idx < total_icons {
+                                match idx {
+                                    0 => app.mode = AppMode::Settings,
+                                    1 => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                                    2 => if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                                    3 => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
+                                    _ => {} 
+                                }
+                                if let AppMode::Header(_) = app.mode { app.mode = AppMode::Normal; }
+                            } else {
+                                let mut current_global_tab = 4;
+                                for (p_i, pane) in app.panes.iter_mut().enumerate() {
+                                    for (t_i, _) in pane.tabs.iter().enumerate() {
+                                        if current_global_tab == idx { pane.active_tab_index = t_i; app.focused_pane_index = p_i; let _ = event_tx.try_send(AppEvent::RefreshFiles(p_i)); app.mode = AppMode::Normal; return true; }
+                                        current_global_tab += 1;
+                                    }
+                                }
                             }
-                            if let AppMode::Header(_) = app.mode { app.mode = AppMode::Normal; }
                             return true;
                         }
-                        _ => return true
+                        _ => {} 
                     }
-                },
+                    return true;
+                }
                 AppMode::OpenWith(path) => match key.code {
-                    KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
-                    KeyCode::Char('1') => { let _ = event_tx.try_send(AppEvent::SpawnTerminal { path: path.clone(), new_tab: false, remote: None, command: Some("micro".to_string()) }); app.mode = AppMode::Normal; return true; }
-                    KeyCode::Char('2') => { let _ = event_tx.try_send(AppEvent::SpawnTerminal { path: path.clone(), new_tab: false, remote: None, command: Some("vim".to_string()) }); app.mode = AppMode::Normal; return true; }
-                    KeyCode::Char('3') => { let _ = event_tx.try_send(AppEvent::SpawnTerminal { path: path.clone(), new_tab: false, remote: None, command: Some("nano".to_string()) }); app.mode = AppMode::Normal; return true; }
-                    _ => return true
+                    KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
+                    KeyCode::Enter => {
+                        let cmd = app.input.value.clone();
+                        if !cmd.is_empty() { let _ = event_tx.try_send(AppEvent::SpawnDetached { cmd, args: vec![path.to_string_lossy().to_string()] }); }
+                        app.mode = AppMode::Normal; app.input.clear(); return true;
+                    }
+                    _ => return app.input.handle_event(&evt)
                 },
                 AppMode::Highlight => {
                     if let KeyCode::Char(c) = key.code {
                         if let Some(digit) = c.to_digit(10) {
-                            let colors = [1, 2, 3, 4, 5, 6, 0];
-                            if let Some(&color_code) = colors.get(digit as usize - 1).or_else(|| if digit == 0 { Some(&0) } else { None }) {
-                                let color = if color_code == 0 { None } else { Some(color_code as u8) };
+                            if digit <= 6 {
+                                let color = if digit == 0 { None } else { Some(digit as u8) };
                                 if let Some(fs) = app.current_file_state() {
                                     let mut paths = Vec::new();
                                     if !fs.multi_select.is_empty() { for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } } 
@@ -1909,23 +1922,27 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     for p in paths { if let Some(col) = color { app.path_colors.insert(p, col); } else { app.path_colors.remove(&p); } }
                                     let _ = crate::config::save_state(app);
                                 }
-                                app.mode = AppMode::Normal;
-                                return true;
+                                app.mode = AppMode::Normal; return true;
                             }
                         }
-                    }
-                    if key.code == KeyCode::Esc { app.mode = AppMode::Normal; return true; }
-                    return true;
-                },
+                    } else if key.code == KeyCode::Esc { app.mode = AppMode::Normal; return true; }
+                    return false;
+                }
                 AppMode::Settings => match key.code {
                     KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
-                    KeyCode::Char('1') => { app.settings_section = SettingsSection::Columns; return true; }
-                    KeyCode::Char('2') => { app.settings_section = SettingsSection::Tabs; return true; }
-                    KeyCode::Char('3') => { app.settings_section = SettingsSection::General; return true; }
-                    KeyCode::Char('4') => { app.settings_section = SettingsSection::Remotes; return true; }
-                    KeyCode::Char('5') => { app.settings_section = SettingsSection::Shortcuts; return true; }
-                    KeyCode::Up => { app.settings_scroll = app.settings_scroll.saturating_sub(1); return true; }
-                    KeyCode::Down => { app.settings_scroll = app.settings_scroll.saturating_add(1); return true; }
+                    KeyCode::Char('1') => { app.settings_target = SettingsTarget::SingleMode; return true; }
+                    KeyCode::Char('2') => { app.settings_target = SettingsTarget::SplitMode; return true; }
+                    KeyCode::Left | KeyCode::BackTab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Shortcuts, SettingsSection::Tabs => SettingsSection::Columns, SettingsSection::General => SettingsSection::Tabs, SettingsSection::Remotes => SettingsSection::General, SettingsSection::Shortcuts => SettingsSection::Remotes }; return true; } 
+                    KeyCode::Right | KeyCode::Tab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Tabs, SettingsSection::Tabs => SettingsSection::General, SettingsSection::General => SettingsSection::Remotes, SettingsSection::Remotes => SettingsSection::Shortcuts, SettingsSection::Shortcuts => SettingsSection::Columns }; return true; } 
+                    KeyCode::Char('n') => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('e') => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('s') => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('m') => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('c') => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('p') => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('i') => { app.icon_mode = match app.icon_mode { IconMode::Nerd => IconMode::Unicode, IconMode::Unicode => IconMode::ASCII, IconMode::ASCII => IconMode::Nerd }; return true; }
+                    KeyCode::Char('h') if app.settings_section == SettingsSection::General => { app.default_show_hidden = !app.default_show_hidden; return true; } 
+                    KeyCode::Char('d') if app.settings_section == SettingsSection::General => { app.confirm_delete = !app.confirm_delete; return true; } 
                     KeyCode::Char('t') if app.settings_section == SettingsSection::General => { app.smart_date = !app.smart_date; return true; } 
                     KeyCode::Char('a') if app.settings_section == SettingsSection::General => { app.auto_save = !app.auto_save; return true; } 
                     _ => return false
@@ -1935,17 +1952,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     KeyCode::Enter => {
                         let input = app.input.value.clone();
                         if let Some(fs) = app.current_file_state() {
+                            let path = fs.current_path.join(&input);
                             match app.mode {
-                                AppMode::NewFile => { let p = fs.current_path.join(input); let _ = event_tx.try_send(AppEvent::CreateFile(p)); }
-                                AppMode::NewFolder => { let p = fs.current_path.join(input); let _ = event_tx.try_send(AppEvent::CreateFolder(p)); }
-                                AppMode::Rename => {
-                                    if let Some(idx) = fs.selected_index {
-                                        if let Some(old_p) = fs.files.get(idx) {
-                                            let new_p = old_p.parent().unwrap().join(input);
-                                            let _ = event_tx.try_send(AppEvent::Rename(old_p.clone(), new_p));
-                                        }
-                                    }
-                                }
+                                AppMode::NewFile => { let _ = event_tx.try_send(AppEvent::CreateFile(path)); }
+                                AppMode::NewFolder => { let _ = event_tx.try_send(AppEvent::CreateFolder(path)); }
+                                AppMode::Rename => if let Some(idx) = fs.selected_index { if let Some(old) = fs.files.get(idx) { let _ = event_tx.try_send(AppEvent::Rename(old.clone(), old.parent().unwrap().join(&input))); } }
                                 AppMode::Delete => {
                                     let ic = input.trim().to_lowercase();
                                     if ic == "y" || ic == "yes" || ic.is_empty() || !app.confirm_delete {
