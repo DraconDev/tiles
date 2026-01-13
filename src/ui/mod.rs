@@ -161,43 +161,100 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
-    let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(5), Constraint::Percentage(45), Constraint::Min(0)]).split(area);
-    let info_block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(60, 60, 65)));
-    let info_inner = info_block.inner(chunks[0]);
-    f.render_widget(info_block, chunks[0]);
+    let main_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3),  // Header
+            Constraint::Percentage(35), // Big Tiles
+            Constraint::Min(0)      // Bottom Grid
+        ])
+        .split(area);
 
+    // 1. Sleek Compact Header
     let uptime_str = format!("{}d {}h {}m", app.system_state.uptime / 86400, (app.system_state.uptime % 86400) / 3600, (app.system_state.uptime % 3600) / 60);
-    let banner_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(40), Constraint::Percentage(30), Constraint::Percentage(30)]).split(info_inner);
+    let header_text = vec![
+        Span::styled("󰣇 ", Style::default().fg(Color::Rgb(61, 174, 233))),
+        Span::styled(&app.system_state.hostname, Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled("  |  OS: ", Style::default().fg(Color::DarkGray)),
+        Span::raw(format!("{} {}", app.system_state.os_name, app.system_state.os_version)),
+        Span::styled("  |  Kernel: ", Style::default().fg(Color::DarkGray)),
+        Span::raw(&app.system_state.kernel_version),
+        Span::styled("  |  Uptime: ", Style::default().fg(Color::DarkGray)),
+        Span::styled(uptime_str, Style::default().fg(Color::Yellow)),
+    ];
+    f.render_widget(Paragraph::new(Line::from(header_text)).block(Block::default().borders(Borders::BOTTOM).border_style(Style::default().fg(Color::Rgb(40, 40, 45)))), main_chunks[0]);
 
-    f.render_widget(Paragraph::new(vec![Line::from(vec![Span::styled("󰣇 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::styled(&app.system_state.hostname, Style::default().add_modifier(Modifier::BOLD))]), Line::from(vec![Span::raw(format!("{} {}", app.system_state.os_name, app.system_state.os_version))]).style(Style::default().fg(Color::DarkGray))]), banner_layout[0]);
-    f.render_widget(Paragraph::new(vec![Line::from(vec![Span::styled("󰔠 ", Style::default().fg(Color::Yellow)), Span::raw("UPTIME")]), Line::from(vec![Span::styled(uptime_str, Style::default().add_modifier(Modifier::BOLD))])]), banner_layout[1]);
-    f.render_widget(Paragraph::new(vec![Line::from(vec![Span::styled("󰛳 ", Style::default().fg(Color::Green)), Span::raw("NETWORK")]), Line::from(vec![Span::styled(format!("↓{} ↑{}", format_size(app.system_state.net_in), format_size(app.system_state.net_out)), Style::default().add_modifier(Modifier::BOLD))])]), banner_layout[2]);
+    // 2. Performance Tiles (CPU, RAM, Network)
+    let tiles_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(34)])
+        .split(main_chunks[1]);
 
-    let stats_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(chunks[1]);
-    let cpu_block = Block::default().title(Span::styled(" 󰍛 CPU LOAD ", Style::default().fg(Color::Rgb(46, 204, 113)).add_modifier(Modifier::BOLD))).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(50, 50, 55)));
-    let cpu_inner = cpu_block.inner(stats_layout[0]);
-    f.render_widget(cpu_block, stats_layout[0]);
-    let cpu_card_layout = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Min(0)]).split(cpu_inner);
-    f.render_widget(Gauge::default().gauge_style(Style::default().fg(if app.system_state.cpu_usage > 80.0 { Color::Red } else { Color::Rgb(46, 204, 113) })).ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0) as f64).label(format!("{:.1}%", app.system_state.cpu_usage)), cpu_card_layout[0]);
-    f.render_widget(Sparkline::default().data(&app.system_state.cpu_history).style(Style::default().fg(Color::Rgb(46, 204, 113))), cpu_card_layout[1]);
+    // CPU Tile
+    let cpu_tile = Block::default().title(" 󰍛 CPU TOTAL ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(46, 204, 113)));
+    let cpu_inner = cpu_tile.inner(tiles_layout[0]);
+    f.render_widget(cpu_tile, tiles_layout[0]);
+    let cpu_tile_chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(2), Constraint::Min(0)]).split(cpu_inner);
+    f.render_widget(Gauge::default().gauge_style(Style::default().fg(Color::Rgb(46, 204, 113))).ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0) as f64).label(format!("{:.1}%", app.system_state.cpu_usage)), cpu_tile_chunks[0]);
+    f.render_widget(Sparkline::default().data(&app.system_state.cpu_history).style(Style::default().fg(Color::Rgb(46, 204, 113))), cpu_tile_chunks[1]);
 
-    let mem_block = Block::default().title(Span::styled(" 󰘚 MEMORY ", Style::default().fg(Color::Rgb(155, 89, 182)).add_modifier(Modifier::BOLD))).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(50, 50, 55)));
-    let mem_inner = mem_block.inner(stats_layout[1]);
-    f.render_widget(mem_block, stats_layout[1]);
-    let mem_card_layout = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Min(0)]).split(mem_inner);
+    // RAM Tile
+    let mem_tile = Block::default().title(" 󰘚 MEMORY ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(155, 89, 182)));
+    let mem_inner = mem_tile.inner(tiles_layout[1]);
+    f.render_widget(mem_tile, tiles_layout[1]);
+    let mem_tile_chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(2), Constraint::Min(0)]).split(mem_inner);
     let mem_ratio = if app.system_state.total_mem > 0.0 { (app.system_state.mem_usage / app.system_state.total_mem).clamp(0.0, 1.0) } else { 0.0 };
-    f.render_widget(Gauge::default().gauge_style(Style::default().fg(Color::Rgb(155, 89, 182))).ratio(mem_ratio).label(format!("{:.1}GB / {:.1}GB", app.system_state.mem_usage, app.system_state.total_mem)), mem_card_layout[0]);
-    f.render_widget(Sparkline::default().data(&app.system_state.mem_history).style(Style::default().fg(Color::Rgb(155, 89, 182))), mem_card_layout[1]);
+    f.render_widget(Gauge::default().gauge_style(Style::default().fg(Color::Rgb(155, 89, 182))).ratio(mem_ratio).label(format!("{:.1}G / {:.1}G", app.system_state.mem_usage, app.system_state.total_mem)), mem_tile_chunks[0]);
+    f.render_widget(Sparkline::default().data(&app.system_state.mem_history).style(Style::default().fg(Color::Rgb(155, 89, 182))), mem_tile_chunks[1]);
 
-    let storage_block = Block::default().title(Span::styled(" 󰋊 STORAGE DEVICES ", Style::default().fg(Color::Rgb(241, 196, 15)).add_modifier(Modifier::BOLD))).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(50, 50, 55)));
-    let storage_inner = storage_block.inner(chunks[2]);
-    f.render_widget(storage_block, chunks[2]);
+    // Network Tile
+    let net_tile = Block::default().title(" 󰛳 NETWORK ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(61, 174, 233)));
+    let net_inner = net_tile.inner(tiles_layout[2]);
+    f.render_widget(net_tile, tiles_layout[2]);
+    let net_tile_chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(net_inner);
+    f.render_widget(Sparkline::default().block(Block::default().title(" ↓ DOWNLOAD ")).data(&app.system_state.net_in_history).style(Style::default().fg(Color::Green)), net_tile_chunks[0]);
+    f.render_widget(Sparkline::default().block(Block::default().title(" ↑ UPLOAD ")).data(&app.system_state.net_out_history).style(Style::default().fg(Color::Rgb(61, 174, 233))), net_tile_chunks[1]);
+
+    // 3. Bottom Detail Grid (Core Activity & Disks)
+    let detail_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(65), Constraint::Percentage(35)])
+        .split(main_chunks[2]);
+
+    // CPU CORE GRID (Integrated from History)
+    let core_count = app.system_state.cpu_cores.len();
+    if core_count > 0 {
+        let cols = if core_count > 16 { 8 } else if core_count > 8 { 4 } else { 2 };
+        let rows = (core_count as f32 / cols as f32).ceil() as u16;
+        let core_block = Block::default().title(" 󰍛 CORE ACTIVITY ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(50, 50, 55)));
+        let core_inner = core_block.inner(detail_chunks[0]);
+        f.render_widget(core_block, detail_chunks[0]);
+        let core_rows = Layout::default().direction(Direction::Vertical).constraints(vec![Constraint::Percentage(100 / rows); rows as usize]).split(core_inner);
+        for r in 0..rows {
+            let core_cols = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / cols); cols as usize]).split(core_rows[r as usize]);
+            for c in 0..cols {
+                let idx = (r * cols + c) as usize;
+                if idx < core_count {
+                    let usage = app.system_state.cpu_cores[idx];
+                    f.render_widget(Sparkline::default().block(Block::default().title(format!("C{} {:.0}%", idx, usage)).title_alignment(ratatui::layout::Alignment::Left)).data(&app.system_state.core_history[idx]).style(Style::default().fg(if usage > 80.0 { Color::Red } else { Color::Rgb(46, 204, 113) })), core_cols[c as usize]);
+                }
+            }
+        }
+    }
+
+    // DISK CARDS (Integrated)
+    let storage_block = Block::default().title(" 󰋊 STORAGE ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(50, 50, 55)));
+    let storage_inner = storage_block.inner(detail_chunks[1]);
+    f.render_widget(storage_block, detail_chunks[1]);
     let disk_list: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let ratio = (disk.used_space / disk.total_space).clamp(0.0, 1.0);
         let color = if ratio > 0.9 { Color::Red } else if ratio > 0.7 { Color::Yellow } else { Color::Rgb(241, 196, 15) };
-        let filled = (ratio * 40.0) as usize;
-        let bar = format!("{}{}", "█".repeat(filled), "░".repeat(40 - filled));
-        ListItem::new(vec![Line::from(vec![Span::styled(format!(" 󰋊 {} ", disk.name), Style::default().add_modifier(Modifier::BOLD)), Span::styled(bar, Style::default().fg(color)), Span::raw(format!(" {:.0}% used", ratio * 100.0)), Span::styled(format!("   ({:.1}GB FREE)", disk.available_space / 1_073_741_824.0), Style::default().fg(Color::DarkGray))])])
+        let bar = format!("{}{}", "█".repeat((ratio * 20.0) as usize), "░".repeat((20.0 - ratio * 20.0) as usize));
+        ListItem::new(vec![
+            Line::from(vec![Span::styled(&disk.name, Style::default().add_modifier(Modifier::BOLD))]),
+            Line::from(vec![Span::styled(bar, Style::default().fg(color)), Span::raw(format!(" {:.0}%", ratio * 100.0))]),
+            Line::from(""),
+        ])
     }).collect();
     f.render_widget(List::new(disk_list), storage_inner);
 }
