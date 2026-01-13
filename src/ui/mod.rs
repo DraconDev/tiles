@@ -1164,7 +1164,7 @@ fn draw_editor_overlay(f: &mut Frame, app: &App) {
         if let Some(editor) = &preview.editor {
             f.render_widget(editor, inner);
         } else {
-            let highlighted = highlight_code(&preview.get_content());
+            let highlighted = highlight_code(&preview.content);
             let text = Paragraph::new(highlighted);
             f.render_widget(text, inner);
         }
