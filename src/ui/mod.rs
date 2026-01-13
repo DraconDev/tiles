@@ -12,7 +12,7 @@ use crate::app::{App, AppMode, CurrentView, FileColumn, SidebarTarget, SidebarBo
 use crate::ui::theme::THEME;
 use crate::icons::Icon;
 use terma::layout::centered_rect;
-use terma::utils::{format_size, format_time, format_permissions, format_datetime_smart};
+use terma::utils::{format_size, format_time, format_permissions, format_datetime_smart, highlight_code};
 
 pub mod theme;
 pub mod layout;
@@ -430,31 +430,6 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             draw_processes_view(f, area, app);
         }
     }
-}
-
-fn highlight_code<'a>(content: &'a str) -> Vec<Line<'a>> {
-    content.lines().map(|line| {
-        let trimmed = line.trim();
-        if trimmed.starts_with("#") || trimmed.starts_with("//") {
-            Line::from(Span::styled(line, Style::default().fg(Color::Green)))
-        } else if trimmed.starts_with("[") && trimmed.ends_with("]") {
-             Line::from(Span::styled(line, Style::default().fg(Color::Yellow)))
-        } else if let Some(idx) = line.find('=') {
-             let key = &line[..idx];
-             let val = &line[idx..];
-             Line::from(vec![
-                 Span::styled(key, Style::default().fg(Color::Cyan)),
-                 Span::raw(val)
-             ])
-        } else {
-             let keywords = ["pub", "fn", "struct", "impl", "let", "const", "use", "mod", "crate", "import", "from", "class", "def", "func"];
-             if keywords.iter().any(|k| trimmed.starts_with(k)) {
-                  Line::from(Span::styled(line, Style::default().fg(Color::Magenta)))
-             } else {
-                  Line::from(Span::raw(line))
-             }
-        }
-    }).collect()
 }
 
 fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool, borders: Borders) {
