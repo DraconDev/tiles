@@ -9,7 +9,7 @@ shortcut page needs scroll
 
 make sure terma has as much of the logic as possible so we can reuse with other tui things
 
-can we add a text editor to the preview panel? 
+can we add a text editor to the preview panel? so we are not only seeing it but edit the text in preview mode
 
 ## Done
 
