@@ -1790,6 +1790,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
 
             // 1. Full-Screen Editor Priority (Traps all input)
             if let AppMode::Engage = app.mode {
+                if key.code == KeyCode::Char('q') && has_control {
+                    app.running = false;
+                    return true;
+                }
                 if let Some(preview) = &mut app.editor_state {
                     if let Some(editor) = &mut preview.editor {
                         if key.code == KeyCode::Esc {
