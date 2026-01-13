@@ -2691,6 +2691,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 "burger" => {
                                     app.mode = AppMode::Settings;
                                 }
+                                "reset" => {
+                                    app.mode = AppMode::ConfirmReset;
+                                }
                                 _ => {}
                             }
                             return true;
