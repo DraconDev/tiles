@@ -2,10 +2,9 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Tabs, Scrollbar, ScrollbarOrientation, ScrollbarState, Sparkline, Gauge},
+    widgets::{Block, BorderType, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Scrollbar, ScrollbarOrientation, ScrollbarState, Sparkline, Gauge},
     Frame,
 };
-use std::time::SystemTime;
 use std::collections::HashMap;
 
 use crate::app::{App, AppMode, CurrentView, MonitorSubview, FileColumn, ProcessColumn, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory};
@@ -122,12 +121,12 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
 fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
     let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Min(0)]).split(area);
-    let nav_block = Block::default().borders(Borders::BOTTOM).border_style(Style::default().fg(Color::Rgb(50, 50, 55)));
+    let nav_block = Block::default().borders(Borders::BOTTOM).border_style(Style::default().fg(Color::Rgb(40, 40, 45)));
     let nav_inner = nav_block.inner(chunks[0]);
     f.render_widget(nav_block, chunks[0]);
 
     let nav_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Min(60), Constraint::Length(35), Constraint::Length(12)]).split(nav_inner);
-    let subviews = [(MonitorSubview::Overview, " 󰊚 ", "OVERVIEW"), (MonitorSubview::Applications, " 󰀻 ", "APPLICATIONS"), (MonitorSubview::History, " 󰔠 ", "HISTORY"), (MonitorSubview::Processes, " 󰑮 ", "PROCESSES")];
+    let subviews = [(MonitorSubview::Overview, " 󰊚 ", "OVERVIEW"), (MonitorSubview::Applications, " 󰀻 ", "APPLICATIONS"), (MonitorSubview::Processes, " 󰑮 ", "PROCESSES")];
 
     app.monitor_subview_bounds.clear();
     let mut cur_x = nav_layout[0].x + 1;
@@ -141,11 +140,11 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
         f.render_widget(Paragraph::new(text).style(style), rect);
         if is_active { f.render_widget(Paragraph::new("▔".repeat(width as usize)).style(Style::default().fg(Color::Rgb(61, 174, 233))), Rect::new(rect.x, rect.y + 1, rect.width, 1)); }
         app.monitor_subview_bounds.push((rect, view));
-        cur_x += width + 3;
+        cur_x += width + 4;
     }
 
     let search_text = if app.process_search_filter.is_empty() { Line::from(vec![Span::styled(" 󰍉 Search... ", Style::default().fg(Color::DarkGray))]) } else { Line::from(vec![Span::styled(" 󰍉 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::styled(&app.process_search_filter, Style::default().fg(Color::White).add_modifier(Modifier::BOLD))]) };
-    f.render_widget(Paragraph::new(search_text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(70, 75, 80)))), nav_layout[1]);
+    f.render_widget(Paragraph::new(search_text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(60, 60, 65)))), nav_layout[1]);
 
     let mut exit_style = Style::default().fg(Color::Rgb(231, 76, 60)).add_modifier(Modifier::BOLD);
     if app.mouse_pos.1 == nav_layout[2].y && app.mouse_pos.0 >= nav_layout[2].x && app.mouse_pos.0 < nav_layout[2].x + nav_layout[2].width { exit_style = exit_style.bg(Color::Rgb(80, 20, 20)).fg(Color::White); }
@@ -155,7 +154,6 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
     match app.monitor_subview {
         MonitorSubview::Overview => draw_monitor_overview(f, content_area, app),
         MonitorSubview::Processes => draw_processes_view(f, content_area, app),
-        MonitorSubview::History => draw_monitor_history(f, content_area, app),
         MonitorSubview::Applications => draw_monitor_applications(f, content_area, app),
     }
 }
@@ -164,17 +162,20 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let main_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(70), Constraint::Percentage(30)]).split(area);
     let left_chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(4), Constraint::Length(8), Constraint::Min(0)]).split(main_layout[0]);
 
+    // 1. Minimal Banner
     let uptime_str = format!("{}d {}h {}m", app.system_state.uptime / 86400, (app.system_state.uptime % 86400) / 3600, (app.system_state.uptime % 3600) / 60);
     let banner_text = vec![
-        Line::from(vec![Span::styled("󰣇 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::styled(&app.system_state.hostname, Style::default().add_modifier(Modifier::BOLD)), Span::styled("  |  ", Style::default().fg(Color::Rgb(40, 40, 40))), Span::styled(format!("{} {}", app.system_state.os_name, app.system_state.os_version), Style::default().fg(Color::Rgb(180, 180, 180)))]),
-        Line::from(vec![Span::styled("󰔠 ", Style::default().fg(Color::Yellow)), Span::styled(uptime_str, Style::default().fg(Color::Yellow)), Span::styled("  |  ", Style::default().fg(Color::Rgb(40, 40, 40))), Span::styled("Kernel: ", Style::default().fg(Color::DarkGray)), Span::raw(&app.system_state.kernel_version)]),
+        Line::from(vec![Span::styled("󰣇 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::styled(&app.system_state.hostname, Style::default().add_modifier(Modifier::BOLD)), Span::styled("  •  ", Style::default().fg(Color::Rgb(40, 40, 45))), Span::styled(format!("{} {}", app.system_state.os_name, app.system_state.os_version), Style::default().fg(Color::Rgb(180, 180, 180)))]),
+        Line::from(vec![Span::styled("󰔠 ", Style::default().fg(Color::Yellow)), Span::styled(uptime_str, Style::default().fg(Color::Yellow)), Span::styled("  •  ", Style::default().fg(Color::Rgb(40, 40, 45))), Span::styled("Kernel: ", Style::default().fg(Color::DarkGray)), Span::raw(&app.system_state.kernel_version)]),
     ];
     f.render_widget(Paragraph::new(banner_text), left_chunks[0]);
 
+    // 2. Pulse (Dual Sparklines)
     let history_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(left_chunks[1]);
     f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(format!(" 󰍛 CPU TOTAL: {:.1}% ", app.system_state.cpu_usage), Style::default().fg(Color::Rgb(46, 204, 113)).add_modifier(Modifier::BOLD)))).data(&app.system_state.cpu_history).style(Style::default().fg(Color::Rgb(46, 204, 113))), history_layout[0]);
     f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(format!(" 󰘚 MEMORY: {:.1}G ", app.system_state.mem_usage), Style::default().fg(Color::Rgb(155, 89, 182)).add_modifier(Modifier::BOLD)))).data(&app.system_state.mem_history).style(Style::default().fg(Color::Rgb(155, 89, 182))), history_layout[1]);
 
+    // 3. Core Heatmap (No Borders)
     let core_count = app.system_state.cpu_cores.len();
     if core_count > 0 {
         let cols = if core_count > 32 { 16 } else if core_count > 16 { 8 } else { 4 };
@@ -195,6 +196,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         }
     }
 
+    // 4. Sidebar Flow (Network & Disks)
     let right_chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(10), Constraint::Min(0)]).split(main_layout[1]);
     let net_inner = Block::default().title(Span::styled(" 󰛳 NETWORK FLOW ", Style::default().fg(Color::Rgb(61, 174, 233)).add_modifier(Modifier::BOLD))).borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(40, 40, 45))).inner(right_chunks[0]);
     f.render_widget(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(40, 40, 45))), right_chunks[0]);
@@ -206,17 +208,12 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(Block::default().borders(Borders::LEFT | Borders::TOP).border_style(Style::default().fg(Color::Rgb(40, 40, 45))), right_chunks[1]);
     let disk_list: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let ratio = (disk.used_space / disk.total_space).clamp(0.0, 1.0);
-        let filled = (ratio * 15.0) as usize;
-        let bar = format!("{}{}", "━".repeat(filled), " ".repeat(15 - filled));
+        let bar_width = storage_inner.width.saturating_sub(10).min(15) as usize;
+        let filled = (ratio * bar_width as f64) as usize;
+        let bar = format!("{}{}", "━".repeat(filled), " ".repeat(bar_width - filled));
         ListItem::new(vec![Line::from(vec![Span::styled(&disk.name, Style::default().add_modifier(Modifier::BOLD))]), Line::from(vec![Span::styled(bar, Style::default().fg(if ratio > 0.9 { Color::Red } else if ratio > 0.7 { Color::Yellow } else { Color::Rgb(241, 196, 15) })), Span::styled(format!(" {:.0}%", ratio * 100.0), Style::default().fg(Color::DarkGray))]), Line::from("")])
     }).collect();
     f.render_widget(List::new(disk_list), storage_inner);
-}
-
-fn draw_monitor_history(f: &mut Frame, area: Rect, app: &mut App) {
-    let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(area);
-    f.render_widget(Sparkline::default().block(Block::default().title(" CPU TOTAL HISTORY ").borders(Borders::ALL).border_type(BorderType::Rounded)).data(&app.system_state.cpu_history).style(Style::default().fg(Color::Rgb(46, 204, 113))), chunks[0]);
-    f.render_widget(Sparkline::default().block(Block::default().title(" MEMORY USAGE HISTORY ").borders(Borders::ALL).border_type(BorderType::Rounded)).data(&app.system_state.mem_history).style(Style::default().fg(Color::Rgb(155, 89, 182))), chunks[1]);
 }
 
 fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
@@ -234,7 +231,8 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
         let (icon, color) = if name_lower.contains("chrome") || name_lower.contains("firefox") { ("󰈹 ", Color::Rgb(231, 76, 60)) } else if name_lower.contains("code") || name_lower.contains("vim") { ("󰨞 ", Color::Rgb(61, 174, 233)) } else { ("󰀻 ", Color::White) };
         let mut style = if i % 2 == 0 { Style::default().bg(Color::Rgb(20, 22, 25)) } else { Style::default() };
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Applications { style = style.bg(Color::Rgb(61, 174, 233)).fg(Color::Black); }
-        Row::new(vec![Cell::from(format!("{} {}", icon, p.name)).style(Style::default().fg(if app.process_selected_idx == Some(i) { Color::Black } else { color }).add_modifier(Modifier::BOLD)), Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(if p.cpu > 30.0 { Color::Red } else { Color::Rgb(46, 204, 113) })), Cell::from(format!("{:.1} MB", p.mem)), Cell::from(p.pid.to_string()), Cell::from(p.status.clone())]).style(style)
+        let cells = vec![Cell::from(format!("{} {}", icon, p.name)).style(Style::default().fg(if app.process_selected_idx == Some(i) { Color::Black } else { color }).add_modifier(Modifier::BOLD)), Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(if p.cpu > 30.0 { Color::Red } else { Color::Rgb(46, 204, 113) })), Cell::from(format!("{:.1} MB", p.mem)), Cell::from(p.pid.to_string()), Cell::from(p.status.clone())];
+        Row::new(cells).style(style)
     });
     f.render_widget(Table::new(rows, [Constraint::Min(35), Constraint::Length(10), Constraint::Length(15), Constraint::Length(10), Constraint::Length(15)]).header(Row::new(vec![" Application", "CPU", "Memory", "PID", "Status"]).style(Style::default().add_modifier(Modifier::BOLD)).height(1).bottom_margin(1)).column_spacing(2), inner);
 }
@@ -254,9 +252,10 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
     });
 
     let rows = app.system_state.processes.iter().enumerate().map(|(i, p)| {
-        let mut style = if i % 2 == 0 { Style::default().bg(Color::Rgb(25, 27, 30)) } else { Style::default() };
+        let mut style = if i % 2 == 0 { Style::default().bg(Color::Rgb(20, 22, 25)) } else { Style::default() };
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Processes { style = style.bg(Color::Rgb(61, 174, 233)).fg(Color::Black); }
-        Row::new(vec![Cell::from(p.pid.to_string()), Cell::from(p.name.clone()).style(Style::default().add_modifier(Modifier::BOLD)), Cell::from(p.user.clone()).style(Style::default().fg(Color::Rgb(61, 174, 233))), Cell::from(p.status.clone()), Cell::from(format!("{:.1}", p.cpu)), Cell::from(format!("{:.1}", p.mem))]).style(style)
+        let cells = vec![Cell::from(p.pid.to_string()), Cell::from(p.name.clone()).style(Style::default().add_modifier(Modifier::BOLD)), Cell::from(p.user.clone()).style(Style::default().fg(Color::Rgb(61, 174, 233))), Cell::from(p.status.clone()), Cell::from(format!("{:.1}", p.cpu)), Cell::from(format!("{:.1}", p.mem))];
+        Row::new(cells).style(style)
     });
     f.render_stateful_widget(Table::new(rows, column_constraints).header(Row::new(header_cells).height(1).style(Style::default().bg(Color::Rgb(30, 33, 35)))).column_spacing(1), table_inner, &mut app.process_table_state);
 }
@@ -269,9 +268,9 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     for (i, (icon, id, desc)) in icons.iter().enumerate() {
         let rect = Rect::new(cur_icon_x, area.y, 3, 1);
         let is_hovered = app.mouse_pos.1 == area.y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width;
-        let is_focused = matches!(app.mode, AppMode::Header(idx) if idx == i);
+        let is_kb_focused = matches!(app.mode, AppMode::Header(idx) if idx == i);
         let mut style = Style::default().fg(THEME.accent_secondary);
-        if is_focused || is_hovered { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); if is_hovered { app.hovered_header_icon = Some(id.to_string()); hovered_tip = Some(desc.to_string()); } }
+        if is_kb_focused || is_hovered { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); if is_hovered { app.hovered_header_icon = Some(id.to_string()); hovered_tip = Some(desc.to_string()); } }
         f.render_widget(Paragraph::new(format!(" {} ", icon)).style(style), rect);
         app.header_icon_bounds.push((rect, id.to_string())); cur_icon_x += 3;
     }
@@ -320,7 +319,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             let metadata = file_state.metadata.get(path);
             let mut style = if metadata.map(|m| m.is_dir).unwrap_or(false) { Style::default().fg(THEME.accent_secondary) } else { Style::default().fg(THEME.fg) };
             if file_state.multi_select.contains(&i) && is_focused { style = style.bg(Color::Rgb(100, 0, 0)).fg(Color::White); }
-            Row::new(file_state.columns.iter().map(|c| match c { FileColumn::Name => Cell::from(format!("{} {}", if metadata.map(|m| m.is_dir).unwrap_or(false) { Icon::Folder.get(app.icon_mode) } else { Icon::File.get(app.icon_mode) }, path.file_name().unwrap_or_default().to_string_lossy())), FileColumn::Size => Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))), _ => Cell::from("") })).style(style)
+            let cells = vec![Cell::from(format!("{} {}", if metadata.map(|m| m.is_dir).unwrap_or(false) { Icon::Folder.get(app.icon_mode) } else { Icon::File.get(app.icon_mode) }, path.file_name().unwrap_or_default().to_string_lossy())), Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0)))];
+            Row::new(cells).style(style)
         });
         let border_style = if is_focused { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(THEME.border_inactive) };
         f.render_stateful_widget(Table::new(rows, constraints).header(Row::new(vec!["Name"]).height(1)).block(Block::default().borders(borders).border_type(BorderType::Rounded).border_style(border_style)).row_highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD)), area, &mut render_state);
