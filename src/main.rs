@@ -11,7 +11,7 @@ use terma::widgets::TextEditor;
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenuTarget, ContextMenuAction, FileCategory, SettingsSection, SettingsTarget, DropTarget, CurrentView};
+use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenuTarget, ContextMenuAction, FileCategory, SettingsSection, SettingsTarget, DropTarget, CurrentView, MonitorSubview};
 
 mod app;
 mod config;
