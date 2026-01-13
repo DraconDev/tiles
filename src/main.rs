@@ -10,7 +10,7 @@ use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifi
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppMode, CurrentView, AppEvent, SidebarTarget, ContextMenuTarget, MonitorSubview, ProcessColumn};
+use crate::app::{App, AppMode, CurrentView, AppEvent, SidebarTarget, ContextMenuTarget, MonitorSubview, ProcessColumn, ContextMenuAction};
 
 mod app;
 mod ui;
@@ -18,6 +18,7 @@ mod modules;
 mod config;
 mod license;
 mod icons;
+mod event;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
@@ -64,21 +65,14 @@ async fn run_tty() -> color_eyre::Result<()> {
                             Ok(n) => {
                                 for i in 0..n {
                                     if let Some(evt) = parser.advance(buffer[i]) {
-                                         // Inline conversion logic to avoid missing mod event
-                                         let converted = match evt {
-                                             terma::input::event::Event::Key(k) => Some(Event::Key(k)),
-                                             terma::input::event::Event::Mouse(m) => Some(Event::Mouse(m)),
-                                             terma::input::event::Event::Resize(w, h) => Some(Event::Resize(w, h)),
-                                             _ => None,
-                                         };
-                                         if let Some(c) = converted { let _ = tx.blocking_send(AppEvent::Raw(c)); }
+                                         if let Some(converted) = crate::event::convert_event(evt) { let _ = tx.blocking_send(AppEvent::Raw(converted)); }
                                     }
                                 }
                             }
                             Err(_) => break,
                         }
                     }
-                    Ok(false) => { if let Some(evt) = parser.check_timeout() { if let terma::input::event::Event::Key(k) = evt { let _ = tx.blocking_send(AppEvent::Raw(Event::Key(k))); } } }
+                    Ok(false) => { if let Some(evt) = parser.check_timeout() { if let Some(converted) = crate::event::convert_event(evt) { let _ = tx.blocking_send(AppEvent::Raw(converted)); } } }
                     Err(_) => break,
                 }
             }
