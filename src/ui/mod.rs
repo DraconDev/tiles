@@ -326,19 +326,14 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 
     // Toolbar Icons Cluster (Far Left)
     let back_icon = Icon::Back.get(app.icon_mode);
-    let forward_icon = Icon::Forward.get(app.icon_mode);
+    let forward_icon = Icon::ChevronRight.get(app.icon_mode);
     let split_icon = Icon::Split.get(app.icon_mode);
-    let burger_icon = Icon::Burger.get(app.icon_mode);
-    let reset_icon = Icon::Refresh.get(app.icon_mode);
 
-    app.header_icon_bounds.clear();
-    
-    let icons = [
+    let icons = vec![
         (burger_icon, "burger", "Settings"),
         (back_icon, "back", "Back"),
         (forward_icon, "forward", "Forward"),
-        (split_icon, "split", "Toggle Split"),
-        (reset_icon, "reset", "Reset Columns"),
+        (split_icon, "split", "Split View"),
     ];
 
     // Start icons at the left side of the sidebar with 1 padding
