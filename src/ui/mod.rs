@@ -205,7 +205,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)])
         .split(f.area());
 
-    let workspace_constraints = if app.show_sidebar {
+    let is_processes = app.current_view == CurrentView::Processes;
+    let workspace_constraints = if app.show_sidebar && !is_processes {
         [Constraint::Percentage(app.sidebar_width_percent), Constraint::Min(0)]
     } else {
         [Constraint::Percentage(0), Constraint::Min(0)]
@@ -217,7 +218,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         .split(chunks[1]);
 
     draw_global_header(f, chunks[0], workspace[0].width, app);
-    if app.show_sidebar {
+    if app.show_sidebar && !is_processes {
         draw_sidebar(f, workspace[0], app);
     }
     draw_main_stage(f, workspace[1], app);
