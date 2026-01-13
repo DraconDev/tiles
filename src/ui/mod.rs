@@ -12,7 +12,6 @@ use crate::ui::theme::THEME;
 use crate::icons::Icon;
 use terma::layout::centered_rect;
 use terma::utils::{format_size, format_time, format_permissions, format_datetime_smart, highlight_code, draw_stat_bar};
-use crate::get_context_menu_actions;
 
 pub mod theme;
 pub mod layout;
@@ -26,26 +25,21 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let mut current_y = inner.y;
 
             let mut active_storage_markers: HashMap<String, Vec<usize>> = HashMap::new();
-            let mut active_remote_markers: HashMap<String, Vec<usize>> = HashMap::new();
             
             for (p_idx, pane) in app.panes.iter().enumerate() {
                 let panel_num = p_idx + 1;
                 if let Some(fs) = pane.current_state() {
-                    if let Some(ref session) = fs.remote_session {
-                        active_remote_markers.entry(session.host.clone()).or_default().push(panel_num);
-                    } else {
-                        let mut matched_disk = None;
-                        let mut longest_prefix = 0;
-                        for disk in &app.system_state.disks {
-                            if disk.is_mounted && fs.current_path.starts_with(&disk.name) {
-                                if disk.name.len() > longest_prefix {
-                                    longest_prefix = disk.name.len();
-                                    matched_disk = Some(disk.name.clone());
-                                }
+                    let mut matched_disk = None;
+                    let mut longest_prefix = 0;
+                    for disk in &app.system_state.disks {
+                        if disk.is_mounted && fs.current_path.starts_with(&disk.name) {
+                            if disk.name.len() > longest_prefix {
+                                longest_prefix = disk.name.len();
+                                matched_disk = Some(disk.name.clone());
                             }
                         }
-                        if let Some(name) = matched_disk { active_storage_markers.entry(name).or_default().push(panel_num); }
                     }
+                    if let Some(name) = matched_disk { active_storage_markers.entry(name).or_default().push(panel_num); }
                 }
             }
 
@@ -58,7 +52,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("?".to_string());
                 let current_idx = sidebar_items.len();
                 let is_focused = app.sidebar_focus && app.sidebar_index == current_idx;
-                let is_active = if let Some(fs) = app.current_file_state() { fs.current_path == *path && fs.remote_session.is_none() } else { false };
+                let is_active = if let Some(fs) = app.current_file_state() { fs.current_path == *path } else { false };
                 let mut style = if is_active { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(THEME.fg) };
                 if is_focused { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); }
                 let icon = if path.is_dir() { Icon::Folder.get(app.icon_mode) } else { Icon::File.get(app.icon_mode) };
@@ -68,8 +62,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             }
 
             sidebar_items.push(ListItem::new("")); current_y += 1;
-            let storage_icon = Icon::Storage.get(app.icon_mode);
-            sidebar_items.push(ListItem::new(format!("{}STORAGES", storage_icon)).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
+            sidebar_items.push(ListItem::new(format!("{}STORAGES", Icon::Storage.get(app.icon_mode))).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
             current_y += 1;
             
             for (i, disk) in app.system_state.disks.iter().enumerate() {
@@ -77,9 +70,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let markers = active_storage_markers.get(&disk.name);
                 let mut style = if markers.is_some() { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::Green) };
                 if app.sidebar_focus && app.sidebar_index == current_idx { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); }
-                let mut display_name = if disk.name == "/" { "Root".to_string() } else { std::path::Path::new(&disk.name).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or(disk.name.clone()) };
-                if display_name.len() > 15 { display_name.truncate(12); display_name.push_str("..."); }
-                sidebar_items.push(ListItem::new(format!(" 󰋊 {}: {:.0}G Free", display_name, disk.available_space / 1_073_741_824.0)).style(style));
+                sidebar_items.push(ListItem::new(format!(" 󰋊 {}: {:.0}G Free", disk.name, disk.available_space / 1_073_741_824.0)).style(style));
                 app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_idx, target: SidebarTarget::Storage(i) });
                 current_y += 1;
             }
@@ -175,7 +166,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     draw_hud_tile(f, metrics_layout[1], "MEMORY", app.system_state.mem_usage as f32, app.system_state.total_mem as f32, "GB", Color::Rgb(155, 89, 182), &app.system_state.mem_history);
     draw_hud_tile(f, metrics_layout[2], "SWAP", app.system_state.swap_usage as f32, app.system_state.total_swap as f32, "GB", Color::Rgb(241, 196, 15), &app.system_state.swap_history);
 
-    // 2. PROCESSING FABRIC (Heatmap)
+    // 2. CORE FABRIC (Grid)
     let core_count = app.system_state.cpu_cores.len();
     if core_count > 0 {
         let core_block = Block::default().title(Span::styled(" 󰍛 PROCESSING FABRIC ", Style::default().fg(Color::Rgb(100, 100, 110)).add_modifier(Modifier::BOLD))).borders(Borders::TOP).border_style(Style::default().fg(Color::Rgb(40, 40, 45)));
@@ -231,7 +222,8 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
         let (icon, color) = if name_lower.contains("chrome") || name_lower.contains("firefox") { ("󰈹 ", Color::Rgb(231, 76, 60)) } else if name_lower.contains("code") || name_lower.contains("vim") { ("󰨞 ", Color::Rgb(61, 174, 233)) } else { ("󰀻 ", Color::White) };
         let mut style = if i % 2 == 0 { Style::default().bg(Color::Rgb(15, 17, 20)) } else { Style::default() };
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Applications { style = style.bg(Color::Rgb(61, 174, 233)).fg(Color::Black); }
-        Row::new(vec![Cell::from(format!("{} {}", icon, p.name)).style(Style::default().fg(if app.process_selected_idx == Some(i) { Color::Black } else { color }).add_modifier(Modifier::BOLD)), Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(if p.cpu > 30.0 { Color::Red } else { Color::Rgb(46, 204, 113) })), Cell::from(format!("{:.1} MB", p.mem)), Cell::from(p.pid.to_string()), Cell::from(p.status.clone())]).style(style)
+        let cells = vec![Cell::from(format!("{} {}", icon, p.name)).style(Style::default().fg(if app.process_selected_idx == Some(i) { Color::Black } else { color }).add_modifier(Modifier::BOLD)), Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(if p.cpu > 30.0 { Color::Red } else { Color::Rgb(46, 204, 113) })), Cell::from(format!("{:.1} MB", p.mem)), Cell::from(p.pid.to_string()), Cell::from(p.status.clone())];
+        Row::new(cells).style(style)
     });
     f.render_widget(Table::new(rows, [Constraint::Min(35), Constraint::Length(10), Constraint::Length(15), Constraint::Length(10), Constraint::Length(15)]).header(Row::new(vec![" Application", "CPU", "Memory", "PID", "Status"]).style(Style::default().add_modifier(Modifier::BOLD)).height(1).bottom_margin(1)).column_spacing(2), inner);
 }
@@ -253,7 +245,8 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
     let rows = app.system_state.processes.iter().enumerate().map(|(i, p)| {
         let mut style = if i % 2 == 0 { Style::default().bg(Color::Rgb(15, 17, 20)) } else { Style::default() };
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Processes { style = style.bg(Color::Rgb(61, 174, 233)).fg(Color::Black); }
-        Row::new(vec![Cell::from(p.pid.to_string()), Cell::from(p.name.clone()).style(Style::default().add_modifier(Modifier::BOLD)), Cell::from(p.user.clone()).style(Style::default().fg(Color::Rgb(61, 174, 233))), Cell::from(p.status.clone()), Cell::from(format!("{:.1}", p.cpu)), Cell::from(format!("{:.1}", p.mem))]).style(style)
+        let cells = vec![Cell::from(p.pid.to_string()), Cell::from(p.name.clone()).style(Style::default().add_modifier(Modifier::BOLD)), Cell::from(p.user.clone()).style(Style::default().fg(Color::Rgb(61, 174, 233))), Cell::from(p.status.clone()), Cell::from(format!("{:.1}", p.cpu)), Cell::from(format!("{:.1}", p.mem))];
+        Row::new(cells).style(style)
     });
     f.render_stateful_widget(Table::new(rows, column_constraints).header(Row::new(header_cells).height(1).bottom_margin(1).style(Style::default().bg(Color::Rgb(30, 33, 35)))).column_spacing(1), table_inner, &mut app.process_table_state);
 }
