@@ -3,8 +3,6 @@ a big question i have is how much interaction we can have, cause seemingly some 
 
 also by default we can try to fill up space giving all what they need and giving the rest to the name
 
-lets us reorder tabs by dragging htem around 
-
 shortcut page needs scroll
 
 make sure terma has as much of the logic as possible so we can reuse with other tui things
