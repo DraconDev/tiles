@@ -2403,7 +2403,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
                             _ => {}
                         }
+                        // If in processes view, we don't want to fall through to file view logic
+                        return true;
                     }
+
+                    // Header Icons
+                    if row == 0 {
                         if let Some((_, action_id)) = app.header_icon_bounds.iter().find(|(r, _)| column >= r.x && column < r.x + r.width && row == r.y) {
                             match action_id.as_str() {
                                 "back" => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
