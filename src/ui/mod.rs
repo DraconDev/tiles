@@ -12,7 +12,7 @@ use crate::app::{App, AppMode, CurrentView, FileColumn, SidebarTarget, SidebarBo
 use crate::ui::theme::THEME;
 use crate::icons::Icon;
 use terma::layout::centered_rect;
-use terma::utils::{format_size, format_time, format_permissions};
+use terma::utils::{format_size, format_time, format_permissions, format_datetime_smart};
 
 pub mod theme;
 pub mod layout;
