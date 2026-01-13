@@ -280,6 +280,19 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     app_guard.system_state.total_mem = data.total_mem;
                     app_guard.system_state.disks = data.disks;
                     app_guard.system_state.processes = data.processes;
+                    
+                    app_guard.system_state.cpu_history.push(data.cpu_usage as u64);
+                    if app_guard.system_state.cpu_history.len() > 100 { app_guard.system_state.cpu_history.remove(0); }
+                    
+                    let mem_percent = if data.total_mem > 0.0 { (data.mem_usage / data.total_mem) * 100.0 } else { 0.0 };
+                    app_guard.system_state.mem_history.push(mem_percent as u64);
+                    if app_guard.system_state.mem_history.len() > 100 { app_guard.system_state.mem_history.remove(0); }
+
+                    app_guard.apply_process_sort();
+                    needs_draw = true;
+                }
+                AppEvent::KillProcess(pid) => {
+                    let _ = std::process::Command::new("kill").arg(pid.to_string()).status();
                     needs_draw = true;
                 }
                 AppEvent::RefreshFiles(pane_idx) => {
