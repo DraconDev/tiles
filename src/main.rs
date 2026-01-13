@@ -11,12 +11,13 @@ use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifi
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent, DropTarget, SidebarTarget, ContextMenuTarget, MonitorSubview, ProcessColumn};
-use crate::icons::IconMode;
+use crate::app::{App, AppMode, CurrentView, CommandItem, AppEvent, DropTarget, SidebarTarget, ContextMenuTarget, MonitorSubview, ProcessColumn, FileCategory};
+use crate::icons::{IconMode, guess_icon_mode};
 
 mod app;
 mod ui;
 mod modules;
+mod event;
 mod config;
 mod license;
 mod icons;
@@ -41,13 +42,14 @@ async fn main() -> color_eyre::Result<()> {
 }
 
 async fn run_tty() -> color_eyre::Result<()> {
+    crate::app::log_debug("run_tty start");
     let backend = TermaBackend::new(std::io::stdout())?;
     let tile_queue = backend.tile_queue();
     let mut terminal = Terminal::new(backend)?;
 
     let (app, event_tx, mut event_rx) = setup_app(tile_queue);
 
-    // TTY Event Loop
+    // 1. Input Thread (Stdio)
     {
         let tx = event_tx.clone();
         std::thread::spawn(move || {
@@ -57,6 +59,7 @@ async fn run_tty() -> color_eyre::Result<()> {
             let mut stdin = std::io::stdin();
             let fd = stdin.as_raw_fd();
             let mut buffer = [0; 1024];
+            
             loop {
                 let polled = unsafe { terma::backend::tty::poll_input(std::os::fd::BorrowedFd::borrow_raw(fd), 20) };
                 match polled {
@@ -66,15 +69,14 @@ async fn run_tty() -> color_eyre::Result<()> {
                             Ok(n) => {
                                 for i in 0..n {
                                     if let Some(evt) = parser.advance(buffer[i]) {
-                                         // Mock convert_event since I don't see src/event.rs
-                                         let converted = match evt {
-                                             terma::input::event::Event::Key(k) => Some(Event::Key(k)),
-                                             terma::input::event::Event::Mouse(m) => Some(Event::Mouse(m)),
-                                             terma::input::event::Event::Resize(w, h) => Some(Event::Resize(w, h)),
-                                             _ => None,
-                                         };
-                                         if let Some(c) = converted {
-                                             let _ = tx.blocking_send(AppEvent::Raw(c));
+                                         if let Some(converted) = crate::event::convert_event(evt) {
+                                             let is_spam = if let Event::Mouse(ref me) = converted {
+                                                  matches!(me.kind, MouseEventKind::Moved)
+                                             } else { false };
+                                             
+                                             if !is_spam {
+                                                 let _ = tx.blocking_send(AppEvent::Raw(converted));
+                                             }
                                          }
                                     }
                                 }
@@ -82,20 +84,20 @@ async fn run_tty() -> color_eyre::Result<()> {
                             Err(_) => break,
                         }
                     }
-                    Ok(false) => { if let Some(evt) = parser.check_timeout() { 
-                        let converted = match evt {
-                             terma::input::event::Event::Key(k) => Some(Event::Key(k)),
-                             _ => None,
-                        };
-                        if let Some(c) = converted { let _ = tx.blocking_send(AppEvent::Raw(c)); } 
-                    } }
+                    Ok(false) => {
+                        if let Some(evt) = parser.check_timeout() {
+                             if let Some(converted) = crate::event::convert_event(evt) {
+                                 let _ = tx.blocking_send(AppEvent::Raw(converted));
+                             }
+                        }
+                    }
                     Err(_) => break,
                 }
             }
         });
     }
 
-    // System Stats Loop
+    // 2. System Stats Loop
     {
         let tx = event_tx.clone();
         tokio::spawn(async move {
@@ -108,7 +110,7 @@ async fn run_tty() -> color_eyre::Result<()> {
         });
     }
 
-    // Tick Loop
+    // 3. Tick Loop
     {
         let tx = event_tx.clone();
         tokio::spawn(async move {
@@ -122,8 +124,12 @@ async fn run_tty() -> color_eyre::Result<()> {
     // Initial Refresh
     {
         let mut app_guard = app.lock().unwrap();
-        for i in 0..app_guard.panes.len() { let _ = event_tx.blocking_send(AppEvent::RefreshFiles(i)); }
-        if let Ok(size) = terminal.size() { app_guard.terminal_size = (size.width, size.height); }
+        for i in 0..app_guard.panes.len() {
+            let _ = event_tx.blocking_send(AppEvent::RefreshFiles(i));
+        }
+        if let Ok(size) = terminal.size() {
+            app_guard.terminal_size = (size.width, size.height);
+        }
     }
 
     loop {
@@ -132,7 +138,12 @@ async fn run_tty() -> color_eyre::Result<()> {
             match event {
                 AppEvent::Raw(raw) => {
                     let mut app_guard = app.lock().unwrap();
-                    if handle_event(raw, &mut app_guard, event_tx.clone()) { needs_draw = true; }
+                    if handle_event(raw, &mut app_guard, event_tx.clone()) {
+                        needs_draw = true;
+                    }
+                }
+                AppEvent::Tick => {
+                    needs_draw = true;
                 }
                 AppEvent::SystemUpdated(data) => {
                     let mut app_guard = app.lock().unwrap();
@@ -161,6 +172,14 @@ async fn run_tty() -> color_eyre::Result<()> {
                         if app_guard.system_state.core_history[i].len() > 100 { app_guard.system_state.core_history[i].remove(0); }
                     }
 
+                    let mem_percent = if data.total_mem > 0.0 { (data.mem_usage / data.total_mem) * 100.0 } else { 0.0 };
+                    app_guard.system_state.mem_history.push(mem_percent as u64);
+                    if app_guard.system_state.mem_history.len() > 100 { app_guard.system_state.mem_history.remove(0); }
+
+                    let swap_percent = if data.total_swap > 0.0 { (data.swap_usage / data.total_swap) * 100.0 } else { 0.0 };
+                    app_guard.system_state.swap_history.push(swap_percent as u64);
+                    if app_guard.system_state.swap_history.len() > 100 { app_guard.system_state.swap_history.remove(0); }
+
                     if app_guard.system_state.last_net_in > 0 {
                         let diff_in = data.net_in.saturating_sub(app_guard.system_state.last_net_in);
                         let diff_out = data.net_out.saturating_sub(app_guard.system_state.last_net_out);
@@ -174,24 +193,38 @@ async fn run_tty() -> color_eyre::Result<()> {
                     app_guard.system_state.net_in = data.net_in;
                     app_guard.system_state.net_out = data.net_out;
 
-                    let mem_p = if data.total_mem > 0.0 { (data.mem_usage / data.total_mem) * 100.0 } else { 0.0 };
-                    app_guard.system_state.mem_history.push(mem_p as u64);
-                    if app_guard.system_state.mem_history.len() > 100 { app_guard.system_state.mem_history.remove(0); }
-
-                    let swap_p = if data.total_swap > 0.0 { (data.swap_usage / data.total_swap) * 100.0 } else { 0.0 };
-                    app_guard.system_state.swap_history.push(swap_p as u64);
-                    if app_guard.system_state.swap_history.len() > 100 { app_guard.system_state.swap_history.remove(0); }
-
                     app_guard.apply_process_sort();
                     needs_draw = true;
                 }
-                AppEvent::Tick => { needs_draw = true; }
-                AppEvent::RefreshFiles(idx) => {
+                AppEvent::RefreshFiles(pane_idx) => {
                     let mut app_guard = app.lock().unwrap();
-                    if let Some(fs) = app_guard.panes.get_mut(idx).and_then(|p| p.current_state_mut()) {
-                        crate::modules::files::update_files(fs, None);
-                        needs_draw = true;
+                    if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
+                        if let Some(fs) = pane.current_state_mut() {
+                            crate::modules::files::update_files(fs, None);
+                            needs_draw = true;
+                        }
                     }
+                }
+                AppEvent::FilesUpdated(pane_idx, files, meta, git, branch, local_count) => {
+                    let mut app_guard = app.lock().unwrap();
+                    if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
+                        if let Some(fs) = pane.current_state_mut() {
+                            fs.files = files;
+                            fs.metadata = meta;
+                            fs.git_status = git;
+                            fs.git_branch = branch;
+                            fs.local_count = local_count;
+                            needs_draw = true;
+                        }
+                    }
+                }
+                AppEvent::StatusMsg(msg) => {
+                    let mut app_guard = app.lock().unwrap();
+                    app_guard.last_action_msg = Some((msg, Instant::now()));
+                    needs_draw = true;
+                }
+                AppEvent::KillProcess(pid) => {
+                    let _ = std::process::Command::new("kill").arg("-9").arg(pid.to_string()).status();
                 }
                 _ => {}
             }
@@ -199,12 +232,13 @@ async fn run_tty() -> color_eyre::Result<()> {
 
         if needs_draw {
             let mut app_guard = app.lock().unwrap();
-            terminal.draw(|f| crate::ui::draw(f, &mut app_guard))?;
+            if !app_guard.running { break; }
+            terminal.draw(|f| ui::draw(f, &mut app_guard))?;
         }
 
-        if !app.lock().unwrap().running { break; }
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
+
     Ok(())
 }
 
@@ -216,22 +250,69 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
 
 fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> bool {
     match evt {
-        Event::Resize(w, h) => { app.terminal_size = (w, h); return true; }
+        Event::Resize(w, h) => {
+            app.terminal_size = (w, h);
+            return true;
+        }
         Event::Key(key) => {
             let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
+            
+            if app.current_view == CurrentView::Processes {
+                match key.code {
+                    KeyCode::Char('1') => { app.monitor_subview = MonitorSubview::Overview; return true; }
+                    KeyCode::Char('2') => { app.monitor_subview = MonitorSubview::Applications; return true; }
+                    KeyCode::Char('3') => { app.monitor_subview = MonitorSubview::Processes; return true; }
+                    KeyCode::Up => { app.move_process_up(); return true; }
+                    KeyCode::Down => { app.move_process_down(); return true; }
+                    KeyCode::Esc => { app.current_view = CurrentView::Files; return true; }
+                    KeyCode::Char('k') | KeyCode::Delete => {
+                        if let Some(idx) = app.process_selected_idx {
+                            if let Some(p) = app.system_state.processes.get(idx) {
+                                let _ = event_tx.try_send(AppEvent::KillProcess(p.pid));
+                            }
+                        }
+                        return true;
+                    }
+                    KeyCode::Char(c) if !has_control => {
+                        app.process_search_filter.push(c);
+                        app.apply_process_sort();
+                        return true;
+                    }
+                    KeyCode::Backspace => {
+                        app.process_search_filter.pop();
+                        app.apply_process_sort();
+                        return true;
+                    }
+                    _ => {}
+                }
+            }
+
             match key.code {
                 KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return true; }
                 KeyCode::Char('m') | KeyCode::Char('M') if has_control => { app.current_view = if app.current_view == CurrentView::Processes { CurrentView::Files } else { CurrentView::Processes }; return true; }
-                KeyCode::Char('1') if app.current_view == CurrentView::Processes => { app.monitor_subview = MonitorSubview::Overview; return true; }
-                KeyCode::Char('2') if app.current_view == CurrentView::Processes => { app.monitor_subview = MonitorSubview::Applications; return true; }
-                KeyCode::Char('3') if app.current_view == CurrentView::Processes => { app.monitor_subview = MonitorSubview::Processes; return true; }
-                KeyCode::Esc => {
-                    if app.current_view == CurrentView::Processes { app.current_view = CurrentView::Files; }
-                    app.mode = AppMode::Normal;
+                KeyCode::Char('p') | KeyCode::Char('P') if has_control => { app.toggle_split(); return true; }
+                KeyCode::Char('b') | KeyCode::Char('B') if has_control => { app.show_sidebar = !app.show_sidebar; return true; }
+                KeyCode::Up => { app.move_up(false); return true; }
+                KeyCode::Down => { app.move_down(false); return true; }
+                KeyCode::Left => { app.move_left(); return true; }
+                KeyCode::Right => { app.move_right(); return true; }
+                KeyCode::Enter => {
+                    if let Some(fs) = app.current_file_state_mut() {
+                        if let Some(idx) = fs.selected_index {
+                            if let Some(path) = fs.files.get(idx).cloned() {
+                                if path.is_dir() {
+                                    fs.current_path = path.clone();
+                                    fs.selected_index = Some(0);
+                                    push_history(fs, path);
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                } else {
+                                    spawn_detached("xdg-open", vec![&path.to_string_lossy()]);
+                                }
+                            }
+                        }
+                    }
                     return true;
                 }
-                KeyCode::Up => { if app.current_view == CurrentView::Processes { app.move_process_up(); } else { app.move_up(false); } return true; }
-                KeyCode::Down => { if app.current_view == CurrentView::Processes { app.move_process_down(); } else { app.move_down(false); } return true; }
                 _ => {}
             }
         }
@@ -239,17 +320,37 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             let (col, row) = (me.column, me.row);
             if let MouseEventKind::Down(_) = me.kind {
                 if app.current_view == CurrentView::Processes {
+                    // Tabs
                     for (rect, view) in &app.monitor_subview_bounds {
                         if rect.contains(ratatui::layout::Position { x: col, y: row }) {
                             app.monitor_subview = *view;
+                            app.process_search_filter.clear();
                             return true;
                         }
                     }
+                    // Table Rows
                     if row >= 6 {
                         let table_row = (row as usize).saturating_sub(6) + app.process_table_state.offset();
-                        app.process_selected_idx = Some(table_row);
-                        app.process_table_state.select(app.process_selected_idx);
+                        let proc_count = if app.monitor_subview == MonitorSubview::Processes {
+                            app.system_state.processes.len()
+                        } else {
+                            let user = std::env::var("USER").unwrap_or_default();
+                            app.system_state.processes.iter().filter(|p| p.user == user).count()
+                        };
+                        if table_row < proc_count {
+                            app.process_selected_idx = Some(table_row);
+                            app.process_table_state.select(app.process_selected_idx);
+                        }
                         return true;
+                    }
+                }
+                
+                if row == 0 {
+                    if let Some((_, action_id)) = app.header_icon_bounds.iter().find(|(r, _)| r.contains(ratatui::layout::Position { x: col, y: row })) {
+                        if action_id == "monitor" {
+                            app.current_view = if app.current_view == CurrentView::Processes { CurrentView::Files } else { CurrentView::Processes };
+                            return true;
+                        }
                     }
                 }
             }
@@ -266,20 +367,6 @@ fn push_history(fs: &mut crate::app::FileState, path: std::path::PathBuf) {
     fs.history_index = fs.history.len() - 1;
 }
 
-fn navigate_back(fs: &mut crate::app::FileState) {
-    if fs.history_index > 0 {
-        fs.history_index -= 1;
-        fs.current_path = fs.history[fs.history_index].clone();
-    }
-}
-
-fn navigate_forward(fs: &mut crate::app::FileState) {
-    if fs.history_index + 1 < fs.history.len() {
-        fs.history_index += 1;
-        fs.current_path = fs.history[fs.history_index].clone();
-    }
-}
-
 fn spawn_detached(cmd: &str, args: Vec<&str>) {
     let mut command = std::process::Command::new(cmd);
     command.args(args);
@@ -293,8 +380,9 @@ fn spawn_detached(cmd: &str, args: Vec<&str>) {
     }
 }
 
-pub fn get_context_menu_actions(_target: &crate::app::ContextMenuTarget, _app: &App) -> Vec<crate::app::ContextMenuAction> { vec![] }
-fn handle_context_menu_action(_action: &crate::app::ContextMenuAction, _target: &crate::app::ContextMenuTarget, _app: &mut App, _tx: mpsc::Sender<AppEvent>) {}
-fn fs_mouse_index(_row: u16, _app: &App) -> usize { 0 }
+fn navigate_back(_fs: &mut crate::app::FileState) {}
+fn navigate_forward(_fs: &mut crate::app::FileState) {}
 fn update_commands(_app: &mut App) {}
 fn execute_command(_action: crate::app::CommandAction, _app: &mut App, _tx: mpsc::Sender<AppEvent>) {}
+fn handle_context_menu_action(_action: &crate::app::ContextMenuAction, _target: &crate::app::ContextMenuTarget, _app: &mut App, _tx: mpsc::Sender<AppEvent>) {}
+fn fs_mouse_index(_row: u16, _app: &App) -> usize { 0 }
