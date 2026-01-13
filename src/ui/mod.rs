@@ -342,7 +342,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     app.header_icon_bounds.clear();
     let mut hovered_tip = None;
     
-    for (i, (icon, id, desc)) in icons.into_iter().enumerate() {
+    for (i, (icon, id, desc)) in icons.iter().enumerate() {
         let rect = Rect::new(cur_icon_x, area.y, 3, 1);
         let id_str = id.to_string();
         
@@ -364,12 +364,10 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     }
 
     // Draw description if hovered
-    if let Some(hovered_id) = &app.hovered_header_icon {
-        if let Some((_, _, desc)) = icons.iter().find(|(_, id, _)| id == hovered_id) {
-            let desc_text = format!(" [ {} ] ", desc);
-            let desc_rect = Rect::new(cur_icon_x + 1, area.y, desc_text.len() as u16, 1);
-            f.render_widget(Paragraph::new(desc_text).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), desc_rect);
-        }
+    if let Some(desc) = hovered_tip {
+        let desc_text = format!(" [ {} ] ", desc);
+        let desc_rect = Rect::new(cur_icon_x + 1, area.y, desc_text.len() as u16, 1);
+        f.render_widget(Paragraph::new(desc_text).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), desc_rect);
     }
     app.hovered_header_icon = None; // Reset for next frame
 
