@@ -246,7 +246,7 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
     let nav_inner = nav_block.inner(chunks[0]);
     f.render_widget(nav_block, chunks[0]);
 
-    let subviews = [
+    let subviews: [(MonitorSubview, &str); 4] = [
         (MonitorSubview::Overview, " Overview "),
         (MonitorSubview::Applications, " Applications "),
         (MonitorSubview::History, " History "),
