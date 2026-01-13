@@ -1192,7 +1192,8 @@ fn draw_editor_overlay(f: &mut Frame, app: &App) {
             f.render_widget(editor, inner);
         } else {
             let highlighted = highlight_code(&preview.content);
-            let text = Paragraph::new(highlighted);
+            let text = Paragraph::new(highlighted)
+                .scroll((preview.scroll as u16, 0));
             f.render_widget(text, inner);
         }
     }
