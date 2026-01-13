@@ -593,8 +593,8 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Min(0),      // Log, Clipboard & Shortcuts
-            Constraint::Length(20), // Selection Info
-            Constraint::Length(45), // Stats (CPU/MEM)
+            Constraint::Length(30),  // Selection Summary
+            Constraint::Percentage(30), // CPU/MEM Stats (Fluid)
         ])
         .split(area);
 
@@ -961,7 +961,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, app: &App) {
     }
 
     let total_rows = rows.len();
-    let visible_rows = area.height.saturating_sub(2) as usize;
+    let visible_rows = area.height as usize;
     let scroll = app.settings_scroll.min(total_rows.saturating_sub(visible_rows));
     
     let table = Table::new(rows.into_iter().skip(scroll).collect::<Vec<_>>(), [Constraint::Length(20), Constraint::Min(0)])
@@ -973,7 +973,9 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, app: &App) {
         let scrollbar = Scrollbar::default()
             .orientation(ScrollbarOrientation::VerticalRight)
             .begin_symbol(Some("▲"))
-            .end_symbol(Some("▼"));
+            .end_symbol(Some("▼"))
+            .track_symbol(Some("│"))
+            .thumb_symbol("█");
         let mut scrollbar_state = ScrollbarState::new(total_rows)
             .position(scroll)
             .viewport_content_length(visible_rows);
