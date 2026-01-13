@@ -501,7 +501,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             let name = if *c == file_state.sort_column { if file_state.sort_ascending { format!("{} ▲", base_name) } else { format!("{} ▼", base_name) } } else { base_name.to_string() };
             
             // Add resize handle visual if not the last column
-            let mut style = Style::default().fg(THEME.header_fg).add_modifier(Modifier::BOLD);
+            let style = Style::default().fg(THEME.header_fg).add_modifier(Modifier::BOLD);
             let mut text = name;
             if i < file_state.columns.len() - 1 {
                 text.push_str(" │");

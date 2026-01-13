@@ -199,7 +199,7 @@ pub enum ClipboardOp {
     Cut,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FileColumn {
     Name,
     Size,
