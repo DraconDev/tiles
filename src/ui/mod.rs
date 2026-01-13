@@ -553,8 +553,16 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                     Cell::from(format!("{}{}", icon, dn)).style(final_style)
                 }
                 FileColumn::Size => { let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false); let style = if is_dir { Style::default().fg(THEME.accent_secondary) } else { Style::default().fg(THEME.fg) }; if is_dir { Cell::from("<DIR>").style(style) } else { Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))).style(style) } }
-                FileColumn::Modified => Cell::from(format_datetime_smart(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH))).style(Style::default().fg(THEME.fg)),
-                FileColumn::Created => Cell::from(format_datetime_smart(metadata.map(|m| m.created).unwrap_or(SystemTime::UNIX_EPOCH))).style(Style::default().fg(THEME.fg)),
+                FileColumn::Modified => {
+                    let time = metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH);
+                    let text = if app.smart_date { format_datetime_smart(time) } else { format_time(time) };
+                    Cell::from(text).style(Style::default().fg(THEME.fg))
+                },
+                FileColumn::Created => {
+                    let time = metadata.map(|m| m.created).unwrap_or(SystemTime::UNIX_EPOCH);
+                    let text = if app.smart_date { format_datetime_smart(time) } else { format_time(time) };
+                    Cell::from(text).style(Style::default().fg(THEME.fg))
+                },
                 FileColumn::Extension => Cell::from(metadata.map(|m| m.extension.as_str()).unwrap_or("")).style(Style::default().fg(THEME.fg)),
                 FileColumn::Permissions => Cell::from(format_permissions(metadata.map(|m| m.permissions).unwrap_or(0))).style(Style::default().fg(THEME.fg)),
             });
@@ -1047,6 +1055,7 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
     let items = vec![
         ListItem::new(format!("[{}] Show Hidden Files (h)", if app.default_show_hidden { "x" } else { " " })),
         ListItem::new(format!("[{}] Confirm Delete (d)", if app.confirm_delete { "x" } else { " " })),
+        ListItem::new(format!("[{}] Smart Date Format (t)", if app.smart_date { "x" } else { " " })),
         ListItem::new(format!("Icon Mode: {:?} (i)", app.icon_mode)),
     ];
     f.render_widget(List::new(items).block(Block::default().title(" General Preferences ").borders(Borders::NONE)), area);
