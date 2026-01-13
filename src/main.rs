@@ -2057,8 +2057,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
                             return true;
                         }
-                        KeyCode::Left if key.modifiers.contains(KeyModifiers::ALT) => { if let Some(pane) = app.panes.get_mut(app.focused_pane_index) { pane.preview = None; if let Some(fs) = pane.current_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } return true; }
-                        KeyCode::Right if key.modifiers.contains(KeyModifiers::ALT) => { if let Some(pane) = app.panes.get_mut(app.focused_pane_index) { pane.preview = None; if let Some(fs) = pane.current_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } return true; }
+                        KeyCode::Left if key.modifiers.contains(KeyModifiers::ALT) => { if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } return true; }
+                        KeyCode::Right if key.modifiers.contains(KeyModifiers::ALT) => { if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } return true; }
                         KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); return true; }
                         KeyCode::Up => {
                             if app.sidebar_focus && app.sidebar_index == 0 { app.mode = AppMode::Header(0); return true; } 
