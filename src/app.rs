@@ -547,7 +547,7 @@ impl App {
                 log_debug("Returning early with loaded state");
                 return Self {
                     running: true,
-                    current_view: state.current_view,
+                    current_view: CurrentView::Files,
                     mode: AppMode::Normal,
                     input: TextInput::new(),
                     icon_mode: guess_icon_mode(),
