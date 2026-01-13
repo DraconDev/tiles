@@ -11,7 +11,7 @@ use terma::widgets::TextEditor;
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenuTarget, ContextMenuAction, FileCategory, SettingsSection, SettingsTarget, DropTarget};
+use crate::app::{App, AppMode, CommandItem, AppEvent, SidebarTarget, ContextMenuTarget, ContextMenuAction, FileCategory, SettingsSection, SettingsTarget, DropTarget, CurrentView};
 
 mod app;
 mod config;
@@ -24,6 +24,12 @@ use crate::icons::IconMode;
 
 fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<ContextMenuAction> {
     match target {
+        ContextMenuTarget::Process(pid) => {
+            vec![
+                ContextMenuAction::Open, // We'll map this to "Show Details" or similar?
+                ContextMenuAction::Delete, // We'll map this to "Kill"
+            ]
+        }
         ContextMenuTarget::File(idx) => {
             // Check if multiple items are selected
             let mut actions = Vec::new();
