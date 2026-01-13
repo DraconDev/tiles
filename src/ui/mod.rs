@@ -672,16 +672,16 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         f.render_stateful_widget(table, area, &mut display_state);
         *file_state.table_state.offset_mut() = display_state.offset();
 
-        if file_state.files.len() > area.height.saturating_sub(4) as usize {
+        let visible_rows = area.height.saturating_sub(3) as usize;
+        if file_state.files.len() > visible_rows {
             let scrollbar = Scrollbar::default()
                 .orientation(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(Some("▲"))
                 .end_symbol(Some("▼"));
             
-            let viewport_height = area.height.saturating_sub(2) as usize; // Height of the table rows area
             let mut scroll_state = ScrollbarState::new(file_state.files.len())
                 .position(file_state.table_state.offset())
-                .viewport_content_length(viewport_height);
+                .viewport_content_length(visible_rows);
             
             f.render_stateful_widget(scrollbar, area, &mut scroll_state);
         }
