@@ -1853,6 +1853,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
                         }
                         if editor.handle_event(&evt, editor_area) {
+                            if app.auto_save && editor.modified {
+                                let _ = event_tx.try_send(AppEvent::SaveFile(preview.path.clone(), editor.get_content()));
+                                editor.modified = false;
+                            }
                             return true;
                         }
                     } else {
