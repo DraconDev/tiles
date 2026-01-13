@@ -468,24 +468,74 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
 fn draw_monitor_history(f: &mut Frame, area: Rect, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .constraints([
+            Constraint::Percentage(40), // Per-core CPU Grid
+            Constraint::Percentage(30), // Network
+            Constraint::Min(0)          // Memory
+        ])
         .split(area);
 
-    let cpu_history: Vec<u64> = app.system_state.cpu_history.iter().copied().collect();
-    let cpu_block = Block::default()
-        .title(Span::styled(" CPU History ", Style::default().fg(Color::Rgb(46, 204, 113)).add_modifier(Modifier::BOLD)))
+    // 1. Per-Core CPU Grid
+    let core_count = app.system_state.cpu_cores.len();
+    if core_count > 0 {
+        let cols = if core_count > 16 { 8 } else if core_count > 8 { 4 } else { 2 };
+        let rows = (core_count as f32 / cols as f32).ceil() as u16;
+        
+        let core_block = Block::default()
+            .title(Span::styled(" CPU Core Activity ", Style::default().fg(Color::Rgb(46, 204, 113)).add_modifier(Modifier::BOLD)))
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::Rgb(40, 45, 50)));
+        let core_inner = core_block.inner(chunks[0]);
+        f.render_widget(core_block, chunks[0]);
+
+        let row_constraints = vec![Constraint::Percentage(100 / rows); rows as usize];
+        let core_rows = Layout::default().direction(Direction::Vertical).constraints(row_constraints).split(core_inner);
+
+        for r in 0..rows {
+            let col_constraints = vec![Constraint::Percentage(100 / cols); cols as usize];
+            let core_cols = Layout::default().direction(Direction::Horizontal).constraints(col_constraints).split(core_rows[r as usize]);
+            
+            for c in 0..cols {
+                let core_idx = (r * cols + c) as usize;
+                if core_idx < core_count {
+                    let usage = app.system_state.cpu_cores[core_idx];
+                    let history = &app.system_state.core_history[core_idx];
+                    let spark = Sparkline::default()
+                        .block(Block::default().title(format!(" Core {} ({:.0}%) ", core_idx, usage)).title_alignment(ratatui::layout::Alignment::Left))
+                        .data(history)
+                        .style(Style::default().fg(if usage > 80.0 { Color::Red } else { Color::Rgb(46, 204, 113) }));
+                    f.render_widget(spark, core_cols[c as usize]);
+                }
+            }
+        }
+    }
+
+    // 2. Network History
+    let net_block = Block::default()
+        .title(Span::styled(" Network Traffic ", Style::default().fg(Color::Rgb(61, 174, 233)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::Rgb(40, 45, 50)));
-    f.render_widget(Sparkline::default().block(cpu_block).data(&cpu_history).max(100).style(Style::default().fg(Color::Rgb(46, 204, 113))), chunks[0]);
+    let net_inner = net_block.inner(chunks[1]);
+    f.render_widget(net_block, chunks[1]);
 
+    let net_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(net_inner);
+    
+    let in_history: Vec<u64> = app.system_state.net_in_history.iter().copied().collect();
+    let out_history: Vec<u64> = app.system_state.net_out_history.iter().copied().collect();
+
+    f.render_widget(Sparkline::default().block(Block::default().title(" Download ")).data(&in_history).style(Style::default().fg(Color::Green)), net_layout[0]);
+    f.render_widget(Sparkline::default().block(Block::default().title(" Upload ")).data(&out_history).style(Style::default().fg(Color::Blue)), net_layout[1]);
+
+    // 3. Memory History
     let mem_history: Vec<u64> = app.system_state.mem_history.iter().copied().collect();
     let mem_block = Block::default()
         .title(Span::styled(" Memory History ", Style::default().fg(Color::Rgb(155, 89, 182)).add_modifier(Modifier::BOLD)))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::Rgb(40, 45, 50)));
-    f.render_widget(Sparkline::default().block(mem_block).data(&mem_history).max(100).style(Style::default().fg(Color::Rgb(155, 89, 182))), chunks[1]);
+    f.render_widget(Sparkline::default().block(mem_block).data(&mem_history).max(100).style(Style::default().fg(Color::Rgb(155, 89, 182))), chunks[2]);
 }
 
 fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
