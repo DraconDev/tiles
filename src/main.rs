@@ -2225,12 +2225,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         }
                         MouseEventKind::ScrollUp => {
                             if let AppMode::Engage = app.mode {
-                                if let Some(preview) = &mut app.editor_state { if let Some(editor) = &mut preview.editor { editor.handle_mouse_event(me, ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1))); } }
+                                if let Some(preview) = &mut app.editor_state { 
+                                    if let Some(editor) = &mut preview.editor { 
+                                        editor.handle_mouse_event(me, ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1))); 
+                                    } else {
+                                        preview.scroll = preview.scroll.saturating_sub(3);
+                                    }
+                                }
                             } else if let AppMode::Settings = app.mode { app.settings_scroll = app.settings_scroll.saturating_sub(2); }
                         }
                         MouseEventKind::ScrollDown => {
                             if let AppMode::Engage = app.mode {
-                                if let Some(preview) = &mut app.editor_state { if let Some(editor) = &mut preview.editor { editor.handle_mouse_event(me, ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1))); } }
+                                if let Some(preview) = &mut app.editor_state { 
+                                    if let Some(editor) = &mut preview.editor { 
+                                        editor.handle_mouse_event(me, ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1))); 
+                                    } else {
+                                        preview.scroll = preview.scroll.saturating_add(3);
+                                    }
+                                }
                             } else if let AppMode::Settings = app.mode { app.settings_scroll = app.settings_scroll.saturating_add(2); }
                         }
                         _ => {} 
