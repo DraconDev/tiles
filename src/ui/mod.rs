@@ -241,14 +241,31 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                     let usage = app.system_state.cpu_cores[idx];
                     let color = if usage > 90.0 { Color::Rgb(255, 50, 50) } else if usage > 50.0 { Color::Rgb(255, 180, 0) } else { Color::Rgb(0, 255, 150) };
                     let slot = core_cols[c as usize].inner(ratatui::layout::Margin { horizontal: 1, vertical: 0 });
-                    f.render_widget(Paragraph::new(Span::styled("●", Style::default().fg(color))), Rect::new(slot.x, slot.y, 1, 1));
-                    f.render_widget(Paragraph::new(Span::styled(format!("{:>2}", idx), Style::default().fg(Color::Rgb(50, 55, 65)))), Rect::new(slot.x + 2, slot.y, 2, 1));
+                    
+                    // Core ID & Status
+                    f.render_widget(Paragraph::new(Span::styled(format!("{:>2} 󰓅 ", idx), Style::default().fg(Color::Rgb(40, 45, 55)))), Rect::new(slot.x, slot.y, 5, 1));
+                    
+                    // Technical Thread Indicator
                     let thread_w = slot.width.saturating_sub(6);
                     let filled = (usage / 100.0 * thread_w as f32) as u16;
-                    let thread = format!("{}{}", "─".repeat(filled as usize), " ".repeat(thread_w.saturating_sub(filled) as usize));
-                    f.render_widget(Paragraph::new(Span::styled(thread, Style::default().fg(color))), Rect::new(slot.x + 5, slot.y, thread_w, 1));
+                    let thread = format!("{}{}", "━".repeat(filled as usize), " ".repeat(thread_w.saturating_sub(filled) as usize));
+                    f.render_widget(Paragraph::new(Span::styled(thread, Style::default().fg(color))), Rect::new(slot.x + 6, slot.y, thread_w, 1));
+                    
+                    // Dual-Layer Micro Pulse
                     if idx < app.system_state.core_history.len() {
-                        f.render_widget(Sparkline::default().data(&app.system_state.core_history[idx]).style(Style::default().fg(color).add_modifier(Modifier::DIM)), Rect::new(slot.x + 5, slot.y + 1, thread_w, 1));
+                        let spark_area = Rect::new(slot.x + 6, slot.y + 1, thread_w, 1);
+                        // History Trace
+                        f.render_widget(Sparkline::default()
+                            .data(&app.system_state.core_history[idx])
+                            .style(Style::default().fg(color).add_modifier(Modifier::DIM)), 
+                            spark_area);
+                        
+                        // Recent Hot Trace
+                        let recent: Vec<u64> = app.system_state.core_history[idx].iter().rev().take(15).rev().cloned().collect();
+                        f.render_widget(Sparkline::default()
+                            .data(&recent)
+                            .style(Style::default().fg(Color::White)), 
+                            spark_area);
                     }
                 }
             }
