@@ -326,6 +326,10 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     app_guard.system_state.mem_history.push(mem_percent as u64);
                     if app_guard.system_state.mem_history.len() > 100 { app_guard.system_state.mem_history.remove(0); }
 
+                    let swap_percent = if data.total_swap > 0.0 { (data.swap_usage / data.total_swap) * 100.0 } else { 0.0 };
+                    app_guard.system_state.swap_history.push(swap_percent as u64);
+                    if app_guard.system_state.swap_history.len() > 100 { app_guard.system_state.swap_history.remove(0); }
+
                     app_guard.apply_process_sort();
                     needs_draw = true;
                 }
