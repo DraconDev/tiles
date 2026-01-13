@@ -2284,8 +2284,25 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                     return true;
                 }
-                MouseEventKind::ScrollUp => { if let Some(fs) = app.current_file_state_mut() { let new_offset = fs.table_state.offset().saturating_sub(3); *fs.table_state.offset_mut() = new_offset; } return true; } 
-                MouseEventKind::ScrollDown => { if let Some(fs) = app.current_file_state_mut() { let max_offset = fs.files.len().saturating_sub(fs.view_height.saturating_sub(4)); let new_offset = (fs.table_state.offset() + 3).min(max_offset); *fs.table_state.offset_mut() = new_offset; } return true; } 
+                MouseEventKind::ScrollUp => {
+                    if let AppMode::Settings = app.mode {
+                        app.settings_scroll = app.settings_scroll.saturating_sub(2);
+                    } else if let Some(fs) = app.current_file_state_mut() {
+                        let new_offset = fs.table_state.offset().saturating_sub(3);
+                        *fs.table_state.offset_mut() = new_offset;
+                    }
+                    return true;
+                } 
+                MouseEventKind::ScrollDown => {
+                    if let AppMode::Settings = app.mode {
+                        app.settings_scroll = app.settings_scroll.saturating_add(2);
+                    } else if let Some(fs) = app.current_file_state_mut() {
+                        let max_offset = fs.files.len().saturating_sub(fs.view_height.saturating_sub(4));
+                        let new_offset = (fs.table_state.offset() + 3).min(max_offset);
+                        *fs.table_state.offset_mut() = new_offset;
+                    }
+                    return true;
+                } 
                 _ => {} 
             }
         }
