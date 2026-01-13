@@ -8,7 +8,7 @@ use ratatui::{
 use std::time::SystemTime;
 use std::collections::HashMap;
 
-use crate::app::{App, AppMode, CurrentView, FileColumn, ProcessColumn, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory};
+use crate::app::{App, AppMode, CurrentView, MonitorSubview, FileColumn, ProcessColumn, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory};
 use crate::ui::theme::THEME;
 use crate::icons::Icon;
 use terma::layout::centered_rect;
