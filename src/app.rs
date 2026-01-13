@@ -369,6 +369,7 @@ pub struct SystemState {
     pub cpu_history: Vec<u64>,
     pub core_history: Vec<Vec<u64>>,
     pub mem_history: Vec<u64>,
+    pub swap_history: Vec<u64>,
     pub net_in: u64,
     pub net_out: u64,
     pub net_in_history: Vec<u64>,
