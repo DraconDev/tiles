@@ -2994,11 +2994,24 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     }
                                     app.is_dragging = false; app.drag_start_pos = None; app.drag_source = None; app.hovered_drop_target = None;
                                 }
-                                MouseEventKind::Moved | MouseEventKind::Drag(_) => {
-                                    app.mouse_pos = (column, row);
-
-                                    if app.is_resizing_sidebar {
-                                        let (w, _) = app.terminal_size;
+                                                                  MouseEventKind::Moved | MouseEventKind::Drag(_) => {
+                                                                      app.mouse_pos = (column, row);
+                                
+                                                                      if let Some((pane_idx, col)) = app.is_resizing_column {
+                                                                          if let Some(pane) = app.panes.get_mut(pane_idx) {
+                                                                              if let Some(fs) = pane.current_state_mut() {
+                                                                                  if let Some((rect, _)) = fs.column_bounds.iter().find(|(_, c)| c == &col) {
+                                                                                      let new_width = column.saturating_sub(rect.x);
+                                                                                      if new_width >= 2 {
+                                                                                          fs.column_widths.insert(col, new_width.min(100));
+                                                                                      }
+                                                                                  }
+                                                                              }
+                                                                          }
+                                                                          return true;
+                                                                      }
+                                
+                                                                      if app.is_resizing_sidebar {                                        let (w, _) = app.terminal_size;
                                         if w > 0 {
                                             let new_percent = (column as f32 / w as f32 * 100.0) as u16;
                                             app.sidebar_width_percent = new_percent.clamp(5, 50);
