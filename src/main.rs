@@ -2393,9 +2393,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     }
                                 }
                                 // 2. Row selection 
-                                // Top bar (3) + Margin (1) + Block Border (1) + Header (1) = 6
-                                if row >= 6 {
-                                    let table_row = (row as usize).saturating_sub(6) + app.process_table_state.offset();
+                                // Top bar (3) + Margin (1) + Block Border (1) + Header (1) + Bottom Margin (1) = 7
+                                if row >= 7 {
+                                    let table_row = (row as usize).saturating_sub(7) + app.process_table_state.offset();
                                     
                                     let proc_count = if app.monitor_subview == MonitorSubview::Processes {
                                         app.system_state.processes.len()
