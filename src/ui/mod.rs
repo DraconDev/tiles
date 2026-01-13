@@ -155,40 +155,69 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         ])
         .split(main_layout[0]);
 
-    let draw_vitality = |f: &mut Frame, area: Rect, label: &str, cur: f32, total: f32, unit: &str, color: Color, history: &[u64]| {
+    let draw_vitality = |f: &mut Frame, area: Rect, label: &str, cur: f32, total: f32, unit: &str, history: &[u64]| {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Length(1), // Header
-                Constraint::Length(2), // Value
-                Constraint::Min(0),    // Waveform
+                Constraint::Length(2), // Value + Micro Bar
+                Constraint::Min(0),    // Pulse Waveform
             ])
             .split(area.inner(ratatui::layout::Margin { horizontal: 2, vertical: 0 }));
 
+        // 1. Dynamic Intensity Color
+        let intensity = (cur / if total > 0.0 { total } else { 100.0 }).clamp(0.0, 1.0);
+        let color = if intensity > 0.85 { Color::Rgb(255, 60, 60) } // Hot Crimson
+                   else if intensity > 0.5 { Color::Rgb(255, 180, 0) } // Alert Gold
+                   else { Color::Rgb(0, 255, 150) }; // Cool Emerald
+        
+        let label_color = Color::Rgb(60, 65, 75); // Dim Shadow
+
+        // 2. Minimalist Header
         let icon = match label {
             "CPU" => "󰍛", "MEM" => "󰘚", "SWP" => "󰓡", _ => "󰋊"
         };
         f.render_widget(Paragraph::new(Line::from(vec![
             Span::styled(format!("{} ", icon), Style::default().fg(color)),
-            Span::styled(label, Style::default().fg(Color::Rgb(80, 85, 95)).add_modifier(Modifier::BOLD)),
+            Span::styled(label, Style::default().fg(label_color).add_modifier(Modifier::BOLD)),
         ])), chunks[0]);
 
-        let val_text = if total > 0.0 { format!("{:.1} / {:.1}", cur, total) } else { format!("{:.1}", cur) };
+        // 3. Chromatic Value & Thin Gauge
+        let val_text = if total > 0.0 { format!("{:.1}/{:.0}", cur, total) } else { format!("{:.1}", cur) };
+        let gauge_w = chunks[1].width.saturating_sub(val_text.len() as u16 + 6);
+        let filled = (intensity * gauge_w as f32) as u16;
+        let bar = format!("{}{}", "━".repeat(filled as usize), " ".repeat(gauge_w.saturating_sub(filled) as usize));
+
         f.render_widget(Paragraph::new(Line::from(vec![
             Span::styled(val_text, Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
             Span::styled(format!(" {}", unit), Style::default().fg(color).add_modifier(Modifier::DIM)),
+            Span::raw("  "),
+            Span::styled(bar, Style::default().fg(color)),
         ])), chunks[1]);
 
+        // 4. High-Resolution Pulse (Layered)
         if !history.is_empty() {
-            f.render_widget(Sparkline::default().data(history).style(Style::default().fg(color)), chunks[2]);
+            // Secondary background pulse for depth
+            f.render_widget(Sparkline::default()
+                .data(history)
+                .style(Style::default().fg(color).add_modifier(Modifier::DIM)), 
+                chunks[2]);
+            
+            // Primary high-intensity pulse
+            let last_30: Vec<u64> = history.iter().rev().take(30).rev().cloned().collect();
+            f.render_widget(Sparkline::default()
+                .data(&last_30)
+                .style(Style::default().fg(Color::White)), 
+                chunks[2]);
         }
-        f.render_widget(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(Color::Rgb(30, 30, 35))), area);
+        
+        // Transparent vertical divider
+        f.render_widget(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(Color::Rgb(25, 25, 30))), area);
     };
 
-    let metrics_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(34)]).split(left_chunks[0]);
-    draw_vitality(f, metrics_layout[0], "CPU", app.system_state.cpu_usage, 0.0, "%", Color::Rgb(0, 255, 150), &app.system_state.cpu_history);
-    draw_vitality(f, metrics_layout[1], "MEM", app.system_state.mem_usage as f32, app.system_state.total_mem as f32, "GB", Color::Rgb(0, 180, 255), &app.system_state.mem_history);
-    draw_vitality(f, metrics_layout[2], "SWP", app.system_state.swap_usage as f32, app.system_state.total_swap as f32, "GB", Color::Rgb(255, 100, 255), &app.system_state.swap_history);
+    draw_vitality(f, metrics_layout[0], "CPU", app.system_state.cpu_usage, 0.0, "%", &app.system_state.cpu_history);
+    draw_vitality(f, metrics_layout[1], "MEM", app.system_state.mem_usage as f32, app.system_state.total_mem as f32, "GB", &app.system_state.mem_history);
+    draw_vitality(f, metrics_layout[2], "SWP", app.system_state.swap_usage as f32, app.system_state.total_swap as f32, "GB", &app.system_state.swap_history);
 
     let fabric_area = left_chunks[1].inner(ratatui::layout::Margin { horizontal: 2, vertical: 1 });
     let core_count = app.system_state.cpu_cores.len();
