@@ -309,7 +309,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
     let cpu_label = format!("CPU Usage: {:.1}%", app.system_state.cpu_usage);
     let cpu_gauge = Gauge::default()
         .gauge_style(Style::default().fg(if app.system_state.cpu_usage > 80.0 { Color::Red } else { Color::Green }))
-        .ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0));
+        .ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0) as f64);
     
     f.render_widget(Paragraph::new(cpu_label).style(Style::default().add_modifier(Modifier::BOLD)), cpu_chunks[0]);
     
