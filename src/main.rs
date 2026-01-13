@@ -2726,11 +2726,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 if let Some(pane) = app.panes.get(clicked_pane) {
                                     if let Some(fs) = pane.current_state() {
                                         for (rect, col) in &fs.column_bounds {
+                                            // The rect should already be absolute from draw logic
                                             if column >= rect.x && column < rect.x + rect.width + 1 {
                                                 app.is_resizing_column = Some((clicked_pane, *col));
                                                 app.initial_col_width = fs.column_widths.get(col).copied().unwrap_or(10);
                                                 app.drag_start_pos = Some((column, row));
                                                 handled_resize = true;
+                                                let _ = event_tx.try_send(AppEvent::StatusMsg(format!("Resizing column: {:?}", col)));
                                                 break;
                                             }
                                         }
