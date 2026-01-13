@@ -2713,10 +2713,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 if let Some(pane) = app.panes.get(clicked_pane) {
                                     if let Some(fs) = pane.current_state() {
                                         for (rect, col) in &fs.column_bounds {
-                                            // Boundary is at the right edge of the column
-                                            let boundary_x = rect.x + rect.width;
-                                            if column >= boundary_x.saturating_sub(1) && column <= boundary_x + 1 {
+                                            if column >= rect.x && column < rect.x + rect.width {
                                                 app.is_resizing_column = Some((clicked_pane, *col));
+                                                app.drag_start_pos = Some((column, row));
                                                 handled_resize = true;
                                                 break;
                                             }
