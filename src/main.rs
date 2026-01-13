@@ -2006,9 +2006,52 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         KeyCode::Enter if key.modifiers.contains(KeyModifiers::ALT) => { app.mode = AppMode::Properties; return true; }
                         KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } return true; } 
                         KeyCode::Char(' ') => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { app.mode = AppMode::Properties; } else { let target_pane = if app.focused_pane_index == 0 { 1 } else { 0 }; let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path)); } } } } return true; } 
-                        KeyCode::F(6) => if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(p) = fs.files.get(idx) { app.mode = AppMode::Rename; app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string()); app.rename_selected = true; return true; } } } false;
-                        KeyCode::Delete => { if let Some(fs) = app.current_file_state() { if fs.selected_index.is_some() { if !app.confirm_delete { let mut paths = Vec::new(); if !fs.multi_select.is_empty() { for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } } else if let Some(idx) = fs.selected_index { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } for p in paths { let _ = event_tx.try_send(AppEvent::Delete(p)); } } else { app.mode = AppMode::Delete; } return true; } } false;
-                        KeyCode::Char('~') => { if let Some(fs) = app.current_file_state_mut() { if let Some(home) = dirs::home_dir() { fs.current_path = home.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, home); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } } false; }
+                        KeyCode::F(6) => {
+                            if let Some(fs) = app.current_file_state() {
+                                if let Some(idx) = fs.selected_index {
+                                    if let Some(p) = fs.files.get(idx) {
+                                        app.mode = AppMode::Rename;
+                                        app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string());
+                                        app.rename_selected = true;
+                                        return true;
+                                    }
+                                }
+                            }
+                            false
+                        }
+                        KeyCode::Delete => {
+                            if let Some(fs) = app.current_file_state() {
+                                if fs.selected_index.is_some() {
+                                    if !app.confirm_delete {
+                                        let mut paths = Vec::new();
+                                        if !fs.multi_select.is_empty() {
+                                            for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } }
+                                        } else if let Some(idx) = fs.selected_index {
+                                            if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
+                                        }
+                                        for p in paths { let _ = event_tx.try_send(AppEvent::Delete(p)); }
+                                    } else {
+                                        app.mode = AppMode::Delete;
+                                    }
+                                    return true;
+                                }
+                            }
+                            false
+                        }
+                        KeyCode::Char('~') => {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                if let Some(home) = dirs::home_dir() {
+                                    fs.current_path = home.clone();
+                                    fs.selected_index = Some(0);
+                                    fs.multi_select.clear();
+                                    *fs.table_state.offset_mut() = 0;
+                                    push_history(fs, home);
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    return true;
+                                }
+                            }
+                            false
+                        }
                         KeyCode::Char(c) if key.modifiers.is_empty() => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } return true; } 
                         KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } return true; } 
                         _ => return false
