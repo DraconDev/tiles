@@ -46,12 +46,23 @@ pub enum AppEvent {
         args: Vec<String>,
     },
     StatusMsg(String),
+    KillProcess(u32),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CurrentView {
     Files,
     Processes,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum ProcessColumn {
+    Pid,
+    Name,
+    Cpu,
+    Mem,
+    User,
+    Status,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -62,7 +73,118 @@ pub enum ContextMenuTarget {
     SidebarFavorite(PathBuf),
     SidebarRemote(usize),
     SidebarStorage(usize),
+    Process(u32), // PID
 }
+
+// ... (skipping down to SystemState)
+
+#[derive(Clone, Debug)]
+pub struct SystemState {
+    pub last_update: std::time::Instant,
+    pub disks: Vec<DiskInfo>,
+    pub processes: Vec<ProcessInfo>,
+    pub cpu_usage: f32,
+    pub mem_usage: f64,
+    pub total_mem: f64,
+    pub cpu_history: Vec<u64>,
+    pub mem_history: Vec<u64>,
+}
+
+// ... (skipping down to App struct)
+
+pub struct App {
+    pub running: bool,
+    pub current_view: CurrentView,
+    pub mode: AppMode,
+    
+    // Process View State
+    pub process_table_state: TableState,
+    pub process_sort_col: ProcessColumn,
+    pub process_sort_asc: bool,
+    pub process_selected_idx: Option<usize>,
+    pub process_scroll: usize,
+
+    pub input: TextInput,
+    pub icon_mode: IconMode,
+// ... (rest of App fields)
+
+// ... (inside App::new)
+        let system_state = SystemState {
+            last_update: std::time::Instant::now(),
+            disks: Vec::new(),
+            processes: Vec::new(),
+            cpu_usage: 0.0,
+            mem_usage: 0.0,
+            total_mem: 0.0,
+            cpu_history: vec![0; 100],
+            mem_history: vec![0; 100],
+        };
+
+// ... (rest of App::new init)
+                    process_table_state: TableState::default(),
+                    process_sort_col: ProcessColumn::Cpu,
+                    process_sort_asc: false,
+                    process_selected_idx: Some(0),
+                    process_scroll: 0,
+                    
+                    running: true,
+// ... (rest of App::new return)
+            process_table_state: TableState::default(),
+            process_sort_col: ProcessColumn::Cpu,
+            process_sort_asc: false,
+            process_selected_idx: Some(0),
+            process_scroll: 0,
+
+            panes: vec![Pane::new(file_state)],
+// ... (rest of App)
+    pub fn move_process_up(&mut self) {
+        if let Some(sel) = self.process_selected_idx {
+            if sel > 0 {
+                self.process_selected_idx = Some(sel - 1);
+                self.process_table_state.select(self.process_selected_idx);
+            }
+        } else {
+            self.process_selected_idx = Some(0);
+            self.process_table_state.select(Some(0));
+        }
+    }
+
+    pub fn move_process_down(&mut self) {
+        if let Some(sel) = self.process_selected_idx {
+            if sel < self.system_state.processes.len().saturating_sub(1) {
+                self.process_selected_idx = Some(sel + 1);
+                self.process_table_state.select(self.process_selected_idx);
+            }
+        } else {
+            self.process_selected_idx = Some(0);
+            self.process_table_state.select(Some(0));
+        }
+    }
+    
+    pub fn sort_processes(&mut self, col: ProcessColumn) {
+        if self.process_sort_col == col {
+            self.process_sort_asc = !self.process_sort_asc;
+        } else {
+            self.process_sort_col = col;
+            self.process_sort_asc = true; // Default asc for new col? Usually desc for CPU/Mem.
+            if col == ProcessColumn::Cpu || col == ProcessColumn::Mem {
+                self.process_sort_asc = false;
+            }
+        }
+        self.apply_process_sort();
+    }
+
+    pub fn apply_process_sort(&mut self) {
+        let asc = self.process_sort_asc;
+        match self.process_sort_col {
+            ProcessColumn::Pid => self.system_state.processes.sort_by(|a, b| if asc { a.pid.cmp(&b.pid) } else { b.pid.cmp(&a.pid) }),
+            ProcessColumn::Name => self.system_state.processes.sort_by(|a, b| if asc { a.name.cmp(&b.name) } else { b.name.cmp(&a.name) }),
+            ProcessColumn::Cpu => self.system_state.processes.sort_by(|a, b| if asc { a.cpu.partial_cmp(&b.cpu).unwrap_or(std::cmp::Ordering::Equal) } else { b.cpu.partial_cmp(&a.cpu).unwrap_or(std::cmp::Ordering::Equal) }),
+            ProcessColumn::Mem => self.system_state.processes.sort_by(|a, b| if asc { a.mem.partial_cmp(&b.mem).unwrap_or(std::cmp::Ordering::Equal) } else { b.mem.partial_cmp(&a.mem).unwrap_or(std::cmp::Ordering::Equal) }),
+            ProcessColumn::User => self.system_state.processes.sort_by(|a, b| if asc { a.user.cmp(&b.user) } else { b.user.cmp(&a.user) }),
+            ProcessColumn::Status => self.system_state.processes.sort_by(|a, b| if asc { a.status.cmp(&b.status) } else { b.status.cmp(&a.status) }),
+        }
+    }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SettingsSection {
