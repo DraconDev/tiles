@@ -125,63 +125,26 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
     let nav_inner = nav_block.inner(chunks[0]);
     f.render_widget(nav_block, chunks[0]);
 
-    let nav_layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Min(60), Constraint::Length(35)])
-        .split(nav_inner);
-
-    // Navigation Tabs
-    let subviews: [(MonitorSubview, &str, &str); 3] = [
-        (MonitorSubview::Overview, " 󰊚 ", "OVERVIEW"),
-        (MonitorSubview::Applications, " 󰀻 ", "APPLICATIONS"),
-        (MonitorSubview::Processes, " 󰑮 ", "PROCESSES"),
-    ];
+    let nav_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Min(60), Constraint::Length(35)]).split(nav_inner);
+    let subviews = [(MonitorSubview::Overview, " 󰊚 ", "OVERVIEW"), (MonitorSubview::Applications, " 󰀻 ", "APPLICATIONS"), (MonitorSubview::Processes, " 󰑮 ", "PROCESSES")];
 
     app.monitor_subview_bounds.clear();
     let mut cur_x = nav_layout[0].x + 1;
-    
     for (view, icon, name) in subviews {
         let is_active = app.monitor_subview == view;
         let text = format!("{}{}", icon, name);
         let width = text.len() as u16 + 2;
         let rect = Rect::new(cur_x, nav_layout[0].y, width, 1);
-        
-        let mut style = if is_active {
-            Style::default().fg(Color::Rgb(61, 174, 233)).add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(Color::Rgb(140, 145, 150))
-        };
-
-        if app.mouse_pos.1 == nav_layout[0].y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width {
-            style = style.fg(Color::White).bg(Color::Rgb(45, 50, 60));
-        }
-
+        let mut style = if is_active { Style::default().fg(Color::Rgb(61, 174, 233)).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::Rgb(140, 145, 150)) };
+        if app.mouse_pos.1 == nav_layout[0].y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width { style = style.fg(Color::White).bg(Color::Rgb(45, 50, 60)); }
         f.render_widget(Paragraph::new(text).style(style), rect);
-        if is_active {
-            f.render_widget(Paragraph::new("▔".repeat(width as usize)).style(Style::default().fg(Color::Rgb(61, 174, 233))), Rect::new(rect.x, rect.y + 1, rect.width, 1));
-        }
-
+        if is_active { f.render_widget(Paragraph::new("▔".repeat(width as usize)).style(Style::default().fg(Color::Rgb(61, 174, 233))), Rect::new(rect.x, rect.y + 1, rect.width, 1)); }
         app.monitor_subview_bounds.push((rect, view));
         cur_x += width + 4;
     }
 
-    // Centered Search Box
-    let search_text = if app.process_search_filter.is_empty() {
-        Line::from(vec![Span::styled(" 󰍉 Search... ", Style::default().fg(Color::DarkGray))])
-    } else {
-        Line::from(vec![
-            Span::styled(" 󰍉 ", Style::default().fg(Color::Rgb(61, 174, 233))),
-            Span::styled(&app.process_search_filter, Style::default().fg(Color::White).add_modifier(Modifier::BOLD))
-        ])
-    };
-    f.render_widget(
-        Paragraph::new(search_text)
-            .block(Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(Color::Rgb(60, 60, 65)))),
-        nav_layout[1]
-    );
+    let search_text = if app.process_search_filter.is_empty() { Line::from(vec![Span::styled(" 󰍉 Search... ", Style::default().fg(Color::DarkGray))]) } else { Line::from(vec![Span::styled(" 󰍉 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::styled(&app.process_search_filter, Style::default().fg(Color::White).add_modifier(Modifier::BOLD))]) };
+    f.render_widget(Paragraph::new(search_text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(60, 60, 65)))), nav_layout[1]);
 
     let content_area = chunks[1].inner(ratatui::layout::Margin { horizontal: 1, vertical: 1 });
     match app.monitor_subview {
@@ -192,57 +155,34 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
-    // A modern "HUD" layout with data-dense metrics
-    let main_layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(75), Constraint::Percentage(25)])
-        .split(area);
+    let main_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(75), Constraint::Percentage(25)]).split(area);
+    let left_chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(8), Constraint::Min(0)]).split(main_layout[0]);
 
-    let left_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(6),  // Big Meters
-            Constraint::Min(0),     // Core Heatmap
-        ])
-        .split(main_layout[0]);
+    // 1. SYSTEM HEARTBEAT (Pulse Row)
+    let metrics_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(34)]).split(left_chunks[0]);
 
-    // 1. SYSTEM METRICS (Top Row)
-    let metrics_layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(34)])
-        .split(left_chunks[0]);
-
-    // Stylish Gauge helper
-    let draw_metric = |f: &mut Frame, area: Rect, label: &str, val: f32, unit: &str, color: Color, history: &[u64]| {
+    let draw_hud_metric = |f: &mut Frame, area: Rect, label: &str, cur: f32, total: f32, unit: &str, color: Color, history: &[u64]| {
         let block = Block::default().borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(40, 40, 45)));
         let inner = block.inner(area); f.render_widget(block, area);
         let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(1), Constraint::Length(2), Constraint::Min(0)]).split(inner);
         f.render_widget(Paragraph::new(Span::styled(label, Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD))), chunks[0]);
-        f.render_widget(Paragraph::new(Line::from(vec![Span::styled(format!("{:.1}", val), Style::default().fg(color).add_modifier(Modifier::BOLD)), Span::styled(unit, Style::default().fg(Color::DarkGray))])), chunks[1]);
+        let val_text = if total > 0.0 { format!("{:.1} / {:.0}", cur, total) } else { format!("{:.1}", cur) };
+        f.render_widget(Paragraph::new(Line::from(vec![Span::styled(val_text, Style::default().fg(color).add_modifier(Modifier::BOLD)), Span::styled(unit, Style::default().fg(Color::DarkGray))])), chunks[1]);
         f.render_widget(Sparkline::default().data(history).style(Style::default().fg(color)), chunks[2]);
     };
 
-    draw_metric(f, metrics_layout[0], "CPU LOAD", app.system_state.cpu_usage, "%", Color::Rgb(46, 204, 113), &app.system_state.cpu_history);
-    draw_metric(f, metrics_layout[1], "MEMORY", app.system_state.mem_usage as f32, "GB", Color::Rgb(155, 89, 182), &app.system_state.mem_history);
-    
-    // Net combined metric
-    let net_total = (app.system_state.net_in + app.system_state.net_out) as f32 / 1024.0 / 1024.0;
-    draw_metric(f, metrics_layout[2], "NETWORK", net_total, "MB/s", Color::Rgb(61, 174, 233), &app.system_state.net_in_history);
+    draw_hud_metric(f, metrics_layout[0], "CPU LOAD", app.system_state.cpu_usage, 0.0, "%", Color::Rgb(46, 204, 113), &app.system_state.cpu_history);
+    draw_hud_metric(f, metrics_layout[1], "MEMORY", app.system_state.mem_usage as f32, app.system_state.total_mem as f32, "GB", Color::Rgb(155, 89, 182), &app.system_state.mem_history);
+    draw_hud_metric(f, metrics_layout[2], "SWAP", app.system_state.swap_usage as f32, app.system_state.total_swap as f32, "GB", Color::Rgb(241, 196, 15), &app.system_state.mem_history); // Reusing mem history for swap for now
 
-    // 2. CORE HEATMAP (The Centerpiece)
+    // 2. CORE FABRIC (Grid)
     let core_count = app.system_state.cpu_cores.len();
     if core_count > 0 {
-        let core_block = Block::default()
-            .title(Span::styled(" 󰍛 PROCESSING FABRIC ", Style::default().fg(Color::Rgb(100, 100, 110)).add_modifier(Modifier::BOLD)))
-            .borders(Borders::TOP)
-            .border_style(Style::default().fg(Color::Rgb(40, 40, 45)));
-        let core_inner = core_block.inner(left_chunks[1]);
-        f.render_widget(core_block, left_chunks[1]);
-
+        let core_block = Block::default().title(Span::styled(" 󰍛 PROCESSING FABRIC ", Style::default().fg(Color::Rgb(100, 100, 110)).add_modifier(Modifier::BOLD))).borders(Borders::TOP).border_style(Style::default().fg(Color::Rgb(40, 40, 45)));
+        let core_inner = core_block.inner(left_chunks[1]); f.render_widget(core_block, left_chunks[1]);
         let cols = if core_count > 16 { 8 } else if core_count > 8 { 4 } else { 2 };
         let rows = (core_count as f32 / cols as f32).ceil() as u16;
         let core_rows = Layout::default().direction(Direction::Vertical).constraints(vec![Constraint::Length(3); rows as usize]).split(core_inner);
-        
         for r in 0..rows {
             if r >= core_rows.len() as u16 { break; }
             let core_cols = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / cols); cols as usize]).split(core_rows[r as usize]);
@@ -251,48 +191,37 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                 if idx < core_count {
                     let usage = app.system_state.cpu_cores[idx];
                     let color = if usage > 85.0 { Color::Red } else if usage > 50.0 { Color::Yellow } else if usage > 10.0 { Color::Rgb(46, 204, 113) } else { Color::Rgb(30, 30, 35) };
-                    
-                    let spark = Sparkline::default()
-                        .block(Block::default().title(format!("CORE {}", idx)).title_style(Style::default().fg(Color::DarkGray)))
-                        .data(&app.system_state.core_history[idx])
-                        .style(Style::default().fg(color));
-                    f.render_widget(spark, core_cols[c as usize]);
+                    f.render_widget(Sparkline::default().block(Block::default().title(format!("C{}", idx)).title_style(Style::default().fg(Color::DarkGray))).data(&app.system_state.core_history[idx]).style(Style::default().fg(color)), core_cols[c as usize]);
                 }
             }
         }
     }
 
-    // 3. SIDEBAR (Disks & Uptime)
-    let right_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(10), // System Info
-            Constraint::Min(0)      // Disks
-        ])
-        .split(main_layout[1]);
-
-    let info_text = vec![
+    // 3. HUD SIDEBAR (Info, Net, Storage)
+    let right_chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(8), Constraint::Length(10), Constraint::Min(0)]).split(main_layout[1]);
+    
+    // System Badge
+    f.render_widget(Paragraph::new(vec![
         Line::from(vec![Span::styled("󰣇 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::styled(&app.system_state.hostname, Style::default().add_modifier(Modifier::BOLD))]),
         Line::from(vec![Span::styled("󰔠 ", Style::default().fg(Color::Yellow)), Span::raw(format!("{}d {}h", app.system_state.uptime / 86400, (app.system_state.uptime % 86400) / 3600))]),
-        Line::from(""),
-        Line::from(vec![Span::styled("KERNEL", Style::default().fg(Color::DarkGray))]),
-        Line::from(Span::raw(&app.system_state.kernel_version)).style(Style::default().fg(Color::Rgb(180, 180, 180))),
-    ];
-    f.render_widget(Paragraph::new(info_text).block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(40, 40, 45)))), right_chunks[0]);
+        Line::from(Span::raw(&app.system_state.kernel_version)).style(Style::default().fg(Color::DarkGray)),
+    ]).block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(40, 40, 45)))), right_chunks[0]);
 
-    let storage_inner = Block::default().title(" 󰋊 STORAGE ").borders(Borders::LEFT | Borders::TOP).border_style(Style::default().fg(Color::Rgb(40, 40, 45))).inner(right_chunks[1]);
+    // Network Flow
+    let net_inner = Block::default().title(" 󰛳 NETWORK ").borders(Borders::LEFT | Borders::TOP).border_style(Style::default().fg(Color::Rgb(40, 40, 45))).inner(right_chunks[1]);
     f.render_widget(Block::default().borders(Borders::LEFT | Borders::TOP).border_style(Style::default().fg(Color::Rgb(40, 40, 45))), right_chunks[1]);
-    
+    let net_sub = Layout::default().direction(Direction::Vertical).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(net_inner);
+    f.render_widget(Sparkline::default().block(Block::default().title(format!("↓{}", format_size(app.system_state.net_in)))).data(&app.system_state.net_in_history).style(Style::default().fg(Color::Green)), net_sub[0]);
+    f.render_widget(Sparkline::default().block(Block::default().title(format!("↑{}", format_size(app.system_state.net_out)))).data(&app.system_state.net_out_history).style(Style::default().fg(Color::Rgb(61, 174, 233))), net_sub[1]);
+
+    // Storage HUD
+    let storage_inner = Block::default().title(" 󰋊 STORAGE ").borders(Borders::LEFT | Borders::TOP).border_style(Style::default().fg(Color::Rgb(40, 40, 45))).inner(right_chunks[2]);
+    f.render_widget(Block::default().borders(Borders::LEFT | Borders::TOP).border_style(Style::default().fg(Color::Rgb(40, 40, 45))), right_chunks[2]);
     let disk_list: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let ratio = (disk.used_space / disk.total_space).clamp(0.0, 1.0);
-        let color = if ratio > 0.9 { Color::Red } else if ratio > 0.7 { Color::Yellow } else { Color::Rgb(241, 196, 15) };
         let filled = (ratio * 15.0) as usize;
         let bar = format!("{}{}", "━".repeat(filled), " ".repeat(15 - filled));
-        ListItem::new(vec![
-            Line::from(vec![Span::styled(&disk.name, Style::default().add_modifier(Modifier::BOLD))]),
-            Line::from(vec![Span::styled(bar, Style::default().fg(color)), Span::styled(format!(" {:.0}%", ratio * 100.0), Style::default().fg(Color::DarkGray))]),
-            Line::from(""),
-        ])
+        ListItem::new(vec![Line::from(vec![Span::styled(&disk.name, Style::default().add_modifier(Modifier::BOLD))]), Line::from(vec![Span::styled(bar, Style::default().fg(if ratio > 0.9 { Color::Red } else { Color::Rgb(241, 196, 15) })), Span::styled(format!(" {:.0}%", ratio * 100.0), Style::default().fg(Color::DarkGray))]), Line::from("")])
     }).collect();
     f.render_widget(List::new(disk_list), storage_inner);
 }
