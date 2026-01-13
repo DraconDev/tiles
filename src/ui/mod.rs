@@ -1351,7 +1351,7 @@ fn draw_add_remote_modal(f: &mut Frame, app: &App) {
     let fields = [
         ("Name", &app.pending_remote.name),
         ("Host", &app.pending_remote.host),
-        ("User", &app.pending_user),
+        ("User", &app.pending_remote.user),
         ("Port", &app.pending_remote.port.to_string()),
         ("Key Path", &app.pending_remote.key_path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default()),
     ];
