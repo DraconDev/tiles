@@ -638,7 +638,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
     // Reduced Shortcuts
     let shortcuts = vec![
         Span::styled(" ^B ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Side "),
-        Span::styled(" ^S ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Split "),
+        Span::styled(" ^P ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Split "),
         Span::styled(" ^T ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Tab "),
     ];
     left_spans.extend(shortcuts);
