@@ -1,3 +1,5 @@
+pub use terma::utils::{IconMode, guess_icon_mode};
+
 pub enum Icon {
     Folder,
     File,
