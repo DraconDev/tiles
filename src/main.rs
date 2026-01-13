@@ -2715,7 +2715,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         for (rect, col) in &fs.column_bounds {
                                             // Boundary is at the right edge of the column
                                             let boundary_x = rect.x + rect.width;
-                                            if column >= boundary_x.saturating_sub(1) && column <= boundary_x {
+                                            if column >= boundary_x.saturating_sub(1) && column <= boundary_x + 1 {
                                                 app.is_resizing_column = Some((clicked_pane, *col));
                                                 handled_resize = true;
                                                 break;
