@@ -481,6 +481,7 @@ pub struct App {
     // Global Preferences
     pub default_show_hidden: bool,
     pub confirm_delete: bool,
+    pub smart_date: bool,
     pub preferred_terminal: Option<String>,
 
     pub single_columns: Vec<FileColumn>,
