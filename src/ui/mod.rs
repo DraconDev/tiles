@@ -340,7 +340,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
 
 fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
     let current_user = std::env::var("USER").unwrap_or_else(|_| "dracon".to_string());
-    let mut app_procs: Vec<_> = app.system_state.processes.iter().filter(|p| {
+    let app_procs: Vec<_> = app.system_state.processes.iter().filter(|p| {
         let matches = if app.process_search_filter.is_empty() { true } else { p.name.to_lowercase().contains(&app.process_search_filter.to_lowercase()) };
         p.user == current_user && !p.name.starts_with('[') && !p.name.contains("kworker") && matches
     }).collect();
@@ -360,17 +360,19 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
                            else { ("󰀻 ", Color::White) };
         
         let mut style = if i % 2 == 0 { Style::default().bg(Color::Rgb(15, 17, 20)) } else { Style::default() };
+        let mut is_selected = false;
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Applications { 
             style = style.bg(Color::Rgb(61, 174, 233)).fg(Color::Black).add_modifier(Modifier::BOLD); 
+            is_selected = true;
         }
         
         let cpu_color = if p.cpu > 50.0 { Color::Red } else if p.cpu > 10.0 { Color::Yellow } else { Color::Rgb(0, 255, 150) };
         
         Row::new(vec![
-            Cell::from(format!("{} {}", icon, p.name)).style(Style::default().fg(if app.process_selected_idx == Some(i) { Color::Black } else { color }).add_modifier(Modifier::BOLD)),
-            Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(if app.process_selected_idx == Some(i) { Color::Black } else { cpu_color })),
+            Cell::from(format!("{} {}", icon, p.name)).style(Style::default().fg(if is_selected { Color::Black } else { color }).add_modifier(Modifier::BOLD)),
+            Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(if is_selected { Color::Black } else { cpu_color })),
             Cell::from(format!("{:.1} MB", p.mem)),
-            Cell::from(p.pid.to_string()).style(Style::default().fg(Color::DarkGray)),
+            Cell::from(p.pid.to_string()).style(Style::default().fg(if is_selected { Color::Black } else { Color::DarkGray })),
             Cell::from(p.status.clone()),
         ]).style(style)
     });
