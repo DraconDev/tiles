@@ -998,6 +998,7 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
         ListItem::new(format!("[{}] Show Hidden Files (h)", if app.default_show_hidden { "x" } else { " " })),
         ListItem::new(format!("[{}] Confirm Delete (d)", if app.confirm_delete { "x" } else { " " })),
         ListItem::new(format!("[{}] Smart Date Format (t)", if app.smart_date { "x" } else { " " })),
+        ListItem::new(format!("[{}] Auto Save Modifications (a)", if app.auto_save { "x" } else { " " })),
         ListItem::new(format!("Icon Mode: {:?} (i)", app.icon_mode)),
     ];
     f.render_widget(List::new(items).block(Block::default().title(" General Preferences ").borders(Borders::NONE)), area);
