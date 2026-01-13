@@ -707,6 +707,7 @@ impl App {
             },
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
+            editor_state: None,
         };
         log_debug("App::new finished successfully");
         app
