@@ -2094,8 +2094,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             KeyCode::Down => { app.move_process_down(); return true; }
                             KeyCode::Char('1') => { app.monitor_subview = crate::app::MonitorSubview::Overview; return true; }
                             KeyCode::Char('2') => { app.monitor_subview = crate::app::MonitorSubview::Applications; return true; }
-                            KeyCode::Char('3') => { app.monitor_subview = crate::app::MonitorSubview::History; return true; }
-                            KeyCode::Char('4') => { app.monitor_subview = crate::app::MonitorSubview::Processes; return true; }
+                            KeyCode::Char('3') => { app.monitor_subview = crate::app::MonitorSubview::Processes; return true; }
                             KeyCode::Char('k') | KeyCode::Delete => {
                                 if let Some(idx) = app.process_selected_idx {
                                     if let Some(proc) = app.system_state.processes.get(idx) {
