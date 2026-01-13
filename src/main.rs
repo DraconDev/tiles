@@ -2024,10 +2024,31 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                           app.input.clear();
                                           return true;
                                       }
-                                      _ => { return app.input.handle_event(&evt); }
-                                  }
-                              }                AppMode::Highlight => {
-                    if let KeyCode::Char(c) = key.code {
+                                                              _ => { return app.input.handle_event(&evt); }
+                                                          }
+                                                      }
+                                                      AppMode::ConfirmReset => {
+                                                          match key.code {
+                                                              KeyCode::Char('y') | KeyCode::Char('Y') => {
+                                                                  if let Some(fs) = app.current_file_state_mut() {
+                                                                      fs.column_widths.insert(crate::app::FileColumn::Name, 30);
+                                                                      fs.column_widths.insert(crate::app::FileColumn::Size, 10);
+                                                                      fs.column_widths.insert(crate::app::FileColumn::Modified, 20);
+                                                                      fs.column_widths.insert(crate::app::FileColumn::Permissions, 12);
+                                                                      let _ = crate::config::save_state(app);
+                                                                  }
+                                                                  app.mode = AppMode::Normal;
+                                                                  return true;
+                                                              }
+                                                              KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                                                                  app.mode = AppMode::Normal;
+                                                                  return true;
+                                                              }
+                                                              _ => {}
+                                                          }
+                                                          return true;
+                                                      }
+                                                      AppMode::Highlight => {                    if let KeyCode::Char(c) = key.code {
                         if let Some(digit) = c.to_digit(10) {
                             if digit <= 6 {
                                 let color = if digit == 0 { None } else { Some(digit as u8) };
