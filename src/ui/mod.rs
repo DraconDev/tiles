@@ -490,14 +490,53 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                 FileColumn::Name => {
                     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
                     let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
-                    let mut final_style = if is_dir { Style::default().fg(THEME.accent_secondary) } else { Style::default().fg(THEME.fg) };
+                    let category = crate::modules::files::get_file_category(path);
+                    
+                    let mut final_style = if is_dir { 
+                        Style::default().fg(THEME.accent_secondary) 
+                    } else { 
+                        match category {
+                            FileCategory::Archive => Style::default().fg(Color::Rgb(255, 170, 0)), // Orange
+                            FileCategory::Image => Style::default().fg(Color::Rgb(255, 100, 255)),   // Pink/Magenta
+                            FileCategory::Script => Style::default().fg(Color::Rgb(0, 255, 150)),  // Teal/Cyan-Green
+                            FileCategory::Audio | FileCategory::Video => Style::default().fg(Color::Rgb(255, 255, 100)), // Yellow
+                            FileCategory::Document => Style::default().fg(Color::Rgb(100, 200, 255)), // Light Blue
+                            FileCategory::Text => Style::default().fg(Color::White),
+                            _ => Style::default().fg(THEME.fg),
+                        }
+                    };
+
                     if let Some(c) = app.path_colors.get(path) {
-                        let color = match c { 1 => Color::Red, 2 => Color::Green, 3 => Color::Yellow, 4 => Color::Blue, 5 => Color::Magenta, 6 => Color::Cyan, _ => Color::White };
+                        let color = match c { 
+                            1 => Color::Red, 
+                            2 => Color::Green, 
+                            3 => Color::Yellow, 
+                            4 => Color::Blue, 
+                            5 => Color::Magenta, 
+                            6 => Color::Cyan, 
+                            _ => Color::White 
+                        };
                         final_style = Style::default().fg(color).add_modifier(Modifier::BOLD);
                     }
-                    if let Some((ref cb_path, op)) = app.clipboard { if op == crate::app::ClipboardOp::Cut && cb_path == path { final_style = final_style.add_modifier(Modifier::DIM); } }
-                    let icon = if is_dir { Icon::Folder.get(app.icon_mode) } 
-                              else { match crate::modules::files::get_file_category(path) { FileCategory::Archive => Icon::Archive.get(app.icon_mode), FileCategory::Image => Icon::Image.get(app.icon_mode), FileCategory::Audio => Icon::Audio.get(app.icon_mode), FileCategory::Video => Icon::Video.get(app.icon_mode), FileCategory::Script => Icon::Script.get(app.icon_mode), FileCategory::Document => Icon::Document.get(app.icon_mode), _ => Icon::File.get(app.icon_mode) } };
+                    if let Some((ref cb_path, op)) = app.clipboard { 
+                        if op == crate::app::ClipboardOp::Cut && cb_path == path { 
+                            final_style = final_style.add_modifier(Modifier::DIM); 
+                        } 
+                    }
+                    
+                    let icon = if is_dir { 
+                        Icon::Folder.get(app.icon_mode) 
+                    } else { 
+                        match category { 
+                            FileCategory::Archive => Icon::Archive.get(app.icon_mode), 
+                            FileCategory::Image => Icon::Image.get(app.icon_mode), 
+                            FileCategory::Audio => Icon::Audio.get(app.icon_mode), 
+                            FileCategory::Video => Icon::Video.get(app.icon_mode), 
+                            FileCategory::Script => Icon::Script.get(app.icon_mode), 
+                            FileCategory::Document => Icon::Document.get(app.icon_mode), 
+                            _ => Icon::File.get(app.icon_mode) 
+                        } 
+                    };
                     let mut dn = if i > file_state.local_count {
                         let fs = path.to_string_lossy();
                         if fs.starts_with("/home/dracon") {
