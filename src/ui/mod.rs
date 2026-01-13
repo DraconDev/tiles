@@ -95,19 +95,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         draw_footer(f, chunks[2], app);
     }
 
-    if let AppMode::ContextMenu { x, y, ref target, .. } = app.mode { draw_context_menu(f, x, y, target, app); }
-    if matches!(app.mode, AppMode::Highlight) { draw_highlight_modal(f, app); }
     if matches!(app.mode, AppMode::Rename) { draw_rename_modal(f, app); }
     if matches!(app.mode, AppMode::Delete) { draw_delete_modal(f, app); }
-    if matches!(app.mode, AppMode::Properties) { draw_properties_modal(f, app); }
     if matches!(app.mode, AppMode::NewFolder) { draw_new_folder_modal(f, app); }
     if matches!(app.mode, AppMode::NewFile) { draw_new_file_modal(f, app); }
-    if matches!(app.mode, AppMode::Settings) { draw_settings_modal(f, app); }
-    if matches!(app.mode, AppMode::CommandPalette) { draw_command_palette(f, app); }
-    if matches!(app.mode, AppMode::AddRemote(_)) { draw_add_remote_modal(f, app); }
-    if matches!(app.mode, AppMode::ImportServers) { draw_import_servers_modal(f, app); }
-    if let AppMode::OpenWith(path) = &app.mode { draw_open_with_modal(f, app, path); }
-    if matches!(app.mode, AppMode::Engage) { draw_editor_overlay(f, app); }
 }
 
 fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
@@ -149,9 +140,6 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let main_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(75), Constraint::Percentage(25)]).split(area);
     let left_chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(8), Constraint::Min(0)]).split(main_layout[0]);
 
-    // 1. HUD PULSE (CPU, MEM, SWAP)
-    let metrics_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(34)]).split(left_chunks[0]);
-
     let draw_hud_tile = |f: &mut Frame, area: Rect, label: &str, cur: f32, total: f32, unit: &str, color: Color, history: &[u64]| {
         let block = Block::default().borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(40, 40, 45)));
         let inner = block.inner(area); f.render_widget(block, area);
@@ -162,11 +150,11 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         if !history.is_empty() { f.render_widget(Sparkline::default().data(history).style(Style::default().fg(color)), chunks[2]); }
     };
 
+    let metrics_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(34)]).split(left_chunks[0]);
     draw_hud_tile(f, metrics_layout[0], "CPU LOAD", app.system_state.cpu_usage, 0.0, "%", Color::Rgb(46, 204, 113), &app.system_state.cpu_history);
     draw_hud_tile(f, metrics_layout[1], "MEMORY", app.system_state.mem_usage as f32, app.system_state.total_mem as f32, "GB", Color::Rgb(155, 89, 182), &app.system_state.mem_history);
     draw_hud_tile(f, metrics_layout[2], "SWAP", app.system_state.swap_usage as f32, app.system_state.total_swap as f32, "GB", Color::Rgb(241, 196, 15), &app.system_state.swap_history);
 
-    // 2. CORE FABRIC (Grid)
     let core_count = app.system_state.cpu_cores.len();
     if core_count > 0 {
         let core_block = Block::default().title(Span::styled(" 󰍛 PROCESSING FABRIC ", Style::default().fg(Color::Rgb(100, 100, 110)).add_modifier(Modifier::BOLD))).borders(Borders::TOP).border_style(Style::default().fg(Color::Rgb(40, 40, 45)));
@@ -188,7 +176,6 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         }
     }
 
-    // 3. SIDEBAR HUD
     let right_chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(8), Constraint::Length(10), Constraint::Min(0)]).split(main_layout[1]);
     f.render_widget(Paragraph::new(vec![Line::from(vec![Span::styled("󰣇 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::styled(&app.system_state.hostname, Style::default().add_modifier(Modifier::BOLD))]), Line::from(vec![Span::styled("󰔠 ", Style::default().fg(Color::Yellow)), Span::raw(format!("{}d {}h", app.system_state.uptime / 86400, (app.system_state.uptime % 86400) / 3600))]), Line::from(Span::raw(&app.system_state.kernel_version)).style(Style::default().fg(Color::DarkGray))]).block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(40, 40, 45)))), right_chunks[0]);
     let net_inner = Block::default().title(" 󰛳 NETWORK ").borders(Borders::LEFT | Borders::TOP).border_style(Style::default().fg(Color::Rgb(40, 40, 45))).inner(right_chunks[1]);
@@ -222,8 +209,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
         let (icon, color) = if name_lower.contains("chrome") || name_lower.contains("firefox") { ("󰈹 ", Color::Rgb(231, 76, 60)) } else if name_lower.contains("code") || name_lower.contains("vim") { ("󰨞 ", Color::Rgb(61, 174, 233)) } else { ("󰀻 ", Color::White) };
         let mut style = if i % 2 == 0 { Style::default().bg(Color::Rgb(15, 17, 20)) } else { Style::default() };
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Applications { style = style.bg(Color::Rgb(61, 174, 233)).fg(Color::Black); }
-        let cells = vec![Cell::from(format!("{} {}", icon, p.name)).style(Style::default().fg(if app.process_selected_idx == Some(i) { Color::Black } else { color }).add_modifier(Modifier::BOLD)), Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(if p.cpu > 30.0 { Color::Red } else { Color::Rgb(46, 204, 113) })), Cell::from(format!("{:.1} MB", p.mem)), Cell::from(p.pid.to_string()), Cell::from(p.status.clone())];
-        Row::new(cells).style(style)
+        Row::new(vec![Cell::from(format!("{} {}", icon, p.name)).style(Style::default().fg(if app.process_selected_idx == Some(i) { Color::Black } else { color }).add_modifier(Modifier::BOLD)), Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(if p.cpu > 30.0 { Color::Red } else { Color::Rgb(46, 204, 113) })), Cell::from(format!("{:.1} MB", p.mem)), Cell::from(p.pid.to_string()), Cell::from(p.status.clone())]).style(style)
     });
     f.render_widget(Table::new(rows, [Constraint::Min(35), Constraint::Length(10), Constraint::Length(15), Constraint::Length(10), Constraint::Length(15)]).header(Row::new(vec![" Application", "CPU", "Memory", "PID", "Status"]).style(Style::default().add_modifier(Modifier::BOLD)).height(1).bottom_margin(1)).column_spacing(2), inner);
 }
@@ -245,8 +231,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
     let rows = app.system_state.processes.iter().enumerate().map(|(i, p)| {
         let mut style = if i % 2 == 0 { Style::default().bg(Color::Rgb(15, 17, 20)) } else { Style::default() };
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Processes { style = style.bg(Color::Rgb(61, 174, 233)).fg(Color::Black); }
-        let cells = vec![Cell::from(p.pid.to_string()), Cell::from(p.name.clone()).style(Style::default().add_modifier(Modifier::BOLD)), Cell::from(p.user.clone()).style(Style::default().fg(Color::Rgb(61, 174, 233))), Cell::from(p.status.clone()), Cell::from(format!("{:.1}", p.cpu)), Cell::from(format!("{:.1}", p.mem))];
-        Row::new(cells).style(style)
+        Row::new(vec![Cell::from(p.pid.to_string()), Cell::from(p.name.clone()).style(Style::default().add_modifier(Modifier::BOLD)), Cell::from(p.user.clone()).style(Style::default().fg(Color::Rgb(61, 174, 233))), Cell::from(p.status.clone()), Cell::from(format!("{:.1}", p.cpu)), Cell::from(format!("{:.1}", p.mem))]).style(style)
     });
     f.render_stateful_widget(Table::new(rows, column_constraints).header(Row::new(header_cells).height(1).bottom_margin(1).style(Style::default().bg(Color::Rgb(30, 33, 35)))).column_spacing(1), table_inner, &mut app.process_table_state);
 }
@@ -332,29 +317,9 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
     f.render_widget(List::new(items).block(Block::default().title(" Menu ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(THEME.accent_secondary))), area);
 }
 
-fn draw_import_servers_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(60, 20, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(format!("Enter TOML path: {}", &*app.input.value)).block(Block::default().borders(Borders::ALL).title(" Import ")), area);
-}
-
-fn draw_command_palette(f: &mut Frame, app: &App) {
-    let area = centered_rect(60, 20, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(&*app.input.value).block(Block::default().borders(Borders::ALL).title(" Command Palette ")), area);
-}
-
 fn draw_rename_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(&*app.input.value).block(Block::default().borders(Borders::ALL).title(" Rename ")), area);
-}
-
-fn draw_new_folder_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(&*app.input.value).block(Block::default().borders(Borders::ALL).title(" New Folder ")), area);
-}
-
-fn draw_new_file_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(&*app.input.value).block(Block::default().borders(Borders::ALL).title(" New File ")), area);
+    f.render_widget(Paragraph::new(format!("{}", &app.input.value)).block(Block::default().borders(Borders::ALL).title(" Rename ")), area);
 }
 
 fn draw_delete_modal(f: &mut Frame, _app: &App) {
@@ -362,24 +327,14 @@ fn draw_delete_modal(f: &mut Frame, _app: &App) {
     f.render_widget(Paragraph::new("Confirm Delete? (y/n)").block(Block::default().borders(Borders::ALL).title(" Delete ")), area);
 }
 
-fn draw_properties_modal(f: &mut Frame, _app: &App) {
-    let area = centered_rect(50, 50, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new("Properties...").block(Block::default().borders(Borders::ALL).title(" Properties ")), area);
+fn draw_new_folder_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
+    f.render_widget(Paragraph::new(format!("{}", &app.input.value)).block(Block::default().borders(Borders::ALL).title(" New Folder ")), area);
 }
 
-fn draw_settings_modal(f: &mut Frame, _app: &App) {
-    let area = centered_rect(80, 80, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Block::default().borders(Borders::ALL).title(" Settings "), area);
-}
-
-fn draw_add_remote_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(60, 50, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(format!("Name: {}", &*app.input.value)).block(Block::default().borders(Borders::ALL).title(" Add Remote ")), area);
-}
-
-fn draw_highlight_modal(f: &mut Frame, _app: &App) {
-    let area = centered_rect(34, 5, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Block::default().borders(Borders::ALL).title(" Highlight "), area);
+fn draw_new_file_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
+    f.render_widget(Paragraph::new(format!("{}", &app.input.value)).block(Block::default().borders(Borders::ALL).title(" New File ")), area);
 }
 
 fn draw_editor_overlay(f: &mut Frame, app: &App) {
@@ -389,5 +344,5 @@ fn draw_editor_overlay(f: &mut Frame, app: &App) {
 
 fn draw_open_with_modal(f: &mut Frame, app: &App, _path: &std::path::Path) {
     let area = centered_rect(60, 20, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(&*app.input.value).block(Block::default().borders(Borders::ALL).title(" Open With ")), area);
+    f.render_widget(Paragraph::new(format!("{}", &app.input.value)).block(Block::default().borders(Borders::ALL).title(" Open With ")), area);
 }
