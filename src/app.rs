@@ -55,6 +55,14 @@ pub enum CurrentView {
     Processes,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum MonitorSubview {
+    Overview,
+    Applications,
+    History,
+    Processes,
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub enum ProcessColumn {
     Pid,
