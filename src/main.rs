@@ -24,10 +24,10 @@ use crate::icons::IconMode;
 
 fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<ContextMenuAction> {
     match target {
-        ContextMenuTarget::Process(pid) => {
+        ContextMenuTarget::Process(_pid) => {
             vec![
-                ContextMenuAction::Open, // We'll map this to "Show Details" or similar?
-                ContextMenuAction::Delete, // We'll map this to "Kill"
+                ContextMenuAction::Open, 
+                ContextMenuAction::Delete, 
             ]
         }
         ContextMenuTarget::File(idx) => {
