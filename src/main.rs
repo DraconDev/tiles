@@ -2233,7 +2233,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             if let AppMode::Engage = app.mode {
                                 if let Some(preview) = &mut app.editor_state { 
                                     if let Some(editor) = &mut preview.editor { 
-                                        editor.handle_mouse_event(me, ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1))); 
+                                        let area = ratatui::layout::Rect::new(0, 0, w, h);
+                                        let block = ratatui::widgets::Block::default().borders(ratatui::widgets::Borders::ALL);
+                                        let editor_area = block.inner(area);
+                                        editor.handle_mouse_event(me, editor_area); 
                                     } else {
                                         preview.scroll = preview.scroll.saturating_sub(3);
                                     }
@@ -2244,7 +2247,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             if let AppMode::Engage = app.mode {
                                 if let Some(preview) = &mut app.editor_state { 
                                     if let Some(editor) = &mut preview.editor { 
-                                        editor.handle_mouse_event(me, ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1))); 
+                                        let area = ratatui::layout::Rect::new(0, 0, w, h);
+                                        let block = ratatui::widgets::Block::default().borders(ratatui::widgets::Borders::ALL);
+                                        let editor_area = block.inner(area);
+                                        editor.handle_mouse_event(me, editor_area); 
                                     } else {
                                         preview.scroll = preview.scroll.saturating_add(3);
                                     }
