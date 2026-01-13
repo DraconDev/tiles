@@ -2371,58 +2371,41 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 MouseEventKind::Down(button) => {
                     let sw = app.sidebar_width();
                     
-                    if app.current_view == CurrentView::Processes {
-                        // Monitor Navigation Tabs
-                        for (rect, view) in &app.monitor_subview_bounds {
-                            if rect.contains(ratatui::layout::Position { x: column, y: row }) {
-                                app.monitor_subview = *view;
-                                app.process_search_filter.clear(); // Clear search when switching tabs
-                                return true;
-                            }
-                        }
-                        // Close Button (Far Right top)
-                        if row == 1 && column > w.saturating_sub(15) { 
-                            app.current_view = CurrentView::Files;
-                            return true;
-                        }
-                        
-                        // Handle clicking inside the content of specific subviews
-                        match app.monitor_subview {
-                            MonitorSubview::Processes | MonitorSubview::Applications => {
-                                // 1. Header sorting
-                                for (rect, col) in &app.process_column_bounds {
-                                    if column >= rect.x && column < rect.x + rect.width && row == rect.y {
-                                        app.sort_processes(*col);
-                                        return true;
-                                    }
-                                }
-                                // 2. Row selection 
-                                // Top bar (3) + Margin (1) + Block Border (1) + Header (1) + Bottom Margin (1) = 7
-                                if row >= 7 {
-                                    let table_row = (row as usize).saturating_sub(7) + app.process_table_state.offset();
-                                    
-                                    let proc_count = if app.monitor_subview == MonitorSubview::Processes {
-                                        app.system_state.processes.len()
-                                    } else {
-                                        let current_user = std::env::var("USER").unwrap_or_else(|_| "dracon".to_string());
-                                        app.system_state.processes.iter()
-                                            .filter(|p| p.user == current_user && !p.name.starts_with('[') && !p.name.contains("kworker"))
-                                            .count()
-                                    };
-
-                                    if table_row < proc_count {
-                                        app.process_selected_idx = Some(table_row);
-                                        // Update the table state for highlighting
-                                        app.process_table_state.select(app.process_selected_idx);
-                                        return true;
-                                    }
-                                }
-                            }
-                            _ => {}
-                        }
-                        return true;
-                    }
-
+                                            // Handle clicking inside the content of specific subviews
+                                            match app.monitor_subview {
+                                                MonitorSubview::Processes | MonitorSubview::Applications => {
+                                                    // 1. Header sorting
+                                                    for (rect, col) in &app.process_column_bounds {
+                                                        if column >= rect.x && column < rect.x + rect.width && row == rect.y {
+                                                            app.sort_processes(*col);
+                                                            return true;
+                                                        }
+                                                    }
+                                                    // 2. Row selection 
+                                                    // Top bar (3) + Margin (1) + Block Border (1) + Header (1) = 6
+                                                    if row >= 6 {
+                                                        let table_row = (row as usize).saturating_sub(6) + app.process_table_state.offset();
+                                                        
+                                                        let proc_count = if app.monitor_subview == MonitorSubview::Processes {
+                                                            app.system_state.processes.len()
+                                                        } else {
+                                                            let current_user = std::env::var("USER").unwrap_or_else(|_| "dracon".to_string());
+                                                            app.system_state.processes.iter()
+                                                                .filter(|p| p.user == current_user && !p.name.starts_with('[') && !p.name.contains("kworker"))
+                                                                .count()
+                                                        };
+                    
+                                                        if table_row < proc_count {
+                                                            app.process_selected_idx = Some(table_row);
+                                                            app.process_table_state.select(app.process_selected_idx);
+                                                            return true;
+                                                        }
+                                                    }
+                                                }
+                                                _ => {}
+                                            }
+                                            return true;
+                                        }
                     // Header Icons
                     if row == 0 {
                         if let Some((_, action_id)) = app.header_icon_bounds.iter().find(|(r, _)| column >= r.x && column < r.x + r.width && row == r.y) {
