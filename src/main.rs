@@ -2005,18 +2005,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     match key.code {
                         KeyCode::Char('y') | KeyCode::Char('Y') | KeyCode::Enter => {
                             crate::app::log_debug("Reset confirmed via keyboard");
-                            if let Some(fs) = app.current_file_state_mut() {
-                                fs.column_widths.insert(crate::app::FileColumn::Name, 30);
-                                fs.column_widths.insert(crate::app::FileColumn::Size, 10);
-                                fs.column_widths.insert(crate::app::FileColumn::Modified, 20);
-                                fs.column_widths.insert(crate::app::FileColumn::Permissions, 12);
-                                *fs.table_state.offset_mut() = 0;
-                                let _ = crate::config::save_state(app);
-                                let _ = event_tx.try_send(AppEvent::StatusMsg("Column widths reset to defaults".to_string()));
-                                for i in 0..app.panes.len() {
+                            for (i, pane) in app.panes.iter_mut().enumerate() {
+                                if let Some(fs) = pane.current_state_mut() {
+                                    fs.column_widths.insert(crate::app::FileColumn::Name, 30);
+                                    fs.column_widths.insert(crate::app::FileColumn::Size, 10);
+                                    fs.column_widths.insert(crate::app::FileColumn::Modified, 20);
+                                    fs.column_widths.insert(crate::app::FileColumn::Permissions, 12);
+                                    *fs.table_state.offset_mut() = 0;
                                     let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
                                 }
                             }
+                            let _ = crate::config::save_state(app);
+                            let _ = event_tx.try_send(AppEvent::StatusMsg("All column widths reset to defaults".to_string()));
                             app.mode = AppMode::Normal;
                             return true;
                         }
