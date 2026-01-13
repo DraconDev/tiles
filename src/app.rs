@@ -544,6 +544,14 @@ impl App {
                                  FileColumn::Modified,
                              ];
                         }
+
+                        // Ensure column widths exist
+                        if tab.column_widths.is_empty() {
+                            tab.column_widths.insert(FileColumn::Name, 30);
+                            tab.column_widths.insert(FileColumn::Size, 10);
+                            tab.column_widths.insert(FileColumn::Modified, 20);
+                            tab.column_widths.insert(FileColumn::Permissions, 12);
+                        }
                     }
                 }
 

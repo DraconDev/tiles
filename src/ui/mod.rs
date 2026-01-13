@@ -473,21 +473,27 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         }
         *render_state.offset_mut() = file_state.table_state.offset();
 
-        let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| match c {
-            FileColumn::Name => Constraint::Min(20),
-            FileColumn::Size => Constraint::Length(10),
-            FileColumn::Modified => Constraint::Percentage(20),
-            FileColumn::Permissions => Constraint::Length(12),
+        let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| {
+            let width = file_state.column_widths.get(c).copied().unwrap_or(10);
+            Constraint::Length(width)
         }).collect();
 
         let dummy_block = Block::default().borders(borders);
         let column_layout = Layout::default().direction(Direction::Horizontal).constraints(constraints.clone()).spacing(0).split(dummy_block.inner(area));
         let name_col_width = column_layout.get(0).map(|r| r.width as usize).unwrap_or(20);
 
-        let header_cells = file_state.columns.iter().map(|c| {
+        let header_cells = file_state.columns.iter().enumerate().map(|(i, c)| {
             let base_name = match c { FileColumn::Name => "Name", FileColumn::Size => "Size", FileColumn::Modified => "Modified", FileColumn::Permissions => "Permissions" };
             let name = if *c == file_state.sort_column { if file_state.sort_ascending { format!("{} ▲", base_name) } else { format!("{} ▼", base_name) } } else { base_name.to_string() };
-            Cell::from(name).style(Style::default().fg(THEME.header_fg).add_modifier(Modifier::BOLD))
+            
+            // Add resize handle visual if not the last column
+            let mut style = Style::default().fg(THEME.header_fg).add_modifier(Modifier::BOLD);
+            let mut text = name;
+            if i < file_state.columns.len() - 1 {
+                text.push_str(" │");
+            }
+            
+            Cell::from(text).style(style)
         });
 
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
