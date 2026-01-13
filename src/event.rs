@@ -1,5 +1,5 @@
 use terma::input::event::Event as TermaEvent;
-use terma::input::event::{KeyEvent, MouseEvent, Event};
+use terma::input::event::Event;
 
 pub fn convert_event(evt: TermaEvent) -> Option<Event> {
     match evt {

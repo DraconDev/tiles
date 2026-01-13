@@ -6,7 +6,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::app::{App, CurrentView, MonitorSubview, FileColumn, ProcessColumn, SidebarTarget, SidebarBounds, DropTarget};
+use crate::app::{App, CurrentView, MonitorSubview, FileColumn, ProcessColumn, SidebarTarget, SidebarBounds};
 use crate::ui::theme::THEME;
 use crate::icons::Icon;
 use terma::utils::{format_size, draw_stat_bar};
