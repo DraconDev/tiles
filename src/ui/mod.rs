@@ -250,13 +250,19 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
         .constraints([Constraint::Length(3), Constraint::Min(0)])
         .split(area);
 
-    // Monitor Navigation Bar
+    // Monitor Navigation Bar + Search
     let nav_block = Block::default()
         .borders(Borders::BOTTOM)
         .border_style(Style::default().fg(Color::Rgb(60, 60, 60)));
     let nav_inner = nav_block.inner(chunks[0]);
     f.render_widget(nav_block, chunks[0]);
 
+    let nav_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Min(50), Constraint::Length(30), Constraint::Length(12)])
+        .split(nav_inner);
+
+    // 1. Tabs
     let subviews: [(MonitorSubview, &str); 4] = [
         (MonitorSubview::Overview, " Overview "),
         (MonitorSubview::Applications, " Applications "),
@@ -265,12 +271,12 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
     ];
 
     app.monitor_subview_bounds.clear();
-    let mut cur_x = nav_inner.x + 1;
+    let mut cur_x = nav_layout[0].x;
     
     for (view, label) in subviews {
         let is_active = app.monitor_subview == view;
         let width = label.len() as u16;
-        let rect = Rect::new(cur_x, nav_inner.y, width, 1);
+        let rect = Rect::new(cur_x, nav_layout[0].y, width, 1);
         
         let mut style = if is_active {
             Style::default().fg(Color::Rgb(61, 174, 233)).add_modifier(Modifier::BOLD)
@@ -278,14 +284,12 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
             Style::default().fg(Color::DarkGray)
         };
 
-        // Hover effect
-        if app.mouse_pos.1 == nav_inner.y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width {
+        if app.mouse_pos.1 == nav_layout[0].y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width {
             style = style.fg(Color::White).bg(Color::Rgb(40, 40, 40));
         }
 
-        f.render_widget(Paragraph::new(label), rect);
+        f.render_widget(Paragraph::new(label).style(style), rect);
         if is_active {
-            // Draw an underline for active tab
             f.render_widget(Paragraph::new("▔".repeat(width as usize)).style(Style::default().fg(Color::Rgb(61, 174, 233))), Rect::new(rect.x, rect.y + 1, rect.width, 1));
         }
 
@@ -293,14 +297,21 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
         cur_x += width + 2;
     }
 
-    // Exit Button / Close icon on the far right
+    // 2. Search Box (Plasma style)
+    let search_text = if app.process_search_filter.is_empty() {
+        Line::from(vec![Span::styled(" 󰍉 Search...", Style::default().fg(Color::DarkGray))])
+    } else {
+        Line::from(vec![Span::styled(" 󰍉 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::raw(&app.process_search_filter)])
+    };
+    f.render_widget(Paragraph::new(search_text).block(Block::default().borders(Borders::LEFT | Borders::RIGHT).border_style(Style::default().fg(Color::Rgb(40, 40, 45)))), nav_layout[1]);
+
+    // 3. Close Button
     let exit_text = " [X] Close ";
-    let exit_rect = Rect::new(area.width.saturating_sub(exit_text.len() as u16 + 1), nav_inner.y, exit_text.len() as u16, 1);
     let mut exit_style = Style::default().fg(Color::Red);
-    if app.mouse_pos.1 == exit_rect.y && app.mouse_pos.0 >= exit_rect.x && app.mouse_pos.0 < exit_rect.x + exit_rect.width {
+    if app.mouse_pos.1 == nav_layout[2].y && app.mouse_pos.0 >= nav_layout[2].x && app.mouse_pos.0 < nav_layout[2].x + nav_layout[2].width {
         exit_style = exit_style.bg(Color::Rgb(60, 0, 0));
     }
-    f.render_widget(Paragraph::new(exit_text).style(exit_style), exit_rect);
+    f.render_widget(Paragraph::new(exit_text).style(exit_style).alignment(ratatui::layout::Alignment::Right), nav_layout[2]);
 
     let content_area = chunks[1];
     match app.monitor_subview {
@@ -443,145 +454,15 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(table, inner);
 }
 
-fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
-    let area = centered_rect(60, 20, f.area());
-    f.render_widget(Clear, area);
-    let block = Block::default()
-        .title(" Open With... ")
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Yellow));
-    let inner = block.inner(area);
-    f.render_widget(block, area);
-
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(2), // Info
-            Constraint::Length(3), // Input
-            Constraint::Min(0),    // Suggestions
-        ])
-        .split(inner);
-
-    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
-    f.render_widget(Paragraph::new(format!("Opening: {}", file_name)), chunks[0]);
-
-    let input_block = Block::default().borders(Borders::ALL).title(" Application / Command ").border_style(Style::default().fg(Color::Cyan));
-    f.render_widget(Paragraph::new(app.input.value.as_str()).block(input_block), chunks[1]);
-
-    // Simple common suggestions based on extension
-    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-    let suggestions = match ext.as_str() {
-        "txt" | "md" | "rs" | "toml" | "json" | "c" | "cpp" | "py" | "js" | "ts" => vec!["code", "vim", "nano", "kate", "subl", "gedit"],
-        "png" | "jpg" | "jpeg" | "gif" | "webp" | "svg" => vec!["gwenview", "feh", "imv", "nomacs", "display"],
-        "pdf" => vec!["okular", "evince", "zathura", "firefox", "chromium"],
-        "mp4" | "mkv" | "avi" | "mov" | "webm" => vec!["vlc", "mpv", "totem"],
-        "mp3" | "wav" | "ogg" | "flac" => vec!["vlc", "clementine", "audacious"],
-        "zip" | "tar" | "gz" | "7z" => vec!["ark", "file-roller"],
-        _ => vec!["xdg-open", "dolphin", "code", "vim"],
-    };
-
-    let sug_text = format!("Common: {}", suggestions.join(", "));
-    f.render_widget(Paragraph::new(sug_text).style(Style::default().fg(Color::DarkGray)), chunks[2]);
-}
-
 fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(3),  // Search Bar
-            Constraint::Length(10), // Charts
-            Constraint::Min(0)      // Table
-        ])
-        .split(area);
-
-    // 0. Search Bar
-    let search_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Rgb(61, 174, 233))); // Plasma Blue
-    
-    let search_inner = search_block.inner(chunks[0]);
-    f.render_widget(search_block, chunks[0]);
-    
-    let search_text = if app.process_search_filter.is_empty() {
-        Span::styled(" 󰍉 Search processes...", Style::default().fg(Color::DarkGray))
-    } else {
-        Span::raw(format!(" 󰍉 {}", app.process_search_filter))
-    };
-    f.render_widget(Paragraph::new(search_text), search_inner);
-
-    // 1. Amazing Header (Sparklines & Gauges)
-    let header_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .title(" System Monitor ")
-        .border_style(Style::default().fg(Color::Rgb(61, 174, 233))); // Plasma Blue
-    
-    let header_inner = header_block.inner(chunks[1]);
-    f.render_widget(header_block, chunks[1]);
-
-    let stats_layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(header_inner);
-
-    // CPU Section
-    let cpu_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Length(2), Constraint::Min(0)])
-        .split(stats_layout[0]);
-    
-    let cpu_label = format!("CPU Usage: {:.1}%", app.system_state.cpu_usage);
-    let cpu_gauge = Gauge::default()
-        .gauge_style(Style::default().fg(if app.system_state.cpu_usage > 80.0 { Color::Red } else { Color::Rgb(46, 204, 113) })) // Plasma Green
-        .ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0) as f64)
-        .label(cpu_label.clone());
-    
-    f.render_widget(Paragraph::new(cpu_label).style(Style::default().add_modifier(Modifier::BOLD)), cpu_chunks[0]);
-    f.render_widget(cpu_gauge, cpu_chunks[1]);
-    
-    let cpu_data: Vec<u64> = app.system_state.cpu_history.iter().map(|&x| x).collect();
-    let cpu_sparkline = Sparkline::default()
-        .block(Block::default().borders(Borders::NONE))
-        .data(&cpu_data)
-        .style(Style::default().fg(Color::Rgb(52, 152, 219))); // Blue
-    f.render_widget(cpu_sparkline, cpu_chunks[2]);
-
-    // Memory Section
-    let mem_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Length(2), Constraint::Min(0)])
-        .split(stats_layout[1]);
-
-    let mem_used_gb = app.system_state.mem_usage;
-    let mem_total_gb = app.system_state.total_mem;
-    let mem_percent = if mem_total_gb > 0.0 { (mem_used_gb / mem_total_gb) * 100.0 } else { 0.0 };
-    
-    let mem_label = format!("Memory: {:.1} GB / {:.1} GB ({:.1}%)", mem_used_gb, mem_total_gb, mem_percent);
-    let mem_gauge = Gauge::default()
-        .gauge_style(Style::default().fg(if mem_percent > 80.0 { Color::Red } else { Color::Rgb(155, 89, 182) })) // Plasma Purple
-        .ratio((mem_percent / 100.0).clamp(0.0, 1.0) as f64)
-        .label(format!("{:.1}%", mem_percent));
-
-    f.render_widget(Paragraph::new(mem_label).style(Style::default().add_modifier(Modifier::BOLD)), mem_chunks[0]);
-    f.render_widget(mem_gauge, mem_chunks[1]);
-
-    let mem_data: Vec<u64> = app.system_state.mem_history.iter().map(|&x| x).collect();
-    let mem_sparkline = Sparkline::default()
-        .block(Block::default().borders(Borders::NONE))
-        .data(&mem_data)
-        .style(Style::default().fg(Color::Rgb(155, 89, 182)));
-    f.render_widget(mem_sparkline, mem_chunks[2]);
-
     // 2. Process Table
     let table_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::DarkGray));
     
-    let table_inner = table_block.inner(chunks[2]);
-    f.render_widget(table_block, chunks[2]);
+    let table_inner = table_block.inner(area);
+    f.render_widget(table_block, area);
 
     let column_constraints = [
         Constraint::Length(8),
@@ -647,6 +528,48 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
     .column_spacing(1);
 
     f.render_stateful_widget(table, table_inner, &mut app.process_table_state);
+}
+
+fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
+    let area = centered_rect(60, 20, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default()
+        .title(" Open With... ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Yellow));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(2), // Info
+            Constraint::Length(3), // Input
+            Constraint::Min(0),    // Suggestions
+        ])
+        .split(inner);
+
+    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+    f.render_widget(Paragraph::new(format!("Opening: {}", file_name)), chunks[0]);
+
+    let input_block = Block::default().borders(Borders::ALL).title(" Application / Command ").border_style(Style::default().fg(Color::Cyan));
+    f.render_widget(Paragraph::new(app.input.value.as_str()).block(input_block), chunks[1]);
+
+    // Simple common suggestions based on extension
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let suggestions = match ext.as_str() {
+        "txt" | "md" | "rs" | "toml" | "json" | "c" | "cpp" | "py" | "js" | "ts" => vec!["code", "vim", "nano", "kate", "subl", "gedit"],
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "svg" => vec!["gwenview", "feh", "imv", "nomacs", "display"],
+        "pdf" => vec!["okular", "evince", "zathura", "firefox", "chromium"],
+        "mp4" | "mkv" | "avi" | "mov" | "webm" => vec!["vlc", "mpv", "totem"],
+        "mp3" | "wav" | "ogg" | "flac" => vec!["vlc", "clementine", "audacious"],
+        "zip" | "tar" | "gz" | "7z" => vec!["ark", "file-roller"],
+        _ => vec!["xdg-open", "dolphin", "code", "vim"],
+    };
+
+    let sug_text = format!("Common: {}", suggestions.join(", "));
+    f.render_widget(Paragraph::new(sug_text).style(Style::default().fg(Color::DarkGray)), chunks[2]);
 }
 
 fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
@@ -759,7 +682,7 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             }
         }
         CurrentView::Processes => {
-            draw_processes_view(f, area, app);
+            // This is handled in draw() top level now
         }
     }
 }
@@ -1428,7 +1351,7 @@ fn draw_add_remote_modal(f: &mut Frame, app: &App) {
     let fields = [
         ("Name", &app.pending_remote.name),
         ("Host", &app.pending_remote.host),
-        ("User", &app.pending_remote.user),
+        ("User", &app.pending_user),
         ("Port", &app.pending_remote.port.to_string()),
         ("Key Path", &app.pending_remote.key_path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default()),
     ];
