@@ -2350,7 +2350,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     // Footer Click (Right side for Processes)
                     if row == h.saturating_sub(1) {
                         if column > w.saturating_sub(40) { 
-                             app.current_view = CurrentView::Processes;
+                             app.current_view = if app.current_view == CurrentView::Processes { CurrentView::Files } else { CurrentView::Processes };
                              return true;
                         }
                     }
