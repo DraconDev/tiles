@@ -418,11 +418,13 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                     let tx = event_tx.clone();
                     tokio::spawn(async move {
                         if let Ok(content) = std::fs::read_to_string(&path) {
-                            let preview_content = content.chars().take(2000).collect::<String>();
+                            // Quick editor for text files
+                            let editor = if content.len() < 50000 { Some(TextEditor::with_content(&content)) } else { None };
+                            let preview_content = content.chars().take(5000).collect::<String>();
                             let mut app_guard = app_clone.lock().unwrap();
                             if app_guard.panes.len() < 2 { app_guard.toggle_split(); }
                             if let Some(pane) = app_guard.panes.get_mut(target_pane_idx) {
-                                pane.preview = Some(crate::app::PreviewState { path, content: preview_content, scroll: 0 });
+                                pane.preview = Some(crate::app::PreviewState { path, content: preview_content, scroll: 0, editor });
                             }
                         } else if path.is_dir() {
                              {
@@ -438,6 +440,16 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
                         }
                     });
                     needs_draw = true;
+                }
+                AppEvent::SaveFile(path, content) => {
+                    let tx = event_tx.clone();
+                    tokio::spawn(async move {
+                        if let Ok(_) = std::fs::write(&path, content) {
+                            let _ = tx.send(AppEvent::StatusMsg(format!("Saved: {}", path.display()))).await;
+                        } else {
+                            let _ = tx.send(AppEvent::StatusMsg(format!("Error saving: {}", path.display()))).await;
+                        }
+                    });
                 }
                 AppEvent::SpawnTerminal { path, new_tab, remote, command } => {
                     let preferred = {
