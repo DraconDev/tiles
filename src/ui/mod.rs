@@ -7,7 +7,7 @@ use ratatui::{
 };
 use std::collections::HashMap;
 
-use crate::app::{App, AppMode, CurrentView, MonitorSubview, FileColumn, ProcessColumn, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory};
+use crate::app::{App, AppMode, CurrentView, MonitorSubview, FileColumn, ProcessColumn, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory, ContextMenuAction, ContextMenuTarget};
 use crate::ui::theme::THEME;
 use crate::icons::Icon;
 use terma::layout::centered_rect;
@@ -15,6 +15,10 @@ use terma::utils::{format_size, format_time, format_permissions, format_datetime
 
 pub mod theme;
 pub mod layout;
+
+pub fn get_context_menu_actions(_target: &ContextMenuTarget, _app: &App) -> Vec<ContextMenuAction> {
+    vec![]
+}
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
@@ -310,13 +314,6 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(Paragraph::new(draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0, chunks[2].width / 2, THEME.fg)).alignment(ratatui::layout::Alignment::Right), chunks[2]);
 }
 
-fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::ContextMenuTarget, app: &App) {
-    let actions = get_context_menu_actions(target, app);
-    let items: Vec<ListItem> = actions.iter().map(|a| ListItem::new(format!("{:?}", a))).collect();
-    let area = Rect::new(x, y, 25, (items.len() + 2) as u16); f.render_widget(Clear, area);
-    f.render_widget(List::new(items).block(Block::default().title(" Menu ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(THEME.accent_secondary))), area);
-}
-
 fn draw_rename_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
     f.render_widget(Paragraph::new(format!("{}", &app.input.value)).block(Block::default().borders(Borders::ALL).title(" Rename ")), area);
@@ -335,14 +332,4 @@ fn draw_new_folder_modal(f: &mut Frame, app: &App) {
 fn draw_new_file_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
     f.render_widget(Paragraph::new(format!("{}", &app.input.value)).block(Block::default().borders(Borders::ALL).title(" New File ")), area);
-}
-
-fn draw_editor_overlay(f: &mut Frame, app: &App) {
-    let area = f.area(); f.render_widget(Clear, area);
-    if let Some(preview) = &app.editor_state { if let Some(editor) = &preview.editor { f.render_widget(editor, area); } }
-}
-
-fn draw_open_with_modal(f: &mut Frame, app: &App, _path: &std::path::Path) {
-    let area = centered_rect(60, 20, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(format!("{}", &app.input.value)).block(Block::default().borders(Borders::ALL).title(" Open With ")), area);
 }
