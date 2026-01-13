@@ -1856,7 +1856,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 }
                 AppMode::Header(idx) => {
                     let idx = *idx;
-                    let total_icons = 5;
+                    let total_icons = 4;
                     let total_tabs: usize = app.panes.iter().map(|p| p.tabs.len()).sum();
                     let total_items = total_icons + total_tabs;
                     match key.code {
@@ -1871,12 +1871,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     1 => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
                                     2 => if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
                                     3 => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
-                                    4 => app.mode = AppMode::ConfirmReset,
                                     _ => {} 
                                 }
                                 if let AppMode::Header(_) = app.mode { app.mode = AppMode::Normal; }
                             } else {
-                                let mut current_global_tab = 5;
+                                let mut current_global_tab = 4;
                                 for (p_i, pane) in app.panes.iter_mut().enumerate() {
                                     for (t_i, _) in pane.tabs.iter().enumerate() {
                                         if current_global_tab == idx { pane.active_tab_index = t_i; app.focused_pane_index = p_i; let _ = event_tx.try_send(AppEvent::RefreshFiles(p_i)); app.mode = AppMode::Normal; return true; }
