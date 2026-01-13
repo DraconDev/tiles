@@ -2171,7 +2171,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         app.settings_scroll = 0; // Reset scroll when switching sections
                                     } else if app.settings_section == SettingsSection::General {
                                         let rel_y = row.saturating_sub(inner_y + 1);
-                                        match rel_y { 0 => app.default_show_hidden = !app.default_show_hidden, 1 => app.confirm_delete = !app.confirm_delete, 2 => app.smart_date = !app.smart_date, 3 => app.icon_mode = match app.icon_mode { IconMode::Nerd => IconMode::Unicode, IconMode::Unicode => IconMode::ASCII, IconMode::ASCII => IconMode::Nerd }, _ => {} }
+                                        match rel_y { 0 => app.default_show_hidden = !app.default_show_hidden, 1 => app.confirm_delete = !app.confirm_delete, 2 => app.smart_date = !app.smart_date, 3 => app.auto_save = !app.auto_save, 4 => app.icon_mode = match app.icon_mode { IconMode::Nerd => IconMode::Unicode, IconMode::Unicode => IconMode::ASCII, IconMode::ASCII => IconMode::Nerd }, _ => {} }
                                     } else if app.settings_section == SettingsSection::Columns {
                                         if row >= inner_y && row < inner_y + 3 {
                                             let cx = column.saturating_sub(inner_x + 15);
