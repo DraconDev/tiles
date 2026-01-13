@@ -1815,7 +1815,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         }
                         
                         let (w, h) = app.terminal_size;
-                        let editor_area = ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1));
+                        let area = ratatui::layout::Rect::new(0, 0, w, h);
+                        let block = ratatui::widgets::Block::default().borders(ratatui::widgets::Borders::ALL);
+                        let editor_area = block.inner(area);
+                        
                         if editor.handle_event(&evt, editor_area) {
                             if app.auto_save && editor.modified {
                                 let _ = event_tx.try_send(AppEvent::SaveFile(preview.path.clone(), editor.get_content()));
