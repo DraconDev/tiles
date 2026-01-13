@@ -497,12 +497,14 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             let capacity = file_state.view_height.saturating_sub(3);
             if sel >= offset && sel < offset + capacity { render_state.select(Some(sel)); }
         }
-        let mut constraints: Vec<Constraint> = file_state.columns.iter().map(|c| {
+        let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| {
             let width = file_state.column_widths.get(c).copied().unwrap_or(10);
-            Constraint::Length(width)
+            if *c == FileColumn::Name {
+                Constraint::Min(width) // Name expands to fill the rest
+            } else {
+                Constraint::Length(width) // Metadata stays at preferred width
+            }
         }).collect();
-        // Add a spacer constraint to prevent table from expanding existing columns
-        constraints.push(Constraint::Min(0));
 
         let dummy_block = Block::default().borders(borders);
         let column_layout = Layout::default()
@@ -513,7 +515,13 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         
         let name_col_width = column_layout.get(0).map(|r| r.width as usize).unwrap_or(20);
 
-        let header_cells = file_state.columns.iter().enumerate().map(|(_i, c)| {
+        // Map correctly to bounds for hit detection
+        file_state.column_bounds.clear();
+        for (i, col_type) in file_state.columns.iter().enumerate() {
+            if i < column_layout.len() {
+                file_state.column_bounds.push((column_layout[i], *col_type));
+            }
+        }
             let base_name = match c { 
                 FileColumn::Name => "Name", 
                 FileColumn::Size => "Size", 
