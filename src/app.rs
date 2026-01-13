@@ -475,6 +475,7 @@ pub struct App {
     pub mouse_click_pos: (u16, u16),
     pub settings_section: SettingsSection,
     pub settings_target: SettingsTarget,
+    pub settings_scroll: usize,
     pub rename_selected: bool,
     pub clipboard: Option<(PathBuf, ClipboardOp)>,
     
