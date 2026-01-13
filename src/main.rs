@@ -188,15 +188,58 @@ fn setup_app(tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>
                     Some(evt) = logic_rx.recv() => {
                         match evt {
                             AppEvent::Tick => {}
-                            AppEvent::SystemUpdated(data) => {
-                                if let Ok(mut app) = app_bg.lock() {
-                                    app.system_state.cpu_usage = data.cpu_usage;
-                                    app.system_state.mem_usage = data.mem_usage;
-                                    app.system_state.total_mem = data.total_mem;
-                                    app.system_state.disks = data.disks;
-                                }
-                            }
-                            AppEvent::Raw(raw) => {
+                                            AppEvent::SystemUpdated(data) => {
+                                                let mut app_guard = app.lock().unwrap();
+                                                app_guard.system_state.cpu_usage = data.cpu_usage;
+                                                app_guard.system_state.cpu_cores = data.cpu_cores.clone();
+                                                app_guard.system_state.mem_usage = data.mem_usage;
+                                                app_guard.system_state.total_mem = data.total_mem;
+                                                app_guard.system_state.swap_usage = data.swap_usage;
+                                                app_guard.system_state.total_swap = data.total_swap;
+                                                app_guard.system_state.disks = data.disks;
+                                                app_guard.system_state.processes = data.processes;
+                                                app_guard.system_state.os_name = data.os_name;
+                                                app_guard.system_state.os_version = data.os_version;
+                                                app_guard.system_state.kernel_version = data.kernel_version;
+                                                app_guard.system_state.hostname = data.hostname;
+                                                app_guard.system_state.uptime = data.uptime;
+                                                
+                                                // History buffers
+                                                app_guard.system_state.cpu_history.push(data.cpu_usage as u64);
+                                                if app_guard.system_state.cpu_history.len() > 100 { app_guard.system_state.cpu_history.remove(0); }
+                                                
+                                                if app_guard.system_state.core_history.len() != data.cpu_cores.len() {
+                                                    app_guard.system_state.core_history = vec![vec![0; 100]; data.cpu_cores.len()];
+                                                }
+                                                for (i, &usage) in data.cpu_cores.iter().enumerate() {
+                                                    app_guard.system_state.core_history[i].push(usage as u64);
+                                                    if app_guard.system_state.core_history[i].len() > 100 { app_guard.system_state.core_history[i].remove(0); }
+                                                }
+                            
+                                                if app_guard.system_state.last_net_in > 0 {
+                                                    let diff_in = data.net_in.saturating_sub(app_guard.system_state.last_net_in);
+                                                    let diff_out = data.net_out.saturating_sub(app_guard.system_state.last_net_out);
+                                                    app_guard.system_state.net_in_history.push(diff_in);
+                                                    app_guard.system_state.net_out_history.push(diff_out);
+                                                    if app_guard.system_state.net_in_history.len() > 100 { app_guard.system_state.net_in_history.remove(0); }
+                                                    if app_guard.system_state.net_out_history.len() > 100 { app_guard.system_state.net_out_history.remove(0); }
+                                                }
+                                                app_guard.system_state.last_net_in = data.net_in;
+                                                app_guard.system_state.last_net_out = data.net_out;
+                                                app_guard.system_state.net_in = data.net_in;
+                                                app_guard.system_state.net_out = data.net_out;
+                            
+                                                let mem_percent = if data.total_mem > 0.0 { (data.mem_usage / data.total_mem) * 100.0 } else { 0.0 };
+                                                app_guard.system_state.mem_history.push(mem_percent as u64);
+                                                if app_guard.system_state.mem_history.len() > 100 { app_guard.system_state.mem_history.remove(0); }
+                            
+                                                let swap_percent = if data.total_swap > 0.0 { (data.swap_usage / data.total_swap) * 100.0 } else { 0.0 };
+                                                app_guard.system_state.swap_history.push(swap_percent as u64);
+                                                if app_guard.system_state.swap_history.len() > 100 { app_guard.system_state.swap_history.remove(0); }
+                            
+                                                app_guard.apply_process_sort();
+                                                needs_draw = true;
+                                            }                            AppEvent::Raw(raw) => {
                                 let mut app_guard = app_bg.lock().unwrap();
                                 let app_tx = event_tx_bg.clone();
                                 handle_event(raw, &mut app_guard, app_tx);
