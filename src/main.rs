@@ -1771,19 +1771,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
     match evt {
         Event::Resize(w, h) => {
             if let Some(until) = app.ignore_resize_until {
-                if std::time::Instant::now() < until {
-                    return true;
-                }
+                if std::time::Instant::now() < until { return true; }
             }
             app.terminal_size = (w, h);
             return true;
         }
         Event::Key(key) => {
-            crate::app::log_debug(&format!("KEY EVENT: code={:?} modifiers={:?}", key.code, key.modifiers));
-            
-            // 1. Global Shortcuts (Highest Priority)
             let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
-
             match key.code {
                 KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return true; }
                 KeyCode::Char('b') | KeyCode::Char('B') if has_control => { app.show_sidebar = !app.show_sidebar; return true; }
@@ -1800,146 +1794,64 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 KeyCode::Char('h') | KeyCode::Char('H') if has_control => { let idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(idx)); return true; }
                 KeyCode::Char('g') | KeyCode::Char('G') if has_control => { app.mode = AppMode::Settings; return true; }
                 KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Char('o') | KeyCode::Char('O') if has_control => {
-                    if let Some(pane) = app.panes.get(app.focused_pane_index) {
-                        if let Some(fs) = pane.current_state() {
-                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
-                                path: fs.current_path.clone(),
-                                new_tab: true, // Use 'true' (--tab) as it reliably opens a window on this system
-                                remote: fs.remote_session.clone(),
-                                command: None,
-                            });
-                        }
+                    if let Some(fs) = app.current_file_state() {
+                        let _ = event_tx.try_send(AppEvent::SpawnTerminal { path: fs.current_path.clone(), new_tab: true, remote: fs.remote_session.clone(), command: None });
                     }
                     return true;
                 }
                 KeyCode::Char('t') | KeyCode::Char('T') if has_control => {
                     if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                         if let Some(fs) = pane.current_state() {
-                            let new_fs = fs.clone(); // Clone state exactly, preserving selection
+                            let new_fs = fs.clone();
                             pane.open_tab(new_fs);
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                         }
                     }
                     return true;
                 }
-                KeyCode::Char(' ') if !has_control => {
-                    if let Some(fs) = app.current_file_state() {
-                        if let Some(idx) = fs.selected_index {
-                            if let Some(path) = fs.files.get(idx) {
-                                if path.is_dir() {
-                                    let target = path.clone();
-                                    let tx = event_tx.clone();
-                                    
-                                    app.last_action_msg = Some((format!("Calculating size: {}...", target.file_name().unwrap_or_default().to_string_lossy()), std::time::Instant::now()));
-                                    
-                                    tokio::spawn(async move {
-                                        let mut total_size = 0;
-                                        let mut stack = vec![target.clone()];
-                                        while let Some(p) = stack.pop() {
-                                            if let Ok(entries) = std::fs::read_dir(p) {
-                                                for entry in entries.flatten() {
-                                                    if let Ok(meta) = entry.metadata() {
-                                                        if meta.is_dir() { stack.push(entry.path()); }
-                                                        else { total_size += meta.len(); }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        
-                                        let size_str = if total_size < 1024 { format!("{} B", total_size) }
-                                                       else if total_size < 1024 * 1024 { format!("{:.1} KB", total_size as f64 / 1024.0) }
-                                                       else if total_size < 1024 * 1024 * 1024 { format!("{:.1} MB", total_size as f64 / 1024.0 / 1024.0) }
-                                                       else { format!("{:.1} GB", total_size as f64 / 1024.0 / 1024.0 / 1024.0) };
-
-                                        let _ = tx.send(AppEvent::StatusMsg(format!("Size of {}: {}", target.file_name().unwrap_or_default().to_string_lossy(), size_str))).await;
-                                    });
-                                }
-                            }
-                        }
-                    }
-                    return true;
-                }
                 KeyCode::Char(' ') if has_control => { 
-                    app.input.clear(); 
-                    app.mode = AppMode::CommandPalette; 
-                    update_commands(app); 
-                    return true; 
+                    app.input.clear(); app.mode = AppMode::CommandPalette; update_commands(app); return true; 
                 }
                 KeyCode::Left if has_control => {
-                    if app.sidebar_focus {
-                        app.resize_sidebar(-2);
-                    } else {
-                        app.move_to_other_pane(); 
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                    }
+                    if app.sidebar_focus { app.resize_sidebar(-2); } 
+                    else { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
                     return true;
                 }
                 KeyCode::Right if has_control => {
-                    if app.sidebar_focus {
-                        app.resize_sidebar(2);
-                    } else {
-                        app.move_to_other_pane(); 
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                    }
+                    if app.sidebar_focus { app.resize_sidebar(2); } 
+                    else { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
                     return true;
                 }
                 _ => {}
             }
 
             match &app.mode {
-                AppMode::CommandPalette => {
-                    match key.code {
-                        KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
-                        KeyCode::Enter => { 
-                            if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() { 
-                                execute_command(cmd.action, app, event_tx.clone()); 
-                            } 
-                            app.mode = AppMode::Normal; 
-                            app.input.clear();
-                            return true;
-                        }
-                        _ => {
-                            let handled = app.input.handle_event(&evt);
-                            if handled { update_commands(app); }
-                            return handled;
-                        }
+                AppMode::CommandPalette => match key.code {
+                    KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
+                    KeyCode::Enter => { 
+                        if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() { execute_command(cmd.action, app, event_tx.clone()); } 
+                        app.mode = AppMode::Normal; app.input.clear(); return true;
                     }
-                }
+                    _ => { let handled = app.input.handle_event(&evt); if handled { update_commands(app); } return handled; }
+                },
                 AppMode::AddRemote(idx) => {
                     let idx = *idx;
                     match key.code {
                         KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
                         KeyCode::Tab | KeyCode::Enter => {
                             let val = app.input.value.clone();
-                            match idx {
-                                0 => app.pending_remote.name = val,
-                                1 => app.pending_remote.host = val,
-                                2 => app.pending_remote.user = val,
-                                3 => app.pending_remote.port = val.parse().unwrap_or(22),
-                                4 => app.pending_remote.key_path = if val.is_empty() { None } else { Some(std::path::PathBuf::from(val)) },
-                                _ => {}
-                            }
+                            match idx { 0 => app.pending_remote.name = val, 1 => app.pending_remote.host = val, 2 => app.pending_remote.user = val, 3 => app.pending_remote.port = val.parse().unwrap_or(22), 4 => app.pending_remote.key_path = if val.is_empty() { None } else { Some(std::path::PathBuf::from(val)) }, _ => {} }
                             if idx < 4 {
                                 app.mode = AppMode::AddRemote(idx + 1);
-                                let next_val = match idx + 1 {
-                                    1 => app.pending_remote.host.clone(),
-                                    2 => app.pending_remote.user.clone(),
-                                    3 => app.pending_remote.port.to_string(),
-                                    4 => app.pending_remote.key_path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default(),
-                                    _ => String::new(),
-                                };
+                                let next_val = match idx + 1 { 1 => app.pending_remote.host.clone(), 2 => app.pending_remote.user.clone(), 3 => app.pending_remote.port.to_string(), 4 => app.pending_remote.key_path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default(), _ => String::new() };
                                 app.input.set_value(next_val);
                             } else {
-                                app.remote_bookmarks.push(app.pending_remote.clone());
-                                let _ = crate::config::save_state(app);
-                                app.mode = AppMode::Normal;
-                                app.input.clear();
+                                app.remote_bookmarks.push(app.pending_remote.clone()); let _ = crate::config::save_state(app);
+                                app.mode = AppMode::Normal; app.input.clear();
                             }
                             return true;
                         }
-                        _ => { return app.input.handle_event(&evt); }
+                        _ => return app.input.handle_event(&evt)
                     }
                 }
                 AppMode::Header(idx) => {
@@ -1954,81 +1866,39 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         KeyCode::Down => { app.mode = AppMode::Normal; return true; }
                         KeyCode::Enter => {
                             if idx < total_icons {
-                                let action_id = match idx { 0 => "burger", 1 => "back", 2 => "forward", 3 => "split", 4 => "reset", _ => "" };
-                                match action_id {
-                                    "burger" => app.mode = AppMode::Settings,
-                                    "back" => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
-                                    "forward" => if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
-                                    "split" => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
-                                    "reset" => app.mode = AppMode::ConfirmReset,
-                                    _ => {}
+                                match idx {
+                                    0 => app.mode = AppMode::Settings,
+                                    1 => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                                    2 => if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                                    3 => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
+                                    4 => app.mode = AppMode::ConfirmReset,
+                                    _ => {} 
                                 }
                                 if let AppMode::Header(_) = app.mode { app.mode = AppMode::Normal; }
                             } else {
                                 let mut current_global_tab = 5;
                                 for (p_i, pane) in app.panes.iter_mut().enumerate() {
-                                    let mut found = false;
                                     for (t_i, _) in pane.tabs.iter().enumerate() {
-                                        if current_global_tab == idx {
-                                            pane.active_tab_index = t_i;
-                                            app.focused_pane_index = p_i;
-                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(p_i));
-                                            app.mode = AppMode::Normal;
-                                            found = true;
-                                            break;
-                                        }
+                                        if current_global_tab == idx { pane.active_tab_index = t_i; app.focused_pane_index = p_i; let _ = event_tx.try_send(AppEvent::RefreshFiles(p_i)); app.mode = AppMode::Normal; return true; }
                                         current_global_tab += 1;
                                     }
-                                    if found { break; }
                                 }
                             }
                             return true;
                         }
-                        _ => {}
+                        _ => {} 
                     }
                     return true;
                 }
-                AppMode::OpenWith(path) => {
-                    match key.code {
-                        KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
-                        KeyCode::Enter => {
-                            let cmd = app.input.value.clone();
-                            if !cmd.is_empty() { let _ = event_tx.try_send(AppEvent::SpawnDetached { cmd, args: vec![path.to_string_lossy().to_string()] }); }
-                            app.mode = AppMode::Normal; app.input.clear();
-                            return true;
-                        }
-                        _ => { return app.input.handle_event(&evt); }
+                AppMode::OpenWith(path) => match key.code {
+                    KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
+                    KeyCode::Enter => {
+                        let cmd = app.input.value.clone();
+                        if !cmd.is_empty() { let _ = event_tx.try_send(AppEvent::SpawnDetached { cmd, args: vec![path.to_string_lossy().to_string()] }); }
+                        app.mode = AppMode::Normal; app.input.clear(); return true;
                     }
-                }
-                AppMode::ConfirmReset => {
-                    crate::app::log_debug("ConfirmReset mode active, waiting for input...");
-                    match key.code {
-                        KeyCode::Char('y') | KeyCode::Char('Y') | KeyCode::Enter => {
-                            crate::app::log_debug("Reset confirmed via keyboard");
-                            for (i, pane) in app.panes.iter_mut().enumerate() {
-                                if let Some(fs) = pane.current_state_mut() {
-                                    fs.column_widths.insert(crate::app::FileColumn::Name, 30);
-                                    fs.column_widths.insert(crate::app::FileColumn::Size, 10);
-                                    fs.column_widths.insert(crate::app::FileColumn::Modified, 20);
-                                    fs.column_widths.insert(crate::app::FileColumn::Permissions, 12);
-                                    *fs.table_state.offset_mut() = 0;
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
-                                }
-                            }
-                            let _ = crate::config::save_state(app);
-                            let _ = event_tx.try_send(AppEvent::StatusMsg("All column widths reset to defaults".to_string()));
-                            app.mode = AppMode::Normal;
-                            return true;
-                        }
-                        KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => { 
-                            crate::app::log_debug("Reset cancelled via keyboard");
-                            app.mode = AppMode::Normal; 
-                            return true; 
-                        }
-                        _ => {}
-                    }
-                    return true;
-                }
+                    _ => return app.input.handle_event(&evt)
+                },
                 AppMode::Highlight => {
                     if let KeyCode::Char(c) = key.code {
                         if let Some(digit) = c.to_digit(10) {
@@ -2036,9 +1906,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 let color = if digit == 0 { None } else { Some(digit as u8) };
                                 if let Some(fs) = app.current_file_state() {
                                     let mut paths = Vec::new();
-                                    if !fs.multi_select.is_empty() {
-                                        for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } }
-                                    } else if let Some(idx) = fs.selected_index { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } }
+                                    if !fs.multi_select.is_empty() { for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } } 
+                                    else if let Some(idx) = fs.selected_index { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } }
                                     for p in paths { if let Some(col) = color { app.path_colors.insert(p, col); } else { app.path_colors.remove(&p); } }
                                     let _ = crate::config::save_state(app);
                                 }
@@ -2048,431 +1917,101 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     } else if key.code == KeyCode::Esc { app.mode = AppMode::Normal; return true; }
                     return false;
                 }
-                AppMode::Settings => {
-                    match key.code {
-                        KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
-                        KeyCode::Char('1') => { app.settings_target = SettingsTarget::SingleMode; return true; }
-                        KeyCode::Char('2') => { app.settings_target = SettingsTarget::SplitMode; return true; }
-                        KeyCode::Left | KeyCode::BackTab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Shortcuts, SettingsSection::Tabs => SettingsSection::Columns, SettingsSection::General => SettingsSection::Tabs, SettingsSection::Remotes => SettingsSection::General, SettingsSection::Shortcuts => SettingsSection::Remotes }; return true; } 
-                        KeyCode::Right | KeyCode::Tab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Tabs, SettingsSection::Tabs => SettingsSection::General, SettingsSection::General => SettingsSection::Remotes, SettingsSection::Remotes => SettingsSection::Shortcuts, SettingsSection::Shortcuts => SettingsSection::Columns }; return true; } 
-                        KeyCode::Char('n') => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
-                        KeyCode::Char('e') => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
-                        KeyCode::Char('s') => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
-                        KeyCode::Char('m') => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
-                        KeyCode::Char('c') => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
-                        KeyCode::Char('p') => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
-                        KeyCode::Char('i') => {
-                            app.icon_mode = match app.icon_mode { IconMode::Nerd => IconMode::Unicode, IconMode::Unicode => IconMode::ASCII, IconMode::ASCII => IconMode::Nerd };
-                            return true;
-                        }
-                        KeyCode::Char('h') if app.settings_section == SettingsSection::General => { app.default_show_hidden = !app.default_show_hidden; return true; } 
-                        KeyCode::Char('d') if app.settings_section == SettingsSection::General => { app.confirm_delete = !app.confirm_delete; return true; } 
-                        _ => { return false; } 
-                    }
-                }
-                AppMode::ImportServers => {
-                    match key.code {
-                        KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
-                        KeyCode::Enter => {
-                            let filename = app.input.value.clone();
-                            let import_path = if let Some(fs) = app.current_file_state() { fs.current_path.join(filename) } else { std::path::PathBuf::from(filename) };
-                            let _ = app.import_servers(import_path); let _ = crate::config::save_state(app);
-                            app.mode = AppMode::Normal; app.input.clear(); return true;
-                        }
-                        _ => { return app.input.handle_event(&evt); }
-                    }
-                }
-                AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete => {
-                    if app.mode == AppMode::Rename && app.rename_selected {
-                        match key.code {
-                            KeyCode::Char(c) => {
-                                app.rename_selected = false;
-                                let input_val = app.input.value.clone();
-                                let path = std::path::Path::new(&input_val);
-                                if let Some(stem) = path.file_stem() {
-                                    if let Some(ext) = path.extension() {
-                                        if !stem.to_string_lossy().is_empty() { app.input.set_value(format!("{}.{}", c, ext.to_string_lossy())); } 
-                                        else { app.input.set_value(c.to_string()); }
-                                    } else { app.input.set_value(c.to_string()); }
-                                } else { app.input.set_value(c.to_string()); }
-                                return true;
-                            }
-                            KeyCode::Backspace => {
-                                app.rename_selected = false;
-                                let input_val = app.input.value.clone();
-                                let path = std::path::Path::new(&input_val);
-                                if let Some(ext) = path.extension() { app.input.set_value(format!(".{}", ext.to_string_lossy())); } 
-                                else { app.input.clear(); }
-                                return true;
-                            }
-                            KeyCode::Left | KeyCode::Right => { app.rename_selected = false; }
-                            KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
-                            _ => {}
-                        }
-                    }
-                    match key.code {
-                        KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
-                        KeyCode::Enter => {
-                            let input = app.input.value.clone();
-                            if let Some(fs) = app.current_file_state() {
-                                let path = fs.current_path.join(&input);
-                                match app.mode {
-                                    AppMode::NewFile => { let _ = event_tx.try_send(AppEvent::CreateFile(path)); }
-                                    AppMode::NewFolder => { let _ = event_tx.try_send(AppEvent::CreateFolder(path)); }
-                                    AppMode::Rename => {
-                                        if let Some(idx) = fs.selected_index {
-                                            if let Some(old_path) = fs.files.get(idx) {
-                                                let new_path = old_path.parent().unwrap_or(&std::path::PathBuf::from(".")).join(&input);
-                                                let _ = event_tx.try_send(AppEvent::Rename(old_path.clone(), new_path));
-                                            }
-                                        }
+                AppMode::Settings => match key.code {
+                    KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
+                    KeyCode::Char('1') => { app.settings_target = SettingsTarget::SingleMode; return true; }
+                    KeyCode::Char('2') => { app.settings_target = SettingsTarget::SplitMode; return true; }
+                    KeyCode::Left | KeyCode::BackTab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Shortcuts, SettingsSection::Tabs => SettingsSection::Columns, SettingsSection::General => SettingsSection::Tabs, SettingsSection::Remotes => SettingsSection::General, SettingsSection::Shortcuts => SettingsSection::Remotes }; return true; } 
+                    KeyCode::Right | KeyCode::Tab => { app.settings_section = match app.settings_section { SettingsSection::Columns => SettingsSection::Tabs, SettingsSection::Tabs => SettingsSection::General, SettingsSection::General => SettingsSection::Remotes, SettingsSection::Remotes => SettingsSection::Shortcuts, SettingsSection::Shortcuts => SettingsSection::Columns }; return true; } 
+                    KeyCode::Char('n') => { app.toggle_column(crate::app::FileColumn::Name); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('e') => { app.toggle_column(crate::app::FileColumn::Extension); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('s') => { app.toggle_column(crate::app::FileColumn::Size); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('m') => { app.toggle_column(crate::app::FileColumn::Modified); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('c') => { app.toggle_column(crate::app::FileColumn::Created); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('p') => { app.toggle_column(crate::app::FileColumn::Permissions); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } 
+                    KeyCode::Char('i') => { app.icon_mode = match app.icon_mode { IconMode::Nerd => IconMode::Unicode, IconMode::Unicode => IconMode::ASCII, IconMode::ASCII => IconMode::Nerd }; return true; }
+                    KeyCode::Char('h') if app.settings_section == SettingsSection::General => { app.default_show_hidden = !app.default_show_hidden; return true; } 
+                    KeyCode::Char('d') if app.settings_section == SettingsSection::General => { app.confirm_delete = !app.confirm_delete; return true; } 
+                    _ => return false
+                },
+                AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete => match key.code {
+                    KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
+                    KeyCode::Enter => {
+                        let input = app.input.value.clone();
+                        if let Some(fs) = app.current_file_state() {
+                            let path = fs.current_path.join(&input);
+                            match app.mode {
+                                AppMode::NewFile => { let _ = event_tx.try_send(AppEvent::CreateFile(path)); }
+                                AppMode::NewFolder => { let _ = event_tx.try_send(AppEvent::CreateFolder(path)); }
+                                AppMode::Rename => if let Some(idx) = fs.selected_index { if let Some(old) = fs.files.get(idx) { let _ = event_tx.try_send(AppEvent::Rename(old.clone(), old.parent().unwrap().join(&input))); } }
+                                AppMode::Delete => {
+                                    let ic = input.trim().to_lowercase();
+                                    if ic == "y" || ic == "yes" || ic.is_empty() || !app.confirm_delete {
+                                        let mut paths = Vec::new();
+                                        if !fs.multi_select.is_empty() { for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } } 
+                                        else if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx) { paths.push(path.clone()); } }
+                                        for p in paths { let _ = event_tx.try_send(AppEvent::Delete(p)); }
                                     }
-                                    AppMode::Delete => {
-                                        let input_clean = input.trim().to_lowercase();
-                                        if input_clean == "y" || input_clean == "yes" || input_clean.is_empty() || !app.confirm_delete {
-                                            let mut paths_to_delete = Vec::new();
-                                            if !fs.multi_select.is_empty() { for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths_to_delete.push(p.clone()); } } } 
-                                            else if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx) { paths_to_delete.push(path.clone()); } }
-                                            for p in paths_to_delete { let _ = event_tx.try_send(AppEvent::Delete(p)); }
-                                        }
-                                    }
-                                    _ => {} 
                                 }
+                                _ => {} 
                             }
-                            app.mode = AppMode::Normal; app.input.clear(); return true;
                         }
-                        _ => { return app.input.handle_event(&evt); }
+                        app.mode = AppMode::Normal; app.input.clear(); return true;
                     }
-                }
+                    _ => return app.input.handle_event(&evt)
+                },
                 _ => {
                     if key.code == KeyCode::Esc {
-                        app.mode = AppMode::Normal;
-                        for pane in &mut app.panes { pane.preview = None; }
-                        if let Some(fs) = app.current_file_state_mut() { 
-                            fs.multi_select.clear(); 
-                            fs.selection_anchor = None; 
-                            if !fs.search_filter.is_empty() { 
-                                fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; 
-                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); 
-                            } 
-                        } 
+                        app.mode = AppMode::Normal; for pane in &mut app.panes { pane.preview = None; }
+                        if let Some(fs) = app.current_file_state_mut() { fs.multi_select.clear(); fs.selection_anchor = None; if !fs.search_filter.is_empty() { fs.search_filter.clear(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
                         return true;
                     }
                     match key.code {
-                        KeyCode::Char('c') if has_control => {
-                            if let Some(fs) = app.current_file_state() {
-                                if let Some(idx) = fs.selected_index {
-                                    if let Some(path) = fs.files.get(idx) {
-                                        app.clipboard = Some((path.clone(), crate::app::ClipboardOp::Copy));
-                                    }
-                                }
-                            }
-                            return true;
-                        }
-                        KeyCode::Char('x') if has_control => {
-                            if let Some(fs) = app.current_file_state() {
-                                if let Some(idx) = fs.selected_index {
-                                    if let Some(path) = fs.files.get(idx) {
-                                        app.clipboard = Some((path.clone(), crate::app::ClipboardOp::Cut));
-                                    }
-                                }
-                            }
-                            return true;
-                        }
-                        KeyCode::Char('v') if has_control => {
-                            if let Some((src, op)) = app.clipboard.clone() {
-                                if let Some(fs) = app.current_file_state() {
-                                    let dest = fs.current_path.join(src.file_name().unwrap());
-                                    match op {
-                                        crate::app::ClipboardOp::Copy => { let _ = event_tx.try_send(AppEvent::Copy(src, dest)); }
-                                        crate::app::ClipboardOp::Cut => { let _ = event_tx.try_send(AppEvent::Rename(src, dest)); app.clipboard = None; }
-                                    }
-                                }
-                            }
-                            return true;
-                        }
-                        KeyCode::Char('a') if has_control => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                fs.multi_select = (0..fs.files.len()).collect();
-                            }
-                            return true;
-                        }
+                        KeyCode::Char('c') if has_control => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx) { app.clipboard = Some((path.clone(), crate::app::ClipboardOp::Copy)); } } } return true; }
+                        KeyCode::Char('x') if has_control => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx) { app.clipboard = Some((path.clone(), crate::app::ClipboardOp::Cut)); } } } return true; }
+                        KeyCode::Char('v') if has_control => { if let Some((src, op)) = app.clipboard.clone() { if let Some(fs) = app.current_file_state() { let dest = fs.current_path.join(src.file_name().unwrap()); match op { crate::app::ClipboardOp::Copy => { let _ = event_tx.try_send(AppEvent::Copy(src, dest)); } crate::app::ClipboardOp::Cut => { let _ = event_tx.try_send(AppEvent::Rename(src, dest)); app.clipboard = None; } } } } return true; }
+                        KeyCode::Char('a') if has_control => { if let Some(fs) = app.current_file_state_mut() { fs.multi_select = (0..fs.files.len()).collect(); } return true; }
                         KeyCode::Char('z') if has_control => {
                             if let Some(action) = app.undo_stack.pop() {
                                 match action.clone() {
-                                    crate::app::UndoAction::Rename(old, new) | crate::app::UndoAction::Move(old, new) => {
-                                        let _ = std::fs::rename(&new, &old);
-                                        app.redo_stack.push(action);
-                                    }
-                                    crate::app::UndoAction::Copy(_src, dest) => {
-                                        let _ = if dest.is_dir() { std::fs::remove_dir_all(&dest) } else { std::fs::remove_file(&dest) };
-                                        app.redo_stack.push(action);
-                                    }
-                                    _ => {}
+                                    crate::app::UndoAction::Rename(old, new) | crate::app::UndoAction::Move(old, new) => { let _ = std::fs::rename(&new, &old); app.redo_stack.push(action); }
+                                    crate::app::UndoAction::Copy(_src, dest) => { let _ = if dest.is_dir() { std::fs::remove_dir_all(&dest) } else { std::fs::remove_file(&dest) }; app.redo_stack.push(action); }
+                                    _ => {} 
                                 }
-                                for i in 0..app.panes.len() {
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
-                                }
-                            } else {
-                                // Fallback: Clear search if active
-                                if let Some(fs) = app.current_file_state_mut() {
-                                    if !fs.search_filter.is_empty() {
-                                        fs.search_filter.clear();
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                    }
-                                }
-                            }
+                                for i in 0..app.panes.len() { let _ = event_tx.try_send(AppEvent::RefreshFiles(i)); }
+                            } else if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.clear(); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
                             return true;
                         }
                         KeyCode::Char('y') if has_control => {
                             if let Some(action) = app.redo_stack.pop() {
                                 match action.clone() {
-                                    crate::app::UndoAction::Rename(old, new) | crate::app::UndoAction::Move(old, new) => {
-                                        let _ = std::fs::rename(&old, &new);
-                                        app.undo_stack.push(action);
-                                    }
-                                    crate::app::UndoAction::Copy(src, dest) => {
-                                        let _ = crate::modules::files::copy_recursive(&src, &dest);
-                                        app.undo_stack.push(action);
-                                    }
-                                    _ => {}
+                                    crate::app::UndoAction::Rename(old, new) | crate::app::UndoAction::Move(old, new) => { let _ = std::fs::rename(&old, &new); app.undo_stack.push(action); }
+                                    crate::app::UndoAction::Copy(src, dest) => { let _ = crate::modules::files::copy_recursive(&src, &dest); app.undo_stack.push(action); }
+                                    _ => {} 
                                 }
-                                for i in 0..app.panes.len() {
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
-                                }
+                                for i in 0..app.panes.len() { let _ = event_tx.try_send(AppEvent::RefreshFiles(i)); }
                             }
                             return true;
                         }
-                        KeyCode::Left if key.modifiers.contains(KeyModifiers::ALT) => {
-                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                                pane.preview = None;
-                                if let Some(fs) = pane.current_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
-                            }
-                            return true;
-                        }
-                        KeyCode::Right if key.modifiers.contains(KeyModifiers::ALT) => {
-                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                                pane.preview = None;
-                                if let Some(fs) = pane.current_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } 
-                            }
-                            return true;
-                        }
-                        KeyCode::Up if key.modifiers.contains(KeyModifiers::ALT) => {
-                             if app.sidebar_focus {
-                                  if app.sidebar_index < app.sidebar_bounds.len() {
-                                      let bound = &app.sidebar_bounds[app.sidebar_index];
-                                      if let SidebarTarget::Favorite(path) = &bound.target {
-                                          if let Some(idx) = app.starred.iter().position(|p| p == path) {
-                                              if idx > 0 {
-                                                  app.starred.swap(idx, idx - 1);
-                                                  if app.sidebar_index > 0 { app.sidebar_index -= 1; }
-                                                  let _ = crate::config::save_state(app);
-                                                  return true;
-                                              }
-                                          }
-                                      }
-                                  }
-                             }
-                        }
-                        KeyCode::Down if key.modifiers.contains(KeyModifiers::ALT) => {
-                             if app.sidebar_focus {
-                                  if app.sidebar_index < app.sidebar_bounds.len() {
-                                      let bound = &app.sidebar_bounds[app.sidebar_index];
-                                      if let SidebarTarget::Favorite(path) = &bound.target {
-                                          if let Some(idx) = app.starred.iter().position(|p| p == path) {
-                                              if idx < app.starred.len() - 1 {
-                                                  app.starred.swap(idx, idx + 1);
-                                                  app.sidebar_index += 1;
-                                                  let _ = crate::config::save_state(app);
-                                                  return true;
-                                              }
-                                          }
-                                      }
-                                  }
-                             }
-                        }
+                        KeyCode::Left if key.modifiers.contains(KeyModifiers::ALT) => { if let Some(pane) = app.panes.get_mut(app.focused_pane_index) { pane.preview = None; if let Some(fs) = pane.current_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } return true; }
+                        KeyCode::Right if key.modifiers.contains(KeyModifiers::ALT) => { if let Some(pane) = app.panes.get_mut(app.focused_pane_index) { pane.preview = None; if let Some(fs) = pane.current_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } return true; }
                         KeyCode::Down => { app.move_down(key.modifiers.contains(KeyModifiers::SHIFT)); return true; }
-                        KeyCode::Up => { 
-                            if app.sidebar_focus {
-                                if app.sidebar_index == 0 {
-                                    app.mode = AppMode::Header(0);
-                                    return true;
-                                }
-                            } else if let Some(fs) = app.current_file_state() {
-                                if fs.selected_index == Some(0) || fs.files.is_empty() {
-                                    app.mode = AppMode::Header(0);
-                                    return true;
-                                }
-                            }
-                            app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); 
-                            return true; 
+                        KeyCode::Up => {
+                            if app.sidebar_focus && app.sidebar_index == 0 { app.mode = AppMode::Header(0); return true; } 
+                            else if let Some(fs) = app.current_file_state() { if fs.selected_index == Some(0) || fs.files.is_empty() { app.mode = AppMode::Header(0); return true; } }
+                            app.move_up(key.modifiers.contains(KeyModifiers::SHIFT)); return true; 
                         }
-                        KeyCode::Left => { 
-                            if key.modifiers.contains(KeyModifiers::SHIFT) { 
-                                app.copy_to_other_pane(); 
-                                let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
-                                let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                            } else { app.move_left(); } 
-                            return true;
-                        } 
-                        KeyCode::Right => { 
-                            if key.modifiers.contains(KeyModifiers::SHIFT) { 
-                                app.copy_to_other_pane(); 
-                                let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); 
-                                let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); 
-                            } else { app.move_right(); } 
-                            return true;
-                        } 
-                        KeyCode::Enter if key.modifiers.contains(KeyModifiers::ALT) => {
-                            app.mode = AppMode::Properties;
-                            return true;
-                        }
-                        KeyCode::Enter if key.modifiers.contains(KeyModifiers::SHIFT) => {
-                            let path_to_open = if let Some(fs) = app.current_file_state() {
-                                if let Some(idx) = fs.selected_index {
-                                    fs.files.get(idx).cloned()
-                                } else { None }
-                            } else { None };
-
-                            if let Some(path) = path_to_open {
-                                if path.is_dir() {
-                                    if let Some(fs) = app.current_file_state() {
-                                        let new_fs = fs.clone();
-                                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                                            let mut fs_tab = new_fs;
-                                            fs_tab.current_path = path.clone();
-                                            fs_tab.selected_index = Some(0);
-                                            fs_tab.history = vec![path];
-                                            fs_tab.history_index = 0;
-                                            pane.open_tab(fs_tab);
-                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                            return true;
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        KeyCode::Left => { if key.modifiers.contains(KeyModifiers::SHIFT) { app.copy_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else { app.move_left(); } return true; } 
+                        KeyCode::Right => { if key.modifiers.contains(KeyModifiers::SHIFT) { app.copy_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); } else { app.move_right(); } return true; } 
+                        KeyCode::Enter if key.modifiers.contains(KeyModifiers::ALT) => { app.mode = AppMode::Properties; return true; }
                         KeyCode::Enter => { if let Some(fs) = app.current_file_state_mut() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } } return true; } 
-                        KeyCode::Char(' ') => { 
-                            if let Some(fs) = app.current_file_state() { 
-                                if let Some(idx) = fs.selected_index { 
-                                    if let Some(path) = fs.files.get(idx).cloned() { 
-                                        if path.is_dir() {
-                                            app.mode = AppMode::Properties;
-                                        } else {
-                                            let target_pane = if app.focused_pane_index == 0 { 1 } else { 0 };
-                                            let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path));
-                                        }
-                                    } 
-                                } 
-                            } 
-                            return true;
-                        } 
-                        KeyCode::Char('u') if has_control => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                if !fs.search_filter.is_empty() {
-                                    fs.search_filter.clear();
-                                    fs.selected_index = Some(0);
-                                    *fs.table_state.offset_mut() = 0;
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                    return true;
-                                }
-                            }
-                        }
-                        KeyCode::Char('w') if has_control => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                if !fs.search_filter.is_empty() {
-                                    let trimmed = fs.search_filter.trim_end();
-                                    if let Some(last_space) = trimmed.rfind(' ') {
-                                        fs.search_filter.truncate(last_space + 1);
-                                    } else {
-                                        fs.search_filter.clear();
-                                    }
-                                    fs.selected_index = Some(0);
-                                    *fs.table_state.offset_mut() = 0;
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                    return true;
-                                }
-                            }
-                        }
-                        KeyCode::Backspace if has_control => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                if !fs.search_filter.is_empty() {
-                                    let trimmed = fs.search_filter.trim_end();
-                                    if let Some(last_space) = trimmed.rfind(' ') {
-                                        fs.search_filter.truncate(last_space + 1);
-                                    } else {
-                                        fs.search_filter.clear();
-                                    }
-                                    fs.selected_index = Some(0);
-                                    *fs.table_state.offset_mut() = 0;
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                    return true;
-                                }
-                            }
-                        }
-                        KeyCode::Char('l') if has_control => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                fs.search_filter.clear();
-                                fs.selected_index = Some(0);
-                                *fs.table_state.offset_mut() = 0;
-                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                return true;
-                            }
-                        }
-                        KeyCode::F(6) => {
-                            let path_to_rename = if let Some(fs) = app.current_file_state() {
-                                fs.selected_index.and_then(|idx| fs.files.get(idx)).cloned()
-                            } else { None };
-
-                            if let Some(p) = path_to_rename {
-                                app.mode = AppMode::Rename;
-                                app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string());
-                                app.rename_selected = true;
-                                return true;
-                            }
-                        }
-                        KeyCode::Delete => {
-                            if let Some(fs) = app.current_file_state() {
-                                if fs.selected_index.is_some() {
-                                    if !app.confirm_delete {
-                                        let mut paths_to_delete = Vec::new();
-                                        if !fs.multi_select.is_empty() {
-                                            for &idx in &fs.multi_select {
-                                                if let Some(p) = fs.files.get(idx) { paths_to_delete.push(p.clone()); }
-                                            }
-                                        } else if let Some(idx) = fs.selected_index {
-                                            if let Some(path) = fs.files.get(idx) {
-                                                paths_to_delete.push(path.clone());
-                                            }
-                                        }
-
-                                        for p in paths_to_delete {
-                                            let _ = event_tx.try_send(AppEvent::Delete(p));
-                                        }
-                                    } else {
-                                        app.mode = AppMode::Delete;
-                                    }
-                                    return true;
-                                }
-                            }
-                        }
-                        KeyCode::Char('~') if key.modifiers.is_empty() => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                if let Some(home) = dirs::home_dir() {
-                                    fs.current_path = home.clone();
-                                    fs.selected_index = Some(0);
-                                    fs.multi_select.clear();
-                                    *fs.table_state.offset_mut() = 0;
-                                    push_history(fs, home);
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                    return true;
-                                }
-                            }
-                        }
+                        KeyCode::Char(' ') => { if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx).cloned() { if path.is_dir() { app.mode = AppMode::Properties; } else { let target_pane = if app.focused_pane_index == 0 { 1 } else { 0 }; let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path)); } } } } return true; } 
+                        KeyCode::F(6) => if let Some(fs) = app.current_file_state() { if let Some(idx) = fs.selected_index { if let Some(p) = fs.files.get(idx) { app.mode = AppMode::Rename; app.input.set_value(p.file_name().unwrap().to_string_lossy().to_string()); app.rename_selected = true; return true; } } } false;
+                        KeyCode::Delete => { if let Some(fs) = app.current_file_state() { if fs.selected_index.is_some() { if !app.confirm_delete { let mut paths = Vec::new(); if !fs.multi_select.is_empty() { for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } } else if let Some(idx) = fs.selected_index { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } for p in paths { let _ = event_tx.try_send(AppEvent::Delete(p)); } } else { app.mode = AppMode::Delete; } return true; } } false;
+                        KeyCode::Char('~') => { if let Some(fs) = app.current_file_state_mut() { if let Some(home) = dirs::home_dir() { fs.current_path = home.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, home); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); return true; } } false; }
                         KeyCode::Char(c) if key.modifiers.is_empty() => { if let Some(fs) = app.current_file_state_mut() { fs.search_filter.push(c); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } return true; } 
                         KeyCode::Backspace => { if let Some(fs) = app.current_file_state_mut() { if !fs.search_filter.is_empty() { fs.search_filter.pop(); fs.selected_index = Some(0); *fs.table_state.offset_mut() = 0; let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } else if let Some(parent) = fs.current_path.parent() { let p = parent.to_path_buf(); fs.current_path = p.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } return true; } 
-                        _ => { return false; } 
+                        _ => return false
                     }
                 }
             }
@@ -2482,229 +2021,85 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             let row = me.row;
             let (w, h) = app.terminal_size;
 
-            // 0. Modal Handling (Highest Priority)
-            // If we are in a modal mode, it MUST consume the event or close.
+            // 0. Modal Handling
             match app.mode.clone() {
-                AppMode::Highlight => {
-                    if let MouseEventKind::Down(_) = me.kind {
-                        let area_w = 34; let area_h = 5; let area_x = (w.saturating_sub(area_w)) / 2; let area_y = (h.saturating_sub(area_h)) / 2;
-                        if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
-                            let rel_x = column.saturating_sub(area_x + 3);
-                            let rel_y = row.saturating_sub(area_y + 2);
-                            if rel_y == 0 || rel_y == 1 {
-                                let colors = [1, 2, 3, 4, 5, 6, 0];
-                                let color_idx_raw = (rel_x / 4) as usize;
-                                if color_idx_raw < colors.len() {
-                                    let color_code = colors[color_idx_raw];
-                                    let color = if color_code == 0 { None } else { Some(color_code) };
-                                    if let Some(fs) = app.current_file_state() {
-                                        let mut paths = Vec::new();
-                                        if !fs.multi_select.is_empty() {
-                                            for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } }
-                                        } else if let Some(idx) = fs.selected_index {
-                                            if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
-                                        }
-                                        for p in paths { if let Some(col) = color { app.path_colors.insert(p, col); } else { app.path_colors.remove(&p); } }
-                                        let _ = crate::config::save_state(app);
-                                    }
-                                    app.mode = AppMode::Normal;
+                AppMode::Highlight => if let MouseEventKind::Down(_) = me.kind {
+                    let area_w = 34; let area_h = 5; let area_x = (w.saturating_sub(area_w)) / 2; let area_y = (h.saturating_sub(area_h)) / 2;
+                    if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
+                        let rel_x = column.saturating_sub(area_x + 3);
+                        if row >= area_y + 2 && row <= area_y + 3 {
+                            let colors = [1, 2, 3, 4, 5, 6, 0];
+                            if let Some(&color_code) = colors.get((rel_x / 4) as usize) {
+                                let color = if color_code == 0 { None } else { Some(color_code) };
+                                if let Some(fs) = app.current_file_state() {
+                                    let mut paths = Vec::new();
+                                    if !fs.multi_select.is_empty() { for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } } 
+                                    else if let Some(idx) = fs.selected_index { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } }
+                                    for p in paths { if let Some(col) = color { app.path_colors.insert(p, col); } else { app.path_colors.remove(&p); } }
+                                    let _ = crate::config::save_state(app);
                                 }
+                                app.mode = AppMode::Normal;
                             }
-                        } else { app.mode = AppMode::Normal; }
-                    }
-                    return true; 
-                }
-                AppMode::Settings => {
-                    if let MouseEventKind::Down(_) = me.kind {
-                        let area_w = (w as f32 * 0.8) as u16; let area_h = (h as f32 * 0.8) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
-                        if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
-                            let inner = ratatui::layout::Rect::new(area_x + 1, area_y + 1, area_w.saturating_sub(2), area_h.saturating_sub(2));
-                            if column < inner.x + 15 {
-                                let rel_y = row.saturating_sub(inner.y);
-                                match rel_y {
-                                    0 => app.settings_section = SettingsSection::Columns,
-                                    1 => app.settings_section = SettingsSection::Tabs,
-                                    2 => app.settings_section = SettingsSection::General,
-                                    3 => app.settings_section = SettingsSection::Remotes,
-                                    4 => app.settings_section = SettingsSection::Shortcuts,
-                                    _ => {} 
-                                }
-                            } else {
-                                match app.settings_section {
-                                    SettingsSection::Columns => {
-                                        if row >= inner.y && row < inner.y + 3 {
-                                            let content_x = column.saturating_sub(inner.x + 15);
-                                            if content_x < 12 { app.settings_target = SettingsTarget::SingleMode; } else if content_x < 25 { app.settings_target = SettingsTarget::SplitMode; }
-                                        } else if row >= inner.y + 4 {
-                                            let rel_y = row.saturating_sub(inner.y + 4);
-                                            match rel_y { 
-                                                0 => app.toggle_column(crate::app::FileColumn::Size), 
-                                                1 => app.toggle_column(crate::app::FileColumn::Modified), 
-                                                2 => app.toggle_column(crate::app::FileColumn::Permissions), 
-                                                _ => {} 
-                                            }
-                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                        }
-                                    }
-                                    SettingsSection::General => {
-                                        let rel_y = row.saturating_sub(inner.y + 1);
-                                        match rel_y { 
-                                            0 => app.default_show_hidden = !app.default_show_hidden, 
-                                            1 => app.confirm_delete = !app.confirm_delete, 
-                                            2 => {
-                                                app.icon_mode = match app.icon_mode {
-                                                    IconMode::Nerd => IconMode::Unicode,
-                                                    IconMode::Unicode => IconMode::ASCII,
-                                                    IconMode::ASCII => IconMode::Nerd,
-                                                };
-                                            }
-                                            _ => {} 
-                                        }
-                                    }
-                                    _ => {} 
-                                }
-                            }
-                        } else { app.mode = AppMode::Normal; }
-                    }
-                    return true;
-                }
-                AppMode::ImportServers => {
-                    if let MouseEventKind::Down(_) = me.kind {
-                        let area_w = (w as f32 * 0.6) as u16; let area_h = (h as f32 * 0.2) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
-                        if !(column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h) {
-                            let mut handled = false;
-                            if row >= 3 {
-                                let index = fs_mouse_index(row, app);
-                                if let Some(fs) = app.current_file_state() { if index < fs.files.len() { let path = &fs.files[index]; if path.extension().map(|e| e == "toml").unwrap_or(false) { app.input.set_value(path.file_name().unwrap_or_default().to_string_lossy().to_string()); handled = true; } } } 
-                            }
-                            if !handled { app.mode = AppMode::Normal; }
                         }
-                    }
+                    } else { app.mode = AppMode::Normal; }
                     return true;
-                }
-                AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) => {
+                },
+                AppMode::ContextMenu { x, y, target, actions } => if let MouseEventKind::Down(_) = me.kind {
+                    let (mw, mh) = (25, actions.len() as u16 + 2);
+                    let (mut dx, mut dy) = (x, y);
+                    if dx + mw > w { dx = w.saturating_sub(mw); }
+                    if dy + mh > h { dy = h.saturating_sub(mh); }
+                    if column >= dx && column < dx + mw && row >= dy && row < dy + mh {
+                        if row > dy && row < dy + mh - 1 { if let Some(action) = actions.get((row - dy - 1) as usize) { handle_context_menu_action(action, &target, app, event_tx.clone()); } }
+                    } else { app.mode = AppMode::Normal; }
+                    return true;
+                },
+                AppMode::Settings | AppMode::ImportServers | AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::Properties | AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) | AppMode::ConfirmReset => {
                     if let MouseEventKind::Down(_) = me.kind {
-                        let (area_w, area_h) = match app.mode {
-                            AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete => ((w as f32 * 0.4) as u16, (h as f32 * 0.1) as u16),
-                            AppMode::Properties => ((w as f32 * 0.5) as u16, (h as f32 * 0.5) as u16),
-                            AppMode::CommandPalette => ((w as f32 * 0.6) as u16, (h as f32 * 0.2) as u16),
-                            AppMode::AddRemote(_) => ((w as f32 * 0.6) as u16, (h as f32 * 0.4) as u16),
-                            AppMode::OpenWith(_) => ((w as f32 * 0.6) as u16, (h as f32 * 0.2) as u16),
-                            _ => (0, 0)
-                        };
-                        let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
-                        if column < area_x || column >= area_x + area_w || row < area_y || row >= area_y + area_h {
-                            app.mode = AppMode::Normal; app.input.clear();
-                        }
+                        let (aw, ah) = match app.mode { AppMode::Settings => ((w as f32 * 0.8) as u16, (h as f32 * 0.8) as u16), AppMode::Properties => ((w as f32 * 0.5) as u16, (h as f32 * 0.5) as u16), AppMode::CommandPalette | AppMode::AddRemote(_) | AppMode::OpenWith(_) => ((w as f32 * 0.6) as u16, (h as f32 * 0.2) as u16), _ => ((w as f32 * 0.4) as u16, (h as f32 * 0.1) as u16) };
+                        let (ax, ay) = ((w - aw) / 2, (h - ah) / 2);
+                        if column < ax || column >= ax + aw || row < ay || row >= ay + ah { app.mode = AppMode::Normal; app.input.clear(); }
                     }
                     return true;
                 }
-                AppMode::ConfirmReset => {
-                    if let MouseEventKind::Down(_) = me.kind {
-                        let area_w = (w as f32 * 0.4) as u16; let area_h = (h as f32 * 0.1) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
-                        if column < area_x || column >= area_x + area_w || row < area_y || row >= area_y + area_h {
-                            app.mode = AppMode::Normal;
-                        }
-                    }
-                    return true;
-                }
-                AppMode::ContextMenu { x, y, target, actions } => {
-                    if let MouseEventKind::Down(_) = me.kind {
-                        let menu_width = 25; 
-                        let menu_height = actions.len() as u16 + 2;
-                        let mut draw_x = x; let mut draw_y = y;
-                        if draw_x + menu_width > w { draw_x = w.saturating_sub(menu_width); }
-                        if draw_y + menu_height > h { draw_y = h.saturating_sub(menu_height); }
-
-                        if column >= draw_x && column < draw_x + menu_width && row >= draw_y && row < draw_y + menu_height {
-                            if row > draw_y && row < draw_y + menu_height - 1 {
-                                let menu_row = (row - draw_y - 1) as usize;
-                                if let Some(action) = actions.get(menu_row) { handle_context_menu_action(action, &target, app, event_tx.clone()); }
-                            }
-                        } else { app.mode = AppMode::Normal; }
-                    }
-                    return true;
-                }
-                _ => {}
+                _ => {} 
             }
 
             match me.kind {
                 MouseEventKind::Down(button) => {
-                    crate::app::log_debug(&format!("MOUSE DOWN: button={:?} row={} col={}", button, row, column));
+                    let sw = app.sidebar_width();
                     
-                    let sidebar_width = app.sidebar_width();
-                    
-                    // Check Header Icons
+                    // Header Icons
                     if row == 0 {
-                        if let Some((_, action_id)) = app.header_icon_bounds.iter().find(|(rect, _)| {
-                            column >= rect.x && column < rect.x + rect.width && row == rect.y
-                        }) {
+                        if let Some((_, action_id)) = app.header_icon_bounds.iter().find(|(r, _)| column >= r.x && column < r.x + r.width && row == r.y) {
                             match action_id.as_str() {
-                                "back" => {
-                                    if let Some(fs) = app.current_file_state_mut() {
-                                        navigate_back(fs);
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                    }
-                                }
-                                "forward" => {
-                                    if let Some(fs) = app.current_file_state_mut() {
-                                        navigate_forward(fs);
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                    }
-                                }
-                                "split" => {
-                                    app.toggle_split();
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
-                                }
-                                "burger" => {
-                                    app.mode = AppMode::Settings;
-                                }
-                                "reset" => {
-                                    app.mode = AppMode::ConfirmReset;
-                                }
-                                _ => {}
+                                "back" => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                                "forward" => if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                                "split" => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
+                                "burger" => app.mode = AppMode::Settings,
+                                "reset" => app.mode = AppMode::ConfirmReset,
+                                _ => {} 
                             }
                             return true;
                         }
                     }
 
-                    if button == MouseButton::Left && column >= sidebar_width.saturating_sub(1) && column <= sidebar_width && row >= 1 {
-                        app.is_resizing_sidebar = true;
-                        return true;
-                    }
-
-                    // 1. Header handling (Row 0) - Tabs & Settings
+                    // Tabs
                     if row == 0 {
-                        let clicked_tab = app.tab_bounds.iter().find(|(rect, _, _)| rect.contains(ratatui::layout::Position { x: column, y: row })).cloned();
-                        if let Some((_, p_idx, t_idx)) = clicked_tab {
-                            if button == MouseButton::Left {
-                                if let Some(pane) = app.panes.get_mut(p_idx) { pane.active_tab_index = t_idx; app.focused_pane_index = p_idx; app.sidebar_focus = false; let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx)); }
-                            } else if button == MouseButton::Right {
-                                if let Some(pane) = app.panes.get_mut(p_idx) {
-                                    if pane.tabs.len() > 1 { pane.tabs.remove(t_idx); if pane.active_tab_index >= pane.tabs.len() { pane.active_tab_index = pane.tabs.len() - 1; } let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx)); }
-                                }
-                            }
+                        if let Some((_, p_idx, t_idx)) = app.tab_bounds.iter().find(|(r, _, _)| r.contains(ratatui::layout::Position { x: column, y: row })).cloned() {
+                            if button == MouseButton::Left { if let Some(p) = app.panes.get_mut(p_idx) { p.active_tab_index = t_idx; app.focused_pane_index = p_idx; let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx)); } } 
+                            else if button == MouseButton::Right { if let Some(p) = app.panes.get_mut(p_idx) { if p.tabs.len() > 1 { p.tabs.remove(t_idx); if p.active_tab_index >= p.tabs.len() { p.active_tab_index = p.tabs.len() - 1; } let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx)); } } } 
                             return true;
                         }
-                        if column < 10 { app.mode = AppMode::Settings; return true; }
-                        if column >= w.saturating_sub(3) { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; }
                     }
 
-                    // Check Breadcrumbs
+                    // Breadcrumbs
                     for (p_idx, pane) in app.panes.iter_mut().enumerate() {
                         if let Some(fs) = pane.current_state_mut() {
-                            let clicked_crumb = fs.breadcrumb_bounds.iter().find(|(rect, _)| rect.contains(ratatui::layout::Position { x: column, y: row })).map(|(_, path)| path.clone());
-                            if let Some(path) = clicked_crumb {
+                            if let Some(path) = fs.breadcrumb_bounds.iter().find(|(r, _)| r.contains(ratatui::layout::Position { x: column, y: row })).map(|(_, p)| p.clone()) {
                                 if button == MouseButton::Middle {
-                                    let mut new_fs = fs.clone();
-                                    new_fs.current_path = path.clone();
-                                    new_fs.selected_index = Some(0);
-                                    new_fs.search_filter.clear();
-                                    *new_fs.table_state.offset_mut() = 0;
-                                    new_fs.history = vec![path];
-                                    new_fs.history_index = 0;
-                                    pane.open_tab(new_fs);
+                                    let mut nfs = fs.clone(); nfs.current_path = path.clone(); nfs.selected_index = Some(0); nfs.search_filter.clear(); *nfs.table_state.offset_mut() = 0; nfs.history = vec![path]; nfs.history_index = 0;
+                                    pane.open_tab(nfs);
                                 } else {
                                     fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path);
                                 }
@@ -2713,363 +2108,115 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         }
                     }
 
-                    // Update pane focus
-                    if column >= sidebar_width {
-                        let content_area_width = w.saturating_sub(sidebar_width);
-                        let pane_count = app.panes.len();
-                        let pane_width = if pane_count > 0 { content_area_width / pane_count as u16 } else { content_area_width };
-                        let clicked_pane = (column.saturating_sub(sidebar_width) / pane_width) as usize;
-                        if clicked_pane < pane_count {
-                            // Check if clicking on column headers for resizing
+                    // Pane focus & Sorting
+                    if column >= sw {
+                        let cw = w.saturating_sub(sw); let pc = app.panes.len();
+                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                        let cp = (column.saturating_sub(sw) / pw) as usize;
+                        if cp < pc {
                             if row == 1 || row == 2 {
-                                let mut handled_resize = false;
-                                if let Some(pane) = app.panes.get(clicked_pane) {
-                                    if let Some(fs) = pane.current_state() {
-                                        for (rect, col) in &fs.column_bounds {
-                                            // The rect should already be absolute from draw logic
-                                            if column >= rect.x && column < rect.x + rect.width + 1 {
-                                                app.is_resizing_column = Some((clicked_pane, *col));
-                                                app.initial_col_width = rect.width;
-                                                app.drag_start_pos = Some((column, row));
-                                                handled_resize = true;
-                                                let _ = event_tx.try_send(AppEvent::StatusMsg(format!("Resizing column: {:?}", col)));
-                                                break;
-                                            }
+                                if let Some(fs) = app.panes.get_mut(cp).and_then(|p| p.current_state_mut()) {
+                                    for (r, col) in &fs.column_bounds {
+                                        if column >= r.x && column < r.x + r.width + 1 {
+                                            if fs.sort_column == *col { fs.sort_ascending = !fs.sort_ascending; } else { fs.sort_column = *col; fs.sort_ascending = true; }
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(cp)); return true;
                                         }
                                     }
                                 }
-                                if handled_resize { return true; }
                             }
-                            app.focused_pane_index = clicked_pane; app.sidebar_focus = false; 
+                            app.focused_pane_index = cp; app.sidebar_focus = false; 
                         }
                     }
 
-                    // Footer interaction
-                    if row == h.saturating_sub(1) {
-                        let current_x = 0;
-                        if column >= current_x && column < current_x + 9 { app.running = false; return true; } 
-                        // Skip some spacing or log area if needed, but let's just handle basic buttons
-                        if column < 50 { // Rough estimate for left side
-                             // Quit button is handled above
-                        }
-                    }
-
-                    if column < sidebar_width {
-                        app.sidebar_focus = true;
-                        app.drag_start_pos = Some((column, row));
-                        let clicked_sidebar_item = app.sidebar_bounds.iter().find(|b| b.y == row).cloned();
-                        if let Some(bound) = clicked_sidebar_item {
-                            app.sidebar_index = bound.index;
-                            if let SidebarTarget::Favorite(ref p) = bound.target {
-                                app.drag_source = Some(p.clone());
-                            }
+                    if column < sw {
+                        app.sidebar_focus = true; app.drag_start_pos = Some((column, row));
+                        if let Some(b) = app.sidebar_bounds.iter().find(|b| b.y == row).cloned() {
+                            app.sidebar_index = b.index; if let SidebarTarget::Favorite(ref p) = b.target { app.drag_source = Some(p.clone()); }
                             if button == MouseButton::Right {
-                                let target = match &bound.target {
+                                let t = match &b.target {
                                     SidebarTarget::Favorite(p) => Some(ContextMenuTarget::SidebarFavorite(p.clone())),
-                                    SidebarTarget::Remote(idx) => Some(ContextMenuTarget::SidebarRemote(*idx)),
-                                    SidebarTarget::Storage(idx) => Some(ContextMenuTarget::SidebarStorage(*idx)),
+                                    SidebarTarget::Remote(i) => Some(ContextMenuTarget::SidebarRemote(*i)),
+                                    SidebarTarget::Storage(i) => Some(ContextMenuTarget::SidebarStorage(*i)),
                                     _ => None
                                 };
-                                if let Some(t) = target { 
-                                    let actions = get_context_menu_actions(&t, app);
-                                    app.mode = AppMode::ContextMenu { x: column, y: row, target: t, actions }; 
-                                    return true; 
-                                }
+                                if let Some(target) = t { let actions = get_context_menu_actions(&target, app); app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; }
                             }
                         }
                         return true;
                     }
                     
                     if row >= 3 {
-                        let index = fs_mouse_index(row, app);
-                        let mut selected_path = None; let mut is_dir = false;
-                        let has_modifiers = me.modifiers.contains(KeyModifiers::SHIFT) || me.modifiers.contains(KeyModifiers::CONTROL);
+                        let idx = fs_mouse_index(row, app);
+                        let mut sp = None; let mut is_dir = false;
+                        let has_mods = me.modifiers.contains(KeyModifiers::SHIFT) || me.modifiers.contains(KeyModifiers::CONTROL);
                         
                         if let Some(fs) = app.current_file_state_mut() {
-                            if index < fs.files.len() {
-                                if fs.files[index].to_string_lossy() == "__DIVIDER__" { return true; } 
-                                
+                            if idx < fs.files.len() {
+                                if fs.files[idx].to_string_lossy() == "__DIVIDER__" { return true; } 
                                 if button == MouseButton::Left {
-                                    if me.modifiers.contains(KeyModifiers::CONTROL) {
-                                        // Toggle individual
-                                        if fs.multi_select.contains(&index) {
-                                            fs.multi_select.remove(&index);
-                                        } else {
-                                            fs.multi_select.insert(index);
-                                        }
-                                        fs.selected_index = Some(index);
-                                        fs.table_state.select(Some(index));
-                                    } else if me.modifiers.contains(KeyModifiers::SHIFT) {
-                                        // Range select
-                                        let anchor = fs.selection_anchor.unwrap_or(fs.selected_index.unwrap_or(0));
-                                        fs.multi_select.clear();
-                                        let start = std::cmp::min(anchor, index);
-                                        let end = std::cmp::max(anchor, index);
-                                        for i in start..=end {
-                                            fs.multi_select.insert(i);
-                                        }
-                                        fs.selected_index = Some(index);
-                                        fs.table_state.select(Some(index));
-                                    } else {
-                                        // Normal click
-                                        fs.multi_select.clear();
-                                        fs.selection_anchor = Some(index);
-                                        fs.selected_index = Some(index);
-                                        fs.table_state.select(Some(index));
-                                    }
-                                } else {
-                                    // Right click: if already part of selection, don't clear
-                                    if !fs.multi_select.contains(&index) {
-                                        fs.multi_select.clear();
-                                        fs.selected_index = Some(index);
-                                        fs.table_state.select(Some(index));
-                                    }
+                                    if me.modifiers.contains(KeyModifiers::CONTROL) { if fs.multi_select.contains(&idx) { fs.multi_select.remove(&idx); } else { fs.multi_select.insert(idx); } fs.selected_index = Some(idx); fs.table_state.select(Some(idx)); }
+                                    else if me.modifiers.contains(KeyModifiers::SHIFT) { let anchor = fs.selection_anchor.unwrap_or(fs.selected_index.unwrap_or(0)); fs.multi_select.clear(); for i in std::cmp::min(anchor, idx)..=std::cmp::max(anchor, idx) { fs.multi_select.insert(i); } fs.selected_index = Some(idx); fs.table_state.select(Some(idx)); }
+                                    else { fs.multi_select.clear(); fs.selection_anchor = Some(idx); fs.selected_index = Some(idx); fs.table_state.select(Some(idx)); }
                                 }
-                                
-                                let p = fs.files[index].clone(); is_dir = fs.metadata.get(&p).map(|m| m.is_dir).unwrap_or(false); selected_path = Some(p);
-                            } else {
-                                // Clicked on empty space
-                                if button == MouseButton::Left && !has_modifiers {
-                                    fs.selected_index = None;
-                                    fs.table_state.select(None);
-                                    fs.multi_select.clear();
-                                    fs.selection_anchor = None;
-                                }
-                                if button == MouseButton::Right { 
-                                    let target = ContextMenuTarget::EmptySpace;
-                                    let actions = get_context_menu_actions(&target, app);
-                                    app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; 
-                                    return true; 
-                                } 
-                            }
+                                else if !fs.multi_select.contains(&idx) { fs.multi_select.clear(); fs.selected_index = Some(idx); fs.table_state.select(Some(idx)); }
+                                let p = fs.files[idx].clone(); is_dir = fs.metadata.get(&p).map(|m| m.is_dir).unwrap_or(false); sp = Some(p);
+                            } else if button == MouseButton::Left && !has_mods { fs.selected_index = None; fs.table_state.select(None); fs.multi_select.clear(); fs.selection_anchor = None; }
+                            else if button == MouseButton::Right { let target = ContextMenuTarget::EmptySpace; let actions = get_context_menu_actions(&target, app); app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; return true; } 
                         }
-                        if let Some(path) = selected_path {
-                            if button == MouseButton::Right { 
-                                let target = if is_dir { ContextMenuTarget::Folder(index) } else { ContextMenuTarget::File(index) }; 
-                                let actions = get_context_menu_actions(&target, app);
-                                app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; 
-                                return true; 
-                            }
+                        if let Some(path) = sp {
+                            if button == MouseButton::Right { let target = if is_dir { ContextMenuTarget::Folder(idx) } else { ContextMenuTarget::File(idx) }; let actions = get_context_menu_actions(&target, app); app.mode = AppMode::ContextMenu { x: column, y: row, target, actions }; return true; }
                             if button == MouseButton::Middle {
-                                if is_dir {
-                                    if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                                        if let Some(fs) = pane.current_state() {
-                                            let mut new_fs = fs.clone();
-                                            new_fs.current_path = path.clone();
-                                            new_fs.selected_index = Some(0);
-                                            new_fs.search_filter.clear();
-                                            *new_fs.table_state.offset_mut() = 0;
-                                            new_fs.history = vec![path.clone()];
-                                            new_fs.history_index = 0;
-                                            pane.open_tab(new_fs);
-                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                        }
-                                    }
-                                } else {
-                                    let target_pane = if app.focused_pane_index == 0 { 1 } else { 0 };
-                                    let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path.clone()));
-                                }
+                                if is_dir { if let Some(p) = app.panes.get_mut(app.focused_pane_index) { if let Some(fs) = p.current_state() { let mut nfs = fs.clone(); nfs.current_path = path.clone(); nfs.selected_index = Some(0); nfs.search_filter.clear(); *nfs.table_state.offset_mut() = 0; nfs.history = vec![path.clone()]; nfs.history_index = 0; p.open_tab(nfs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } } 
+                                else { let _ = event_tx.try_send(AppEvent::PreviewRequested(if app.focused_pane_index == 0 { 1 } else { 0 }, path.clone())); }
                                 return true;
                             }
                             app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
-                            // Double click detection
                             if button == MouseButton::Left && app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
                                 if path.is_dir() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
                                 else { spawn_detached("xdg-open", vec![&path.to_string_lossy()]); } 
                             }
                             app.mouse_last_click = std::time::Instant::now(); app.mouse_click_pos = (column, row);
                         }
-                    } else if row >= 1 && button == MouseButton::Right { // Right click above file list but below header
-                        let target = ContextMenuTarget::EmptySpace;
-                        let actions = get_context_menu_actions(&target, app);
-                        app.mode = AppMode::ContextMenu { x: column, y: row, target, actions };
-                        return true;
-                    }
+                    } else if row == h.saturating_sub(1) && column < 9 { app.running = false; return true; }
                 }
-                                MouseEventKind::Up(_) => {
-                                    if let Some((pane_idx, col)) = app.is_resizing_column.take() {
-                                        let mut is_click = true;
-                                        if let Some((sx, _)) = app.drag_start_pos {
-                                            if (column as i16 - sx as i16).abs() > 1 {
-                                                is_click = false;
-                                            }
-                                        }
-
-                                        if is_click {
-                                            if let Some(pane) = app.panes.get_mut(pane_idx) {
-                                                if let Some(fs) = pane.current_state_mut() {
-                                                    if fs.sort_column == col {
-                                                        fs.sort_ascending = !fs.sort_ascending;
-                                                    } else {
-                                                        fs.sort_column = col;
-                                                        fs.sort_ascending = true;
-                                                    }
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
-                                                }
-                                            }
-                                        }
-
-                                        app.is_dragging = false;
-                                        app.drag_start_pos = None;
-                                        let _ = crate::config::save_state(app);
-                                        return true;
-                                    }
-
-                                    if app.is_resizing_sidebar {
-                                        app.is_resizing_sidebar = false;
-                                        let _ = crate::config::save_state(app);
-                                        return true;
-                                    }
-
-                                    if app.is_dragging {
-                                        let mut reorder_done = false;
-                                        if let Some((sx, _)) = app.drag_start_pos {
-                                            if sx < app.sidebar_width() {
-                                                // Reordering handled in Drag event
-                                                let _ = crate::config::save_state(app);
-                                                reorder_done = true; 
-                                            }
-                                        }
-
-                                        if !reorder_done {
-                                            if let Some(source) = &app.drag_source {
-                                                if let Some(target) = &app.hovered_drop_target {
-                                                    match target {
-                                                        DropTarget::ImportServers | DropTarget::RemotesHeader => {
-                                                            if source.extension().map(|e| e == "toml").unwrap_or(false) {
-                                                                let _ = app.import_servers(source.clone());
-                                                                let _ = crate::config::save_state(app);
-                                                                app.mode = AppMode::Normal;
-                                                            }
-                                                        }
-                                                        DropTarget::Favorites => {
-                                                            if source.is_dir() { if !app.starred.contains(source) { app.starred.push(source.clone()); let _ = crate::config::save_state(app); } } // Add to favorites if it's a directory
-                                                        }
-                                                        DropTarget::Pane(target_pane_idx) => {
-                                                            if let Some(dest_path) = app.panes.get(*target_pane_idx).and_then(|p| p.current_state()).map(|fs| fs.current_path.clone()) {
-                                                                if let Some(filename) = source.file_name() {
-                                                                    let dest = dest_path.join(filename);
-                                                                    if me.modifiers.contains(KeyModifiers::SHIFT) {
-                                                                        let _ = event_tx.try_send(AppEvent::Copy(source.clone(), dest));
-                                                                    } else {
-                                                                        let _ = event_tx.try_send(AppEvent::Rename(source.clone(), dest));
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                        _ => {} 
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        if column < app.sidebar_width() {
-                                            if let Some(bound) = app.sidebar_bounds.iter().find(|b| b.y == row).cloned() {
-                                                match bound.target {
-                                                    SidebarTarget::Header(h) if h == "REMOTES" => { app.mode = AppMode::ImportServers; app.input.set_value("servers.toml".to_string()); }
-                                                    SidebarTarget::Favorite(p) => { let p2 = p.clone(); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p2.clone(); fs.remote_session = None; fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p2); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = true; }
-                                                    SidebarTarget::Storage(idx) => {
-                                                        if let Some(disk) = app.system_state.disks.get(idx) {
-                                                            if !disk.is_mounted {
-                                                                let dev = disk.device.clone(); let tx = event_tx.clone(); let pane_idx = app.focused_pane_index;
-                                                                tokio::spawn(async move { if let Ok(out) = std::process::Command::new("udisksctl").arg("mount").arg("-b").arg(&dev).output() { if let Some(_) = String::from_utf8_lossy(&out.stdout).split(" at ").last() { tokio::time::sleep(Duration::from_millis(200)).await; let _ = tx.send(AppEvent::RefreshFiles(pane_idx)).await; } } });
-                                                            } else {
-                                                                let p = std::path::PathBuf::from(&disk.name);
-                                                                if let Some(fs) = app.current_file_state_mut() { fs.current_path = p.clone(); fs.remote_session = None; fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); }
-                                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); app.sidebar_focus = false;
-                                                            }
-                                                        }
-                                                    }
-                                                    SidebarTarget::Remote(idx) => { execute_command(crate::app::CommandAction::ConnectToRemote(idx), app, event_tx.clone()); app.sidebar_focus = false; }
-                                                    _ => {} 
-                                                }
-                                            }
-                                        }
-                                    }
-                                    app.is_dragging = false; app.drag_start_pos = None; app.drag_source = None; app.hovered_drop_target = None;
-                                }
-                                                                                                                    MouseEventKind::Moved | MouseEventKind::Drag(_) => {
-                                                                                                                        app.mouse_pos = (column, row);
-                                                                                                    
-                                                                                                                        if let Some((pane_idx, col)) = app.is_resizing_column {
-                                                                                                                            if let Some((sx, _)) = app.drag_start_pos {
-                                                                                                                                let delta = column as i16 - sx as i16;
-                                                                                                                                let new_width = (app.initial_col_width as i16 + delta).max(2).min(100) as u16;
-                                                                                                                                
-                                                                                                                                if let Some(pane) = app.panes.get_mut(pane_idx) {
-                                                                                                                                    if let Some(fs) = pane.current_state_mut() {
-                                                                                                                                        fs.column_widths.insert(col, new_width);
-                                                                                                                                    }
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                            return true;
-                                                                                                                        }
-                                                                                                    
-                                                                                                                        if app.is_resizing_sidebar {
-                                                                                                                            let (w, _) = app.terminal_size;
-                                                                                                                            if w > 0 {
-                                                                                                                                let new_percent = (column as f32 / w as f32 * 100.0) as u16;
-                                                                                                                                app.sidebar_width_percent = new_percent.clamp(5, 50);
-                                                                                                                            }
-                                                                                                                            return true;
-                                                                                                                        }
-                                                                                                    
-                                                                                                                        // Check if drag has started
-                                                                                                                        if let Some((sx, sy)) = app.drag_start_pos { 
-                                                                                                                            if ((column as i16 - sx as i16).pow(2) + (row as i16 - sy as i16).pow(2)) as f32 >= 1.0 { 
-                                                                                                                                app.is_dragging = true; 
-                                                                                                                            } 
-                                                                                                                        }
-                                                                                                    
-                                                                                                                        if app.is_dragging {
-                                                                                                                            let sidebar_width = app.sidebar_width();
-                                                                                                                            
-                                                                                                                            // Live Reorder Logic
-                                                                                                                            if let Some((sx, _)) = app.drag_start_pos {
-                                                                                                                                if sx < sidebar_width {
-                                                                                                                                    if let Some(source_path) = &app.drag_source {
-                                                                                                                                        if let Some(hovered_bound) = app.sidebar_bounds.iter().find(|b| b.y == row).cloned() {
-                                                                                                                                            if let SidebarTarget::Favorite(target_path) = hovered_bound.target {
-                                                                                                                                                if source_path != &target_path {
-                                                                                                                                                    if let Some(s_idx) = app.starred.iter().position(|p| p == source_path) {
-                                                                                                                                                        if let Some(e_idx) = app.starred.iter().position(|p| p == &target_path) {
-                                                                                                                                                            let item = app.starred.remove(s_idx);
-                                                                                                                                                            app.starred.insert(e_idx, item);
-                                                                                                                                                            app.sidebar_index = hovered_bound.index;
-                                                                                                                                                        }
-                                                                                                                                                    }
-                                                                                                                                                }
-                                                                                                                                            }
-                                                                                                                                        }
-                                                                                                                                    }
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                    
-                                                                                                                            if app.mode == AppMode::ImportServers {
-                                                                                                                                let area_w = (w as f32 * 0.6) as u16; let area_h = (h as f32 * 0.2) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
-                                                                                                                                if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h { app.hovered_drop_target = Some(DropTarget::ImportServers); } else { app.hovered_drop_target = None; }
-                                                                                                                            } else {
-                                                                                                                                if column < sidebar_width {
-                                                                                                                                    if let Some(bound) = app.sidebar_bounds.iter().find(|b| b.y == row) {
-                                                                                                                                        if let SidebarTarget::Header(h) = &bound.target {
-                                                                                                                                            if h == "REMOTES" { app.hovered_drop_target = Some(DropTarget::RemotesHeader); } else { app.hovered_drop_target = Some(DropTarget::Favorites); }
-                                                                                                                                        } else { app.hovered_drop_target = Some(DropTarget::Favorites); }
-                                                                                                                                    } else { app.hovered_drop_target = Some(DropTarget::Favorites); }
-                                                                                                                                } else {
-                                                                                                                                    let content_area_width = w.saturating_sub(sidebar_width);
-                                                                                                                                    let pane_count = app.panes.len();
-                                                                                                                                    if pane_count > 1 {
-                                                                                                                                        let pane_width = content_area_width / pane_count as u16;
-                                                                                                                                        let hovered_pane_idx = (column.saturating_sub(sidebar_width) / pane_width) as usize;
-                                                                                                                                        if hovered_pane_idx < pane_count && hovered_pane_idx != app.focused_pane_index {
-                                                                                                                                            app.hovered_drop_target = Some(DropTarget::Pane(hovered_pane_idx));
-                                                                                                                                        } else { app.hovered_drop_target = None; }
-                                                                                                                                    } else { app.hovered_drop_target = None; }
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                        }
-                                                                                                                        return true;
-                                                                                                                    }                                MouseEventKind::ScrollUp => { if let Some(fs) = app.current_file_state_mut() { let new_offset = fs.table_state.offset().saturating_sub(3); *fs.table_state.offset_mut() = new_offset; } return true; } 
+                MouseEventKind::Up(_) => {
+                    if app.is_resizing_sidebar { app.is_resizing_sidebar = false; let _ = crate::config::save_state(app); return true; }
+                    if app.is_dragging {
+                        if let Some((source, target)) = app.drag_source.take().zip(app.hovered_drop_target.take()) {
+                            match target {
+                                DropTarget::ImportServers | DropTarget::RemotesHeader => if source.extension().map(|e| e == "toml").unwrap_or(false) { let _ = app.import_servers(source); let _ = crate::config::save_state(app); }
+                                DropTarget::Favorites => if source.is_dir() && !app.starred.contains(&source) { app.starred.push(source); let _ = crate::config::save_state(app); }
+                                DropTarget::Pane(t_idx) => if let Some(dest) = app.panes.get(t_idx).and_then(|p| p.current_state()).map(|fs| fs.current_path.join(source.file_name().unwrap())) { if me.modifiers.contains(KeyModifiers::SHIFT) { let _ = event_tx.try_send(AppEvent::Copy(source, dest)); } else { let _ = event_tx.try_send(AppEvent::Rename(source, dest)); } }
+                                _ => {} 
+                            }
+                        }
+                    } else if column < sw {
+                        if let Some(b) = app.sidebar_bounds.iter().find(|b| b.y == row) {
+                            match &b.target {
+                                SidebarTarget::Header(h) if h == "REMOTES" => { app.mode = AppMode::ImportServers; app.input.set_value("servers.toml".to_string()); }
+                                SidebarTarget::Favorite(p) => { let p = p.clone(); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p.clone(); fs.remote_session = None; fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                                SidebarTarget::Storage(idx) => if let Some(disk) = app.system_state.disks.get(*idx) { if !disk.is_mounted { let dev = disk.device.clone(); let tx = event_tx.clone(); let p_idx = app.focused_pane_index; tokio::spawn(async move { if let Ok(out) = std::process::Command::new("udisksctl").arg("mount").arg("-b").arg(&dev).output() { if String::from_utf8_lossy(&out.stdout).contains("Mounted") { tokio::time::sleep(Duration::from_millis(200)).await; let _ = tx.send(AppEvent::RefreshFiles(p_idx)).await; } } }); } else { let p = std::path::PathBuf::from(&disk.name); if let Some(fs) = app.current_file_state_mut() { fs.current_path = p.clone(); fs.remote_session = None; fs.selected_index = Some(0); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, p); } let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } }
+                                SidebarTarget::Remote(idx) => execute_command(crate::app::CommandAction::ConnectToRemote(*idx), app, event_tx.clone()),
+                                _ => {} 
+                            }
+                        }
+                    }
+                    app.is_dragging = false; app.drag_start_pos = None; app.drag_source = None; app.hovered_drop_target = None;
+                }
+                MouseEventKind::Moved | MouseEventKind::Drag(_) => {
+                    app.mouse_pos = (column, row);
+                    if app.is_resizing_sidebar { app.sidebar_width_percent = (column as f32 / w as f32 * 100.0) as u16; app.sidebar_width_percent = app.sidebar_width_percent.clamp(5, 50); return true; }
+                    if let Some((sx, sy)) = app.drag_start_pos { if ((column as i16 - sx as i16).pow(2) + (row as i16 - sy as i16).pow(2)) as f32 >= 1.0 { app.is_dragging = true; } }
+                    if app.is_dragging {
+                        let sw = app.sidebar_width();
+                        if let Some((sx, _)) = app.drag_start_pos { if sx < sw { if let Some(src) = app.drag_source.clone() { if let Some(h) = app.sidebar_bounds.iter().find(|b| b.y == row) { if let SidebarTarget::Favorite(t) = &h.target { if &src != t { if let Some(si) = app.starred.iter().position(|p| p == &src) { if let Some(ei) = app.starred.iter().position(|p| p == t) { let item = app.starred.remove(si); app.starred.insert(ei, item); app.sidebar_index = h.index; } } } } } } } }
+                        if app.mode == AppMode::ImportServers { let (aw, ah) = ((w as f32 * 0.6) as u16, (h as f32 * 0.2) as u16); let (ax, ay) = ((w - aw) / 2, (h - ah) / 2); if column >= ax && column < ax + aw && row >= ay && row < ay + ah { app.hovered_drop_target = Some(DropTarget::ImportServers); } else { app.hovered_drop_target = None; } } 
+                        else if column < sw { if let Some(b) = app.sidebar_bounds.iter().find(|b| b.y == row) { if let SidebarTarget::Header(h) = &b.target { if h == "REMOTES" { app.hovered_drop_target = Some(DropTarget::RemotesHeader); } else { app.hovered_drop_target = Some(DropTarget::Favorites); } } else { app.hovered_drop_target = Some(DropTarget::Favorites); } } else { app.hovered_drop_target = Some(DropTarget::Favorites); } } 
+                        else { let cw = w.saturating_sub(sw); let pc = app.panes.len(); if pc > 1 { let hi = (column.saturating_sub(sw) / (cw / pc as u16)) as usize; if hi < pc && hi != app.focused_pane_index { app.hovered_drop_target = Some(DropTarget::Pane(hi)); } else { app.hovered_drop_target = None; } } else { app.hovered_drop_target = None; } }
+                    }
+                    return true;
+                }
+                MouseEventKind::ScrollUp => { if let Some(fs) = app.current_file_state_mut() { let new_offset = fs.table_state.offset().saturating_sub(3); *fs.table_state.offset_mut() = new_offset; } return true; } 
                 MouseEventKind::ScrollDown => { if let Some(fs) = app.current_file_state_mut() { let max_offset = fs.files.len().saturating_sub(fs.view_height.saturating_sub(4)); let new_offset = (fs.table_state.offset() + 3).min(max_offset); *fs.table_state.offset_mut() = new_offset; } return true; } 
                 _ => {} 
             }
