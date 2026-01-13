@@ -230,7 +230,7 @@ fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Contex
             loop {
                 let data = sys_mod.get_data();
                 let _ = tx.send(AppEvent::SystemUpdated(data)).await;
-                tokio::time::sleep(Duration::from_secs(2)).await;
+                tokio::time::sleep(Duration::from_secs(1)).await;
             }
         });
     }
