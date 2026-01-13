@@ -1817,6 +1817,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 return true;
                             }
                         }
+                        if let KeyCode::Char('x') | KeyCode::Char('X') = key.code {
+                            if has_control {
+                                let line = editor.lines[editor.cursor_row].clone();
+                                let mut stdout = std::io::stdout();
+                                let _ = terma::visuals::osc::copy_to_clipboard(&mut stdout, &line);
+                                let _ = event_tx.try_send(AppEvent::StatusMsg("Cut line to clipboard".to_string()));
+                                // Fall through to let editor handle the deletion
+                            }
+                        }
                         
                         let (w, h) = app.terminal_size;
                         let area = ratatui::layout::Rect::new(0, 0, w, h);
