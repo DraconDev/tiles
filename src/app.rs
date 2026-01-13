@@ -611,6 +611,7 @@ impl App {
                     process_sort_asc: false,
                     process_selected_idx: Some(0),
                     process_scroll: 0,
+                    process_search_filter: String::new(),
                 };
             }
         }
