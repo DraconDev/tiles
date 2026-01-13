@@ -227,7 +227,8 @@ fn draw_monitor_history(f: &mut Frame, area: Rect, app: &mut App) {
     let net_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(net_inner);
     f.render_widget(Sparkline::default().block(Block::default().title(" 󰁍 DOWNLOAD ")).data(&app.system_state.net_in_history).style(Style::default().fg(Color::Rgb(46, 204, 113))), net_layout[0]);
     f.render_widget(Sparkline::default().block(Block::default().title(" 󰁔 UPLOAD ")).data(&app.system_state.net_out_history).style(Style::default().fg(Color::Rgb(61, 174, 233))), net_layout[1]);
-    f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(" 󰘚 MEMORY USAGE HISTORY ", Style::default().fg(Color::Rgb(155, 89, 182)).add_modifier(Modifier::BOLD))).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(50, 50, 55)))).data(&app.system_state.mem_history).max(100).style(Style::default().fg(Color::Rgb(155, 89, 182))), chunks[2]);
+    let mem_history: Vec<u64> = app.system_state.mem_history.iter().copied().collect();
+    f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(" 󰘚 MEMORY USAGE HISTORY ", Style::default().fg(Color::Rgb(155, 89, 182)).add_modifier(Modifier::BOLD))).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(50, 50, 55)))).data(&mem_history).max(100).style(Style::default().fg(Color::Rgb(155, 89, 182))), chunks[2]);
 }
 
 fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
@@ -346,16 +347,23 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         }
         *render_state.offset_mut() = file_state.table_state.offset();
 
-        let constraints = [Constraint::Min(20), Constraint::Length(10)];
+        let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| match c { FileColumn::Name => Constraint::Min(20), FileColumn::Size => Constraint::Length(9), FileColumn::Modified => Constraint::Length(12), FileColumn::Created => Constraint::Length(12), FileColumn::Extension => Constraint::Length(5), FileColumn::Permissions => Constraint::Length(10) }).collect();
+        let column_layout = Layout::default().direction(Direction::Horizontal).constraints(constraints.clone()).spacing(1).split(Block::default().borders(borders).inner(area));
+        file_state.column_bounds.clear();
+        for (i, col_type) in file_state.columns.iter().enumerate() { if i < column_layout.len() { file_state.column_bounds.push((column_layout[i], *col_type)); } }
+
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let category = crate::modules::files::get_file_category(path);
             let metadata = file_state.metadata.get(path);
             let mut style = if metadata.map(|m| m.is_dir).unwrap_or(false) { Style::default().fg(THEME.accent_secondary) } else { match category { FileCategory::Archive => Style::default().fg(Color::Rgb(255, 170, 0)), FileCategory::Image => Style::default().fg(Color::Rgb(255, 100, 255)), FileCategory::Script => Style::default().fg(Color::Rgb(0, 255, 150)), _ => Style::default().fg(THEME.fg) } };
             if file_state.multi_select.contains(&i) && is_focused { style = style.bg(Color::Rgb(100, 0, 0)).fg(Color::White); }
-            Row::new(vec![Cell::from(path.file_name().unwrap_or_default().to_string_lossy().to_string()), Cell::from("") ]).style(style)
+            Row::new(file_state.columns.iter().map(|c| match c { FileColumn::Name => {
+                let icon = if metadata.map(|m| m.is_dir).unwrap_or(false) { Icon::Folder.get(app.icon_mode) } else { Icon::File.get(app.icon_mode) };
+                Cell::from(format!("{} {}", icon, path.file_name().unwrap_or_default().to_string_lossy()))
+            }, FileColumn::Size => Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))), _ => Cell::from("") })).style(style)
         });
 
-        let mut border_style = if is_focused { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(THEME.border_inactive) };
+        let border_style = if is_focused { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(THEME.border_inactive) };
         f.render_stateful_widget(Table::new(rows, constraints).header(Row::new(vec!["Name"]).height(1)).block(Block::default().borders(borders).border_type(BorderType::Rounded).border_style(border_style)).row_highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD)), area, &mut render_state);
         *file_state.table_state.offset_mut() = render_state.offset();
     }
@@ -369,7 +377,8 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::ContextMenuTarget, app: &App) {
-    let items: Vec<ListItem> = vec![ListItem::new(" 󰆐 Open ")];
+    let actions = crate::ui::layout::get_context_menu_actions(target, app);
+    let items: Vec<ListItem> = actions.iter().map(|a| ListItem::new(format!("{:?}", a))).collect();
     let area = Rect::new(x, y, 25, (items.len() + 2) as u16);
     f.render_widget(Clear, area);
     f.render_widget(List::new(items).block(Block::default().title(" Menu ").borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(THEME.accent_secondary))), area);
@@ -377,27 +386,27 @@ fn draw_context_menu(f: &mut Frame, x: u16, y: u16, target: &crate::app::Context
 
 fn draw_import_servers_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 20, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new("Enter TOML path:").block(Block::default().borders(Borders::ALL).title(" Import ")), area);
+    f.render_widget(Paragraph::new(format!("Enter TOML path: {}", &*app.input.value)).block(Block::default().borders(Borders::ALL).title(" Import ")), area);
 }
 
 fn draw_command_palette(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 20, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(&app.input.value).block(Block::default().borders(Borders::ALL).title(" Command Palette ")), area);
+    f.render_widget(Paragraph::new(&*app.input.value).block(Block::default().borders(Borders::ALL).title(" Command Palette ")), area);
 }
 
 fn draw_rename_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(&app.input.value).block(Block::default().borders(Borders::ALL).title(" Rename ")), area);
+    f.render_widget(Paragraph::new(&*app.input.value).block(Block::default().borders(Borders::ALL).title(" Rename ")), area);
 }
 
 fn draw_new_folder_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(&app.input.value).block(Block::default().borders(Borders::ALL).title(" New Folder ")), area);
+    f.render_widget(Paragraph::new(&*app.input.value).block(Block::default().borders(Borders::ALL).title(" New Folder ")), area);
 }
 
 fn draw_new_file_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(&app.input.value).block(Block::default().borders(Borders::ALL).title(" New File ")), area);
+    f.render_widget(Paragraph::new(&*app.input.value).block(Block::default().borders(Borders::ALL).title(" New File ")), area);
 }
 
 fn draw_delete_modal(f: &mut Frame, _app: &App) {
@@ -405,19 +414,19 @@ fn draw_delete_modal(f: &mut Frame, _app: &App) {
     f.render_widget(Paragraph::new("Confirm Delete? (y/n)").block(Block::default().borders(Borders::ALL).title(" Delete ")), area);
 }
 
-fn draw_properties_modal(f: &mut Frame, app: &App) {
+fn draw_properties_modal(f: &mut Frame, _app: &App) {
     let area = centered_rect(50, 50, f.area()); f.render_widget(Clear, area);
     f.render_widget(Paragraph::new("Properties...").block(Block::default().borders(Borders::ALL).title(" Properties ")), area);
 }
 
-fn draw_settings_modal(f: &mut Frame, app: &App) {
+fn draw_settings_modal(f: &mut Frame, _app: &App) {
     let area = centered_rect(80, 80, f.area()); f.render_widget(Clear, area);
     f.render_widget(Block::default().borders(Borders::ALL).title(" Settings "), area);
 }
 
 fn draw_add_remote_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 50, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Block::default().borders(Borders::ALL).title(" Add Remote ").border_style(Style::default().fg(Color::Yellow)), area);
+    f.render_widget(Paragraph::new(format!("Name: {}", &*app.input.value)).block(Block::default().borders(Borders::ALL).title(" Add Remote ").border_style(Style::default().fg(Color::Yellow))), area);
 }
 
 fn draw_highlight_modal(f: &mut Frame, _app: &App) {
@@ -432,5 +441,5 @@ fn draw_editor_overlay(f: &mut Frame, app: &App) {
 
 fn draw_open_with_modal(f: &mut Frame, app: &App, _path: &std::path::Path) {
     let area = centered_rect(60, 20, f.area()); f.render_widget(Clear, area);
-    f.render_widget(Paragraph::new(&app.input.value).block(Block::default().borders(Borders::ALL).title(" Open With ")), area);
+    f.render_widget(Paragraph::new(&*app.input.value).block(Block::default().borders(Borders::ALL).title(" Open With ")), area);
 }
