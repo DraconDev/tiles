@@ -586,6 +586,7 @@ impl App {
                     sidebar_bounds: Vec::new(),
                     tab_bounds: Vec::new(),
                     header_icon_bounds: Vec::new(),
+                    hovered_header_icon: None,
                     mouse_last_click: std::time::Instant::now(),
                     mouse_click_pos: (0, 0),
                     settings_section: SettingsSection::Columns,
@@ -709,6 +710,7 @@ impl App {
             sidebar_bounds: Vec::new(),
             tab_bounds: Vec::new(),
             header_icon_bounds: Vec::new(),
+            hovered_header_icon: None,
 
             mouse_last_click: std::time::Instant::now(),
             mouse_click_pos: (0, 0),

@@ -347,24 +347,27 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     app.header_icon_bounds.clear();
     
     let icons = [
-        (burger_icon, "burger"),
-        (back_icon, "back"),
-        (forward_icon, "forward"),
-        (split_icon, "split"),
-        (reset_icon, "reset"),
+        (burger_icon, "burger", "Settings"),
+        (back_icon, "back", "Back"),
+        (forward_icon, "forward", "Forward"),
+        (split_icon, "split", "Toggle Split"),
+        (reset_icon, "reset", "Reset Columns"),
     ];
 
-    // Center the icons above the sidebar area
-    let total_icons_width: u16 = icons.len() as u16 * 3; // 1 space + 1 icon + 1 space
-    let mut cur_icon_x = area.x + (sidebar_width.saturating_sub(total_icons_width) / 2);
+    // Start icons at the left side of the sidebar with 1 padding
+    let mut cur_icon_x = area.x + 1;
     
-    for (i, (icon, id)) in icons.into_iter().enumerate() {
+    for (i, (icon, id, desc)) in icons.into_iter().enumerate() {
         let rect = Rect::new(cur_icon_x, area.y, 3, 1);
         
+        let is_hovered = app.mouse_pos.1 == area.y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width;
+        let is_kb_focused = matches!(app.mode, AppMode::Header(idx) if idx == i);
+        
         let mut style = Style::default().fg(THEME.accent_secondary);
-        if let AppMode::Header(idx) = app.mode {
-            if idx == i {
-                style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+        if is_kb_focused || is_hovered {
+            style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+            if is_hovered {
+                app.hovered_header_icon = Some(id.to_string());
             }
         }
 
@@ -372,6 +375,16 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         app.header_icon_bounds.push((rect, id.to_string()));
         cur_icon_x += 3; 
     }
+
+    // Draw description if hovered
+    if let Some(hovered_id) = &app.hovered_header_icon {
+        if let Some((_, _, desc)) = icons.iter().find(|(_, id, _)| id == hovered_id) {
+            let desc_text = format!(" [ {} ] ", desc);
+            let desc_rect = Rect::new(cur_icon_x + 1, area.y, desc_text.len() as u16, 1);
+            f.render_widget(Paragraph::new(desc_text).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), desc_rect);
+        }
+    }
+    app.hovered_header_icon = None; // Reset for next frame
 
     if pane_count == 0 { return; }
     let start_x = if app.show_sidebar { 
