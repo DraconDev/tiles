@@ -2002,7 +2002,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 }
                 AppMode::ConfirmReset => {
                     match key.code {
-                        KeyCode::Char('y') | KeyCode::Char('Y') => {
+                        KeyCode::Char('y') | KeyCode::Char('Y') | KeyCode::Enter => {
                             if let Some(fs) = app.current_file_state_mut() {
                                 fs.column_widths.insert(crate::app::FileColumn::Name, 30);
                                 fs.column_widths.insert(crate::app::FileColumn::Size, 10);
