@@ -457,17 +457,6 @@ fn highlight_code<'a>(content: &'a str) -> Vec<Line<'a>> {
     }).collect()
 }
 
-fn format_datetime_smart(time: std::time::SystemTime) -> String {
-    use chrono::{DateTime, Local, Datelike};
-    let dt: DateTime<Local> = time.into();
-    let now = Local::now();
-    if dt.year() == now.year() && dt.month() == now.month() && dt.day() == now.day() {
-        dt.format("%H:%M").to_string()
-    } else {
-        dt.format("%Y-%m-%d").to_string()
-    }
-}
-
 fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool, borders: Borders) {
     if let Some(pane) = app.panes.get_mut(pane_idx) {
         if let Some(preview) = &pane.preview {
