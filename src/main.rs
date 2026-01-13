@@ -1836,6 +1836,136 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 }
             }
 
+            // 2. Modal Handling (Input Focus)
+            match &app.mode {
+                AppMode::CommandPalette => match key.code {
+                    KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
+                    KeyCode::Enter => { 
+                        if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() { execute_command(cmd.action, app, event_tx.clone()); } 
+                        app.mode = AppMode::Normal; app.input.clear(); return true;
+                    }
+                    _ => { let handled = app.input.handle_event(&evt); if handled { update_commands(app); } return handled; }
+                },
+                AppMode::AddRemote(idx) => {
+                    let idx = *idx;
+                    match key.code {
+                        KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
+                        KeyCode::Tab | KeyCode::Enter => {
+                            let val = app.input.value.clone();
+                            match idx { 0 => app.pending_remote.name = val, 1 => app.pending_remote.host = val, 2 => app.pending_remote.user = val, 3 => app.pending_remote.port = val.parse().unwrap_or(22), 4 => app.pending_remote.key_path = if val.is_empty() { None } else { Some(std::path::PathBuf::from(val)) }, _ => {} }
+                            if idx < 4 {
+                                app.mode = AppMode::AddRemote(idx + 1);
+                                let next_val = match idx + 1 { 1 => app.pending_remote.host.clone(), 2 => app.pending_remote.user.clone(), 3 => app.pending_remote.port.to_string(), 4 => app.pending_remote.key_path.as_ref().map(|p| p.to_string_lossy().to_string()).unwrap_or_default(), _ => String::new() };
+                                app.input.set_value(next_val);
+                            } else {
+                                let bookmark = app.pending_remote.clone();
+                                app.remote_bookmarks.push(bookmark);
+                                let _ = crate::config::save_state(app);
+                                app.mode = AppMode::Normal;
+                                app.input.clear();
+                            }
+                            return true;
+                        }
+                        _ => return app.input.handle_event(&evt)
+                    }
+                },
+                AppMode::Header(idx) => {
+                    let idx = *idx;
+                    match key.code {
+                        KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
+                        KeyCode::Left => { if idx > 0 { app.mode = AppMode::Header(idx - 1); } return true; }
+                        KeyCode::Right => { if idx < 3 { app.mode = AppMode::Header(idx + 1); } return true; }
+                        KeyCode::Enter => {
+                            match idx {
+                                0 => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                                1 => if let Some(fs) = app.current_file_state_mut() { navigate_forward(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
+                                2 => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
+                                3 => { app.mode = AppMode::Settings; app.settings_scroll = 0; }
+                                _ => {}
+                            }
+                            if let AppMode::Header(_) = app.mode { app.mode = AppMode::Normal; }
+                            return true;
+                        }
+                        _ => return true
+                    }
+                },
+                AppMode::OpenWith(path) => match key.code {
+                    KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
+                    KeyCode::Char('1') => { let _ = event_tx.try_send(AppEvent::SpawnTerminal { path: path.clone(), new_tab: false, remote: None, command: Some("micro".to_string()) }); app.mode = AppMode::Normal; return true; }
+                    KeyCode::Char('2') => { let _ = event_tx.try_send(AppEvent::SpawnTerminal { path: path.clone(), new_tab: false, remote: None, command: Some("vim".to_string()) }); app.mode = AppMode::Normal; return true; }
+                    KeyCode::Char('3') => { let _ = event_tx.try_send(AppEvent::SpawnTerminal { path: path.clone(), new_tab: false, remote: None, command: Some("nano".to_string()) }); app.mode = AppMode::Normal; return true; }
+                    _ => return true
+                },
+                AppMode::Highlight => {
+                    if let KeyCode::Char(c) = key.code {
+                        if let Some(digit) = c.to_digit(10) {
+                            let colors = [1, 2, 3, 4, 5, 6, 0];
+                            if let Some(&color_code) = colors.get(digit as usize - 1).or_else(|| if digit == 0 { Some(&0) } else { None }) {
+                                let color = if color_code == 0 { None } else { Some(color_code as u8) };
+                                if let Some(fs) = app.current_file_state() {
+                                    let mut paths = Vec::new();
+                                    if !fs.multi_select.is_empty() { for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } } 
+                                    else if let Some(idx) = fs.selected_index { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } }
+                                    for p in paths { if let Some(col) = color { app.path_colors.insert(p, col); } else { app.path_colors.remove(&p); } }
+                                    let _ = crate::config::save_state(app);
+                                }
+                                app.mode = AppMode::Normal;
+                                return true;
+                            }
+                        }
+                    }
+                    if key.code == KeyCode::Esc { app.mode = AppMode::Normal; return true; }
+                    return true;
+                },
+                AppMode::Settings => match key.code {
+                    KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
+                    KeyCode::Char('1') => { app.settings_section = SettingsSection::Columns; return true; }
+                    KeyCode::Char('2') => { app.settings_section = SettingsSection::Tabs; return true; }
+                    KeyCode::Char('3') => { app.settings_section = SettingsSection::General; return true; }
+                    KeyCode::Char('4') => { app.settings_section = SettingsSection::Remotes; return true; }
+                    KeyCode::Char('5') => { app.settings_section = SettingsSection::Shortcuts; return true; }
+                    KeyCode::Up => { app.settings_scroll = app.settings_scroll.saturating_sub(1); return true; }
+                    KeyCode::Down => { app.settings_scroll = app.settings_scroll.saturating_add(1); return true; }
+                    KeyCode::Char('t') if app.settings_section == SettingsSection::General => { app.smart_date = !app.smart_date; return true; } 
+                    KeyCode::Char('a') if app.settings_section == SettingsSection::General => { app.auto_save = !app.auto_save; return true; } 
+                    _ => return false
+                },
+                AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete => match key.code {
+                    KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); return true; }
+                    KeyCode::Enter => {
+                        let input = app.input.value.clone();
+                        if let Some(fs) = app.current_file_state() {
+                            match app.mode {
+                                AppMode::NewFile => { let p = fs.current_path.join(input); let _ = event_tx.try_send(AppEvent::CreateFile(p)); }
+                                AppMode::NewFolder => { let p = fs.current_path.join(input); let _ = event_tx.try_send(AppEvent::CreateFolder(p)); }
+                                AppMode::Rename => {
+                                    if let Some(idx) = fs.selected_index {
+                                        if let Some(old_p) = fs.files.get(idx) {
+                                            let new_p = old_p.parent().unwrap().join(input);
+                                            let _ = event_tx.try_send(AppEvent::Rename(old_p.clone(), new_p));
+                                        }
+                                    }
+                                }
+                                AppMode::Delete => {
+                                    let ic = input.trim().to_lowercase();
+                                    if ic == "y" || ic == "yes" || ic.is_empty() || !app.confirm_delete {
+                                        let mut paths = Vec::new();
+                                        if !fs.multi_select.is_empty() { for &idx in &fs.multi_select { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } } 
+                                        else if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx) { paths.push(path.clone()); } }
+                                        for p in paths { let _ = event_tx.try_send(AppEvent::Delete(p)); }
+                                    }
+                                }
+                                _ => {} 
+                            }
+                        }
+                        app.mode = AppMode::Normal; app.input.clear(); return true;
+                    }
+                    _ => return app.input.handle_event(&evt)
+                },
+                _ => {}
+            }
+
+            // 3. Global Shortcuts
             match key.code {
                 KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return true; }
                 AppMode::CommandPalette => match key.code {
