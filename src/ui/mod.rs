@@ -357,7 +357,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     // Start icons at the left side of the sidebar with 1 padding
     let mut cur_icon_x = area.x + 1;
     
-    for (i, (icon, id, desc)) in icons.into_iter().enumerate() {
+    for (i, (icon, id, _desc)) in icons.into_iter().enumerate() {
         let rect = Rect::new(cur_icon_x, area.y, 3, 1);
         
         let is_hovered = app.mouse_pos.1 == area.y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width;
@@ -509,7 +509,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         let column_layout = Layout::default().direction(Direction::Horizontal).constraints(constraints.clone()).spacing(0).split(dummy_block.inner(area));
         let name_col_width = column_layout.get(0).map(|r| r.width as usize).unwrap_or(20);
 
-        let header_cells = file_state.columns.iter().enumerate().map(|(i, c)| {
+        let header_cells = file_state.columns.iter().enumerate().map(|(_i, c)| {
             let base_name = match c { 
                 FileColumn::Name => "Name", 
                 FileColumn::Size => "Size", 
