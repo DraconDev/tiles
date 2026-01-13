@@ -2750,7 +2750,27 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         let pane_count = app.panes.len();
                         let pane_width = if pane_count > 0 { content_area_width / pane_count as u16 } else { content_area_width };
                         let clicked_pane = (column.saturating_sub(sidebar_width) / pane_width) as usize;
-                        if clicked_pane < pane_count { app.focused_pane_index = clicked_pane; app.sidebar_focus = false; }
+                        if clicked_pane < pane_count {
+                            // Check if clicking on column headers for resizing
+                            if row == 1 || row == 2 {
+                                let mut handled_resize = false;
+                                if let Some(pane) = app.panes.get(clicked_pane) {
+                                    if let Some(fs) = pane.current_state() {
+                                        for (rect, col) in &fs.column_bounds {
+                                            // Boundary is at the right edge of the column
+                                            let boundary_x = rect.x + rect.width;
+                                            if column >= boundary_x.saturating_sub(1) && column <= boundary_x {
+                                                app.is_resizing_column = Some((clicked_pane, *col));
+                                                handled_resize = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                if handled_resize { return true; }
+                            }
+                            app.focused_pane_index = clicked_pane; app.sidebar_focus = false; 
+                        }
                     }
 
                     // Footer interaction
@@ -2896,6 +2916,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                 }
                                 MouseEventKind::Up(_) => {
+                                    if let Some(_) = app.is_resizing_column.take() {
+                                        let _ = crate::config::save_state(app);
+                                        return true;
+                                    }
+
                                     if app.is_resizing_sidebar {
                                         app.is_resizing_sidebar = false;
                                         let _ = crate::config::save_state(app);
