@@ -513,12 +513,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         
         let name_col_width = column_layout.get(0).map(|r| r.width as usize).unwrap_or(20);
 
-        // Map back to our column types, ignoring the spacer for bounds tracking
-        file_state.column_bounds.clear();
-        for (i, col_type) in file_state.columns.iter().enumerate() {
-            file_state.column_bounds.push((column_layout[i], *col_type));
-        }
-
         let header_cells = file_state.columns.iter().enumerate().map(|(_i, c)| {
             let base_name = match c { 
                 FileColumn::Name => "Name", 
