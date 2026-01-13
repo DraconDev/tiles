@@ -191,6 +191,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
 
         if !history.is_empty() {
             let data: Vec<(f64, f64)> = history.iter().enumerate().map(|(i, &v)| (i as f64, v as f64)).collect();
+            let recent: Vec<(f64, f64)> = data.iter().rev().take(20).rev().cloned().collect();
             let max_y = if total > 0.0 { total as f64 } else { 100.0 };
             
             let datasets = vec![
@@ -203,7 +204,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                     .marker(symbols::Marker::Braille)
                     .graph_type(GraphType::Line)
                     .style(Style::default().fg(Color::White))
-                    .data(&data.iter().rev().take(20).rev().cloned().collect::<Vec<_>>()),
+                    .data(&recent),
             ];
 
             let chart = Chart::new(datasets)
