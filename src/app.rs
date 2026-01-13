@@ -531,10 +531,23 @@ impl App {
             disks: Vec::new(),
             processes: Vec::new(),
             cpu_usage: 0.0,
+            cpu_cores: Vec::new(),
             mem_usage: 0.0,
             total_mem: 0.0,
             cpu_history: vec![0; 100],
+            core_history: Vec::new(),
             mem_history: vec![0; 100],
+            net_in: 0,
+            net_out: 0,
+            net_in_history: vec![0; 100],
+            net_out_history: vec![0; 100],
+            last_net_in: 0,
+            last_net_out: 0,
+            uptime: 0,
+            os_name: String::new(),
+            os_version: String::new(),
+            kernel_version: String::new(),
+            hostname: String::new(),
         };
 
         let license = check_license();
