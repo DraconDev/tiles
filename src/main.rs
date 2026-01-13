@@ -2371,18 +2371,39 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         for (rect, view) in &app.monitor_subview_bounds {
                             if rect.contains(ratatui::layout::Position { x: column, y: row }) {
                                 app.monitor_subview = *view;
+                                app.process_search_filter.clear(); // Clear search when switching tabs
                                 return true;
                             }
                         }
                         // Close Button (Far Right top)
-                        if row == 1 && column > w.saturating_sub(15) { // Roughly where Close is
+                        if row == 1 && column > w.saturating_sub(15) { 
                             app.current_view = CurrentView::Files;
                             return true;
                         }
+                        
+                        // Handle clicking inside the content of specific subviews
+                        match app.monitor_subview {
+                            MonitorSubview::Processes => {
+                                // Header sorting
+                                for (rect, col) in &app.process_column_bounds {
+                                    if column >= rect.x && column < rect.x + rect.width && row == rect.y {
+                                        app.sort_processes(*col);
+                                        return true;
+                                    }
+                                }
+                                // Row selection
+                                if row >= 5 { // Table offset adjust based on new header layout
+                                    let table_row = (row as usize).saturating_sub(5) + app.process_table_state.offset();
+                                    if table_row < app.system_state.processes.len() {
+                                        app.process_selected_idx = Some(table_row);
+                                        app.process_table_state.select(app.process_selected_idx);
+                                        return true;
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
                     }
-
-                    // Header Icons
-                    if row == 0 && app.current_view != CurrentView::Processes {
                         if let Some((_, action_id)) = app.header_icon_bounds.iter().find(|(r, _)| column >= r.x && column < r.x + r.width && row == r.y) {
                             match action_id.as_str() {
                                 "back" => if let Some(fs) = app.current_file_state_mut() { navigate_back(fs); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); }
