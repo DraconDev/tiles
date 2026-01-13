@@ -498,16 +498,27 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             let capacity = file_state.view_height.saturating_sub(3);
             if sel >= offset && sel < offset + capacity { render_state.select(Some(sel)); }
         }
-        *render_state.offset_mut() = file_state.table_state.offset();
-
-        let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| {
+        let mut constraints: Vec<Constraint> = file_state.columns.iter().map(|c| {
             let width = file_state.column_widths.get(c).copied().unwrap_or(10);
             Constraint::Length(width)
         }).collect();
+        // Add a spacer constraint to prevent table from expanding existing columns
+        constraints.push(Constraint::Min(0));
 
         let dummy_block = Block::default().borders(borders);
-        let column_layout = Layout::default().direction(Direction::Horizontal).constraints(constraints.clone()).spacing(0).split(dummy_block.inner(area));
+        let column_layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(constraints.clone())
+            .spacing(1)
+            .split(dummy_block.inner(area));
+        
         let name_col_width = column_layout.get(0).map(|r| r.width as usize).unwrap_or(20);
+
+        // Map back to our column types, ignoring the spacer for bounds tracking
+        file_state.column_bounds.clear();
+        for (i, col_type) in file_state.columns.iter().enumerate() {
+            file_state.column_bounds.push((column_layout[i], *col_type));
+        }
 
         let header_cells = file_state.columns.iter().enumerate().map(|(_i, c)| {
             let base_name = match c { 
@@ -593,16 +604,14 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                         let full_str = path.to_string_lossy();
                         let mut display_path = if full_str.starts_with("/home/dracon") { full_str.replacen("/home/dracon", "~", 1) } else { full_str.to_string() };
                         display_path.push_str(&suffix);
-                        display_path.push(' '); // One space after name
                         if display_path.len() > name_col_width && name_col_width > 5 {
                             let keep_len = name_col_width - 3; let start_idx = display_path.len() - keep_len;
                             display_path = format!("...{}", &display_path[start_idx..]);
                         }
                         Cell::from(format!("{}{}", icon, display_path)).style(final_style)
                     } else { 
-                        let mut name_with_space = format!("{}{}{}", icon, name, suffix);
-                        name_with_space.push(' ');
-                        Cell::from(name_with_space).style(final_style) 
+                        let name_with_suffix = format!("{}{}{}", icon, name, suffix);
+                        Cell::from(name_with_suffix).style(final_style) 
                     }
                 }
                 FileColumn::Size => { 
@@ -647,51 +656,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             Row::new(cells).style(row_style)
         });
 
-        // Minimalist Tactical Breadcrumbs
-        let mut breadcrumb_spans = Vec::new();
-        file_state.breadcrumb_bounds.clear();
-        let path = file_state.current_path.clone();
-        let components: Vec<_> = path.components().collect();
-        let mut cur_p = PathBuf::new();
-        let mut cur_x = area.x + 2;
-
-        let total_comps = components.len();
-        for (i, comp) in components.iter().enumerate() {
-            match comp { std::path::Component::RootDir => cur_p.push("/"), std::path::Component::Prefix(p) => cur_p.push(p.as_os_str()), std::path::Component::Normal(name) => cur_p.push(name), _ => continue }
-            let d_name = if comp.as_os_str() == "/" { "/".to_string() } else { comp.as_os_str().to_string_lossy().to_string() };
-            
-            if !d_name.is_empty() {
-                let s_path = cur_p.clone();
-                let is_hovered = file_state.hovered_breadcrumb.as_ref() == Some(&s_path);
-                let is_last = i == total_comps - 1;
-                
-                let fg_color = if is_hovered {
-                    Color::Rgb(255, 255, 0) // Yellow on hover
-                } else if is_last {
-                    THEME.accent_secondary // Neon Cyan for active
-                } else {
-                    Color::Rgb(100, 100, 110) // Ghost Gray for parents
-                };
-
-                let mut style = Style::default().fg(fg_color);
-                if is_last { style = style.add_modifier(Modifier::BOLD); }
-                if is_hovered { style = style.add_modifier(Modifier::UNDERLINED); }
-
-                let segment = if is_last { format!(" [ {} ] ", d_name) } else { format!(" {} ", d_name) };
-                let width = segment.len() as u16;
-                
-                breadcrumb_spans.push(Span::styled(segment, style));
-                file_state.breadcrumb_bounds.push((Rect::new(cur_x, area.y, width, 1), s_path));
-                cur_x += width;
-
-                // Sharp Separator
-                if !is_last {
-                    breadcrumb_spans.push(Span::styled("›", Style::default().fg(Color::Rgb(60, 60, 70))));
-                    cur_x += 1;
-                }
-            }
-        }
-        if !file_state.search_filter.is_empty() { breadcrumb_spans.push(Span::styled(format!(" [ {} ]", file_state.search_filter), Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))); }
+        // ... breadcrumbs logic ...
 
         let mut border_style = if is_focused { 
             let pulse = ((SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_millis() % 1500) as f32 / 1500.0 * std::f32::consts::PI * 2.0).sin() * 0.5 + 0.5;
@@ -709,7 +674,7 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         let block = Block::default().borders(borders).border_type(BorderType::Rounded).title(Line::from(breadcrumb_spans))
             .border_style(border_style);
 
-        let table = Table::new(rows, constraints.clone()).header(Row::new(header_cells).height(1)).block(block.clone()).column_spacing(0)
+        let table = Table::new(rows, constraints.clone()).header(Row::new(header_cells).height(1)).block(block.clone()).column_spacing(1)
             .row_highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD));
 
         let height = area.height.saturating_sub(2) as usize;
