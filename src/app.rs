@@ -1165,10 +1165,7 @@ impl App {
             self.process_sort_asc = !self.process_sort_asc;
         } else {
             self.process_sort_col = col;
-            self.process_sort_asc = true; 
-            if col == ProcessColumn::Cpu || col == ProcessColumn::Mem {
-                self.process_sort_asc = false;
-            }
+            self.process_sort_asc = false; // Default to DESC for new columns (usually what users want for CPU/Mem)
         }
         self.apply_process_sort();
     }
