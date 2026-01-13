@@ -2001,21 +2001,30 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                 }
                 AppMode::ConfirmReset => {
+                    crate::app::log_debug("ConfirmReset mode active, waiting for input...");
                     match key.code {
                         KeyCode::Char('y') | KeyCode::Char('Y') | KeyCode::Enter => {
+                            crate::app::log_debug("Reset confirmed via keyboard");
                             if let Some(fs) = app.current_file_state_mut() {
                                 fs.column_widths.insert(crate::app::FileColumn::Name, 30);
                                 fs.column_widths.insert(crate::app::FileColumn::Size, 10);
                                 fs.column_widths.insert(crate::app::FileColumn::Modified, 20);
                                 fs.column_widths.insert(crate::app::FileColumn::Permissions, 12);
+                                *fs.table_state.offset_mut() = 0;
                                 let _ = crate::config::save_state(app);
                                 let _ = event_tx.try_send(AppEvent::StatusMsg("Column widths reset to defaults".to_string()));
-                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                for i in 0..app.panes.len() {
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
+                                }
                             }
                             app.mode = AppMode::Normal;
                             return true;
                         }
-                        KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
+                        KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => { 
+                            crate::app::log_debug("Reset cancelled via keyboard");
+                            app.mode = AppMode::Normal; 
+                            return true; 
+                        }
                         _ => {}
                     }
                     return true;
