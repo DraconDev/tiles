@@ -535,6 +535,8 @@ impl App {
             cpu_cores: Vec::new(),
             mem_usage: 0.0,
             total_mem: 0.0,
+            swap_usage: 0.0,
+            total_swap: 0.0,
             cpu_history: vec![0; 100],
             core_history: Vec::new(),
             mem_history: vec![0; 100],
