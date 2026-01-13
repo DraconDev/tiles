@@ -615,6 +615,7 @@ impl App {
                     process_selected_idx: Some(0),
                     process_scroll: 0,
                     process_search_filter: String::new(),
+                    process_column_bounds: Vec::new(),
                 };
             }
         }
