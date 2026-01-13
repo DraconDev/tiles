@@ -434,16 +434,29 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 
 fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool, borders: Borders) {
     if let Some(pane) = app.panes.get_mut(pane_idx) {
-        if let Some(preview) = &pane.preview {
+        if let Some(preview) = &mut pane.preview {
+            let mut title = format!(" Preview: {} ", preview.path.display());
+            if let Some(ed) = &preview.editor {
+                if ed.modified { title.push_str("[Modified] "); }
+                title.push_str("(Ctrl+S to Save) ");
+            }
+
             let block = Block::default()
                 .borders(borders)
                 .border_type(BorderType::Rounded)
-                .title(format!(" Preview: {} ", preview.path.display()))
+                .title(title)
                 .border_style(if is_focused { Style::default().fg(THEME.border_active) } else { Style::default().fg(THEME.border_inactive) });
             
-            let highlighted = highlight_code(&preview.content);
-            let text = Paragraph::new(highlighted).block(block);
-            f.render_widget(text, area);
+            let inner = block.inner(area);
+            f.render_widget(block, area);
+
+            if let Some(editor) = &preview.editor {
+                f.render_widget(editor, inner);
+            } else {
+                let highlighted = highlight_code(&preview.content);
+                let text = Paragraph::new(highlighted);
+                f.render_widget(text, inner);
+            }
             return;
         }
     }
