@@ -280,43 +280,127 @@ fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
 }
 
 fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
-    let block = Block::default()
-        .title(" System Processes ")
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(10), Constraint::Min(0)])
+        .split(area);
+
+    // 1. Amazing Header (Sparklines & Gauges)
+    let header_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Magenta));
+        .title(" System Monitor ")
+        .border_style(Style::default().fg(THEME.accent_primary));
     
-    let inner = block.inner(area);
-    f.render_widget(block, area);
+    let header_inner = header_block.inner(chunks[0]);
+    f.render_widget(header_block, chunks[0]);
 
-    let header_cells = ["PID", "Name", "CPU %", "Memory"]
+    let stats_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(header_inner);
+
+    // CPU Section
+    let cpu_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Min(0)])
+        .split(stats_layout[0]);
+    
+    let cpu_label = format!("CPU Usage: {:.1}%", app.system_state.cpu_usage);
+    let cpu_gauge = Gauge::default()
+        .gauge_style(Style::default().fg(if app.system_state.cpu_usage > 80.0 { Color::Red } else { Color::Green }))
+        .ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0));
+    
+    f.render_widget(Paragraph::new(cpu_label).style(Style::default().add_modifier(Modifier::BOLD)), cpu_chunks[0]);
+    
+    let cpu_data: Vec<u64> = app.system_state.cpu_history.iter().map(|&x| x).collect();
+    let cpu_sparkline = Sparkline::default()
+        .block(Block::default().borders(Borders::NONE))
+        .data(&cpu_data)
+        .style(Style::default().fg(Color::Cyan));
+    f.render_widget(cpu_sparkline, cpu_chunks[1]);
+
+    // Memory Section
+    let mem_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Min(0)])
+        .split(stats_layout[1]);
+
+    let mem_used_gb = app.system_state.mem_usage;
+    let mem_total_gb = app.system_state.total_mem;
+    let mem_percent = (mem_used_gb / mem_total_gb) * 100.0;
+    
+    let mem_label = format!("Memory: {:.1} GB / {:.1} GB ({:.1}%)", mem_used_gb, mem_total_gb, mem_percent);
+    f.render_widget(Paragraph::new(mem_label).style(Style::default().add_modifier(Modifier::BOLD)), mem_chunks[0]);
+
+    let mem_data: Vec<u64> = app.system_state.mem_history.iter().map(|&x| x).collect();
+    let mem_sparkline = Sparkline::default()
+        .block(Block::default().borders(Borders::NONE))
+        .data(&mem_data)
+        .style(Style::default().fg(Color::Magenta));
+    f.render_widget(mem_sparkline, mem_chunks[1]);
+
+    // 2. Process Table
+    let table_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::DarkGray));
+    
+    let table_inner = table_block.inner(chunks[1]);
+    f.render_widget(table_block, chunks[1]);
+
+    let header_cells = ["PID", "Name", "User", "Status", "CPU%", "Mem%"]
         .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
-    let header = Row::new(header_cells).height(1).bottom_margin(1);
+        .map(|h| {
+            let col = match *h {
+                "PID" => ProcessColumn::Pid,
+                "Name" => ProcessColumn::Name,
+                "User" => ProcessColumn::User,
+                "Status" => ProcessColumn::Status,
+                "CPU%" => ProcessColumn::Cpu,
+                "Mem%" => ProcessColumn::Mem,
+                _ => ProcessColumn::Pid,
+            };
+            let mut style = Style::default().fg(THEME.header_fg).add_modifier(Modifier::BOLD);
+            let mut text = h.to_string();
+            if app.process_sort_col == col {
+                style = style.fg(Color::Yellow);
+                text.push_str(if app.process_sort_asc { " ▲" } else { " ▼" });
+            }
+            Cell::from(text).style(style)
+        });
+    let header = Row::new(header_cells).height(1).bottom_margin(1).style(Style::default().bg(Color::Rgb(20, 20, 20)));
 
     let rows = app.system_state.processes.iter().map(|p| {
-        let cpu_color = if p.cpu > 50.0 { Color::Red } else if p.cpu > 20.0 { Color::Yellow } else { Color::Green };
-        let mem_color = if p.mem > 500.0 { Color::Red } else if p.mem > 100.0 { Color::Yellow } else { Color::Cyan };
-
-        let cpu_bar_width = (p.cpu / 10.0).min(10.0) as usize;
-        let cpu_bar = format!("{}{} {:.1}%", "█".repeat(cpu_bar_width), "░".repeat(10 - cpu_bar_width), p.cpu);
+        let cpu_val = format!("{:.1}", p.cpu);
+        let mem_val = format!("{:.1}", p.mem);
+        
+        let cpu_style = if p.cpu > 50.0 { Style::default().fg(Color::Red).add_modifier(Modifier::BOLD) } else if p.cpu > 10.0 { Style::default().fg(Color::Yellow) } else { Style::default().fg(Color::Green) };
+        let mem_style = if p.mem > 500.0 { Style::default().fg(Color::Red).add_modifier(Modifier::BOLD) } else if p.mem > 100.0 { Style::default().fg(Color::Yellow) } else { Style::default().fg(Color::Cyan) };
 
         Row::new(vec![
             Cell::from(p.pid.to_string()).style(Style::default().fg(Color::DarkGray)),
             Cell::from(p.name.clone()).style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-            Cell::from(cpu_bar).style(Style::default().fg(cpu_color)),
-            Cell::from(format!("{:.1} MB", p.mem)).style(Style::default().fg(mem_color)),
+            Cell::from(p.user.clone()).style(Style::default().fg(Color::Blue)),
+            Cell::from(p.status.clone()).style(Style::default().fg(Color::DarkGray)),
+            Cell::from(cpu_val).style(cpu_style),
+            Cell::from(mem_val).style(mem_style),
         ])
     });
 
     let table = Table::new(rows, [
         Constraint::Length(8),
         Constraint::Min(20),
-        Constraint::Length(25),
-        Constraint::Length(15),
-    ]).header(header).column_spacing(2);
+        Constraint::Length(10),
+        Constraint::Length(10),
+        Constraint::Length(10),
+        Constraint::Length(10),
+    ])
+    .header(header)
+    .highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD))
+    .column_spacing(1);
 
-    f.render_widget(table, inner);
+    f.render_stateful_widget(table, table_inner, &mut app.process_table_state);
 }
 
 fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
