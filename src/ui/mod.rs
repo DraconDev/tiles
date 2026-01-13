@@ -939,7 +939,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, app: &App) {
             ("Middle Click / Space", "Preview File in Other Pane"),
         ]),
         ("View & Tabs", vec![
-            ("Ctrl + s", "Toggle Split View"),
+            ("Ctrl + p", "Toggle Split View"),
             ("Ctrl + t", "New Duplicate Tab"),
             ("Ctrl + h", "Toggle Hidden Files"),
             ("Ctrl + b", "Toggle Sidebar"),
@@ -948,6 +948,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, app: &App) {
             ("F1", "Show this Help"),
         ]),
         ("File Operations", vec![
+            ("Ctrl + s", "Save Modifications"),
             ("Ctrl + c", "Copy Selected"),
             ("Ctrl + x", "Cut Selected"),
             ("Ctrl + v", "Paste Selected"),
