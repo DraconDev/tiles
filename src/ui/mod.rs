@@ -1140,3 +1140,33 @@ fn draw_highlight_modal(f: &mut Frame, _app: &App) {
     f.render_widget(Paragraph::new(Line::from(spans)).alignment(ratatui::layout::Alignment::Center), Rect::new(inner.x, inner.y + 1, inner.width, 1));
     f.render_widget(Paragraph::new("1   2   3   4   5   6   0").alignment(ratatui::layout::Alignment::Center).style(Style::default().fg(Color::DarkGray)), Rect::new(inner.x, inner.y + 2, inner.width, 1));
 }
+
+fn draw_editor_overlay(f: &mut Frame, app: &App) {
+    let area = f.area();
+    f.render_widget(Clear, area);
+    
+    if let Some(preview) = &app.editor_state {
+        let mut spans = vec![Span::raw(format!(" Editing: {} ", preview.path.display()))];
+        if let Some(ed) = &preview.editor {
+            if ed.modified { spans.push(Span::styled("[Modified] ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))); }
+            spans.push(Span::styled("(Ctrl+S to Save, Esc to Close) ", Style::default().fg(Color::Cyan)));
+        }
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .title(Line::from(spans))
+            .border_style(Style::default().fg(THEME.accent_primary));
+        
+        let inner = block.inner(area);
+        f.render_widget(block, area);
+
+        if let Some(editor) = &preview.editor {
+            f.render_widget(editor, inner);
+        } else {
+            let highlighted = highlight_code(&preview.get_content());
+            let text = Paragraph::new(highlighted);
+            f.render_widget(text, inner);
+        }
+    }
+}
