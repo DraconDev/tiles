@@ -2659,6 +2659,129 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 MouseEventKind::Down(button) => {
                     crate::app::log_debug(&format!("MOUSE DOWN: button={:?} row={} col={}", button, row, column));
                     
+                    let sidebar_width = app.sidebar_width();
+                    
+                    // Check Header Icons
+                    if row == 0 {
+                        if let Some((_, action_id)) = app.header_icon_bounds.iter().find(|(rect, _)| {
+                            column >= rect.x && column < rect.x + rect.width && row == rect.y
+                        }) {
+                            match action_id.as_str() {
+                                "back" => {
+                                    if let Some(fs) = app.current_file_state_mut() {
+                                        navigate_back(fs);
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    }
+                                }
+                                "forward" => {
+                                    if let Some(fs) = app.current_file_state_mut() {
+                                        navigate_forward(fs);
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    }
+                                }
+                                "split" => {
+                                    app.toggle_split();
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                                }
+                                "burger" => {
+                                    app.mode = AppMode::Settings;
+                                }
+                                _ => {}
+                            }
+                            return true;
+                        }
+                    }
+
+                    if button == MouseButton::Left && column >= sidebar_width.saturating_sub(1) && column <= sidebar_width && row >= 1 {
+                        app.is_resizing_sidebar = true;
+                        return true;
+                    }
+
+                    // 1. Header handling (Row 0) - Tabs & Settings
+                    if row == 0 {
+                        let clicked_tab = app.tab_bounds.iter().find(|(rect, _, _)| rect.contains(ratatui::layout::Position { x: column, y: row })).cloned();
+                        if let Some((_, p_idx, t_idx)) = clicked_tab {
+                            if button == MouseButton::Left {
+                                if let Some(pane) = app.panes.get_mut(p_idx) { pane.active_tab_index = t_idx; app.focused_pane_index = p_idx; app.sidebar_focus = false; let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx)); }
+                            } else if button == MouseButton::Right {
+                                if let Some(pane) = app.panes.get_mut(p_idx) {
+                                    if pane.tabs.len() > 1 { pane.tabs.remove(t_idx); if pane.active_tab_index >= pane.tabs.len() { pane.active_tab_index = pane.tabs.len() - 1; } let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx)); }
+                                }
+                            }
+                            return true;
+                        }
+                        if column < 10 { app.mode = AppMode::Settings; return true; }
+                        if column >= w.saturating_sub(3) { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; }
+                    }
+
+                    // Check Breadcrumbs
+                    for (p_idx, pane) in app.panes.iter_mut().enumerate() {
+                        if let Some(fs) = pane.current_state_mut() {
+                            let clicked_crumb = fs.breadcrumb_bounds.iter().find(|(rect, _)| rect.contains(ratatui::layout::Position { x: column, y: row })).map(|(_, path)| path.clone());
+                            if let Some(path) = clicked_crumb {
+                                if button == MouseButton::Middle {
+                                    let mut new_fs = fs.clone();
+                                    new_fs.current_path = path.clone();
+                                    new_fs.selected_index = Some(0);
+                                    new_fs.search_filter.clear();
+                                    *new_fs.table_state.offset_mut() = 0;
+                                    new_fs.history = vec![path];
+                                    new_fs.history_index = 0;
+                                    pane.open_tab(new_fs);
+                                } else {
+                                    fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path);
+                                }
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx)); app.focused_pane_index = p_idx; app.sidebar_focus = false; return true;
+                            }
+                        }
+                    }
+
+                    // Update pane focus
+                    if column >= sidebar_width {
+                        let content_area_width = w.saturating_sub(sidebar_width);
+                        let pane_count = app.panes.len();
+                        let pane_width = if pane_count > 0 { content_area_width / pane_count as u16 } else { content_area_width };
+                        let clicked_pane = (column.saturating_sub(sidebar_width) / pane_width) as usize;
+                        if clicked_pane < pane_count { app.focused_pane_index = clicked_pane; app.sidebar_focus = false; }
+                    }
+
+                    // Footer interaction
+                    if row == h.saturating_sub(1) {
+                        let mut current_x = 0;
+                        if column >= current_x && column < current_x + 9 { app.running = false; return true; } current_x += 9;
+                        // Skip some spacing or log area if needed, but let's just handle basic buttons
+                        if column < 50 { // Rough estimate for left side
+                             // Quit button is handled above
+                        }
+                    }
+
+                    if column < sidebar_width {
+                        app.sidebar_focus = true;
+                        app.drag_start_pos = Some((column, row));
+                        let clicked_sidebar_item = app.sidebar_bounds.iter().find(|b| b.y == row).cloned();
+                        if let Some(bound) = clicked_sidebar_item {
+                            app.sidebar_index = bound.index;
+                            if let SidebarTarget::Favorite(ref p) = bound.target {
+                                app.drag_source = Some(p.clone());
+                            }
+                            if button == MouseButton::Right {
+                                let target = match &bound.target {
+                                    SidebarTarget::Favorite(p) => Some(ContextMenuTarget::SidebarFavorite(p.clone())),
+                                    SidebarTarget::Remote(idx) => Some(ContextMenuTarget::SidebarRemote(*idx)),
+                                    SidebarTarget::Storage(idx) => Some(ContextMenuTarget::SidebarStorage(*idx)),
+                                    _ => None
+                                };
+                                if let Some(t) = target { 
+                                    let actions = get_context_menu_actions(&t, app);
+                                    app.mode = AppMode::ContextMenu { x: column, y: row, target: t, actions }; 
+                                    return true; 
+                                }
+                            }
+                        }
+                        return true;
+                    }
+                    
                     if row >= 3 {
                         let index = fs_mouse_index(row, app);
                         let mut selected_path = None; let mut is_dir = false;
