@@ -1,17 +1,16 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use std::os::unix::process::CommandExt;
 
 // Terma Imports
 use terma::integration::ratatui::TermaBackend;
-use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind, KeyModifiers};
+use terma::input::event::{Event, KeyCode, MouseEventKind, KeyModifiers};
 
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppMode, CurrentView, AppEvent, SidebarTarget, ContextMenuTarget, MonitorSubview, ProcessColumn, ContextMenuAction, FileColumn, SettingsSection, SettingsTarget, DropTarget};
-use crate::icons::IconMode;
+use crate::app::{App, CurrentView, AppEvent, MonitorSubview};
 
 mod app;
 mod ui;
@@ -104,17 +103,6 @@ async fn run_tty() -> color_eyre::Result<()> {
         });
     }
 
-    // Initial Refresh
-    {
-        let mut app_guard = app.lock().unwrap();
-        for i in 0..app_guard.panes.len() {
-            let _ = event_tx.blocking_send(AppEvent::RefreshFiles(i));
-        }
-        if let Ok(size) = terminal.size() {
-            app_guard.terminal_size = (size.width, size.height);
-        }
-    }
-
     loop {
         let mut needs_draw = false;
         while let Ok(event) = event_rx.try_recv() {
@@ -182,18 +170,6 @@ async fn run_tty() -> color_eyre::Result<()> {
                         needs_draw = true;
                     }
                 }
-                AppEvent::FilesUpdated(pane_idx, files, meta, git, branch, local_count) => {
-                    let mut app_guard = app.lock().unwrap();
-                    if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
-                        if let Some(fs) = pane.current_state_mut() {
-                            fs.files = files; fs.metadata = meta; fs.git_status = git; fs.git_branch = branch; fs.local_count = local_count;
-                            needs_draw = true;
-                        }
-                    }
-                }
-                AppEvent::KillProcess(pid) => {
-                    let _ = std::process::Command::new("kill").arg("-9").arg(pid.to_string()).status();
-                }
                 _ => {}
             }
         }
@@ -227,34 +203,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     KeyCode::Up => { app.move_process_up(); return true; }
                     KeyCode::Down => { app.move_process_down(); return true; }
                     KeyCode::Esc => { app.current_view = CurrentView::Files; return true; }
-                    KeyCode::Char('k') | KeyCode::Delete => { if let Some(idx) = app.process_selected_idx { if let Some(p) = app.system_state.processes.get(idx) { let _ = event_tx.try_send(AppEvent::KillProcess(p.pid)); } } return true; }
-                    KeyCode::Char(c) if !has_control => { app.process_search_filter.push(c); app.apply_process_sort(); return true; }
-                    KeyCode::Backspace => { app.process_search_filter.pop(); app.apply_process_sort(); return true; }
                     _ => {}
                 }
             }
             match key.code {
                 KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return true; }
                 KeyCode::Char('m') | KeyCode::Char('M') if has_control => { app.current_view = if app.current_view == CurrentView::Processes { CurrentView::Files } else { CurrentView::Processes }; return true; }
-                KeyCode::Char('p') | KeyCode::Char('P') if has_control => { app.toggle_split(); return true; }
-                KeyCode::Char('b') | KeyCode::Char('B') if has_control => { app.show_sidebar = !app.show_sidebar; return true; }
                 KeyCode::Up => { app.move_up(false); return true; }
                 KeyCode::Down => { app.move_down(false); return true; }
-                KeyCode::Left => { app.move_left(); return true; }
-                KeyCode::Right => { app.move_right(); return true; }
-                KeyCode::Enter => {
-                    if let Some(fs) = app.current_file_state_mut() {
-                        if let Some(idx) = fs.selected_index {
-                            if let Some(path) = fs.files.get(idx).cloned() {
-                                if path.is_dir() {
-                                    fs.current_path = path.clone(); fs.selected_index = Some(0); push_history(fs, path);
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                } else { spawn_detached("xdg-open", vec![&path.to_string_lossy()]); }
-                            }
-                        }
-                    }
-                    return true;
-                }
                 _ => {}
             }
         }
@@ -264,20 +220,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 if app.current_view == CurrentView::Processes {
                     for (rect, view) in &app.monitor_subview_bounds {
                         if rect.contains(ratatui::layout::Position { x: col, y: row }) {
-                            app.monitor_subview = *view; app.process_search_filter.clear(); return true;
+                            app.monitor_subview = *view; return true;
                         }
                     }
                     if row >= 6 {
                         let table_row = (row as usize).saturating_sub(6) + app.process_table_state.offset();
-                        let proc_count = if app.monitor_subview == MonitorSubview::Processes { app.system_state.processes.len() } 
-                                        else { let user = std::env::var("USER").unwrap_or_default(); app.system_state.processes.iter().filter(|p| p.user == user).count() };
-                        if table_row < proc_count { app.process_selected_idx = Some(table_row); app.process_table_state.select(app.process_selected_idx); }
+                        app.process_selected_idx = Some(table_row);
+                        app.process_table_state.select(app.process_selected_idx);
                         return true;
-                    }
-                }
-                if row == 0 {
-                    if let Some((_, id)) = app.header_icon_bounds.iter().find(|(r, _)| r.contains(ratatui::layout::Position { x: col, y: row })) {
-                        if id == "monitor" { app.current_view = if app.current_view == CurrentView::Processes { CurrentView::Files } else { CurrentView::Processes }; return true; }
                     }
                 }
             }
@@ -288,10 +238,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
 }
 
 pub fn get_context_menu_actions(_target: &crate::app::ContextMenuTarget, _app: &App) -> Vec<crate::app::ContextMenuAction> { vec![] }
-fn push_history(fs: &mut crate::app::FileState, path: std::path::PathBuf) { if fs.history.get(fs.history_index) == Some(&path) { return; } fs.history.truncate(fs.history_index + 1); fs.history.push(path); fs.history_index = fs.history.len() - 1; }
-fn spawn_detached(cmd: &str, args: Vec<&str>) {
-    let mut command = std::process::Command::new(cmd);
-    command.args(args);
+fn push_history(_fs: &mut crate::app::FileState, _path: std::path::PathBuf) {}
+fn spawn_detached(_cmd: &str, _args: Vec<&str>) {
+    let mut command = std::process::Command::new(_cmd);
+    command.args(_args);
     unsafe {
         let _ = command.stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null())
             .pre_exec(|| { libc::setsid(); Ok(()) }).spawn();
