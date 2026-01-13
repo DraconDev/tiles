@@ -1786,57 +1786,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
         }
         Event::Key(key) => {
             let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
-            match key.code {
-                KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return true; }
-                KeyCode::Char('b') | KeyCode::Char('B') if has_control => { app.show_sidebar = !app.show_sidebar; return true; }
-                KeyCode::Char('i') | KeyCode::Char('I') if has_control => {
-                    let state = crate::modules::introspection::WorldState::capture(app);
-                    if let Ok(json) = serde_json::to_string_pretty(&state) {
-                        let _ = std::fs::write("introspection.json", json);
-                        app.last_action_msg = Some(("World state dumped to introspection.json".to_string(), std::time::Instant::now()));
-                    }
-                    return true;
-                }
-                KeyCode::Char('p') | KeyCode::Char('P') if has_control => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; }
-                KeyCode::Char('\\') if has_control => { app.toggle_split(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); return true; }
-                KeyCode::Char('h') | KeyCode::Char('H') if has_control => { let idx = app.toggle_hidden(); let _ = event_tx.try_send(AppEvent::RefreshFiles(idx)); return true; }
-                KeyCode::Char('g') | KeyCode::Char('G') if has_control => { app.mode = AppMode::Settings; app.settings_scroll = 0; return true; }
-                KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Char('o') | KeyCode::Char('O') if has_control => {
-                    if let Some(fs) = app.current_file_state() {
-                        let _ = event_tx.try_send(AppEvent::SpawnTerminal { path: fs.current_path.clone(), new_tab: true, remote: fs.remote_session.clone(), command: None });
-                    }
-                    return true;
-                }
-                KeyCode::Char('t') | KeyCode::Char('T') if has_control => {
-                    if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                        if let Some(fs) = pane.current_state() {
-                            let new_fs = fs.clone();
-                            pane.open_tab(new_fs);
-                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                        }
-                    }
-                    return true;
-                }
-                KeyCode::Char(' ') if has_control => { 
-                    app.input.clear(); app.mode = AppMode::CommandPalette; update_commands(app); return true; 
-                }
-                KeyCode::Left if has_control => {
-                    if app.sidebar_focus { app.resize_sidebar(-2); } 
-                    else { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
-                    return true;
-                }
-                KeyCode::Right if has_control => {
-                    if app.sidebar_focus { app.resize_sidebar(2); } 
-                    else { app.move_to_other_pane(); let _ = event_tx.try_send(AppEvent::RefreshFiles(0)); let _ = event_tx.try_send(AppEvent::RefreshFiles(1)); }
-                    return true;
-                }
-                _ => {}
-            }
+            let has_alt = key.modifiers.contains(KeyModifiers::ALT);
 
-            // Route to Editor if focused pane is in preview mode
-            let (w, h) = app.terminal_size;
-            let editor_area = ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1));
-
+            // 1. Full-Screen Editor Priority
             if let AppMode::Editor = app.mode {
                 if let Some(preview) = &mut app.editor_state {
                     if let Some(editor) = &mut preview.editor {
@@ -1861,9 +1813,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 return true;
                             }
                         }
-                        // Paste is harder without a crate, but we can support internal or wait for 'Paste' event from crossterm
-                        // Actually, let's assume standard typing handles paste for many terminals or they emit Paste event.
                         
+                        let (w, h) = app.terminal_size;
+                        let editor_area = ratatui::layout::Rect::new(0, 0, w, h.saturating_sub(1));
                         if editor.handle_event(&evt, editor_area) {
                             if app.auto_save && editor.modified {
                                 let _ = event_tx.try_send(AppEvent::SaveFile(preview.path.clone(), editor.get_content()));
@@ -1871,6 +1823,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
                             return true;
                         }
+                        return true; // Block fall-through to background
                     } else {
                         // Static preview mode
                         if key.code == KeyCode::Esc {
@@ -1878,11 +1831,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             app.editor_state = None;
                             return true;
                         }
+                        return true;
                     }
                 }
             }
 
-            match &app.mode {
+            match key.code {
+                KeyCode::Char('q') | KeyCode::Char('Q') if has_control => { app.running = false; return true; }
                 AppMode::CommandPalette => match key.code {
                     KeyCode::Esc => { app.mode = AppMode::Normal; return true; }
                     KeyCode::Enter => { 
