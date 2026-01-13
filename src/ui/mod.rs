@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Sparkline},
+    widgets::{Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Sparkline, Chart, Dataset, Axis, symbols},
     Frame,
 };
 
@@ -150,122 +150,103 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let left_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(9),  // System Vitality
-            Constraint::Min(0),     // Fabric Grid
+            Constraint::Length(10), // Hi-Res Heartbeat
+            Constraint::Min(0),     // Precision Fabric
         ])
         .split(main_layout[0]);
 
-    // --- 1. SYSTEM VITALITY (Top Heartbeat) ---
     let metrics_layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(34)])
         .split(left_chunks[0]);
 
-    let draw_vitality = |f: &mut Frame, area: Rect, label: &str, cur: f32, total: f32, unit: &str, history: &[u64]| {
+    let draw_hi_res_vitality = |f: &mut Frame, area: Rect, label: &str, cur: f32, total: f32, unit: &str, history: &[u64]| {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Length(1), // Header
-                Constraint::Length(2), // Value + Micro Bar
-                Constraint::Min(0),    // Pulse Waveform
+                Constraint::Length(1), // Numeric + Slider
+                Constraint::Min(0),    // Braille Waveform
             ])
             .split(area.inner(ratatui::layout::Margin { horizontal: 2, vertical: 0 }));
 
-        // 1. Dynamic Intensity Color
         let intensity = (cur / if total > 0.0 { total } else { 100.0 }).clamp(0.0, 1.0);
-        let color = if intensity > 0.85 { Color::Rgb(255, 60, 60) } // Hot Crimson
-                   else if intensity > 0.5 { Color::Rgb(255, 180, 0) } // Alert Gold
-                   else { Color::Rgb(0, 255, 150) }; // Cool Emerald
-        
-        let label_color = Color::Rgb(60, 65, 75); // Dim Shadow
+        let color = if intensity > 0.85 { Color::Rgb(255, 60, 60) } 
+                   else if intensity > 0.5 { Color::Rgb(255, 180, 0) } 
+                   else { Color::Rgb(0, 255, 150) };
 
-        // 2. Minimalist Header
-        let icon = match label {
-            "CPU" => "󰍛", "MEM" => "󰘚", "SWP" => "󰓡", _ => "󰋊"
-        };
-        f.render_widget(Paragraph::new(Line::from(vec![
-            Span::styled(format!("{} ", icon), Style::default().fg(color)),
-            Span::styled(label, Style::default().fg(label_color).add_modifier(Modifier::BOLD)),
-        ])), chunks[0]);
+        f.render_widget(Paragraph::new(Span::styled(label, Style::default().fg(Color::Rgb(60, 65, 75)).add_modifier(Modifier::BOLD))), chunks[0]);
 
-        // 3. Chromatic Value & Thin Gauge
-        let val_text = if total > 0.0 { format!("{:.1}/{:.0}", cur, total) } else { format!("{:.1}", cur) };
-        let gauge_w = chunks[1].width.saturating_sub(val_text.len() as u16 + 6);
-        let filled = (intensity * gauge_w as f32) as u16;
-        let bar = format!("{}{}", "━".repeat(filled as usize), " ".repeat(gauge_w.saturating_sub(filled) as usize));
+        let val_text = if total > 0.0 { format!("{:.1} ", cur) } else { format!("{:.1}", cur) };
+        let track_w = chunks[1].width.saturating_sub(val_text.len() as u16 + 6);
+        let pos = (intensity * track_w as f32) as u16;
+        let track = format!("{}{}{}", "─".repeat(pos as usize), "●", "─".repeat(track_w.saturating_sub(pos + 1) as usize));
 
         f.render_widget(Paragraph::new(Line::from(vec![
             Span::styled(val_text, Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
-            Span::styled(format!(" {}", unit), Style::default().fg(color).add_modifier(Modifier::DIM)),
-            Span::raw("  "),
-            Span::styled(bar, Style::default().fg(color)),
+            Span::styled(format!("{} ", unit), Style::default().fg(color).add_modifier(Modifier::DIM)),
+            Span::styled(track, Style::default().fg(Color::Rgb(30, 30, 35))),
         ])), chunks[1]);
 
-        // 4. High-Resolution Pulse (Layered)
         if !history.is_empty() {
-            // Secondary background pulse for depth
-            f.render_widget(Sparkline::default()
-                .data(history)
-                .style(Style::default().fg(color).add_modifier(Modifier::DIM)), 
-                chunks[2]);
+            let data: Vec<(f64, f64)> = history.iter().enumerate().map(|(i, &v)| (i as f64, v as f64)).collect();
+            let max_y = if total > 0.0 { total as f64 } else { 100.0 };
             
-            // Primary high-intensity pulse
-            let last_30: Vec<u64> = history.iter().rev().take(30).rev().cloned().collect();
-            f.render_widget(Sparkline::default()
-                .data(&last_30)
-                .style(Style::default().fg(Color::White)), 
-                chunks[2]);
+            let datasets = vec![
+                Dataset::default()
+                    .marker(symbols::Marker::Braille)
+                    .graph_type(symbols::GraphType::Line)
+                    .style(Style::default().fg(color).add_modifier(Modifier::DIM))
+                    .data(&data),
+                Dataset::default()
+                    .marker(symbols::Marker::Braille)
+                    .graph_type(symbols::GraphType::Line)
+                    .style(Style::default().fg(Color::White))
+                    .data(&data.iter().rev().take(20).rev().cloned().collect::<Vec<_>>()),
+            ];
+
+            let chart = Chart::new(datasets)
+                .x_axis(Axis::default().bounds([0.0, 100.0]))
+                .y_axis(Axis::default().bounds([0.0, max_y]));
+            f.render_widget(chart, chunks[2]);
         }
         
-        // Transparent vertical divider
         f.render_widget(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(Color::Rgb(25, 25, 30))), area);
     };
 
-    draw_vitality(f, metrics_layout[0], "CPU", app.system_state.cpu_usage, 0.0, "%", &app.system_state.cpu_history);
-    draw_vitality(f, metrics_layout[1], "MEM", app.system_state.mem_usage as f32, app.system_state.total_mem as f32, "GB", &app.system_state.mem_history);
-    draw_vitality(f, metrics_layout[2], "SWP", app.system_state.swap_usage as f32, app.system_state.total_swap as f32, "GB", &app.system_state.swap_history);
+    draw_hi_res_vitality(f, metrics_layout[0], "PROCESSOR", app.system_state.cpu_usage, 0.0, "%", &app.system_state.cpu_history);
+    draw_hi_res_vitality(f, metrics_layout[1], "MEMORY", app.system_state.mem_usage as f32, app.system_state.total_mem as f32, "GB", &app.system_state.mem_history);
+    draw_hi_res_vitality(f, metrics_layout[2], "SWAP", app.system_state.swap_usage as f32, app.system_state.total_swap as f32, "GB", &app.system_state.swap_history);
 
     let fabric_area = left_chunks[1].inner(ratatui::layout::Margin { horizontal: 2, vertical: 1 });
     let core_count = app.system_state.cpu_cores.len();
     if core_count > 0 {
-        f.render_widget(Paragraph::new(Span::styled("󰓅 PROCESSING FABRIC MAP", Style::default().fg(Color::Rgb(60, 65, 75)).add_modifier(Modifier::BOLD))), Rect::new(fabric_area.x, fabric_area.y - 1, 30, 1));
         let cols = if core_count > 16 { 8 } else if core_count > 8 { 4 } else { 2 };
         let rows = (core_count as f32 / cols as f32).ceil() as u16;
         let fabric_rows = Layout::default().direction(Direction::Vertical).constraints(vec![Constraint::Length(3); rows as usize]).split(fabric_area);
+
         for r in 0..rows {
             if r as usize >= fabric_rows.len() { break; }
             let core_cols = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / cols); cols as usize]).split(fabric_rows[r as usize]);
+
             for c in 0..cols {
                 let idx = (r * cols + c) as usize;
                 if idx < core_count {
                     let usage = app.system_state.cpu_cores[idx];
-                    let color = if usage > 90.0 { Color::Rgb(255, 50, 50) } else if usage > 50.0 { Color::Rgb(255, 180, 0) } else { Color::Rgb(0, 255, 150) };
+                    let color = if usage > 90.0 { Color::Rgb(255, 60, 60) } 
+                               else if usage > 50.0 { Color::Rgb(255, 180, 0) } 
+                               else { Color::Rgb(0, 255, 150) };
+
                     let slot = core_cols[c as usize].inner(ratatui::layout::Margin { horizontal: 1, vertical: 0 });
-                    
-                    // Core ID & Status
                     f.render_widget(Paragraph::new(Span::styled(format!("{:>2} 󰓅 ", idx), Style::default().fg(Color::Rgb(40, 45, 55)))), Rect::new(slot.x, slot.y, 5, 1));
                     
-                    // Technical Thread Indicator
-                    let thread_w = slot.width.saturating_sub(6);
-                    let filled = (usage / 100.0 * thread_w as f32) as u16;
-                    let thread = format!("{}{}", "━".repeat(filled as usize), " ".repeat(thread_w.saturating_sub(filled) as usize));
-                    f.render_widget(Paragraph::new(Span::styled(thread, Style::default().fg(color))), Rect::new(slot.x + 6, slot.y, thread_w, 1));
-                    
-                    // Dual-Layer Micro Pulse
                     if idx < app.system_state.core_history.len() {
-                        let spark_area = Rect::new(slot.x + 6, slot.y + 1, thread_w, 1);
-                        // History Trace
-                        f.render_widget(Sparkline::default()
-                            .data(&app.system_state.core_history[idx])
-                            .style(Style::default().fg(color).add_modifier(Modifier::DIM)), 
-                            spark_area);
-                        
-                        // Recent Hot Trace
-                        let recent: Vec<u64> = app.system_state.core_history[idx].iter().rev().take(15).rev().cloned().collect();
-                        f.render_widget(Sparkline::default()
-                            .data(&recent)
-                            .style(Style::default().fg(Color::White)), 
-                            spark_area);
+                        let spark_area = Rect::new(slot.x + 6, slot.y, slot.width.saturating_sub(7), 2);
+                        let data: Vec<(f64, f64)> = app.system_state.core_history[idx].iter().enumerate().map(|(i, &v)| (i as f64, v as f64)).collect();
+                        let chart = Chart::new(vec![Dataset::default().marker(symbols::Marker::Braille).graph_type(symbols::GraphType::Line).style(Style::default().fg(color)).data(&data)])
+                            .x_axis(Axis::default().bounds([0.0, 100.0]))
+                            .y_axis(Axis::default().bounds([0.0, 100.0]));
+                        f.render_widget(chart, spark_area);
                     }
                 }
             }
@@ -273,25 +254,50 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     let right_area = main_layout[1].inner(ratatui::layout::Margin { horizontal: 1, vertical: 0 });
-    let right_chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(8), Constraint::Length(10), Constraint::Min(0)]).split(right_area);
+    let right_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(8), Constraint::Length(10), Constraint::Min(0)])
+        .split(right_area);
+
     let host_info = vec![
         Line::from(vec![Span::styled("󰣇 ", Style::default().fg(Color::Rgb(0, 180, 255))), Span::styled(&app.system_state.hostname, Style::default().add_modifier(Modifier::BOLD))]),
         Line::from(vec![Span::styled("󰔠 ", Style::default().fg(Color::Rgb(255, 200, 0))), Span::raw(format!("{}d {}h", app.system_state.uptime / 86400, (app.system_state.uptime % 86400) / 3600))]),
         Line::from(Span::styled(&app.system_state.kernel_version, Style::default().fg(Color::Rgb(60, 65, 75)))),
     ];
     f.render_widget(Paragraph::new(host_info), right_chunks[0]);
+
     let net_inner = right_chunks[1].inner(ratatui::layout::Margin { horizontal: 1, vertical: 0 });
     let net_sub = Layout::default().direction(Direction::Vertical).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(net_inner);
-    f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(format!("↓ {:>8}/s", format_size(app.system_state.net_in_history.last().cloned().unwrap_or(0))), Style::default().fg(Color::Rgb(0, 255, 150))))).data(&app.system_state.net_in_history).style(Style::default().fg(Color::Rgb(0, 255, 150))), net_sub[0]);
-    f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(format!("↑ {:>8}/s", format_size(app.system_state.net_out_history.last().cloned().unwrap_or(0))), Style::default().fg(Color::Rgb(0, 180, 255))))).data(&app.system_state.net_out_history).style(Style::default().fg(Color::Rgb(0, 180, 255))), net_sub[1]);
+    
+    let draw_net = |f: &mut Frame, area: Rect, label: &str, history: &[u64], color: Color| {
+        let val = history.last().cloned().unwrap_or(0);
+        let data: Vec<(f64, f64)> = history.iter().enumerate().map(|(i, &v)| (i as f64, v as f64)).collect();
+        let max_v = history.iter().max().cloned().unwrap_or(1024) as f64;
+        
+        f.render_widget(Paragraph::new(Span::styled(format!("{} {:>8}/s", label, format_size(val)), Style::default().fg(color).add_modifier(Modifier::BOLD))), Rect::new(area.x, area.y, area.width, 1));
+        let chart = Chart::new(vec![Dataset::default().marker(symbols::Marker::Braille).graph_type(symbols::GraphType::Line).style(Style::default().fg(color)).data(&data)])
+            .x_axis(Axis::default().bounds([0.0, 100.0]))
+            .y_axis(Axis::default().bounds([0.0, max_v]));
+        f.render_widget(chart, Rect::new(area.x, area.y + 1, area.width, area.height.saturating_sub(1)));
+    };
+
+    draw_net(f, net_sub[0], "↓", &app.system_state.net_in_history, Color::Rgb(0, 255, 150));
+    draw_net(f, net_sub[1], "↑", &app.system_state.net_out_history, Color::Rgb(0, 180, 255));
+
     let disk_list: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let ratio = (disk.used_space / disk.total_space).clamp(0.0, 1.0);
-        let color = if ratio > 0.9 { Color::Rgb(255, 50, 50) } else if ratio > 0.7 { Color::Rgb(255, 150, 0) } else { Color::Rgb(0, 255, 150) };
-        let filled = (ratio * 10.0) as usize;
-        let bar = format!("{}{}", "━".repeat(filled), "─".repeat(10 - filled));
-        ListItem::new(vec![Line::from(vec![Span::styled("󰋊 ", Style::default().fg(color)), Span::styled(&disk.name, Style::default().fg(Color::White))]), Line::from(vec![Span::styled(bar, Style::default().fg(color)), Span::styled(format!(" {:.0}%", ratio * 100.0), Style::default().fg(Color::DarkGray))]), Line::from("")])
+        let color = if ratio > 0.9 { Color::Rgb(255, 60, 60) } else if ratio > 0.7 { Color::Rgb(255, 180, 0) } else { Color::Rgb(0, 255, 150) };
+        let track_w = 12;
+        let pos = (ratio * track_w as f64) as u16;
+        let track = format!("{}{}{}", "─".repeat(pos as usize), "●", "─".repeat(track_w.saturating_sub(pos + 1) as usize));
+        
+        ListItem::new(vec![
+            Line::from(vec![Span::styled("󰋊 ", Style::default().fg(color)), Span::styled(&disk.name, Style::default().fg(Color::White))]),
+            Line::from(vec![Span::styled(track, Style::default().fg(Color::Rgb(30, 30, 35))), Span::styled(format!(" {:.0}%", ratio * 100.0), Style::default().fg(Color::Rgb(60, 65, 75)))]),
+            Line::from(""),
+        ])
     }).collect();
-    f.render_widget(List::new(disk_list).block(Block::default().title(Span::styled(" 󰋊 STORAGE ", Style::default().fg(Color::Rgb(60, 65, 75)).add_modifier(Modifier::BOLD)))), right_chunks[2]);
+    f.render_widget(List::new(disk_list).block(Block::default().title(Span::styled(" STORAGE ", Style::default().fg(Color::Rgb(60, 65, 75)).add_modifier(Modifier::BOLD)))), right_chunks[2]);
 }
 
 fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
@@ -300,6 +306,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
         let matches = if app.process_search_filter.is_empty() { true } else { p.name.to_lowercase().contains(&app.process_search_filter.to_lowercase()) };
         p.user == current_user && !p.name.starts_with('[') && !p.name.contains("kworker") && matches
     }).collect();
+
     let rows = app_procs.iter().enumerate().map(|(i, p)| {
         let mut is_selected = false;
         let mut style = if i % 2 == 0 { Style::default().fg(Color::Rgb(180, 185, 190)) } else { Style::default().fg(Color::Rgb(140, 145, 150)) };
@@ -335,7 +342,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let icons = vec![(Icon::Burger.get(app.icon_mode), "burger"), (Icon::Back.get(app.icon_mode), "back"), (Icon::Forward.get(app.icon_mode), "forward"), (Icon::Split.get(app.icon_mode), "split"), (Icon::Monitor.get(app.icon_mode), "monitor")];
     let mut cur_x = area.x + 1;
     app.header_icon_bounds.clear();
-    for (i, (icon, id)) in icons.iter().enumerate() {
+    for (_i, (icon, id)) in icons.iter().enumerate() {
         let rect = Rect::new(cur_x, area.y, 4, 1);
         let is_hovered = app.mouse_pos.1 == area.y && app.mouse_pos.0 >= rect.x && app.mouse_pos.0 < rect.x + rect.width;
         let mut style = Style::default().fg(Color::Rgb(100, 100, 110));
@@ -354,7 +361,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                 let name = tab.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("/".to_string());
                 let is_active = t_i == pane.active_tab_index;
                 let is_focused = p_i == app.focused_pane_index && !app.sidebar_focus;
-                let mut style = if is_active && is_focused { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else if is_active { Style::default().fg(THEME.accent_primary) } else { Style::default().fg(Color::Rgb(60, 65, 75)) };
+                let style = if is_active && is_focused { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else if is_active { Style::default().fg(THEME.accent_primary) } else { Style::default().fg(Color::Rgb(60, 65, 75)) };
                 let text = format!(" {} ", name); let width = text.len() as u16;
                 if current_x + width > chunk.x + chunk.width { break; }
                 let rect = Rect::new(current_x, area.y, width, 1);
