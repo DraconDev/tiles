@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use terma::compositor::engine::TilePlacement;
 use terma::input::event::Event as TermaEvent;
-use terma::widgets::TextInput;
+use terma::widgets::{TextInput, TextEditor};
 pub use terma::system::{DiskInfo, ProcessInfo, SystemData};
 
 #[derive(Clone, Debug)]
@@ -32,6 +32,7 @@ pub enum AppEvent {
     Rename(PathBuf, PathBuf),
     Copy(PathBuf, PathBuf),
     Delete(PathBuf),
+    SaveFile(PathBuf, String), // path, content
     RemoteConnected(usize, RemoteSession), // pane_idx, session
     PreviewRequested(usize, PathBuf), // target_pane_idx, path
     SpawnTerminal {
@@ -358,6 +359,7 @@ pub struct PreviewState {
     pub path: PathBuf,
     pub content: String,
     pub scroll: usize,
+    pub editor: Option<TextEditor>,
 }
 
 #[derive(Serialize, Deserialize)]
