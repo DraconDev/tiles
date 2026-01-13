@@ -959,7 +959,7 @@ fn draw_settings_modal(f: &mut Frame, app: &App) {
     }
 }
 
-fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
+fn draw_shortcuts_settings(f: &mut Frame, area: Rect, app: &App) {
     let shortcuts = vec![
         ("General", vec![
             ("Ctrl + q", "Quit Application"),
@@ -1013,10 +1013,25 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
         rows.push(Row::new(vec![Cell::from(""), Cell::from("")])); // Spacer
     }
 
-    let table = Table::new(rows, [Constraint::Length(20), Constraint::Min(0)])
+    let total_rows = rows.len();
+    let visible_rows = area.height.saturating_sub(2) as usize;
+    let scroll = app.settings_scroll.min(total_rows.saturating_sub(visible_rows));
+    
+    let table = Table::new(rows.into_iter().skip(scroll).collect::<Vec<_>>(), [Constraint::Length(20), Constraint::Min(0)])
         .block(Block::default().title(" Keyboard Shortcuts ").borders(Borders::NONE));
     
     f.render_widget(table, area);
+
+    if total_rows > visible_rows {
+        let scrollbar = Scrollbar::default()
+            .orientation(ScrollbarOrientation::VerticalRight)
+            .begin_symbol(Some("▲"))
+            .end_symbol(Some("▼"));
+        let mut scrollbar_state = ScrollbarState::new(total_rows)
+            .position(scroll)
+            .viewport_content_length(visible_rows);
+        f.render_stateful_widget(scrollbar, area, &mut scrollbar_state);
+    }
 }
 
 fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
