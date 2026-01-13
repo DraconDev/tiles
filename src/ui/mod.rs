@@ -593,12 +593,17 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                         let full_str = path.to_string_lossy();
                         let mut display_path = if full_str.starts_with("/home/dracon") { full_str.replacen("/home/dracon", "~", 1) } else { full_str.to_string() };
                         display_path.push_str(&suffix);
+                        display_path.push(' '); // One space after name
                         if display_path.len() > name_col_width && name_col_width > 5 {
                             let keep_len = name_col_width - 3; let start_idx = display_path.len() - keep_len;
                             display_path = format!("...{}", &display_path[start_idx..]);
                         }
                         Cell::from(format!("{}{}", icon, display_path)).style(final_style)
-                    } else { Cell::from(format!("{}{}{}", icon, name, suffix)).style(final_style) }
+                    } else { 
+                        let mut name_with_space = format!("{}{}{}", icon, name, suffix);
+                        name_with_space.push(' ');
+                        Cell::from(name_with_space).style(final_style) 
+                    }
                 }
                 FileColumn::Size => { 
                     let path_color = app.path_colors.get(path).map(|&c| match c {
@@ -613,6 +618,21 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                     });
                     let style = if let Some(c) = path_color { Style::default().fg(c) } else { Style::default().fg(THEME.fg) };
                     Cell::from(format_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH))).style(style)
+                },
+                FileColumn::Created => {
+                    let path_color = app.path_colors.get(path).map(|&c| match c {
+                        1 => Color::Red, 2 => Color::Green, 3 => Color::Yellow, 4 => Color::Blue, 5 => Color::Magenta, 6 => Color::Cyan, _ => Color::White,
+                    });
+                    let style = if let Some(c) = path_color { Style::default().fg(c) } else { Style::default().fg(THEME.fg) };
+                    Cell::from(format_time(metadata.map(|m| m.created).unwrap_or(SystemTime::UNIX_EPOCH))).style(style)
+                },
+                FileColumn::Extension => {
+                    let path_color = app.path_colors.get(path).map(|&c| match c {
+                        1 => Color::Red, 2 => Color::Green, 3 => Color::Yellow, 4 => Color::Blue, 5 => Color::Magenta, 6 => Color::Cyan, _ => Color::White,
+                    });
+                    let style = if let Some(c) = path_color { Style::default().fg(c) } else { Style::default().fg(THEME.fg) };
+                    let ext = metadata.map(|m| m.extension.as_str()).unwrap_or("");
+                    Cell::from(ext).style(style)
                 },
                 FileColumn::Permissions => {
                     let path_color = app.path_colors.get(path).map(|&c| match c {
