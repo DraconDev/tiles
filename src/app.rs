@@ -497,6 +497,9 @@ pub struct App {
     pub process_selected_idx: Option<usize>,
     pub process_scroll: usize,
     pub process_search_filter: String,
+    pub process_column_bounds: Vec<(Rect, ProcessColumn)>,
+
+    pub input: TextInput,
 }
 
 impl App {
