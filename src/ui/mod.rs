@@ -358,7 +358,7 @@ fn draw_monitor_history(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(mem_spark, chunks[1]);
 }
 
-fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
+fn draw_monitor_applications(f: &mut Frame, area: Rect, _app: &mut App) {
     // Filter processes that look like "applications" (e.g. have a UI or are common desktop apps)
     // For now, let's just reuse processes but filtered/sorted differently
     f.render_widget(Paragraph::new("Applications view placeholder - filtering desktop apps...").block(Block::default().borders(Borders::ALL)), area);
