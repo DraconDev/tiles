@@ -2383,17 +2383,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         // Handle clicking inside the content of specific subviews
                         match app.monitor_subview {
                             MonitorSubview::Processes | MonitorSubview::Applications => {
-                                // 1. Header sorting (Row 5 relative to area start)
+                                // 1. Header sorting
                                 for (rect, col) in &app.process_column_bounds {
                                     if column >= rect.x && column < rect.x + rect.width && row == rect.y {
                                         app.sort_processes(*col);
                                         return true;
                                     }
                                 }
-                                // 2. Row selection (Data starts at Row 6 relative to area start)
-                                // Top Bar (3) + Margin (1) + Block Border (1) + Header (1) = 6
+                                // 2. Row selection 
+                                // Top bar (3) + Margin (1) + Block Border (1) + Header (1) = 6
                                 if row >= 6 {
                                     let table_row = (row as usize).saturating_sub(6) + app.process_table_state.offset();
+                                    
                                     let proc_count = if app.monitor_subview == MonitorSubview::Processes {
                                         app.system_state.processes.len()
                                     } else {
@@ -2405,6 +2406,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
 
                                     if table_row < proc_count {
                                         app.process_selected_idx = Some(table_row);
+                                        // Update the table state for highlighting
                                         app.process_table_state.select(app.process_selected_idx);
                                         return true;
                                     }
