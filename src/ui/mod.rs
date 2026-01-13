@@ -185,7 +185,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         let inner = block.inner(area); f.render_widget(block, area);
         let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(1), Constraint::Length(2), Constraint::Min(0)]).split(inner);
         f.render_widget(Paragraph::new(Span::styled(label, Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD))), chunks[0]);
-        f.render_widget(Paragraph::new(Line::from(vec![Span::styled(format!("{:.1}", val), Style::default().fg(color).add_modifier(Modifier::BOLD).font_size(2)), Span::styled(unit, Style::default().fg(Color::DarkGray))])), chunks[1]);
+        f.render_widget(Paragraph::new(Line::from(vec![Span::styled(format!("{:.1}", val), Style::default().fg(color).add_modifier(Modifier::BOLD)), Span::styled(unit, Style::default().fg(Color::DarkGray))])), chunks[1]);
         f.render_widget(Sparkline::default().data(history).style(Style::default().fg(color)), chunks[2]);
     };
 
