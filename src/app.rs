@@ -147,7 +147,6 @@ pub enum AppMode {
     ImportServers,
     Header(usize),
     OpenWith(PathBuf),
-    ConfirmReset,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -488,8 +487,6 @@ pub struct App {
     pub split_columns: Vec<FileColumn>,
     pub sidebar_width_percent: u16,
     pub is_resizing_sidebar: bool,
-    pub is_resizing_column: Option<(usize, FileColumn)>, // (pane_idx, column)
-    pub initial_col_width: u16,
     pub show_sidebar: bool,
     pub initial_window_size: Option<(u16, u16)>,
     pub path_colors: HashMap<PathBuf, u8>,
