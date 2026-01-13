@@ -327,12 +327,12 @@ impl FileState {
         sort_ascending: bool,
     ) -> Self {
         let mut column_widths = HashMap::new();
-        column_widths.insert(FileColumn::Name, 30);
-        column_widths.insert(FileColumn::Size, 10);
-        column_widths.insert(FileColumn::Modified, 20);
-        column_widths.insert(FileColumn::Created, 20);
-        column_widths.insert(FileColumn::Extension, 8);
-        column_widths.insert(FileColumn::Permissions, 12);
+        column_widths.insert(FileColumn::Name, 25);
+        column_widths.insert(FileColumn::Size, 9);
+        column_widths.insert(FileColumn::Modified, 14);
+        column_widths.insert(FileColumn::Created, 14);
+        column_widths.insert(FileColumn::Extension, 6);
+        column_widths.insert(FileColumn::Permissions, 10);
 
         Self {
             current_path: path.clone(),
