@@ -234,9 +234,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::CommandPalette) { draw_command_palette(f, app); }
     if matches!(app.mode, AppMode::AddRemote(_)) { draw_add_remote_modal(f, app); }
     if matches!(app.mode, AppMode::ImportServers) { draw_import_servers_modal(f, app); }
-    if let AppMode::OpenWith(path) = &app.mode { draw_open_with_modal(f, app, path); }
-}
-
+          if let AppMode::OpenWith(path) = &app.mode { draw_open_with_modal(f, app, path); }
+          if matches!(app.mode, AppMode::Editor) { draw_editor_overlay(f, app); }
+      }
 fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
     let area = centered_rect(60, 20, f.area());
     f.render_widget(Clear, area);
