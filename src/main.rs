@@ -2630,6 +2630,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                     return true;
                 }
+                AppMode::ConfirmReset => {
+                    if let MouseEventKind::Down(_) = me.kind {
+                        let area_w = (w as f32 * 0.4) as u16; let area_h = (h as f32 * 0.1) as u16; let area_x = (w - area_w) / 2; let area_y = (h - area_h) / 2;
+                        if column < area_x || column >= area_x + area_w || row < area_y || row >= area_y + area_h {
+                            app.mode = AppMode::Normal;
+                        }
+                    }
+                    return true;
+                }
                 AppMode::ContextMenu { x, y, target, actions } => {
                     if let MouseEventKind::Down(_) = me.kind {
                         let menu_width = 25; 
