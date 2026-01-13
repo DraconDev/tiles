@@ -18,10 +18,7 @@ pub mod theme;
 pub mod layout;
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
-    let inner = area.inner(ratatui::layout::Margin {
-        vertical: 1,
-        horizontal: 1,
-    });
+    let inner = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
     match app.current_view {
         CurrentView::Files => {
             let mut sidebar_items = Vec::new();
@@ -47,40 +44,23 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                                 }
                             }
                         }
-                        if let Some(name) = matched_disk {
-                            active_storage_markers.entry(name).or_default().push(panel_num);
-                        }
+                        if let Some(name) = matched_disk { active_storage_markers.entry(name).or_default().push(panel_num); }
                     }
                 }
             }
 
-            let is_dragging_folder = app.is_dragging && app.drag_source.as_ref().map(|s| s.is_dir()).unwrap_or(false);
-            let is_dragging_over_sidebar = is_dragging_folder && app.mouse_pos.0 < area.width;
-
-            if is_dragging_over_sidebar {
-                let current_idx = sidebar_items.len();
-                sidebar_items.push(ListItem::new(format!("> FAVORITES")).style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)));
-                app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_idx, target: SidebarTarget::Header("FAVORITES".to_string()) });
-                current_y += 1;
-            } else {
-                let current_idx = sidebar_items.len();
-                let icon = Icon::Star.get(app.icon_mode);
-                sidebar_items.push(ListItem::new(format!("{}FAVORITES", icon)).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
-                app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_idx, target: SidebarTarget::Header("FAVORITES".to_string()) });
-                current_y += 1;
-            }
+            let icon = Icon::Star.get(app.icon_mode);
+            sidebar_items.push(ListItem::new(format!("{}FAVORITES", icon)).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
+            app.sidebar_bounds.push(SidebarBounds { y: current_y, index: 0, target: SidebarTarget::Header("FAVORITES".to_string()) });
+            current_y += 1;
 
             for path in &app.starred {
                 let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("?".to_string());
                 let current_idx = sidebar_items.len();
                 let is_focused = app.sidebar_focus && app.sidebar_index == current_idx;
-                let is_hovered = matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
                 let is_active = if let Some(fs) = app.current_file_state() { fs.current_path == *path && fs.remote_session.is_none() } else { false };
-
                 let mut style = if is_active { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(THEME.fg) };
                 if is_focused { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); }
-                else if is_hovered && app.is_dragging { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); }
-
                 let icon = if path.is_dir() { Icon::Folder.get(app.icon_mode) } else { Icon::File.get(app.icon_mode) };
                 sidebar_items.push(ListItem::new(format!("{}{}", icon, name)).style(style));
                 app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_idx, target: SidebarTarget::Favorite(path.clone()) });
@@ -88,78 +68,20 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             }
 
             sidebar_items.push(ListItem::new("")); current_y += 1;
-            let current_storage_header_idx = sidebar_items.len();
             let storage_icon = Icon::Storage.get(app.icon_mode);
             sidebar_items.push(ListItem::new(format!("{}STORAGES", storage_icon)).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
-            app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_storage_header_idx, target: SidebarTarget::Header("STORAGES".to_string()) });
             current_y += 1;
             
             for (i, disk) in app.system_state.disks.iter().enumerate() {
-                let current_disk_idx = sidebar_items.len();
-                let is_focused = app.sidebar_focus && app.sidebar_index == current_disk_idx;
+                let current_idx = sidebar_items.len();
                 let markers = active_storage_markers.get(&disk.name);
-                let is_active = markers.is_some();
-
-                let mut name_style = if !disk.is_mounted { Style::default().fg(Color::DarkGray) } 
-                                     else if is_active { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } 
-                                     else { Style::default().fg(Color::Green) };
-                if is_focused { name_style = name_style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); }
-
-                let mut display_name = if disk.name == "/" { "Root (/)".to_string() } else { 
-                    std::path::Path::new(&disk.name).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or(disk.name.clone())
-                };
-                if display_name.len() > 20 && display_name.contains('-') {
-                    display_name = format!("{:.0}G Drive", disk.total_space / 1_073_741_824.0);
-                }
-
-                let mut spans = vec![];
-                if let Some(m_list) = markers {
-                    let m_str = m_list.iter().map(|m| m.to_string()).collect::<Vec<_>>().join(",");
-                    spans.push(Span::styled(format!("{}| ", m_str), Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)));
-                }
-                let disk_icon = Icon::Storage.get(app.icon_mode);
-                if disk.is_mounted {
-                    spans.push(Span::styled(format!("{}{}: {:.0}G Free", disk_icon, display_name, disk.available_space / 1_073_741_824.0), name_style));
-                } else {
-                    spans.push(Span::styled(format!("{}{}(Not mounted)", disk_icon, disk.name), name_style));
-                };
-
-                sidebar_items.push(ListItem::new(Line::from(spans)));
-                app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_disk_idx, target: SidebarTarget::Storage(i) });
+                let mut style = if markers.is_some() { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::Green) };
+                if app.sidebar_focus && app.sidebar_index == current_idx { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); }
+                let mut display_name = if disk.name == "/" { "Root".to_string() } else { std::path::Path::new(&disk.name).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or(disk.name.clone()) };
+                if display_name.len() > 15 { display_name.truncate(12); display_name.push_str("..."); }
+                sidebar_items.push(ListItem::new(format!(" 󰋊 {}: {:.0}G Free", display_name, disk.available_space / 1_073_741_824.0)).style(style));
+                app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_idx, target: SidebarTarget::Storage(i) });
                 current_y += 1;
-            }
-
-            sidebar_items.push(ListItem::new("")); current_y += 1;
-            let current_header_idx = sidebar_items.len();
-            let mut remotes_style = Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD);
-            if matches!(app.hovered_drop_target, Some(DropTarget::RemotesHeader)) { remotes_style = remotes_style.bg(THEME.accent_primary).fg(Color::Black); }
-            let remote_icon = Icon::Remote.get(app.icon_mode);
-            sidebar_items.push(ListItem::new(format!("{}REMOTES [Import]", remote_icon)).style(remotes_style));
-            app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_header_idx, target: SidebarTarget::Header("REMOTES".to_string()) });
-            current_y += 1;
-            for (i, bookmark) in app.remote_bookmarks.iter().enumerate() {
-                let current_bookmark_idx = sidebar_items.len();
-                let is_focused = app.sidebar_focus && app.sidebar_index == current_bookmark_idx;
-                let markers = active_remote_markers.get(&bookmark.host);
-                let is_active = markers.is_some();
-
-                let mut style = if is_active { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(THEME.fg) };
-                if is_focused { style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD); }
-
-                let mut spans = vec![];
-                if let Some(m_list) = markers {
-                    let m_str = m_list.iter().map(|m| m.to_string()).collect::<Vec<_>>().join(",");
-                    spans.push(Span::styled(format!("{}| ", m_str), Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)));
-                }
-                let icon = Icon::Remote.get(app.icon_mode);
-                spans.push(Span::styled(format!("{}{}", icon, bookmark.name), style));
-
-                sidebar_items.push(ListItem::new(Line::from(spans)));
-                app.sidebar_bounds.push(SidebarBounds { y: current_y, index: current_bookmark_idx, target: SidebarTarget::Remote(i) });
-                current_y += 1;
-            }
-            if app.remote_bookmarks.is_empty() {
-                sidebar_items.push(ListItem::new("(No remotes)").style(Style::default().fg(Color::DarkGray)));
             }
 
             let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).border_style(if app.sidebar_focus { Style::default().fg(THEME.border_active) } else { Style::default().fg(THEME.border_inactive) });
@@ -171,15 +93,11 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     f.render_widget(Block::default().style(Style::default().bg(Color::Rgb(0, 0, 0))), f.area());
-    let is_processes = app.current_view == CurrentView::Processes;
-
-    if is_processes {
+    if app.current_view == CurrentView::Processes {
         draw_monitor_page(f, f.area(), app);
     } else {
         let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)]).split(f.area());
-        let workspace_constraints = if app.show_sidebar { [Constraint::Percentage(app.sidebar_width_percent), Constraint::Min(0)] } else { [Constraint::Percentage(0), Constraint::Min(0)] };
-        let workspace = Layout::default().direction(Direction::Horizontal).constraints(workspace_constraints).split(chunks[1]);
-
+        let workspace = Layout::default().direction(Direction::Horizontal).constraints(if app.show_sidebar { [Constraint::Percentage(app.sidebar_width_percent), Constraint::Min(0)] } else { [Constraint::Percentage(0), Constraint::Min(0)] }).split(chunks[1]);
         draw_global_header(f, chunks[0], workspace[0].width, app);
         if app.show_sidebar { draw_sidebar(f, workspace[0], app); }
         draw_main_stage(f, workspace[1], app);
@@ -228,10 +146,9 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
     let search_text = if app.process_search_filter.is_empty() { Line::from(vec![Span::styled(" 󰍉 Search... ", Style::default().fg(Color::DarkGray))]) } else { Line::from(vec![Span::styled(" 󰍉 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::styled(&app.process_search_filter, Style::default().fg(Color::White).add_modifier(Modifier::BOLD))]) };
     f.render_widget(Paragraph::new(search_text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(70, 75, 80)))), nav_layout[1]);
 
-    let exit_text = " 󰅖 CLOSE ";
     let mut exit_style = Style::default().fg(Color::Rgb(231, 76, 60)).add_modifier(Modifier::BOLD);
     if app.mouse_pos.1 == nav_layout[2].y && app.mouse_pos.0 >= nav_layout[2].x && app.mouse_pos.0 < nav_layout[2].x + nav_layout[2].width { exit_style = exit_style.bg(Color::Rgb(80, 20, 20)).fg(Color::White); }
-    f.render_widget(Paragraph::new(exit_text).style(exit_style).alignment(ratatui::layout::Alignment::Right), nav_layout[2]);
+    f.render_widget(Paragraph::new(" 󰅖 CLOSE ").style(exit_style).alignment(ratatui::layout::Alignment::Right), nav_layout[2]);
 
     let content_area = chunks[1].inner(ratatui::layout::Margin { horizontal: 1, vertical: 1 });
     match app.monitor_subview {
@@ -248,13 +165,11 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let info_inner = info_block.inner(chunks[0]);
     f.render_widget(info_block, chunks[0]);
 
-    let uptime_days = app.system_state.uptime / 86400;
-    let uptime_hours = (app.system_state.uptime % 86400) / 3600;
-    let uptime_mins = (app.system_state.uptime % 3600) / 60;
+    let uptime_str = format!("{}d {}h {}m", app.system_state.uptime / 86400, (app.system_state.uptime % 86400) / 3600, (app.system_state.uptime % 3600) / 60);
     let banner_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(40), Constraint::Percentage(30), Constraint::Percentage(30)]).split(info_inner);
 
     f.render_widget(Paragraph::new(vec![Line::from(vec![Span::styled("󰣇 ", Style::default().fg(Color::Rgb(61, 174, 233))), Span::styled(&app.system_state.hostname, Style::default().add_modifier(Modifier::BOLD))]), Line::from(vec![Span::raw(format!("{} {}", app.system_state.os_name, app.system_state.os_version))]).style(Style::default().fg(Color::DarkGray))]), banner_layout[0]);
-    f.render_widget(Paragraph::new(vec![Line::from(vec![Span::styled("󰔠 ", Style::default().fg(Color::Yellow)), Span::raw("UPTIME")]), Line::from(vec![Span::styled(format!("{}d {}h {}m", uptime_days, uptime_hours, uptime_mins), Style::default().add_modifier(Modifier::BOLD))])]), banner_layout[1]);
+    f.render_widget(Paragraph::new(vec![Line::from(vec![Span::styled("󰔠 ", Style::default().fg(Color::Yellow)), Span::raw("UPTIME")]), Line::from(vec![Span::styled(uptime_str, Style::default().add_modifier(Modifier::BOLD))])]), banner_layout[1]);
     f.render_widget(Paragraph::new(vec![Line::from(vec![Span::styled("󰛳 ", Style::default().fg(Color::Green)), Span::raw("NETWORK")]), Line::from(vec![Span::styled(format!("↓{} ↑{}", format_size(app.system_state.net_in), format_size(app.system_state.net_out)), Style::default().add_modifier(Modifier::BOLD))])]), banner_layout[2]);
 
     let stats_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(chunks[1]);
@@ -263,8 +178,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(cpu_block, stats_layout[0]);
     let cpu_card_layout = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Min(0)]).split(cpu_inner);
     f.render_widget(Gauge::default().gauge_style(Style::default().fg(if app.system_state.cpu_usage > 80.0 { Color::Red } else { Color::Rgb(46, 204, 113) })).ratio((app.system_state.cpu_usage / 100.0).clamp(0.0, 1.0) as f64).label(format!("{:.1}%", app.system_state.cpu_usage)), cpu_card_layout[0]);
-    let cpu_history: Vec<u64> = app.system_state.cpu_history.iter().copied().collect();
-    f.render_widget(Sparkline::default().data(&cpu_history).style(Style::default().fg(Color::Rgb(46, 204, 113))), cpu_card_layout[1]);
+    f.render_widget(Sparkline::default().data(&app.system_state.cpu_history).style(Style::default().fg(Color::Rgb(46, 204, 113))), cpu_card_layout[1]);
 
     let mem_block = Block::default().title(Span::styled(" 󰘚 MEMORY ", Style::default().fg(Color::Rgb(155, 89, 182)).add_modifier(Modifier::BOLD))).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(50, 50, 55)));
     let mem_inner = mem_block.inner(stats_layout[1]);
@@ -272,8 +186,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let mem_card_layout = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(3), Constraint::Min(0)]).split(mem_inner);
     let mem_ratio = if app.system_state.total_mem > 0.0 { (app.system_state.mem_usage / app.system_state.total_mem).clamp(0.0, 1.0) } else { 0.0 };
     f.render_widget(Gauge::default().gauge_style(Style::default().fg(Color::Rgb(155, 89, 182))).ratio(mem_ratio).label(format!("{:.1}GB / {:.1}GB", app.system_state.mem_usage, app.system_state.total_mem)), mem_card_layout[0]);
-    let mem_history: Vec<u64> = app.system_state.mem_history.iter().copied().collect();
-    f.render_widget(Sparkline::default().data(&mem_history).style(Style::default().fg(Color::Rgb(155, 89, 182))), mem_card_layout[1]);
+    f.render_widget(Sparkline::default().data(&app.system_state.mem_history).style(Style::default().fg(Color::Rgb(155, 89, 182))), mem_card_layout[1]);
 
     let storage_block = Block::default().title(Span::styled(" 󰋊 STORAGE DEVICES ", Style::default().fg(Color::Rgb(241, 196, 15)).add_modifier(Modifier::BOLD))).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(50, 50, 55)));
     let storage_inner = storage_block.inner(chunks[2]);
@@ -314,8 +227,7 @@ fn draw_monitor_history(f: &mut Frame, area: Rect, app: &mut App) {
     let net_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(net_inner);
     f.render_widget(Sparkline::default().block(Block::default().title(" 󰁍 DOWNLOAD ")).data(&app.system_state.net_in_history).style(Style::default().fg(Color::Rgb(46, 204, 113))), net_layout[0]);
     f.render_widget(Sparkline::default().block(Block::default().title(" 󰁔 UPLOAD ")).data(&app.system_state.net_out_history).style(Style::default().fg(Color::Rgb(61, 174, 233))), net_layout[1]);
-    let mem_history: Vec<u64> = app.system_state.mem_history.iter().copied().collect();
-    f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(" 󰘚 MEMORY USAGE HISTORY ", Style::default().fg(Color::Rgb(155, 89, 182)).add_modifier(Modifier::BOLD))).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(50, 50, 55)))).data(&mem_history).max(100).style(Style::default().fg(Color::Rgb(155, 89, 182))), chunks[2]);
+    f.render_widget(Sparkline::default().block(Block::default().title(Span::styled(" 󰘚 MEMORY USAGE HISTORY ", Style::default().fg(Color::Rgb(155, 89, 182)).add_modifier(Modifier::BOLD))).borders(Borders::ALL).border_type(BorderType::Rounded).border_style(Style::default().fg(Color::Rgb(50, 50, 55)))).data(&app.system_state.mem_history).max(100).style(Style::default().fg(Color::Rgb(155, 89, 182))), chunks[2]);
 }
 
 fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
@@ -341,8 +253,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Applications { style = style.bg(Color::Rgb(61, 174, 233)).fg(Color::Black); }
         Row::new(vec![Cell::from(format!("{} {}", icon, p.name)).style(Style::default().fg(if app.process_selected_idx == Some(i) { Color::Black } else { color }).add_modifier(Modifier::BOLD)), Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(if p.cpu > 30.0 { Color::Red } else { Color::Rgb(46, 204, 113) })), Cell::from(format!("{:.1} MB", p.mem)).style(Style::default().fg(Color::Rgb(61, 174, 233))), Cell::from(p.pid.to_string()).style(Style::default().fg(Color::DarkGray)), Cell::from(p.status.clone()).style(Style::default().fg(Color::DarkGray))]).style(style)
     });
-    let table = Table::new(rows, [Constraint::Min(35), Constraint::Length(10), Constraint::Length(15), Constraint::Length(10), Constraint::Length(15)]).header(Row::new(vec![" Application", "CPU", "Memory", "PID", "Status"]).style(Style::default().add_modifier(Modifier::BOLD)).height(1).bottom_margin(1)).column_spacing(2);
-    f.render_widget(table, inner);
+    f.render_widget(Table::new(rows, [Constraint::Min(35), Constraint::Length(10), Constraint::Length(15), Constraint::Length(10), Constraint::Length(15)]).header(Row::new(vec![" Application", "CPU", "Memory", "PID", "Status"]).style(Style::default().add_modifier(Modifier::BOLD)).height(1).bottom_margin(1)).column_spacing(2), inner);
 }
 
 fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
@@ -413,18 +324,15 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 }
 
 fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
-    match app.current_view {
-        CurrentView::Files => {
-            let pane_count = app.panes.len();
-            if pane_count > 0 {
-                let chunks = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / pane_count as u16); pane_count]).split(area);
-                for i in 0..pane_count {
-                    let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
-                    draw_file_view(f, chunks[i], app, i, is_focused, Borders::ALL);
-                }
+    if app.current_view == CurrentView::Files {
+        let pane_count = app.panes.len();
+        if pane_count > 0 {
+            let chunks = Layout::default().direction(Direction::Horizontal).constraints(vec![Constraint::Percentage(100 / pane_count as u16); pane_count]).split(area);
+            for i in 0..pane_count {
+                let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
+                draw_file_view(f, chunks[i], app, i, is_focused, Borders::ALL);
             }
         }
-        _ => {}
     }
 }
 
@@ -438,17 +346,13 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
         }
         *render_state.offset_mut() = file_state.table_state.offset();
 
-        let constraints: Vec<Constraint> = file_state.columns.iter().map(|c| match c { FileColumn::Name => Constraint::Min(20), FileColumn::Size => Constraint::Length(9), FileColumn::Modified => Constraint::Length(12), FileColumn::Created => Constraint::Length(12), FileColumn::Extension => Constraint::Length(5), FileColumn::Permissions => Constraint::Length(10) }).collect();
-        let column_layout = Layout::default().direction(Direction::Horizontal).constraints(constraints.clone()).spacing(1).split(Block::default().borders(borders).inner(area));
-        file_state.column_bounds.clear();
-        for (i, col_type) in file_state.columns.iter().enumerate() { if i < column_layout.len() { file_state.column_bounds.push((column_layout[i], *col_type)); } }
-
+        let constraints = [Constraint::Min(20), Constraint::Length(10)];
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
             let category = crate::modules::files::get_file_category(path);
             let metadata = file_state.metadata.get(path);
             let mut style = if metadata.map(|m| m.is_dir).unwrap_or(false) { Style::default().fg(THEME.accent_secondary) } else { match category { FileCategory::Archive => Style::default().fg(Color::Rgb(255, 170, 0)), FileCategory::Image => Style::default().fg(Color::Rgb(255, 100, 255)), FileCategory::Script => Style::default().fg(Color::Rgb(0, 255, 150)), _ => Style::default().fg(THEME.fg) } };
             if file_state.multi_select.contains(&i) && is_focused { style = style.bg(Color::Rgb(100, 0, 0)).fg(Color::White); }
-            Row::new(file_state.columns.iter().map(|c| match c { FileColumn::Name => Cell::from(path.file_name().unwrap_or_default().to_string_lossy().to_string()), _ => Cell::from("") })).style(style)
+            Row::new(vec![Cell::from(path.file_name().unwrap_or_default().to_string_lossy().to_string()), Cell::from("") ]).style(style)
         });
 
         let mut border_style = if is_focused { Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD) } else { Style::default().fg(THEME.border_inactive) };
