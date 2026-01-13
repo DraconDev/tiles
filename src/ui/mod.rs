@@ -588,36 +588,6 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
     }
 }
 
-fn draw_stat_bar(label: &str, value: f32, max: f32) -> Line<'static> {
-    let width = 10;
-    let ratio = (value / max).clamp(0.0, 1.0);
-    let filled = (ratio * width as f32).round() as usize;
-    
-    let mut spans = vec![
-        Span::styled(format!("{} ", label), Style::default().fg(Color::DarkGray)),
-    ];
-
-    for i in 0..width {
-        let symbol = if i < filled { "█" } else { "░" };
-        let color = if ratio < 0.4 {
-            Color::Rgb(0, 255, 150) // Cyber Green
-        } else if ratio < 0.7 {
-            Color::Rgb(255, 255, 0) // Yellow
-        } else {
-            Color::Rgb(255, 0, 85)  // Neon Red
-        };
-        
-        if i < filled {
-            spans.push(Span::styled(symbol, Style::default().fg(color)));
-        } else {
-            spans.push(Span::styled(symbol, Style::default().fg(Color::Rgb(30, 30, 35))));
-        }
-    }
-
-    spans.push(Span::styled(format!(" {:>3.0}%", ratio * 100.0), Style::default().fg(THEME.fg).add_modifier(Modifier::BOLD)));
-    Line::from(spans)
-}
-
 fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
