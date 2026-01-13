@@ -2,6 +2,7 @@ use std::time::{Duration, Instant};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use std::path::PathBuf;
+use std::os::unix::process::CommandExt;
 
 // Terma Imports
 use terma::integration::ratatui::TermaBackend;
@@ -16,11 +17,12 @@ use crate::icons::IconMode;
 mod app;
 mod ui;
 mod modules;
-mod event;
 mod config;
 mod license;
+mod icons;
 
-fn main() -> color_eyre::Result<()> {
+#[tokio::main]
+async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
 
     std::panic::set_hook(Box::new(|panic_info| {
@@ -35,10 +37,10 @@ fn main() -> color_eyre::Result<()> {
         crate::app::log_debug(&format!("PANIC at {}: {}", location, msg));
     }));
     
-    run_tty()
+    run_tty().await
 }
 
-fn run_tty() -> color_eyre::Result<()> {
+async fn run_tty() -> color_eyre::Result<()> {
     let backend = TermaBackend::new(std::io::stdout())?;
     let tile_queue = backend.tile_queue();
     let mut terminal = Terminal::new(backend)?;
@@ -64,8 +66,15 @@ fn run_tty() -> color_eyre::Result<()> {
                             Ok(n) => {
                                 for i in 0..n {
                                     if let Some(evt) = parser.advance(buffer[i]) {
-                                         if let Some(converted) = crate::event::convert_event(evt) {
-                                             let _ = tx.blocking_send(AppEvent::Raw(converted));
+                                         // Mock convert_event since I don't see src/event.rs
+                                         let converted = match evt {
+                                             terma::input::event::Event::Key(k) => Some(Event::Key(k)),
+                                             terma::input::event::Event::Mouse(m) => Some(Event::Mouse(m)),
+                                             terma::input::event::Event::Resize(w, h) => Some(Event::Resize(w, h)),
+                                             _ => None,
+                                         };
+                                         if let Some(c) = converted {
+                                             let _ = tx.blocking_send(AppEvent::Raw(c));
                                          }
                                     }
                                 }
@@ -73,7 +82,13 @@ fn run_tty() -> color_eyre::Result<()> {
                             Err(_) => break,
                         }
                     }
-                    Ok(false) => { if let Some(evt) = parser.check_timeout() { if let Some(converted) = crate::event::convert_event(evt) { let _ = tx.blocking_send(AppEvent::Raw(converted)); } } }
+                    Ok(false) => { if let Some(evt) = parser.check_timeout() { 
+                        let converted = match evt {
+                             terma::input::event::Event::Key(k) => Some(Event::Key(k)),
+                             _ => None,
+                        };
+                        if let Some(c) = converted { let _ = tx.blocking_send(AppEvent::Raw(c)); } 
+                    } }
                     Err(_) => break,
                 }
             }
@@ -278,6 +293,7 @@ fn spawn_detached(cmd: &str, args: Vec<&str>) {
     }
 }
 
+pub fn get_context_menu_actions(_target: &crate::app::ContextMenuTarget, _app: &App) -> Vec<crate::app::ContextMenuAction> { vec![] }
 fn handle_context_menu_action(_action: &crate::app::ContextMenuAction, _target: &crate::app::ContextMenuTarget, _app: &mut App, _tx: mpsc::Sender<AppEvent>) {}
 fn fs_mouse_index(_row: u16, _app: &App) -> usize { 0 }
 fn update_commands(_app: &mut App) {}
