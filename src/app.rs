@@ -645,6 +645,7 @@ impl App {
             false,
             vec![
                 FileColumn::Name,
+                FileColumn::Extension,
                 FileColumn::Size,
                 FileColumn::Modified,
                 FileColumn::Permissions,
