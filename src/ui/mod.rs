@@ -338,7 +338,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
         .ratio((mem_percent / 100.0).clamp(0.0, 1.0) as f64)
         .label(format!("{:.1}%", mem_percent));
 
-    f.render_widget(Paragraph::new("Memory").style(Style::default().add_modifier(Modifier::BOLD)), mem_chunks[0]);
+    f.render_widget(Paragraph::new(mem_label).style(Style::default().add_modifier(Modifier::BOLD)), mem_chunks[0]);
     f.render_widget(mem_gauge, mem_chunks[1]);
 
     let mem_data: Vec<u64> = app.system_state.mem_history.iter().map(|&x| x).collect();
