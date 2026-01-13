@@ -55,11 +55,10 @@ pub enum CurrentView {
     Processes,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum MonitorSubview {
     Overview,
     Applications,
-    History,
     Processes,
 }
 
