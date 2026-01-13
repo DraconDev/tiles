@@ -269,21 +269,56 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             let (col, row) = (me.column, me.row);
             if let MouseEventKind::Down(_) = me.kind {
                 if app.current_view == CurrentView::Processes {
+                    // 1. Subview Tabs (Top Bar)
                     for (rect, view) in &app.monitor_subview_bounds {
                         if rect.contains(ratatui::layout::Position { x: col, y: row }) {
-                            app.monitor_subview = *view; app.process_search_filter.clear(); return true;
+                            app.monitor_subview = *view;
+                            app.process_search_filter.clear();
+                            return true;
                         }
                     }
-                    if row >= 6 {
-                        let table_row = (row as usize).saturating_sub(6) + app.process_table_state.offset();
-                        app.process_selected_idx = Some(table_row);
-                        app.process_table_state.select(app.process_selected_idx);
-                        return true;
+
+                    // 2. Table Content (Processes/Applications)
+                    match app.monitor_subview {
+                        MonitorSubview::Processes | MonitorSubview::Applications => {
+                            // Column Headers (Sorting)
+                            for (rect, col_id) in &app.process_column_bounds {
+                                if rect.contains(ratatui::layout::Position { x: col, y: row }) {
+                                    app.sort_processes(*col_id);
+                                    return true;
+                                }
+                            }
+
+                            // Row Selection
+                            // Offset logic: Top Nav(3) + Margin(1) + Border(1) + Header(1) = 6
+                            if row >= 6 {
+                                let table_row = (row as usize).saturating_sub(6) + app.process_table_state.offset();
+                                
+                                let proc_count = if app.monitor_subview == MonitorSubview::Processes {
+                                    app.system_state.processes.len()
+                                } else {
+                                    let user = std::env::var("USER").unwrap_or_default();
+                                    app.system_state.processes.iter().filter(|p| p.user == user && !p.name.starts_with('[')).count()
+                                };
+
+                                if table_row < proc_count {
+                                    app.process_selected_idx = Some(table_row);
+                                    app.process_table_state.select(app.process_selected_idx);
+                                }
+                                return true;
+                            }
+                        }
+                        _ => {}
                     }
                 }
+                
+                // Header Monitor Icon Toggle
                 if row == 0 {
                     if let Some((_, id)) = app.header_icon_bounds.iter().find(|(r, _)| r.contains(ratatui::layout::Position { x: col, y: row })) {
-                        if id == "monitor" { app.current_view = if app.current_view == CurrentView::Processes { CurrentView::Files } else { CurrentView::Processes }; return true; }
+                        if id == "monitor" {
+                            app.current_view = if app.current_view == CurrentView::Processes { CurrentView::Files } else { CurrentView::Processes };
+                            return true;
+                        }
                     }
                 }
             }
