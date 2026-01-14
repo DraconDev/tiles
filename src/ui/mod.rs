@@ -2,8 +2,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState, Chart, Dataset, Axis, GraphType},
-    symbols,
+    widgets::{Block, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, TableState},
     Frame,
 };
 
@@ -203,7 +202,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
 
     draw_telemetry_bank(f, bank_layout[0], "CPU", app.system_state.cpu_usage, 0.0, "%");
     draw_telemetry_bank(f, bank_layout[1], "MEM", app.system_state.mem_usage as f32, app.system_state.total_mem as f32, "GB");
-    draw_telemetry_bank(f, bank_layout[2], "SWP", app.system_state.swap_usage as f32, app.system_state.total_swap as f32, "GB");
+    draw_telemetry_bank(f, bank_layout[2], "SWAP", app.system_state.swap_usage as f32, app.system_state.total_swap as f32, "GB");
 
     // --- 2. FLUX RACK (Core Grid) ---
     let rack_area = left_chunks[1].inner(ratatui::layout::Margin { horizontal: 1, vertical: 1 });
@@ -239,9 +238,9 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                     
                     // Technical Slider: "╾─────┼─────╼"
                     // No blocks, pure line characters
-                    let track_w = slot.width.saturating_sub(14);
-                    let pos = (intensity * track_w as f32) as u16;
-                    let track = format!("{}{}{}", "─".repeat(pos as usize), "┼", "─".repeat(track_w.saturating_sub(pos + 1) as usize));
+                    let track_w: usize = slot.width.saturating_sub(14).into();
+                    let pos = (intensity * track_w as f32) as usize;
+                    let track = format!("{}{}{}", "─".repeat(pos), "┼", "─".repeat(track_w.saturating_sub(pos)));
                     
                     f.render_widget(Paragraph::new(Line::from(vec![
                         Span::styled(format!("0x{:02X} ", idx), Style::default().fg(Color::Rgb(50, 55, 65))),
@@ -293,7 +292,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         let color = if ratio > 0.9 { Color::Rgb(255, 60, 60) } else if ratio > 0.7 { Color::Rgb(255, 180, 0) } else { Color::Rgb(0, 255, 150) };
         
         // Line-based bar: "[------|······]"
-        let track_w = 12;
+        let track_w: usize = 12;
         let pos = (ratio * track_w as f64) as usize;
         let track = format!("[{}|{}]", "-".repeat(pos), "·".repeat(track_w.saturating_sub(pos)));
         
