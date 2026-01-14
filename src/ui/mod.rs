@@ -1,4 +1,4 @@
-use ratatui::{
+use ratatui,{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
@@ -151,7 +151,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let left_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(11), // Digital Pulse Diagnostic
+            Constraint::Length(11), // Pulse Spectrum
             Constraint::Min(0),     // Flux Field Array
         ])
         .split(main_layout[0]);
@@ -194,7 +194,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                 
                 for y in 0..height {
                     let rel_y = height.saturating_sub(y + 1);
-                    let y_ratio = (y as f32 / height as f32);
+                    let y_ratio = y as f32 / height as f32;
                     
                     if y < bar_h {
                         let shade = if y == bar_h.saturating_sub(1) { "⎯" }
@@ -279,7 +279,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let disk_list: Vec<ListItem> = app.system_state.disks.iter().map(|disk| {
         let ratio = (disk.used_space / disk.total_space).clamp(0.0, 1.0);
         let color = if ratio > 0.9 { Color::Rgb(255, 60, 60) } else if ratio > 0.7 { Color::Rgb(255, 180, 0) } else { Color::Rgb(0, 255, 150) };
-        let track_w = 12;
+        let track_w: u16 = 12;
         let pos = (ratio * track_w as f64) as u16;
         let track = format!("{}{}{}", "─".repeat(pos as usize), "┼", "─".repeat(track_w.saturating_sub(pos + 1) as usize));
         ListItem::new(vec![Line::from(vec![Span::styled("󰋊 ", Style::default().fg(color)), Span::styled(&disk.name, Style::default().fg(Color::White))]), Line::from(vec![Span::styled(track, Style::default().fg(Color::Rgb(30, 30, 35))), Span::styled(format!(" {:.0}%", ratio * 100.0), Style::default().fg(Color::Rgb(60, 65, 75)))]), Line::from("")])
@@ -309,7 +309,15 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
     app.process_column_bounds.clear();
     let header_rects = Layout::default().direction(Direction::Horizontal).constraints(column_constraints).split(Rect::new(area.x, area.y, area.width, 1));
     let header_cells = ["PID", "NAME", "USER", "STATUS", "CPU%", "MEM%"].iter().enumerate().map(|(i, h)| {
-        let col = match *h { "PID" => ProcessColumn::Pid, "NAME" => ProcessColumn::Name, "USER" => ProcessColumn::User, "STATUS" => ProcessColumn::Status, "CPU%" => ProcessColumn::Cpu, "MEM%" => ProcessColumn::Mem, _ => ProcessColumn::Pid };
+        let col = match *h {
+            "PID" => ProcessColumn::Pid,
+            "NAME" => ProcessColumn::Name,
+            "USER" => ProcessColumn::User,
+            "STATUS" => ProcessColumn::Status,
+            "CPU%" => ProcessColumn::Cpu,
+            "MEM%" => ProcessColumn::Mem,
+            _ => ProcessColumn::Pid,
+        };
         app.process_column_bounds.push((header_rects[i], col));
         let mut text = h.to_string();
         if app.process_sort_col == col { text.push_str(if app.process_sort_asc { " 󰁝" } else { " 󰁅" }); }
