@@ -151,7 +151,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let left_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(11), // Digital Pulse Diagnostic
+            Constraint::Length(11), // Pulse Spectrum
             Constraint::Min(0),     // Flux Field Array
         ])
         .split(main_layout[0]);
@@ -282,7 +282,11 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         let track_w: u16 = 12;
         let pos = (ratio * track_w as f64) as u16;
         let track = format!("{}{}{}", "─".repeat(pos as usize), "┼", "─".repeat(track_w.saturating_sub(pos + 1) as usize));
-        ListItem::new(vec![Line::from(vec![Span::styled("󰋊 ", Style::default().fg(color)), Span::styled(&disk.name, Style::default().fg(Color::White))]), Line::from(vec![Span::styled(track, Style::default().fg(Color::Rgb(30, 30, 35))), Span::styled(format!(" {:.0}%", ratio * 100.0), Style::default().fg(Color::Rgb(60, 65, 75)))]), Line::from("")])
+        ListItem::new(vec![
+            Line::from(vec![Span::styled("󰋊 ", Style::default().fg(color)), Span::styled(&disk.name, Style::default().fg(Color::White))]),
+            Line::from(vec![Span::styled(track, Style::default().fg(Color::Rgb(30, 30, 35))), Span::styled(format!(" {:.0}%", ratio * 100.0), Style::default().fg(Color::Rgb(60, 65, 75)))]),
+            Line::from(""),
+        ])
     }).collect();
     f.render_widget(List::new(disk_list).block(Block::default().title(Span::styled(" STORAGE ", Style::default().fg(Color::Rgb(50, 55, 65)).add_modifier(Modifier::BOLD)).borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(25, 25, 30))))), right_chunks[2]);
 }
