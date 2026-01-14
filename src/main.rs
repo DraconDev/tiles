@@ -327,7 +327,93 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         }
                         return true;
                     }
+                } else {
+                    // CurrentView::Files Mouse Handling
+                    if app.show_sidebar && col < app.sidebar_width() {
+                        // Sidebar click
+                        for sb in &app.sidebar_bounds {
+                            if sb.y == row {
+                                app.sidebar_index = sb.index;
+                                app.sidebar_focus = true;
+                                if let Some((last_time, last_col, last_row)) = app.last_click {
+                                    if last_col == col && last_row == row && last_time.elapsed() < Duration::from_millis(400) {
+                                        // Double click on sidebar item logic here if needed (e.g. open favorite)
+                                        match &sb.target {
+                                            crate::app::SidebarTarget::Favorite(path) => {
+                                                if let Some(fs) = app.current_file_state_mut() {
+                                                    fs.current_path = path.clone();
+                                                    fs.selected_index = Some(0);
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                                }
+                                            },
+                                            _ => {}
+                                        }
+                                    }
+                                }
+                                app.last_click = Some((std::time::Instant::now(), col, row));
+                                return true;
+                            }
+                        }
+                        return true;
+                    }
+
+                    // Tab clicks
+                    for (rect, p_idx, t_idx) in &app.tab_bounds {
+                        if rect.contains(ratatui::layout::Position { x: col, y: row }) {
+                            app.focused_pane_index = *p_idx;
+                            if let Some(pane) = app.panes.get_mut(*p_idx) {
+                                pane.active_tab_index = *t_idx;
+                            }
+                            app.sidebar_focus = false;
+                            return true;
+                        }
+                    }
+
+                    // Main Stage (File List) clicks
+                    if row >= 2 { // Assuming header and tabs are top 2 rows
+                        let sidebar_w = app.sidebar_width();
+                        if col >= sidebar_w {
+                            let work_width = app.terminal_size.0.saturating_sub(sidebar_w);
+                            let pane_width = work_width / app.panes.len() as u16;
+                            let clicked_pane_idx = ((col - sidebar_w) / pane_width) as usize;
+                            
+                            if clicked_pane_idx < app.panes.len() {
+                                app.focused_pane_index = clicked_pane_idx;
+                                app.sidebar_focus = false;
+                                
+                                if let Some(pane) = app.panes.get_mut(clicked_pane_idx) {
+                                    if let Some(fs) = pane.current_state_mut() {
+                                        let list_row = (row as usize).saturating_sub(2); // Offset for header
+                                        let idx = list_row + fs.table_state.offset();
+                                        
+                                        if idx < fs.files.len() {
+                                            fs.selected_index = Some(idx);
+                                            fs.table_state.select(Some(idx));
+                                            
+                                            // Double click detection
+                                            if let Some((last_time, last_col, last_row)) = app.last_click {
+                                                if last_col == col && last_row == row && last_time.elapsed() < Duration::from_millis(400) {
+                                                    if let Some(path) = fs.files.get(idx).cloned() {
+                                                        if path.is_dir() {
+                                                            fs.current_path = path;
+                                                            fs.selected_index = Some(0);
+                                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(clicked_pane_idx));
+                                                        } else {
+                                                            let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            app.last_click = Some((std::time::Instant::now(), col, row));
+                                        }
+                                    }
+                                }
+                                return true;
+                            }
+                        }
+                    }
                 }
+
                 if row == 0 {
                     if let Some((_, id)) = app.header_icon_bounds.iter().find(|(r, _)| r.contains(ratatui::layout::Position { x: col, y: row })) {
                         if id == "monitor" {
