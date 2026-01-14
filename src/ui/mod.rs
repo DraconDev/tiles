@@ -71,7 +71,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     } else {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Min(0), Constraint::Length(2)])
+            .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)])
             .split(f.area());
         
         let workspace = Layout::default()
@@ -309,44 +309,6 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(List::new(disk_list).block(Block::default().title(Span::styled("STO // ARRAY", Style::default().fg(Color::Rgb(60, 65, 75)).add_modifier(Modifier::BOLD))).borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(30, 30, 35)))), right_chunks[2]);
 }
 
-fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
-    let current_user = std::env::var("USER").unwrap_or_else(|_| "dracon".to_string());
-    let app_procs: Vec<_> = app.system_state.processes.iter().filter(|p| {
-        let matches = if app.process_search_filter.is_empty() { true } else { p.name.to_lowercase().contains(&app.process_search_filter.to_lowercase()) };
-        p.user == current_user && !p.name.starts_with('[') && !p.name.contains("kworker") && matches
-    }).collect();
-
-    let rows = app_procs.iter().enumerate().map(|(i, p)| {
-        let mut is_selected = false;
-        let mut style = if i % 2 == 0 { Style::default().fg(Color::Rgb(180, 185, 190)) } else { Style::default().fg(Color::Rgb(140, 145, 150)) };
-        if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Applications { style = style.bg(Color::Rgb(0, 180, 255)).fg(Color::Black).add_modifier(Modifier::BOLD); is_selected = true; }
-        let cpu_color = if is_selected { Color::Black } else if p.cpu > 50.0 { Color::Red } else { Color::Rgb(0, 255, 150) };
-        Row::new(vec![Cell::from(format!("  {}", p.name)), Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(cpu_color)), Cell::from(format!("{:.1} MB", p.mem)), Cell::from(p.pid.to_string()).style(Style::default().fg(if is_selected { Color::Black } else { Color::Rgb(60, 65, 75) })), Cell::from(p.status.clone())]).style(style)
-    });
-    f.render_widget(Table::new(rows, [Constraint::Min(35), Constraint::Length(10), Constraint::Length(15), Constraint::Length(10), Constraint::Length(15)]).header(Row::new(vec!["  Application", "CPU", "Memory", "PID", "Status"]).style(Style::default().fg(Color::Rgb(80, 85, 95)).add_modifier(Modifier::BOLD)).height(1).bottom_margin(1)).column_spacing(2), area);
-}
-
-fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
-    let column_constraints = [Constraint::Length(8), Constraint::Min(25), Constraint::Length(15), Constraint::Length(12), Constraint::Length(10), Constraint::Length(10)];
-    app.process_column_bounds.clear();
-    let header_rects = Layout::default().direction(Direction::Horizontal).constraints(column_constraints).split(Rect::new(area.x, area.y, area.width, 1));
-    let header_cells = ["PID", "NAME", "USER", "STATUS", "CPU%", "MEM%"].iter().enumerate().map(|(i, h)| {
-        let col = match *h { "PID" => ProcessColumn::Pid, "NAME" => ProcessColumn::Name, "USER" => ProcessColumn::User, "STATUS" => ProcessColumn::Status, "CPU%" => ProcessColumn::Cpu, "MEM%" => ProcessColumn::Mem, _ => ProcessColumn::Pid };
-        app.process_column_bounds.push((header_rects[i], col));
-        let mut text = h.to_string();
-        if app.process_sort_col == col { text.push_str(if app.process_sort_asc { " 󰁝" } else { " 󰁅" }); }
-        Cell::from(text).style(Style::default().fg(if app.process_sort_col == col { Color::Rgb(0, 180, 255) } else { Color::Rgb(60, 65, 75) }).add_modifier(Modifier::BOLD))
-    });
-    let rows = app.system_state.processes.iter().enumerate().map(|(i, p)| {
-        let mut is_selected = false;
-        let mut style = if i % 2 == 0 { Style::default().fg(Color::Rgb(180, 185, 190)) } else { Style::default().fg(Color::Rgb(140, 145, 150)) };
-        if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Processes { style = style.bg(Color::Rgb(0, 180, 255)).fg(Color::Black).add_modifier(Modifier::BOLD); is_selected = true; }
-        let cpu_color = if is_selected { Color::Black } else if p.cpu > 50.0 { Color::Red } else { Color::Rgb(0, 255, 150) };
-        Row::new(vec![Cell::from(format!("  {}", p.pid)).style(Style::default().fg(if is_selected { Color::Black } else { Color::Rgb(60, 65, 75) })), Cell::from(p.name.clone()).style(Style::default().add_modifier(Modifier::BOLD)), Cell::from(p.user.clone()).style(Style::default().fg(if is_selected { Color::Black } else { Color::Rgb(0, 180, 255) })), Cell::from(p.status.clone()), Cell::from(format!("{:.1}", p.cpu)).style(Style::default().fg(cpu_color)), Cell::from(format!("{:.1}", p.mem))]).style(style)
-    });
-    f.render_stateful_widget(Table::new(rows, column_constraints).header(Row::new(header_cells).height(1).bottom_margin(1)).column_spacing(1), area, &mut app.process_table_state);
-}
-
 fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
     let icons = vec![(Icon::Burger.get(app.icon_mode), "burger"), (Icon::Back.get(app.icon_mode), "back"), (Icon::Forward.get(app.icon_mode), "forward"), (Icon::Split.get(app.icon_mode), "split"), (Icon::Monitor.get(app.icon_mode), "monitor")];
     let mut cur_x = area.x + 1;
@@ -394,9 +356,21 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 
 fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool) {
     if let Some(file_state) = app.panes.get_mut(pane_idx).and_then(|p| p.current_state_mut()) {
-        file_state.view_height = area.height as usize;
+        let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(1), Constraint::Min(0)]).split(area);
+        
+        let path_str = file_state.current_path.to_string_lossy();
+        let parts: Vec<&str> = path_str.split(std::path::MAIN_SEPARATOR).filter(|s| !s.is_empty()).collect();
+        let mut breadcrumb_spans = vec![Span::styled(" / ", Style::default().fg(THEME.accent_secondary))];
+        for (i, part) in parts.iter().enumerate() {
+            let style = if i == parts.len() - 1 { Style::default().fg(Color::White).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::Rgb(150, 150, 160)) };
+            breadcrumb_spans.push(Span::styled(format!("{} ", part), style));
+            if i < parts.len() - 1 { breadcrumb_spans.push(Span::styled(" ", Style::default().fg(THEME.accent_secondary))); }
+        }
+        f.render_widget(Paragraph::new(Line::from(breadcrumb_spans)).block(Block::default().style(Style::default().bg(Color::Rgb(20, 20, 25)))), chunks[0]);
+
+        file_state.view_height = chunks[1].height as usize;
         let mut render_state = TableState::default();
-        if let Some(sel) = file_state.selected_index { let offset = file_state.table_state.offset(); if sel >= offset && sel < offset + area.height as usize - 2 { render_state.select(Some(sel)); } }
+        if let Some(sel) = file_state.selected_index { let offset = file_state.table_state.offset(); if sel >= offset && sel < offset + chunks[1].height as usize - 2 { render_state.select(Some(sel)); } }
         *render_state.offset_mut() = file_state.table_state.offset();
         let constraints = [Constraint::Min(20), Constraint::Length(10)];
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
@@ -407,54 +381,25 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             let icon = if is_dir { Icon::Folder.get(app.icon_mode) } else { Icon::File.get(app.icon_mode) };
             Row::new(vec![Cell::from(format!(" {} {}", icon, path.file_name().unwrap_or_default().to_string_lossy())), Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))).style(Style::default().fg(Color::Rgb(60, 65, 75)))]).style(style)
         });
-        
         let block_style = if is_focused { Style::default().fg(THEME.accent_primary) } else { Style::default().fg(Color::Rgb(60, 65, 75)) };
-        f.render_stateful_widget(
-            Table::new(rows, constraints)
-                .row_highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD))
-                .column_spacing(1)
-                .block(Block::default().borders(Borders::ALL).border_style(block_style).title(format!(" Pane {} ", pane_idx + 1))), 
-            area, 
-            &mut render_state
-        );
+        f.render_stateful_widget(Table::new(rows, constraints).row_highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD)).column_spacing(1).block(Block::default().borders(Borders::ALL).border_style(block_style)), chunks[1], &mut render_state);
         *file_state.table_state.offset_mut() = render_state.offset();
     }
 }
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
     let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(30), Constraint::Percentage(40), Constraint::Percentage(30)]).split(area);
-    
-    // Left: Shortcuts
-    f.render_widget(Paragraph::new(Line::from(vec![
-        Span::styled(" ^Q ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), Span::raw("Quit "),
-        Span::styled(" ^M ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)), Span::raw("Monitor "),
-        Span::styled(" ^P ", Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)), Span::raw("Split "),
-    ])), chunks[0]);
-
-    // Center: Status / Selection Info
+    f.render_widget(Block::default().style(Style::default().bg(Color::Rgb(15, 15, 20))), area);
+    f.render_widget(Paragraph::new(Line::from(vec![Span::styled(" ^Q ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), Span::raw("Quit "), Span::styled(" ^M ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)), Span::raw("Monitor "), Span::styled(" ^P ", Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)), Span::raw("Split ")])), chunks[0]);
     if let Some(fs) = app.current_file_state() {
         let total = fs.files.len();
         let selected = fs.multi_select.len();
         let mut info = format!("{} items", total);
         if selected > 0 { info.push_str(&format!(" | {} selected", selected)); }
-        
-        if let Some(idx) = fs.selected_index {
-            if let Some(path) = fs.files.get(idx) {
-                if let Some(meta) = fs.metadata.get(path) {
-                    use terma::utils::format_permissions;
-                    info.push_str(&format!(" | {}", format_permissions(meta.permissions)));
-                }
-            }
-        }
-        
+        if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx) { if let Some(meta) = fs.metadata.get(path) { use terma::utils::format_permissions; info.push_str(&format!(" | {}", format_permissions(meta.permissions))); } } }
         f.render_widget(Paragraph::new(info).alignment(ratatui::layout::Alignment::Center).style(Style::default().fg(THEME.fg)), chunks[1]);
     }
-
-    // Right: CPU Gauge
     f.render_widget(Paragraph::new(draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0, chunks[2].width / 2, THEME.fg)).alignment(ratatui::layout::Alignment::Right), chunks[2]);
-    
-    // Top Border for separation
-    f.render_widget(Block::default().borders(Borders::TOP).border_style(Style::default().fg(Color::Rgb(40, 40, 45))), area);
 }
 
 fn draw_rename_modal(f: &mut Frame, app: &App) {
