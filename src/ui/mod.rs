@@ -309,6 +309,44 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(List::new(disk_list).block(Block::default().title(Span::styled("STO // ARRAY", Style::default().fg(Color::Rgb(60, 65, 75)).add_modifier(Modifier::BOLD))).borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(30, 30, 35)))), right_chunks[2]);
 }
 
+fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
+    let current_user = std::env::var("USER").unwrap_or_else(|_| "dracon".to_string());
+    let app_procs: Vec<_> = app.system_state.processes.iter().filter(|p| {
+        let matches = if app.process_search_filter.is_empty() { true } else { p.name.to_lowercase().contains(&app.process_search_filter.to_lowercase()) };
+        p.user == current_user && !p.name.starts_with('[') && !p.name.contains("kworker") && matches
+    }).collect();
+
+    let rows = app_procs.iter().enumerate().map(|(i, p)| {
+        let mut is_selected = false;
+        let mut style = if i % 2 == 0 { Style::default().fg(Color::Rgb(180, 185, 190)) } else { Style::default().fg(Color::Rgb(140, 145, 150)) };
+        if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Applications { style = style.bg(Color::Rgb(0, 180, 255)).fg(Color::Black).add_modifier(Modifier::BOLD); is_selected = true; }
+        let cpu_color = if is_selected { Color::Black } else if p.cpu > 50.0 { Color::Red } else { Color::Rgb(0, 255, 150) };
+        Row::new(vec![Cell::from(format!("  {}", p.name)), Cell::from(format!("{:.1}%", p.cpu)).style(Style::default().fg(cpu_color)), Cell::from(format!("{:.1} MB", p.mem)), Cell::from(p.pid.to_string()).style(Style::default().fg(if is_selected { Color::Black } else { Color::Rgb(60, 65, 75) })), Cell::from(p.status.clone())]).style(style)
+    });
+    f.render_widget(Table::new(rows, [Constraint::Min(35), Constraint::Length(10), Constraint::Length(15), Constraint::Length(10), Constraint::Length(15)]).header(Row::new(vec!["  Application", "CPU", "Memory", "PID", "Status"]).style(Style::default().fg(Color::Rgb(80, 85, 95)).add_modifier(Modifier::BOLD)).height(1).bottom_margin(1)).column_spacing(2), area);
+}
+
+fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
+    let column_constraints = [Constraint::Length(8), Constraint::Min(25), Constraint::Length(15), Constraint::Length(12), Constraint::Length(10), Constraint::Length(10)];
+    app.process_column_bounds.clear();
+    let header_rects = Layout::default().direction(Direction::Horizontal).constraints(column_constraints).split(Rect::new(area.x, area.y, area.width, 1));
+    let header_cells = ["PID", "NAME", "USER", "STATUS", "CPU%", "MEM%"].iter().enumerate().map(|(i, h)| {
+        let col = match *h { "PID" => ProcessColumn::Pid, "NAME" => ProcessColumn::Name, "USER" => ProcessColumn::User, "STATUS" => ProcessColumn::Status, "CPU%" => ProcessColumn::Cpu, "MEM%" => ProcessColumn::Mem, _ => ProcessColumn::Pid };
+        app.process_column_bounds.push((header_rects[i], col));
+        let mut text = h.to_string();
+        if app.process_sort_col == col { text.push_str(if app.process_sort_asc { " 󰁝" } else { " 󰁅" }); }
+        Cell::from(text).style(Style::default().fg(if app.process_sort_col == col { Color::Rgb(0, 180, 255) } else { Color::Rgb(60, 65, 75) }).add_modifier(Modifier::BOLD))
+    });
+    let rows = app.system_state.processes.iter().enumerate().map(|(i, p)| {
+        let mut is_selected = false;
+        let mut style = if i % 2 == 0 { Style::default().fg(Color::Rgb(180, 185, 190)) } else { Style::default().fg(Color::Rgb(140, 145, 150)) };
+        if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Processes { style = style.bg(Color::Rgb(0, 180, 255)).fg(Color::Black).add_modifier(Modifier::BOLD); is_selected = true; }
+        let cpu_color = if is_selected { Color::Black } else if p.cpu > 50.0 { Color::Red } else { Color::Rgb(0, 255, 150) };
+        Row::new(vec![Cell::from(format!("  {}", p.pid)).style(Style::default().fg(if is_selected { Color::Black } else { Color::Rgb(60, 65, 75) })), Cell::from(p.name.clone()).style(Style::default().add_modifier(Modifier::BOLD)), Cell::from(p.user.clone()).style(Style::default().fg(if is_selected { Color::Black } else { Color::Rgb(0, 180, 255) })), Cell::from(p.status.clone()), Cell::from(format!("{:.1}", p.cpu)).style(Style::default().fg(cpu_color)), Cell::from(format!("{:.1}", p.mem))]).style(style)
+    });
+    f.render_stateful_widget(Table::new(rows, column_constraints).header(Row::new(header_cells).height(1).bottom_margin(1)).column_spacing(1), area, &mut app.process_table_state);
+}
+
 fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
     let icons = vec![(Icon::Burger.get(app.icon_mode), "burger"), (Icon::Back.get(app.icon_mode), "back"), (Icon::Forward.get(app.icon_mode), "forward"), (Icon::Split.get(app.icon_mode), "split"), (Icon::Monitor.get(app.icon_mode), "monitor")];
     let mut cur_x = area.x + 1;
