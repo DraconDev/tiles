@@ -499,7 +499,7 @@ fn draw_add_remote_modal(f: &mut Frame, app: &App) {
     let area = terma::layout::centered_rect(60, 40, f.area());
     f.render_widget(Clear, area);
     f.render_widget(
-        Paragraph::new(app.input.as_str()).block(
+        Paragraph::new(app.input.value.as_str()).block(
             Block::default()
                 .title(" Add Remote Host (user@host:port) ")
                 .borders(Borders::ALL)
