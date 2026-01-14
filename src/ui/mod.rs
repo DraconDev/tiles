@@ -282,6 +282,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         let track_w: u16 = 12;
         let pos = (ratio * track_w as f64) as u16;
         let track = format!("{}{}{}", "─".repeat(pos as usize), "┼", "─".repeat(track_w.saturating_sub(pos + 1) as usize));
+        
         ListItem::new(vec![
             Line::from(vec![Span::styled("󰋊 ", Style::default().fg(color)), Span::styled(&disk.name, Style::default().fg(Color::White))]),
             Line::from(vec![Span::styled(track, Style::default().fg(Color::Rgb(30, 30, 35))), Span::styled(format!(" {:.0}%", ratio * 100.0), Style::default().fg(Color::Rgb(60, 65, 75)))]),
