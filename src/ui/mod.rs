@@ -58,7 +58,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 current_y += 1;
             }
 
-            f.render_widget(List::new(sidebar_items).block(Block::default().borders(Borders::ALL).title(" EXPLORER ").border_style(Style::default().fg(Color::Rgb(60, 65, 75)))), area);
+            f.render_widget(List::new(sidebar_items).block(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(Color::Rgb(30, 30, 35)))), area);
         }
         _ => {}
     }
@@ -71,7 +71,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     } else {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)])
+            .constraints([Constraint::Length(2), Constraint::Min(0), Constraint::Length(1)])
             .split(f.area());
         
         let workspace = Layout::default()
@@ -394,21 +394,9 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 
 fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool) {
     if let Some(file_state) = app.panes.get_mut(pane_idx).and_then(|p| p.current_state_mut()) {
-        let chunks = Layout::default().direction(Direction::Vertical).constraints([Constraint::Length(1), Constraint::Min(0)]).split(area);
-        
-        let path_str = file_state.current_path.to_string_lossy();
-        let parts: Vec<&str> = path_str.split(std::path::MAIN_SEPARATOR).filter(|s| !s.is_empty()).collect();
-        let mut breadcrumb_spans = vec![Span::styled(" / ", Style::default().fg(THEME.accent_secondary))];
-        for (i, part) in parts.iter().enumerate() {
-            let style = if i == parts.len() - 1 { Style::default().fg(Color::White).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::Rgb(150, 150, 160)) };
-            breadcrumb_spans.push(Span::styled(format!("{} ", part), style));
-            if i < parts.len() - 1 { breadcrumb_spans.push(Span::styled(" ", Style::default().fg(THEME.accent_secondary))); }
-        }
-        f.render_widget(Paragraph::new(Line::from(breadcrumb_spans)).block(Block::default().style(Style::default().bg(Color::Rgb(20, 20, 25)))), chunks[0]);
-
-        file_state.view_height = chunks[1].height as usize;
+        file_state.view_height = area.height as usize;
         let mut render_state = TableState::default();
-        if let Some(sel) = file_state.selected_index { let offset = file_state.table_state.offset(); if sel >= offset && sel < offset + chunks[1].height as usize - 2 { render_state.select(Some(sel)); } }
+        if let Some(sel) = file_state.selected_index { let offset = file_state.table_state.offset(); if sel >= offset && sel < offset + area.height as usize - 2 { render_state.select(Some(sel)); } }
         *render_state.offset_mut() = file_state.table_state.offset();
         let constraints = [Constraint::Min(20), Constraint::Length(10)];
         let rows = file_state.files.iter().enumerate().map(|(i, path)| {
@@ -419,24 +407,15 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
             let icon = if is_dir { Icon::Folder.get(app.icon_mode) } else { Icon::File.get(app.icon_mode) };
             Row::new(vec![Cell::from(format!(" {} {}", icon, path.file_name().unwrap_or_default().to_string_lossy())), Cell::from(format_size(metadata.map(|m| m.size).unwrap_or(0))).style(Style::default().fg(Color::Rgb(60, 65, 75)))]).style(style)
         });
-        let block_style = if is_focused { Style::default().fg(THEME.accent_primary) } else { Style::default().fg(Color::Rgb(60, 65, 75)) };
-        f.render_stateful_widget(Table::new(rows, constraints).row_highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD)).column_spacing(1).block(Block::default().borders(Borders::ALL).border_style(block_style)), chunks[1], &mut render_state);
+        f.render_stateful_widget(Table::new(rows, constraints).row_highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD)).column_spacing(1), area, &mut render_state);
+        f.render_widget(Block::default().borders(Borders::RIGHT).border_style(Style::default().fg(Color::Rgb(30, 30, 35))), area);
         *file_state.table_state.offset_mut() = render_state.offset();
     }
 }
 
 fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
-    let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(30), Constraint::Percentage(40), Constraint::Percentage(30)]).split(area);
-    f.render_widget(Block::default().style(Style::default().bg(Color::Rgb(15, 15, 20))), area);
-    f.render_widget(Paragraph::new(Line::from(vec![Span::styled(" ^Q ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), Span::raw("Quit "), Span::styled(" ^M ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)), Span::raw("Monitor "), Span::styled(" ^P ", Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)), Span::raw("Split ")])), chunks[0]);
-    if let Some(fs) = app.current_file_state() {
-        let total = fs.files.len();
-        let selected = fs.multi_select.len();
-        let mut info = format!("{} items", total);
-        if selected > 0 { info.push_str(&format!(" | {} selected", selected)); }
-        if let Some(idx) = fs.selected_index { if let Some(path) = fs.files.get(idx) { if let Some(meta) = fs.metadata.get(path) { use terma::utils::format_permissions; info.push_str(&format!(" | {}", format_permissions(meta.permissions))); } } }
-        f.render_widget(Paragraph::new(info).alignment(ratatui::layout::Alignment::Center).style(Style::default().fg(THEME.fg)), chunks[1]);
-    }
+    let chunks = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Min(0), Constraint::Length(30), Constraint::Percentage(30)]).split(area);
+    f.render_widget(Paragraph::new(Line::from(vec![Span::styled(" ^Q ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), Span::raw("Quit ")])), chunks[0]);
     f.render_widget(Paragraph::new(draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0, chunks[2].width / 2, THEME.fg)).alignment(ratatui::layout::Alignment::Right), chunks[2]);
 }
 
