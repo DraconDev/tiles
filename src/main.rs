@@ -331,29 +331,36 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     // CurrentView::Files Mouse Handling
                     if app.show_sidebar && col < app.sidebar_width() {
                         // Sidebar click
+                        let mut clicked_item = None;
                         for sb in &app.sidebar_bounds {
                             if sb.y == row {
-                                app.sidebar_index = sb.index;
-                                app.sidebar_focus = true;
-                                if let Some((last_time, last_col, last_row)) = app.last_click {
-                                    if last_col == col && last_row == row && last_time.elapsed() < Duration::from_millis(400) {
-                                        // Double click on sidebar item logic here if needed (e.g. open favorite)
-                                        match &sb.target {
-                                            crate::app::SidebarTarget::Favorite(path) => {
-                                                if let Some(fs) = app.current_file_state_mut() {
-                                                    fs.current_path = path.clone();
-                                                    fs.selected_index = Some(0);
-                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                                }
-                                            },
-                                            _ => {}
-                                        }
-                                    }
-                                }
-                                app.last_click = Some((std::time::Instant::now(), col, row));
-                                return true;
+                                clicked_item = Some((sb.index, sb.target.clone()));
+                                break;
                             }
                         }
+
+                        if let Some((index, target)) = clicked_item {
+                            app.sidebar_index = index;
+                            app.sidebar_focus = true;
+                            if let Some((last_time, last_col, last_row)) = app.last_click {
+                                if last_col == col && last_row == row && last_time.elapsed() < Duration::from_millis(400) {
+                                    // Double click logic
+                                    match target {
+                                        crate::app::SidebarTarget::Favorite(path) => {
+                                            if let Some(fs) = app.current_file_state_mut() {
+                                                fs.current_path = path.clone();
+                                                fs.selected_index = Some(0);
+                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                            }
+                                        },
+                                        _ => {}
+                                    }
+                                }
+                            }
+                            app.last_click = Some((std::time::Instant::now(), col, row));
+                            return true;
+                        }
+                        // If no item matched, we still consumed the click in the sidebar area
                         return true;
                     }
 
