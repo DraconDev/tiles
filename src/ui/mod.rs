@@ -1,4 +1,4 @@
-use ratatui,{
+use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
@@ -151,7 +151,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     let left_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(11), // Pulse Spectrum
+            Constraint::Length(11), // Digital Pulse Diagnostic
             Constraint::Min(0),     // Flux Field Array
         ])
         .split(main_layout[0]);
@@ -309,15 +309,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
     app.process_column_bounds.clear();
     let header_rects = Layout::default().direction(Direction::Horizontal).constraints(column_constraints).split(Rect::new(area.x, area.y, area.width, 1));
     let header_cells = ["PID", "NAME", "USER", "STATUS", "CPU%", "MEM%"].iter().enumerate().map(|(i, h)| {
-        let col = match *h {
-            "PID" => ProcessColumn::Pid,
-            "NAME" => ProcessColumn::Name,
-            "USER" => ProcessColumn::User,
-            "STATUS" => ProcessColumn::Status,
-            "CPU%" => ProcessColumn::Cpu,
-            "MEM%" => ProcessColumn::Mem,
-            _ => ProcessColumn::Pid,
-        };
+        let col = match *h { "PID" => ProcessColumn::Pid, "NAME" => ProcessColumn::Name, "USER" => ProcessColumn::User, "STATUS" => ProcessColumn::Status, "CPU%" => ProcessColumn::Cpu, "MEM%" => ProcessColumn::Mem, _ => ProcessColumn::Pid };
         app.process_column_bounds.push((header_rects[i], col));
         let mut text = h.to_string();
         if app.process_sort_col == col { text.push_str(if app.process_sort_asc { " 󰁝" } else { " 󰁅" }); }
