@@ -238,11 +238,38 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
             if app.current_view == CurrentView::Processes {
                 match key.code {
-                    KeyCode::Char('1') => { app.monitor_subview = MonitorSubview::Overview; return true; }
-                    KeyCode::Char('2') => { app.monitor_subview = MonitorSubview::Applications; return true; }
-                    KeyCode::Char('3') => { app.monitor_subview = MonitorSubview::Processes; return true; }
+                    KeyCode::Char('1') => { app.monitor_subview = MonitorSubview::Overview; app.process_search_filter.clear(); return true; }
+                    KeyCode::Char('2') => { app.monitor_subview = MonitorSubview::Applications; app.process_search_filter.clear(); return true; }
+                    KeyCode::Char('3') => { app.monitor_subview = MonitorSubview::Processes; app.process_search_filter.clear(); return true; }
                     KeyCode::Up => { app.move_process_up(); return true; }
                     KeyCode::Down => { app.move_process_down(); return true; }
+                    KeyCode::Left => { 
+                        app.monitor_subview = match app.monitor_subview {
+                            MonitorSubview::Overview => MonitorSubview::Processes,
+                            MonitorSubview::Applications => MonitorSubview::Overview,
+                            MonitorSubview::Processes => MonitorSubview::Applications,
+                        };
+                        app.process_search_filter.clear();
+                        return true;
+                    }
+                    KeyCode::Right => { 
+                        app.monitor_subview = match app.monitor_subview {
+                            MonitorSubview::Overview => MonitorSubview::Applications,
+                            MonitorSubview::Applications => MonitorSubview::Processes,
+                            MonitorSubview::Processes => MonitorSubview::Overview,
+                        };
+                        app.process_search_filter.clear();
+                        return true;
+                    }
+                    KeyCode::Backspace => {
+                        app.process_search_filter.pop();
+                        return true;
+                    }
+                    KeyCode::Char(c) if !has_control => {
+                        app.process_search_filter.push(c);
+                        app.apply_process_sort();
+                        return true;
+                    }
                     KeyCode::Esc => { app.current_view = CurrentView::Files; return true; }
                     _ => {}
                 }
