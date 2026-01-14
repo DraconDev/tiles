@@ -58,7 +58,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 current_y += 1;
             }
 
-            // REMOTES
+            // REMOTES [Import]
             sidebar_items.push(ListItem::new("")); current_y += 1;
             let current_header_idx = sidebar_items.len();
             sidebar_items.push(ListItem::new(format!("{} REMOTES [Import]", Icon::Remote.get(app.icon_mode))).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
@@ -79,7 +79,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
             if app.remote_bookmarks.is_empty() {
                 sidebar_items.push(ListItem::new("   (No remotes)").style(Style::default().fg(Color::DarkGray)));
-                current_y += 1;
+                current_y += 1; // Increment for the label line
             }
 
             f.render_widget(List::new(sidebar_items).block(Block::default().borders(Borders::ALL).title(" EXPLORER ").border_style(Style::default().fg(Color::Rgb(60, 65, 75)))), area);
