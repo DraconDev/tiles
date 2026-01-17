@@ -24,14 +24,22 @@ The Unreal Engine of the TUI world.
 - [**Hybrid Identity**](./HYBRID_IDENTITY.md): Combining WezTerm, Zellij, and Yazi.
 - [**Memory Efficiency**](./MEMORY_EFFICIENCY.md): How we stay under 20MB while others use 500MB+.
 
-## 🛠️ Getting Started
+## 🛠️ Installation & Releases
+
+### Download Pre-compiled Binaries
+You can download the latest pre-compiled binaries for Linux, macOS, and Windows from the [GitHub Releases](https://github.com/DraconDev/tiles/releases) page.
+
+### Build from Source
+If you have Rust installed, you can build and install Tiles directly:
 
 ```bash
-# Run the Sovereign Terminal
-cargo run
+# Clone and install locally
+git clone https://github.com/DraconDev/tiles
+cd tiles
+cargo install --path .
 
-# Run the input debugger
-cargo run -p terma --example input_debug
+# Or run without installing
+cargo run --release
 ```
 
 ---
