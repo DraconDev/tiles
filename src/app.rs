@@ -8,10 +8,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use uuid::Uuid;
 use terma::compositor::engine::TilePlacement;
 use terma::input::event::Event as TermaEvent;
-use terma::widgets::{TextInput, TextEditor};
 pub use terma::system::{DiskInfo, ProcessInfo, SystemData};
+pub use terma::utils::{FileCategory, FileColumn, IconMode};
+pub use terma::widgets::context_menu::ContextMenuAction;
+use terma::widgets::{TextEditor, TextInput};
 
 #[derive(Clone, Debug)]
 pub enum AppEvent {
@@ -32,21 +35,27 @@ pub enum AppEvent {
     Rename(PathBuf, PathBuf),
     Copy(PathBuf, PathBuf),
     Delete(PathBuf),
-    SaveFile(PathBuf, String), // path, content
+    SaveFile(PathBuf, String),             // path, content
     RemoteConnected(usize, RemoteSession), // pane_idx, session
-    PreviewRequested(usize, PathBuf), // target_pane_idx, path
+    ConnectToRemote(usize, usize),         // pane_idx, bookmark_idx
+    PreviewRequested(usize, PathBuf),      // target_pane_idx, path
     SpawnTerminal {
         path: PathBuf,
         new_tab: bool,
         remote: Option<RemoteSession>,
         command: Option<String>,
     },
+    MountDisk(String),
     SpawnDetached {
         cmd: String,
         args: Vec<String>,
     },
     StatusMsg(String),
     KillProcess(u32),
+    SystemMonitor,
+    TaskProgress(Uuid, f32, String), // id, progress, status
+    TaskFinished(Uuid),
+    GlobalSearchUpdated(usize, Vec<PathBuf>, HashMap<PathBuf, FileMetadata>), // pane_idx, files, metadata
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -92,59 +101,14 @@ pub enum SettingsSection {
     Shortcuts,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum FileCategory {
-    Archive,
-    Image,
-    Script,
-    Text,
-    Document,
-    Audio,
-    Video,
-    Other,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum ContextMenuAction {
-    Open,
-    OpenNewTab,
-    OpenWith,
-    Edit,
-    Run,
-    RunTerminal,
-    ExtractHere,
-    NewFolder,
-    NewFile,
-    Cut,
-    Copy,
-    CopyPath,
-    CopyName,
-    Paste,
-    Rename,
-    Duplicate,
-    Compress,
-    Delete,
-    TerminalWindow,
-    SetColor(Option<u8>),
-    Properties,
-    GitStatus,
-    AddToFavorites,
-    RemoveFromFavorites,
-    Refresh,
-    SelectAll,
-    ToggleHidden,
-    ConnectRemote,
-    DeleteRemote,
-    Mount,
-    Unmount,
-    SetWallpaper,
-    GitInit,
-    SortBy(crate::app::FileColumn),
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum AppMode {
     Normal,
+    Editor,
+    EditorSearch,
+    EditorGoToLine,
+    EditorReplace,
+    Hotkeys,
     Rename,
     Delete,
     NewFolder,
@@ -160,6 +124,7 @@ pub enum AppMode {
         y: u16,
         target: ContextMenuTarget,
         actions: Vec<ContextMenuAction>,
+        selected_index: Option<usize>,
     },
     CommandPalette,
     Location,
@@ -169,6 +134,11 @@ pub enum AppMode {
     Header(usize),
     OpenWith(PathBuf),
     Engage,
+    Viewer,
+    DragDropMenu {
+        source: PathBuf,
+        target: PathBuf,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -179,6 +149,7 @@ pub enum DropTarget {
     ImportServers,
     RemotesHeader,
     Pane(usize),
+    ReorderFavorite(usize),
 }
 
 #[derive(Clone, Debug)]
@@ -194,6 +165,7 @@ pub enum SidebarTarget {
     Favorite(PathBuf),
     Remote(usize),
     Storage(usize),
+    Disk(String),
 }
 
 #[derive(Clone, Debug)]
@@ -218,16 +190,6 @@ pub enum CommandAction {
 pub enum ClipboardOp {
     Copy,
     Cut,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum FileColumn {
-    Name,
-    Size,
-    Modified,
-    Created,
-    Extension,
-    Permissions,
 }
 
 #[derive(Clone)]
@@ -398,12 +360,16 @@ pub struct PreviewState {
     pub content: String,
     pub scroll: usize,
     pub editor: Option<TextEditor>,
+    pub last_saved: Option<std::time::Instant>,
+    pub image_data: Option<(Vec<u8>, u32, u32)>, // (RGBA data, width, height)
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Pane {
     pub tabs: Vec<FileState>,
     pub active_tab_index: usize,
+    #[serde(skip)]
+    pub preview: Option<PreviewState>,
 }
 
 impl Pane {
@@ -411,6 +377,7 @@ impl Pane {
         Self {
             tabs: vec![initial_state],
             active_tab_index: 0,
+            preview: None,
         }
     }
 
@@ -437,7 +404,7 @@ pub enum SettingsTarget {
     SplitMode,
 }
 
-use crate::icons::{IconMode, guess_icon_mode};
+use crate::icons::guess_icon_mode;
 
 #[derive(Clone, Debug)]
 pub enum UndoAction {
@@ -447,10 +414,19 @@ pub enum UndoAction {
     Delete(PathBuf),          // Note: Hard to undo without trash, but we record it
 }
 
+#[derive(Clone, Debug)]
+pub struct BackgroundTask {
+    pub id: Uuid,
+    pub name: String,
+    pub progress: f32, // 0.0 to 1.0
+    pub status: String,
+}
+
 pub struct App {
     pub running: bool,
     pub current_view: CurrentView,
     pub mode: AppMode,
+    pub previous_mode: AppMode,
     pub input: TextInput,
     pub icon_mode: IconMode,
 
@@ -487,9 +463,10 @@ pub struct App {
     pub settings_section: SettingsSection,
     pub settings_target: SettingsTarget,
     pub settings_scroll: usize,
+    pub settings_index: usize,
     pub rename_selected: bool,
     pub clipboard: Option<(PathBuf, ClipboardOp)>,
-    
+
     // Global Preferences
     pub default_show_hidden: bool,
     pub confirm_delete: bool,
@@ -508,6 +485,10 @@ pub struct App {
     pub last_action_msg: Option<(String, std::time::Instant)>,
     pub pending_remote: RemoteBookmark,
     pub editor_state: Option<PreviewState>,
+    pub replace_buffer: String,
+    pub open_with_index: usize,
+    pub external_tools: HashMap<String, Vec<crate::config::ExternalTool>>,
+    pub background_tasks: Vec<BackgroundTask>,
 
     // Undo/Redo
     pub undo_stack: Vec<UndoAction>,
@@ -572,15 +553,12 @@ impl App {
                         if !tab.columns.contains(&FileColumn::Name) {
                             tab.columns.insert(0, FileColumn::Name);
                         }
-                        
+
                         // If columns list became empty for some reason, restore defaults
-                        if tab.columns.len() <= 1 { // Only has Name or is empty
-                             tab.columns = vec![
-                                 FileColumn::Name,
-                                 FileColumn::Extension,
-                                 FileColumn::Size,
-                                 FileColumn::Modified,
-                             ];
+                        if tab.columns.len() <= 1 {
+                            // Only has Name or is empty
+                            tab.columns =
+                                vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified];
                         }
                     }
                 }
@@ -590,8 +568,9 @@ impl App {
                     running: true,
                     current_view: CurrentView::Files,
                     mode: AppMode::Normal,
+                    previous_mode: AppMode::Normal,
                     input: TextInput::new(),
-                    icon_mode: guess_icon_mode(),
+                    icon_mode: state.icon_mode.unwrap_or_else(guess_icon_mode),
                     panes: state.panes,
                     focused_pane_index: state.focused_pane_index,
                     terminal_size: (0, 0),
@@ -621,6 +600,7 @@ impl App {
                     settings_section: SettingsSection::Columns,
                     settings_target: SettingsTarget::SingleMode,
                     settings_scroll: 0,
+                    settings_index: 0,
                     rename_selected: false,
                     clipboard: None,
                     default_show_hidden: false,
@@ -628,7 +608,12 @@ impl App {
                     smart_date: true,
                     auto_save: false,
                     preferred_terminal: None,
-                    single_columns: vec![FileColumn::Name, FileColumn::Extension, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
+                    single_columns: vec![
+                        FileColumn::Name,
+                        FileColumn::Size,
+                        FileColumn::Modified,
+                        FileColumn::Permissions,
+                    ],
                     split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
                     sidebar_width_percent: 20,
                     is_resizing_sidebar: false,
@@ -648,6 +633,10 @@ impl App {
                     undo_stack: Vec::new(),
                     redo_stack: Vec::new(),
                     editor_state: None,
+                    replace_buffer: String::new(),
+                    open_with_index: 0,
+                    external_tools: state.external_tools,
+                    background_tasks: Vec::new(),
                     process_table_state: TableState::default(),
                     process_sort_col: ProcessColumn::Cpu,
                     process_sort_asc: false,
@@ -670,7 +659,6 @@ impl App {
             false,
             vec![
                 FileColumn::Name,
-                FileColumn::Extension,
                 FileColumn::Size,
                 FileColumn::Modified,
                 FileColumn::Permissions,
@@ -689,6 +677,7 @@ impl App {
             running: true,
             current_view: CurrentView::Files,
             mode: AppMode::Normal,
+            previous_mode: AppMode::Normal,
             input: TextInput::new(),
             icon_mode: guess_icon_mode(),
 
@@ -717,10 +706,19 @@ impl App {
             starred: {
                 let mut s = Vec::new();
                 if let Some(p) = dirs::home_dir() {
-                    if !s.contains(&p) { s.push(p.clone()); }
-                    
+                    if !s.contains(&p) {
+                        s.push(p.clone());
+                    }
+
                     // Common folders relative to home if standard dirs fail or just to be safe
-                    let common = vec!["Desktop", "Downloads", "Documents", "Pictures", "Music", "Videos"];
+                    let common = vec![
+                        "Desktop",
+                        "Downloads",
+                        "Documents",
+                        "Pictures",
+                        "Music",
+                        "Videos",
+                    ];
                     for c in common {
                         let path = p.join(c);
                         if path.exists() && !s.contains(&path) {
@@ -729,7 +727,15 @@ impl App {
                     }
 
                     // Developer folders
-                    let dev_names = vec!["Dev", "Development", "Projects", "Code", "git", "source", "work"];
+                    let dev_names = vec![
+                        "Dev",
+                        "Development",
+                        "Projects",
+                        "Code",
+                        "git",
+                        "source",
+                        "work",
+                    ];
                     for d in dev_names {
                         let path = p.join(d);
                         if path.exists() && !s.contains(&path) {
@@ -738,14 +744,38 @@ impl App {
                         }
                     }
                 }
-                
+
                 // Fallback to dirs crate specific functions if not found above (though constructing from home usually works on Linux)
-                if let Some(p) = dirs::download_dir() { if !s.contains(&p) { s.push(p); } }
-                if let Some(p) = dirs::document_dir() { if !s.contains(&p) { s.push(p); } }
-                if let Some(p) = dirs::picture_dir() { if !s.contains(&p) { s.push(p); } }
-                if let Some(p) = dirs::desktop_dir() { if !s.contains(&p) { s.push(p); } }
-                if let Some(p) = dirs::audio_dir() { if !s.contains(&p) { s.push(p); } }
-                if let Some(p) = dirs::video_dir() { if !s.contains(&p) { s.push(p); } }
+                if let Some(p) = dirs::download_dir() {
+                    if !s.contains(&p) {
+                        s.push(p);
+                    }
+                }
+                if let Some(p) = dirs::document_dir() {
+                    if !s.contains(&p) {
+                        s.push(p);
+                    }
+                }
+                if let Some(p) = dirs::picture_dir() {
+                    if !s.contains(&p) {
+                        s.push(p);
+                    }
+                }
+                if let Some(p) = dirs::desktop_dir() {
+                    if !s.contains(&p) {
+                        s.push(p);
+                    }
+                }
+                if let Some(p) = dirs::audio_dir() {
+                    if !s.contains(&p) {
+                        s.push(p);
+                    }
+                }
+                if let Some(p) = dirs::video_dir() {
+                    if !s.contains(&p) {
+                        s.push(p);
+                    }
+                }
 
                 s
             },
@@ -759,6 +789,7 @@ impl App {
             settings_section: SettingsSection::Columns,
             settings_target: SettingsTarget::SingleMode,
             settings_scroll: 0,
+            settings_index: 0,
             rename_selected: false,
             clipboard: None,
             default_show_hidden: false,
@@ -766,7 +797,12 @@ impl App {
             smart_date: true,
             auto_save: false,
             preferred_terminal: None,
-            single_columns: vec![FileColumn::Name, FileColumn::Extension, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
+            single_columns: vec![
+                FileColumn::Name,
+                FileColumn::Size,
+                FileColumn::Modified,
+                FileColumn::Permissions,
+            ],
             split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
             sidebar_width_percent: 20,
             is_resizing_sidebar: false,
@@ -786,6 +822,10 @@ impl App {
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             editor_state: None,
+            replace_buffer: String::new(),
+            open_with_index: 0,
+            external_tools: HashMap::new(),
+            background_tasks: Vec::new(),
             process_table_state: TableState::default(),
             process_sort_col: ProcessColumn::Cpu,
             process_sort_asc: false,
@@ -819,7 +859,7 @@ impl App {
                 let mut new_fs = fs.clone();
                 self.panes.push(Pane::new(new_fs));
             }
-            
+
             // Apply Split Mode columns to all panes/tabs
             for pane in &mut self.panes {
                 for tab in &mut pane.tabs {
@@ -830,7 +870,7 @@ impl App {
             // Entering Single Mode
             self.panes.pop();
             self.focused_pane_index = 0;
-            
+
             // Apply Single Mode columns to the remaining pane/tabs
             if let Some(pane) = self.panes.get_mut(0) {
                 for tab in &mut pane.tabs {
@@ -881,15 +921,14 @@ impl App {
             target_cols.push(col);
         }
 
-                        // Maintain a consistent default order
-                        let order = [
-                            FileColumn::Name,
-                            FileColumn::Extension,
-                            FileColumn::Size,
-                            FileColumn::Modified,
-                            FileColumn::Created,
-                            FileColumn::Permissions,
-                        ];
+        // Maintain a consistent default order
+        let order = [
+            FileColumn::Name,
+            FileColumn::Size,
+            FileColumn::Modified,
+            FileColumn::Created,
+            FileColumn::Permissions,
+        ];
         let mut sorted = Vec::new();
         for &c in &order {
             if target_cols.contains(&c) {
@@ -899,7 +938,11 @@ impl App {
         *target_cols = sorted;
 
         // Apply to active panes immediately if the target matches the current view mode
-        let current_mode = if self.panes.len() == 1 { SettingsTarget::SingleMode } else { SettingsTarget::SplitMode };
+        let current_mode = if self.panes.len() == 1 {
+            SettingsTarget::SingleMode
+        } else {
+            SettingsTarget::SplitMode
+        };
         if self.settings_target == current_mode {
             for pane in &mut self.panes {
                 for tab in &mut pane.tabs {
@@ -926,7 +969,11 @@ impl App {
 
             // Skip divider
             if fs.files[i].to_string_lossy() == "__DIVIDER__" {
-                i = if i == 0 { fs.files.len().saturating_sub(1) } else { i - 1 };
+                i = if i == 0 {
+                    fs.files.len().saturating_sub(1)
+                } else {
+                    i - 1
+                };
             }
 
             fs.selected_index = Some(i);
@@ -967,7 +1014,11 @@ impl App {
 
             // Skip divider
             if i < fs.files.len() && fs.files[i].to_string_lossy() == "__DIVIDER__" {
-                i = if i >= fs.files.len().saturating_sub(1) { 0 } else { i + 1 };
+                i = if i >= fs.files.len().saturating_sub(1) {
+                    0
+                } else {
+                    i + 1
+                };
             }
 
             fs.selected_index = Some(i);
@@ -1016,7 +1067,10 @@ impl App {
         use ratatui::layout::{Constraint, Direction, Layout, Rect};
         let layout = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(self.sidebar_width_percent), Constraint::Min(0)])
+            .constraints([
+                Constraint::Percentage(self.sidebar_width_percent),
+                Constraint::Min(0),
+            ])
             .split(Rect::new(0, 0, self.terminal_size.0, self.terminal_size.1));
         layout[0].width
     }
@@ -1090,7 +1144,11 @@ impl App {
                 }
             }
 
-            log_debug(&format!("Found {} paths to move to {:?}", paths_to_move.len(), dest_path));
+            log_debug(&format!(
+                "Found {} paths to move to {:?}",
+                paths_to_move.len(),
+                dest_path
+            ));
 
             for src in paths_to_move {
                 if let Some(filename) = src.file_name() {
@@ -1127,7 +1185,11 @@ impl App {
 
         for s in config.servers {
             // Check if already exists
-            if !self.remote_bookmarks.iter().any(|b| b.host == s.host && b.user == s.user) {
+            if !self
+                .remote_bookmarks
+                .iter()
+                .any(|b| b.host == s.host && b.user == s.user)
+            {
                 self.remote_bookmarks.push(RemoteBookmark {
                     name: s.name,
                     host: s.host,
@@ -1164,7 +1226,7 @@ impl App {
             self.process_table_state.select(Some(0));
         }
     }
-    
+
     pub fn sort_processes(&mut self, col: ProcessColumn) {
         if self.process_sort_col == col {
             self.process_sort_asc = !self.process_sort_asc;
@@ -1180,20 +1242,64 @@ impl App {
         if !self.process_search_filter.is_empty() {
             let filter = self.process_search_filter.to_lowercase();
             self.system_state.processes.retain(|p| {
-                p.name.to_lowercase().contains(&filter) || 
-                p.pid.to_string().contains(&filter) || 
-                p.user.to_lowercase().contains(&filter)
+                p.name.to_lowercase().contains(&filter)
+                    || p.pid.to_string().contains(&filter)
+                    || p.user.to_lowercase().contains(&filter)
             });
         }
 
         let asc = self.process_sort_asc;
         match self.process_sort_col {
-            ProcessColumn::Pid => self.system_state.processes.sort_by(|a, b| if asc { a.pid.cmp(&b.pid) } else { b.pid.cmp(&a.pid) }),
-            ProcessColumn::Name => self.system_state.processes.sort_by(|a, b| if asc { a.name.cmp(&b.name) } else { b.name.cmp(&a.name) }),
-            ProcessColumn::Cpu => self.system_state.processes.sort_by(|a, b| if asc { a.cpu.partial_cmp(&b.cpu).unwrap_or(std::cmp::Ordering::Equal) } else { b.cpu.partial_cmp(&a.cpu).unwrap_or(std::cmp::Ordering::Equal) }),
-            ProcessColumn::Mem => self.system_state.processes.sort_by(|a, b| if asc { a.mem.partial_cmp(&b.mem).unwrap_or(std::cmp::Ordering::Equal) } else { b.mem.partial_cmp(&a.mem).unwrap_or(std::cmp::Ordering::Equal) }),
-            ProcessColumn::User => self.system_state.processes.sort_by(|a, b| if asc { a.user.cmp(&b.user) } else { b.user.cmp(&a.user) }),
-            ProcessColumn::Status => self.system_state.processes.sort_by(|a, b| if asc { a.status.cmp(&b.status) } else { b.status.cmp(&a.status) }),
+            ProcessColumn::Pid => self.system_state.processes.sort_by(|a, b| {
+                if asc {
+                    a.pid.cmp(&b.pid)
+                } else {
+                    b.pid.cmp(&a.pid)
+                }
+            }),
+            ProcessColumn::Name => self.system_state.processes.sort_by(|a, b| {
+                if asc {
+                    a.name.cmp(&b.name)
+                } else {
+                    b.name.cmp(&a.name)
+                }
+            }),
+            ProcessColumn::Cpu => self.system_state.processes.sort_by(|a, b| {
+                if asc {
+                    a.cpu
+                        .partial_cmp(&b.cpu)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                } else {
+                    b.cpu
+                        .partial_cmp(&a.cpu)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                }
+            }),
+            ProcessColumn::Mem => self.system_state.processes.sort_by(|a, b| {
+                if asc {
+                    a.mem
+                        .partial_cmp(&b.mem)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                } else {
+                    b.mem
+                        .partial_cmp(&a.mem)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                }
+            }),
+            ProcessColumn::User => self.system_state.processes.sort_by(|a, b| {
+                if asc {
+                    a.user.cmp(&b.user)
+                } else {
+                    b.user.cmp(&a.user)
+                }
+            }),
+            ProcessColumn::Status => self.system_state.processes.sort_by(|a, b| {
+                if asc {
+                    a.status.cmp(&b.status)
+                } else {
+                    b.status.cmp(&a.status)
+                }
+            }),
         }
     }
 }

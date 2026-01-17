@@ -284,7 +284,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 if let Some(idx) = fs.selected_index {
                                     if let Some(path) = fs.files.get(idx) {
                                         if path.is_dir() { navigate_to = Some(path.clone()); }
-                                        else { spawn_detached("xdg-open", vec![&path.to_string_lossy()]); }
+                                        else { terma::utils::spawn_detached("xdg-open", vec![path.to_string_lossy().to_string()]); }
                                     }
                                 }
                             }
@@ -559,7 +559,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             app.drag_source = Some(path.clone()); app.drag_start_pos = Some((column, row));
                             if button == MouseButton::Left && app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
                                 if path.is_dir() { if let Some(fs) = app.current_file_state_mut() { fs.current_path = path.clone(); fs.selected_index = Some(0); fs.multi_select.clear(); fs.search_filter.clear(); *fs.table_state.offset_mut() = 0; push_history(fs, path); let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index)); } } 
-                                else { spawn_detached("xdg-open", vec![&path.to_string_lossy()]); } 
+                                else { terma::utils::spawn_detached("xdg-open", vec![path.to_string_lossy().to_string()]); } 
                             } 
                             app.mouse_last_click = std::time::Instant::now(); app.mouse_click_pos = (column, row);
                         }

@@ -3,17 +3,7 @@ use crate::app::{FileCategory, FileState};
 use std::path::Path;
 
 pub fn get_file_category(path: &Path) -> FileCategory {
-    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
-    match ext.as_str() {
-        "zip" | "tar" | "gz" | "7z" | "rar" | "xz" | "bz2" => FileCategory::Archive,
-        "png" | "jpg" | "jpeg" | "gif" | "webp" | "svg" | "bmp" => FileCategory::Image,
-        "sh" | "py" | "pyw" | "rb" | "js" | "ts" | "pl" | "php" => FileCategory::Script,
-        "txt" | "md" | "rs" | "c" | "cpp" | "h" | "hpp" | "toml" | "yaml" | "yml" | "json" | "xml" | "html" | "css" | "conf" | "config" | "log" => FileCategory::Text,
-        "pdf" | "doc" | "docx" | "odt" | "ods" | "odp" | "xlsx" | "xls" | "csv" => FileCategory::Document,
-        "mp3" | "wav" | "ogg" | "flac" | "m4a" | "aac" => FileCategory::Audio,
-        "mp4" | "mkv" | "avi" | "mov" | "webm" | "flv" => FileCategory::Video,
-        _ => FileCategory::Other,
-    }
+    terma::utils::get_file_category(path)
 }
 
 pub fn update_files(state: &mut FileState, session: Option<&ssh2::Session>) {
@@ -43,10 +33,18 @@ fn sort_files(state: &mut FileState) {
         // Within same type, sort by selected column
         let ord = match sort_col {
             crate::app::FileColumn::Name => {
-                let a_name = a.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
-                let b_name = b.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
+                let a_name = a
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("")
+                    .to_lowercase();
+                let b_name = b
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("")
+                    .to_lowercase();
                 a_name.cmp(&b_name)
-            },
+            }
             crate::app::FileColumn::Size => {
                 let a_size = a_meta.map(|m| m.size).unwrap_or(0);
                 let b_size = b_meta.map(|m| m.size).unwrap_or(0);
@@ -62,14 +60,13 @@ fn sort_files(state: &mut FileState) {
                 a_mod.cmp(&b_mod)
             }
             crate::app::FileColumn::Created => {
-                let a_time = a_meta.map(|m| m.created).unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-                let b_time = b_meta.map(|m| m.created).unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                let a_time = a_meta
+                    .map(|m| m.created)
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                let b_time = b_meta
+                    .map(|m| m.created)
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
                 a_time.cmp(&b_time)
-            }
-            crate::app::FileColumn::Extension => {
-                let a_ext = a_meta.map(|m| m.extension.as_str()).unwrap_or("").to_lowercase();
-                let b_ext = b_meta.map(|m| m.extension.as_str()).unwrap_or("").to_lowercase();
-                a_ext.cmp(&b_ext)
             }
             crate::app::FileColumn::Permissions => {
                 let a_perm = a_meta.map(|m| m.permissions).unwrap_or(0);
@@ -88,7 +85,6 @@ fn sort_files(state: &mut FileState) {
 
 pub fn update_local_files(state: &mut FileState) {
     let mut local_files = Vec::new();
-    let mut global_files = Vec::new();
     state.metadata.clear();
 
     // 1. LOCAL SEARCH (Always performed)
@@ -96,14 +92,18 @@ pub fn update_local_files(state: &mut FileState) {
         for entry in entries.filter_map(|e| e.ok()) {
             let path = entry.path();
             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            
+
             // Hidden filtering
             if !state.show_hidden && name.starts_with('.') {
                 continue;
             }
-            
+
             // Search filtering
-            if !state.search_filter.is_empty() && !name.to_lowercase().contains(&state.search_filter.to_lowercase()) {
+            if !state.search_filter.is_empty()
+                && !name
+                    .to_lowercase()
+                    .contains(&state.search_filter.to_lowercase())
+            {
                 continue;
             }
 
@@ -119,7 +119,11 @@ pub fn update_local_files(state: &mut FileState) {
                     },
                     #[cfg(not(unix))]
                     permissions: 0,
-                    extension: path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string(),
+                    extension: path
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("")
+                        .to_string(),
                     is_dir: m.is_dir(),
                 };
                 state.metadata.insert(path.clone(), meta);
@@ -129,103 +133,131 @@ pub fn update_local_files(state: &mut FileState) {
     }
 
     // Sort local files (Dirs first, then by sort_column)
-    // We'll reuse the existing state.files sorting logic by temporarily assigning local_files to state.files
     state.files = local_files;
     sort_files(state);
-    local_files = state.files.clone();
-
-    // 2. GLOBAL SEARCH (Recursive from Root, if filter >= 3)
-    if state.search_filter.len() >= 3 {
-        let mut scored_global = Vec::new();
-        let filter_lower = state.search_filter.to_lowercase();
-        
-        // Search the whole disk, but skip system/virtual folders for speed and safety
-        let walker = walkdir::WalkDir::new("/")
-            .follow_links(false)
-            .into_iter()
-            .filter_entry(|e| {
-                let path = e.path();
-                if path.is_dir() {
-                    let p_str = path.to_string_lossy();
-                    // Expanded exclusions: system folders and build artifacts
-                    if p_str == "/proc" || p_str == "/sys" || p_str == "/dev" || 
-                       p_str == "/run" || p_str == "/tmp" || p_str == "/nix" ||
-                       p_str == "/var" || p_str == "/usr" || p_str == "/etc" ||
-                       p_str == "/boot" || p_str == "/root" || p_str == "/lost+found" ||
-                       p_str.ends_with("/target") || p_str.ends_with("/node_modules")
-                    { 
-                        return false; 
-                    }
-                }
-                
-                let name = e.file_name().to_string_lossy();
-                if !state.show_hidden && name.starts_with('.') { return false; }
-                true
-            });
-
-        for entry in walker.filter_map(|e| e.ok()) {
-            if scored_global.len() >= 10000 { break; } 
-            let path = entry.path().to_path_buf();
-            
-            if path == state.current_path || local_files.contains(&path) { continue; }
-
-            // Match only against the FILENAME to prevent "everything inside matching folder" noise
-            let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
-            
-            if filename.contains(&filter_lower) {
-                if let Ok(m) = entry.metadata() {
-                    // SCORING: lower is better
-                    let depth = entry.depth();
-                    let path_len = path.to_string_lossy().len();
-                    
-                    let is_exact = if filename == filter_lower { 0 } else { 100 };
-                    let hidden_penalty = if path.to_string_lossy().contains("/.") { 100 } else { 0 };
-                    
-                    // Boost files closer to the current directory
-                    let proximity_bonus = if path.starts_with(&state.current_path) { 0 } else { 1000 };
-                    
-                    let score = depth * 10 + path_len + is_exact + hidden_penalty + proximity_bonus;
-                    
-                    let meta = crate::app::FileMetadata {
-                        size: m.len(),
-                        modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-                        created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-                        #[cfg(unix)]
-                        permissions: {
-                            use std::os::unix::fs::PermissionsExt;
-                            m.permissions().mode()
-                        },
-                        #[cfg(not(unix))]
-                        permissions: 0,
-                        extension: path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string(),
-                        is_dir: m.is_dir(),
-                    };
-                    scored_global.push((score, path, meta));
-                }
-            }
-        }
-        
-        // Sort by score and take top 100
-        scored_global.sort_by_key(|(s, _, _)| *s);
-        for (_, path, meta) in scored_global.into_iter().take(100) {
-            state.metadata.insert(path.clone(), meta);
-            global_files.push(path);
-        }
-    }
-
-    // Combine: Local results followed by Global results
-    state.local_count = local_files.len();
-    state.files = local_files;
-    
-    if !global_files.is_empty() {
-        // Insert a sentinel path to represent the divider
-        state.files.push(std::path::PathBuf::from("__DIVIDER__"));
-        state.files.extend(global_files);
-    }
+    state.local_count = state.files.len();
 
     // Git Integration
     state.git_status.clear();
     state.git_branch = get_git_branch(&state.current_path);
+}
+
+pub fn perform_global_search(
+    filter: String,
+    current_path: std::path::PathBuf,
+    show_hidden: bool,
+    local_files: Vec<std::path::PathBuf>,
+) -> (Vec<std::path::PathBuf>, std::collections::HashMap<std::path::PathBuf, crate::app::FileMetadata>) {
+    let mut global_files = Vec::new();
+    let mut metadata = std::collections::HashMap::new();
+    let mut scored_global = Vec::new();
+    let filter_lower = filter.to_lowercase();
+
+    // Search the whole disk, but skip system/virtual folders for speed and safety
+    let walker = walkdir::WalkDir::new("/")
+        .follow_links(false)
+        .into_iter()
+        .filter_entry(|e| {
+            let path = e.path();
+            if path.is_dir() {
+                let p_str = path.to_string_lossy();
+                // Expanded exclusions: system folders and build artifacts
+                if p_str == "/proc"
+                    || p_str == "/sys"
+                    || p_str == "/dev"
+                    || p_str == "/run"
+                    || p_str == "/tmp"
+                    || p_str == "/nix"
+                    || p_str == "/var"
+                    || p_str == "/usr"
+                    || p_str == "/etc"
+                    || p_str == "/boot"
+                    || p_str == "/root"
+                    || p_str == "/lost+found"
+                    || p_str.ends_with("/target")
+                    || p_str.ends_with("/node_modules")
+                {
+                    return false;
+                }
+            }
+
+            let name = e.file_name().to_string_lossy();
+            if !show_hidden && name.starts_with('.') {
+                return false;
+            }
+            true
+        });
+
+    for entry in walker.filter_map(|e| e.ok()) {
+        if scored_global.len() >= 10000 {
+            break;
+        }
+        let path = entry.path().to_path_buf();
+
+        if path == current_path || local_files.contains(&path) {
+            continue;
+        }
+
+        // Match only against the FILENAME to prevent "everything inside matching folder" noise
+        let filename = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
+        if filename.contains(&filter_lower) {
+            if let Ok(m) = entry.metadata() {
+                // SCORING: lower is better
+                let depth = entry.depth();
+                let path_len = path.to_string_lossy().len();
+
+                let is_exact = if filename == filter_lower { 0 } else { 100 };
+                let hidden_penalty = if path.to_string_lossy().contains("/.") {
+                    100
+                } else {
+                    0
+                };
+
+                // Boost files closer to the current directory
+                let proximity_bonus = if path.starts_with(&current_path) {
+                    0
+                } else {
+                    1000
+                };
+
+                let score = depth * 10 + path_len + is_exact + hidden_penalty + proximity_bonus;
+
+                let meta = crate::app::FileMetadata {
+                    size: m.len(),
+                    modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                    created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                    #[cfg(unix)]
+                    permissions: {
+                        use std::os::unix::fs::PermissionsExt;
+                        m.permissions().mode()
+                    },
+                    #[cfg(not(unix))]
+                    permissions: 0,
+                    extension: path
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("")
+                        .to_string(),
+                    is_dir: m.is_dir(),
+                };
+                scored_global.push((score, path, meta));
+            }
+        }
+    }
+
+    // Sort by score and take top 100
+    scored_global.sort_by_key(|(s, _, _)| *s);
+    for (_, path, meta) in scored_global.into_iter().take(100) {
+        metadata.insert(path.clone(), meta);
+        global_files.push(path);
+    }
+
+    (global_files, metadata)
 }
 
 fn get_git_branch(path: &std::path::Path) -> Option<String> {

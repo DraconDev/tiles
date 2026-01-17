@@ -1,6 +1,6 @@
 [package]
 name = "tiles"
-version = "0.1.572"
+version = "0.1.3579"
 edition = "2021"
 
 [dependencies]
@@ -14,8 +14,11 @@ dirs = "5.0.1"
 chrono = "0.4.42"
 ratatui = "0.29.0"
 ssh2 = "0.9.5"
-terma = { path = "./terma" }
+terma = { git = "https://github.com/DraconDev/terma", tag = "v1.0.1606" }
 tokio = { version = "1.0", features = ["full"] }
 openssl = { version = "0.10", features = ["vendored"] }
 toml = "0.9.11"
 libc = "0.2.180"
+unicode-width = "0.2.0"
+uuid = { version = "1.11.0", features = ["v4"] }
+image = "0.24"

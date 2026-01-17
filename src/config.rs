@@ -1,8 +1,14 @@
-use crate::app::{App, Pane, RemoteBookmark, CurrentView};
+use crate::app::{App, CurrentView, Pane, RemoteBookmark};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::collections::HashMap;
 use std::fs;
+use std::path::PathBuf;
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ExternalTool {
+    pub name: String,
+    pub command: String,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct PersistentState {
@@ -13,6 +19,10 @@ pub struct PersistentState {
     pub current_view: CurrentView,
     pub window_size: Option<(u16, u16)>,
     pub path_colors: HashMap<PathBuf, u8>,
+    #[serde(default)]
+    pub external_tools: HashMap<String, Vec<ExternalTool>>, // ext -> tools
+    #[serde(default)]
+    pub icon_mode: Option<crate::icons::IconMode>,
 }
 
 pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
@@ -33,6 +43,7 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
                 panes.push(Pane {
                     tabs,
                     active_tab_index: p.active_tab_index,
+                    preview: None,
                 });
             }
             panes
@@ -41,11 +52,19 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
         starred: app.starred.clone(),
         remote_bookmarks: app.remote_bookmarks.clone(),
         current_view: app.current_view.clone(),
-        window_size: if app.terminal_size.0 > 0 && app.terminal_size.1 > 0 { Some(app.terminal_size) } else { None },
+        window_size: if app.terminal_size.0 > 0 && app.terminal_size.1 > 0 {
+            Some(app.terminal_size)
+        } else {
+            None
+        },
         path_colors: app.path_colors.clone(),
+        external_tools: app.external_tools.clone(),
+        icon_mode: Some(app.icon_mode),
     };
 
-    let config_dir = dirs::config_dir().ok_or("Could not find config dir")?.join("tiles");
+    let config_dir = dirs::config_dir()
+        .ok_or("Could not find config dir")?
+        .join("tiles");
     fs::create_dir_all(&config_dir)?;
     let state_path = config_dir.join("state.json");
     let json = serde_json::to_string_pretty(&state)?;

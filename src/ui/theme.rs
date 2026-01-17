@@ -25,8 +25,8 @@ impl DraconTheme {
             fg: Color::Rgb(220, 220, 230),             // Off-white
             accent_primary: Color::Rgb(255, 0, 85),    // Neon Red/Pink
             accent_secondary: Color::Rgb(0, 255, 200), // Cyan
-            selection_bg: Color::Rgb(40, 40, 50),      // Dark Grey
-            selection_fg: Color::Rgb(255, 255, 255),   // White
+            selection_bg: Color::Rgb(255, 0, 85),      // Neon Red/Pink
+            selection_fg: Color::Rgb(0, 0, 0),         // Black (for contrast)
             border_active: Color::Rgb(255, 0, 85),     // Primary Accent
             border_inactive: Color::Rgb(60, 60, 70),   // Dim Grey
             header_fg: Color::Rgb(0, 255, 200),        // Secondary Accent

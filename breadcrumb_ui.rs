@@ -11,7 +11,7 @@ use std::collections::HashMap;
 
 use crate::app::{App, AppMode, CurrentView, FileColumn, SidebarTarget, SidebarBounds, DropTarget, SettingsSection, SettingsTarget, FileCategory};
 use crate::ui::theme::THEME;
-use crate::icons::Icon;
+use crate::icons::{Icon, IconMode};
 use terma::layout::centered_rect;
 use terma::utils::{format_size, format_time, format_permissions};
 
@@ -575,20 +575,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
                         }
                     }
                     
-                    let icon = if is_dir { 
-                        Icon::Folder.get(app.icon_mode) 
-                    } else {
-                        let cat = crate::modules::files::get_file_category(path);
-                        match cat {
-                            FileCategory::Archive => Icon::Archive.get(app.icon_mode),
-                            FileCategory::Image => Icon::Image.get(app.icon_mode),
-                            FileCategory::Audio => Icon::Audio.get(app.icon_mode),
-                            FileCategory::Video => Icon::Video.get(app.icon_mode),
-                            FileCategory::Script => Icon::Script.get(app.icon_mode),
-                            FileCategory::Document => Icon::Document.get(app.icon_mode),
-                            _ => Icon::File.get(app.icon_mode),
-                        }
-                    };
+                    let cat = crate::modules::files::get_file_category(path);
+                    let icon = Icon::get_for_path(path, cat, is_dir, app.icon_mode);
 
                     let mut suffix = String::new();
                     let is_starred = app.starred.contains(path);
