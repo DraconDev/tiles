@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Tiles
+Comment=Cyberpunk TUI File Manager
+Exec=tiles
+Terminal=true
+Type=Application
+Icon=system-file-manager
+Categories=System;FileTools;FileManager;
+Keywords=file;manager;tui;tiles;
+TerminalOptions=
+X-KDE-SubstituteUID=false
+X-KDE-Username=

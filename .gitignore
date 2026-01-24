@@ -1,0 +1,43 @@
+.env
+.env.*
+.demon/
+*.key
+*.age
+*.pem
+*.p12
+.arcane/keys/
+.arcane/shadow/
+*.log
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+
+# Standard Ignores
+target/
+**/target/
+node_modules/
+.vscode/
+.idea/
+*.swp
+*.swo
+dist/
+build/
+.next/
+__pycache__/
+*.pyc
+
+# --- BEGIN DEMON MANAGED BLOCK ---
+# DANGER: Managed by Demon. Manual changes inside this block will be overwritten.
+# Purpose: patterns for secrets protection & hygiene
+demon/
+*.key
+*.age
+*.pem
+*.p12
+demon/keys/
+demon/shadow/
+*.log
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+# --- END DEMON MANAGED BLOCK ---
