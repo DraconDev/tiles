@@ -49,6 +49,7 @@ __pycache__/
 *.tmp
 *~
 .DS_Store
+.demon/
 .demon/backups/
 .demon/keys/
 .demon/shadow/
