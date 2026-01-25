@@ -601,13 +601,13 @@ fn draw_file_view(
                     // For global results, use smart path display
                     if i > file_state.local_count {
                         let full_str = path.to_string_lossy();
-                        let mut display_path = if full_str.starts_with("/home/dracon") {
-                            full_str.replacen("/home/dracon", "~", 1)
-                        } else {
-                            full_str.to_string()
-                        };
-                        
-                        display_path.push_str(&suffix);
+                            let home = dirs::home_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| "/root".to_string());
+                            let mut display_path = if full_str.starts_with(&home) {
+                                full_str.replacen(&home, "~", 1)
+                            } else {
+                                full_str.to_string()
+                            };
+                                                display_path.push_str(&suffix);
 
                         // Smart truncation: show the END of the path if it's too long
                         if display_path.len() > name_col_width && name_col_width > 5 {

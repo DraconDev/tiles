@@ -2043,11 +2043,13 @@ fn draw_file_view(
 
                                 let display_name = if file_idx > file_state.local_count {
                                     let full_str = path.to_string_lossy();
-                                    if full_str.starts_with("/home/dracon") {
-                                        full_str.replacen("/home/dracon", "~", 1)
-                                    } else {
-                                        full_str.to_string()
-                                    }
+                                        let home = dirs::home_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| "/root".to_string());
+                                        if full_str.starts_with(&home) {
+                                            full_str.replacen(&home, "~", 1)
+                                        } else {
+                                            full_str.to_string()
+                                        }
+                                    
                                 } else {
                                     name.to_string()
                                 };

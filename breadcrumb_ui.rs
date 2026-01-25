@@ -611,7 +611,8 @@ fn draw_file_view(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_
 
                     if i > file_state.local_count {
                         let full_str = path.to_string_lossy();
-                        let mut display_path = if full_str.starts_with("/home/dracon") { full_str.replacen("/home/dracon", "~", 1) } else { full_str.to_string() };
+                        let home = dirs::home_dir().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| "/root".to_string());
+    let mut display_path = if full_str.starts_with(&home) { full_str.replacen(&home, "~", 1) } else { full_str.to_string() };
                         display_path.push_str(&suffix);
                         if display_path.len() > name_col_width && name_col_width > 5 {
                             let keep_len = name_col_width - 3; let start_idx = display_path.len() - keep_len;
