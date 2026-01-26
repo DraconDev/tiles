@@ -1689,18 +1689,17 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(1), // IDE Header
-            Constraint::Fill(1),   // Main Stage
-            Constraint::Length(if app.show_panel { 8 } else { 0 }), // Panel
+            Constraint::Fill(1),   // Workspace Area
         ])
         .split(area);
 
     draw_ide_header(f, chunks[0], app);
 
-    let workspace_constraints = if app.show_sidebar {
-        [Constraint::Length(app.sidebar_width()), Constraint::Fill(1)]
-    } else {
-        [Constraint::Length(0), Constraint::Fill(1)]
-    };
+    let workspace_constraints = [
+        Constraint::Length(if app.show_sidebar { app.sidebar_width() } else { 0 }),
+        Constraint::Fill(1),
+        Constraint::Length(if app.show_side_panel { app.sidebar_width() } else { 0 }), // Symmetric width
+    ];
 
     let workspace = Layout::default()
         .direction(Direction::Horizontal)
@@ -1713,8 +1712,8 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
 
     draw_editor_stage(f, workspace[1], app);
 
-    if app.show_panel {
-        draw_bottom_panel(f, chunks[2], app);
+    if app.show_side_panel {
+        draw_side_panel(f, workspace[2], app);
     }
 }
 
