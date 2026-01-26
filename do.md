@@ -6,7 +6,7 @@ we need scroll on the editor
 
 we need tabs above the edtiro
 
-
+we are not opening more panel just toggling whether we have double or single panel in editor view 
 
 when clicking on the side editor on the right we should not hit the file list, on the edtior screen 
 
