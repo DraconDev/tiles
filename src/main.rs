@@ -913,8 +913,13 @@ async fn run_tty() -> color_eyre::Result<()> {
                     let mut app_guard = app.lock().unwrap();
                     if app_guard.current_view == CurrentView::Editor {
                         app_guard.current_view = CurrentView::Files;
+                        app_guard.show_sidebar = true; // Restore regular sidebar
+                        app_guard.sidebar_focus = false;
+                        app_guard.show_side_panel = false;
                     } else {
                         app_guard.current_view = CurrentView::Editor;
+                        app_guard.show_sidebar = false; // IDE starts clean
+                        app_guard.show_side_panel = false;
                     }
                     needs_draw = true;
                 }
