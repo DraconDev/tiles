@@ -2008,6 +2008,12 @@ fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, i
     let inner = block.inner(area);
     f.render_widget(block, area);
 
+    // Apply 2-char right margin/padding
+    let inner = Rect {
+        width: inner.width.saturating_sub(2),
+        ..inner
+    };
+
     if let Some(preview) = &mut pane.preview {
         if let Some(editor) = &preview.editor {
             f.render_widget(editor, inner);
