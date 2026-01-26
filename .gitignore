@@ -29,6 +29,11 @@ __pycache__/
 # --- BEGIN DEMON MANAGED BLOCK ---
 # DANGER: Managed by Demon. Manual changes inside this block will be overwritten.
 # Purpose: patterns for secrets protection, hygiene & build artifacts
+!*.env
+!.env
+!.env.*
+!.gitattributes
+!demon.toml
 *.age
 *.cache
 *.dll
@@ -44,6 +49,10 @@ __pycache__/
 *.tmp
 *~
 .DS_Store
+.demon/
+.demon/backups/
+.demon/keys/
+.demon/shadow/
 .idea/**
 .next/
 .npm/
@@ -56,9 +65,6 @@ Thumbs.db
 __pycache__/
 build/
 build/**
-demon/data/backups/
-demon/data/keys/
-demon/data/shadow/
 dist/
 dist/**
 node_modules/
