@@ -1,7 +1,7 @@
 ## Do
 
+[<35;152;17M
+
 ## Doing
 
 ## Done
-
-backspace on file should should not be history but simply going back a folder 
