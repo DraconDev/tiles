@@ -2190,31 +2190,113 @@ fn draw_file_view(
         }
     }
 
-            let main_block = Block::default()
-                .borders(borders)
-                .border_type(BorderType::Rounded)
-                .border_style(border_style);
-            f.render_widget(main_block, area);
-    
-            draw_pane_breadcrumbs(f, area, app, pane_idx);
-    
-            if let Some(file_state) = app
-                .panes
-                .get_mut(pane_idx)
-                .and_then(|p| p.current_state_mut())
-            {
-                file_state.view_height = area.height as usize;
-                let mut render_state = TableState::default();
-                if let Some(sel) = file_state.selection.selected {
-                    let offset = file_state.table_state.offset();
-                    let capacity = file_state.view_height.saturating_sub(3);
-                    if sel >= offset && sel < offset + capacity {
-                        render_state.select(Some(sel));
-                    }
+                // --- BORDER & BACKGROUND (Rendered FIRST to create base) ---
+
+                let mut border_style = if is_focused {
+
+                    let pulse = ((SystemTime::now()
+
+                        .duration_since(SystemTime::UNIX_EPOCH)
+
+                        .unwrap_or_default()
+
+                        .as_millis()
+
+                        % 1500) as f32
+
+                        / 1500.0
+
+                        * std::f32::consts::PI
+
+                        * 2.0)
+
+                        .sin()
+
+                        * 0.5
+
+                        + 0.5;
+
+                    let r = (255.0 * (0.7 + 0.3 * pulse)) as u8;
+
+                    let g = (0.0 * (0.7 + 0.3 * pulse)) as u8;
+
+                    let b = (85.0 * (0.7 + 0.3 * pulse)) as u8;
+
+                    Style::default()
+
+                        .fg(Color::Rgb(r, g, b))
+
+                        .add_modifier(Modifier::BOLD)
+
+                } else {
+
+                    Style::default().fg(THEME.border_inactive)
+
+                };
+
+                if matches!(app.hovered_drop_target, Some(DropTarget::Pane(idx)) if idx == pane_idx) {
+
+                    border_style = Style::default()
+
+                        .fg(Color::Rgb(0, 255, 200))
+
+                        .add_modifier(Modifier::BOLD);
+
                 }
-                *render_state.offset_mut() = file_state.table_state.offset();
-    
-                let mut display_columns = Vec::new();        for col in &file_state.columns {
+
+            
+
+                let main_block = Block::default()
+
+                    .borders(borders)
+
+                    .border_type(BorderType::Rounded)
+
+                    .border_style(border_style);
+
+                f.render_widget(main_block, area);
+
+            
+
+                draw_pane_breadcrumbs(f, area, app, pane_idx);
+
+            
+
+                if let Some(file_state) = app
+
+                    .panes
+
+                    .get_mut(pane_idx)
+
+                    .and_then(|p| p.current_state_mut())
+
+                {
+
+                    file_state.view_height = area.height as usize;
+
+                    let mut render_state = TableState::default();
+
+                    if let Some(sel) = file_state.selection.selected {
+
+                        let offset = file_state.table_state.offset();
+
+                        let capacity = file_state.view_height.saturating_sub(3);
+
+                        if sel >= offset && sel < offset + capacity {
+
+                            render_state.select(Some(sel));
+
+                        }
+
+                    }
+
+                    *render_state.offset_mut() = file_state.table_state.offset();
+
+            
+
+                    let mut display_columns = Vec::new();
+
+                    for col in &file_state.columns {
             match col {
                 FileColumn::Name => display_columns.push(FileColumn::Name),
                 FileColumn::Size if area.width > 40 => display_columns.push(FileColumn::Size),
