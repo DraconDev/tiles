@@ -2,7 +2,7 @@
 
 add a simpler editor
 
-we nee
+we need scroll on the ed
 
 ## Doing
 
