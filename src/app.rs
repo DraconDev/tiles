@@ -525,7 +525,7 @@ pub struct App {
     pub sidebar_width_percent: u16,
     pub is_resizing_sidebar: bool,
     pub show_sidebar: bool,
-    pub show_panel: bool,
+    pub show_side_panel: bool,
     pub ide_panel_tabs: Vec<IdePanelTab>,
     pub ide_active_panel_tab: usize,
     pub ide_search_input: String,
