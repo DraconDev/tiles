@@ -1145,9 +1145,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
 
             // IDE/Editor Mode Key Handling
             if app.current_view == CurrentView::Editor && !app.sidebar_focus {
-                let cw = w.saturating_sub(sw);
+                let (w, h) = app.terminal_size;
+                let sw = app.sidebar_width();
                 let pc = app.panes.len();
+                let cw = w.saturating_sub(sw);
                 let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                let pane_idx = app.focused_pane_index;
 
                 let pane_area = ratatui::layout::Rect::new(
                     sw + (pane_idx as u16 * pw),
