@@ -1157,7 +1157,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 let sw = app.sidebar_width();
                 let pc = app.panes.len();
                 let cw = w.saturating_sub(sw);
-                let pw = if pc > 0 { cw / pc as u16 } else { cw };
                 
                 // If side panel is open, reduce width from the RIGHT
                 let main_stage_width = if app.show_side_panel {
