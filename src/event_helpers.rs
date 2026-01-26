@@ -53,7 +53,7 @@ pub fn navigate_up(app: &mut App) {
         }
     }
 
-    if let Some(p) = old_path {
+    if let Some(ref p) = old_path {
         app.folder_selections.insert(p.clone(), old_idx);
     }
 
