@@ -10,7 +10,7 @@ when clicking on the side editor on the right we should not hit the file list, o
 
 the editer needs some highlighting
 
-we are not opening more panel just togg
+we are not opening more panel just toggling whether we have a 
 
 ## Doing
 
