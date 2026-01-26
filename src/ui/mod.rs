@@ -1877,35 +1877,127 @@ fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(List::new(sidebar_items), inner);
 }
 
-fn collect_tree_items(path: &PathBuf, depth: u16, app: &App, items: &mut Vec<(PathBuf, u16)>) {
-    // 1. Add current folder's contents
-    if let Ok(entries) = std::fs::read_dir(path) {
-        let mut sorted_entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
-        
-        // Sort: Dirs first, then alpha
-        sorted_entries.sort_by(|a, b| {
-            let a_is_dir = a.path().is_dir();
-            let b_is_dir = b.path().is_dir();
-            if a_is_dir && !b_is_dir { std::cmp::Ordering::Less }
-            else if !a_is_dir && b_is_dir { std::cmp::Ordering::Greater }
-            else { a.file_name().cmp(&b.file_name()) }
-        });
+fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize) {
+    let focused_pane_idx = app.focused_pane_index;
+    let is_focused = pane_idx == focused_idx && !app.sidebar_focus;
+    
+    let (path, search_filter) = {
+        let pane = &app.panes[pane_idx];
+        let tab = &pane.tabs[pane.active_tab_index];
+        (tab.current_path.clone(), tab.search_filter.clone())
+    };
 
-        for entry in sorted_entries {
-            let p = entry.path();
-            let name = p.file_name().unwrap_or_default().to_string_lossy();
-            
-            // Skip hidden files if preferred (we could check app.default_show_hidden)
-            if !app.default_show_hidden && name.starts_with('.') {
-                continue;
+    if let Some(tab) = app.panes[pane_idx].tabs.get_mut(app.panes[pane_idx].active_tab_index) {
+        tab.breadcrumb_bounds.clear();
+    }
+
+    let mut cur_p = PathBuf::new();
+    let breadcrumb_y = area.y;
+    let mut cur_x = area.x + 2;
+    
+    let components: Vec<_> = path.components().collect();
+    let total_comps = components.len();
+    
+    let search_filter_text = if !search_filter.is_empty() {
+        format!(" [  {}  ]", search_filter)
+    } else {
+        String::new()
+    };
+    let search_filter_width = search_filter_text.chars().map(get_visual_width).sum::<usize>() as u16;
+    let max_header_width = area.width.saturating_sub(search_filter_width + 10);
+
+    let mut accumulated_width = 0;
+
+    for (i, comp) in components.into_iter().enumerate() {
+        match comp {
+            std::path::Component::RootDir => cur_p.push("/"),
+            std::path::Component::Prefix(p) => cur_p.push(p.as_os_str()),
+            std::path::Component::Normal(name) => cur_p.push(name),
+            _ => continue,
+        }
+        let d_name = if comp.as_os_str() == "/" {
+            "/".to_string()
+        } else {
+            squarify(&comp.as_os_str().to_string_lossy())
+        };
+        if !d_name.is_empty() {
+            let s_path = cur_p.clone();
+            let is_last = i == total_comps - 1;
+
+            let fg_color = if is_last {
+                THEME.accent_secondary
+            } else {
+                Color::Rgb(100, 100, 110)
+            };
+            let mut style = Style::default().fg(fg_color);
+            if is_last {
+                style = style.add_modifier(Modifier::BOLD);
             }
 
-            items.push((p.clone(), depth));
+            let d_name_clipped = if d_name.len() > 15 && !is_last {
+                truncate_to_width(&d_name, 15, "...")
+            } else {
+                d_name
+            };
+
+            let segment = if is_last {
+                format!("  {}  ", d_name_clipped)
+            } else {
+                format!(" {} ", d_name_clipped)
+            };
+            let width = segment.chars().map(get_visual_width).sum::<usize>() as u16;
+
+            if (accumulated_width + width) > max_header_width {
+                f.render_widget(Paragraph::new("..."), Rect::new(cur_x, breadcrumb_y, 3, 1));
+                break;
+            }
+
+            let bread_rect = Rect::new(cur_x, breadcrumb_y, width, 1);
+            f.render_widget(Paragraph::new(Span::styled(segment, style)), bread_rect);
             
-            if p.is_dir() && app.expanded_folders.contains(&p) {
-                collect_tree_items(&p, depth + 1, app, items);
+            if let Some(tab) = app.panes[pane_idx].tabs.get_mut(app.panes[pane_idx].active_tab_index) {
+                tab.breadcrumb_bounds.push((bread_rect, s_path));
+            }
+
+            cur_x += width;
+            accumulated_width += width;
+
+            if !is_last {
+                let sep = "›";
+                let sep_w = 1;
+                if (accumulated_width + sep_w) <= max_header_width {
+                    f.render_widget(
+                        Paragraph::new(Span::styled(
+                            sep,
+                            Style::default().fg(Color::Rgb(80, 80, 90)),
+                        )),
+                        Rect::new(cur_x, breadcrumb_y, 1, 1),
+                    );
+                    cur_x += sep_w;
+                    accumulated_width += sep_w;
+                }
             }
         }
+    }
+
+    if !search_filter_text.is_empty() {
+        let max_filter_w = area.width.saturating_sub(cur_x + 2) as usize;
+        let display_filter = if search_filter_text.width() > max_filter_w {
+            truncate_to_width(&search_filter_text, max_filter_w, "..]")
+        } else {
+            search_filter_text
+        };
+
+        let filter_rect = Rect::new(cur_x + 1, area.y, display_filter.width() as u16, 1);
+        f.render_widget(
+            Paragraph::new(Span::styled(
+                display_filter,
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )),
+            filter_rect,
+        );
     }
 }
 
