@@ -1158,15 +1158,25 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 let pc = app.panes.len();
                 let cw = w.saturating_sub(sw);
                 let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                
+                // If side panel is open, reduce width from the RIGHT
+                let main_stage_width = if app.show_side_panel {
+                    cw.saturating_sub(app.sidebar_width()) // Use sidebar width also for side panel for symmetry
+                } else {
+                    cw
+                };
+                
+                let pw = if pc > 0 { main_stage_width / pc as u16 } else { main_stage_width };
+
                 let pane_area = ratatui::layout::Rect::new(
                     sw + (pane_idx as u16 * pw),
                     1, 
                     pw,
-                    h.saturating_sub(if app.show_panel { 9 } else { 1 }), // Header(1) + Panel(8)
+                    h.saturating_sub(1), // Header(1)
                 );
 
                 // Check for Panel Search input focus
-                if app.show_panel && app.ide_panel_tabs[app.ide_active_panel_tab] == crate::app::IdePanelTab::Search {
+                if app.show_side_panel && app.ide_panel_tabs[app.ide_active_panel_tab] == crate::app::IdePanelTab::Search {
                     match key.code {
                         KeyCode::Char(c) if key.modifiers.is_empty() => {
                             app.ide_search_input.push(c);
