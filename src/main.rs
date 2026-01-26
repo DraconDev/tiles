@@ -1755,10 +1755,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 },
                 AppMode::EditorSearch => match key.code {
                     KeyCode::Esc => {
-                        // Clear filter on Cancel
+                        // 1. Clear filter on Cancel (global)
                         if let Some(preview) = &mut app.editor_state {
                             if let Some(editor) = &mut preview.editor {
                                 editor.set_filter("");
+                            }
+                        }
+                        // 2. Clear filter on Cancel (IDE)
+                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                            if let Some(preview) = &mut pane.preview {
+                                if let Some(editor) = &mut preview.editor {
+                                    editor.set_filter("");
+                                }
                             }
                         }
                         app.mode = app.previous_mode.clone();
@@ -1766,19 +1774,31 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         return true;
                     }
                     KeyCode::Enter => {
-                        // Clear filter on Enter (normalize page but keep cursor position)
+                        // 1. Clear filter on Enter (global)
                         if let Some(preview) = &mut app.editor_state {
                             if let Some(editor) = &mut preview.editor {
                                 editor.set_filter("");
-                                // Center the view on the result
                                 let (w, h) = app.terminal_size;
-                                let area = ratatui::layout::Rect::new(
-                                    1,
-                                    1,
-                                    w.saturating_sub(2),
-                                    h.saturating_sub(2),
-                                );
+                                let area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
                                 editor.ensure_cursor_centered(area);
+                            }
+                        }
+                        // 2. Clear filter on Enter (IDE)
+                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                            if let Some(preview) = &mut pane.preview {
+                                if let Some(editor) = &mut preview.editor {
+                                    editor.set_filter("");
+                                    let sw = app.sidebar_width();
+                                    let (w, h) = app.terminal_size;
+                                    let cw = w.saturating_sub(sw);
+                                    let pc = app.panes.len();
+                                    let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                                    let pane_area = ratatui::layout::Rect::new(
+                                        sw + (app.focused_pane_index as u16 * pw),
+                                        1, pw, h.saturating_sub(1)
+                                    );
+                                    editor.ensure_cursor_centered(pane_area);
+                                }
                             }
                         }
                         app.mode = app.previous_mode.clone();
@@ -1786,16 +1806,28 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         return true;
                     }
                     KeyCode::Up | KeyCode::Down | KeyCode::PageUp | KeyCode::PageDown => {
+                        // Navigation in Search Mode
                         if let Some(preview) = &mut app.editor_state {
                             if let Some(editor) = &mut preview.editor {
                                 let (w, h) = app.terminal_size;
-                                let area = ratatui::layout::Rect::new(
-                                    1,
-                                    1,
-                                    w.saturating_sub(2),
-                                    h.saturating_sub(2),
-                                );
+                                let area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
                                 editor.handle_event(&evt, area);
+                            }
+                        }
+                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                            if let Some(preview) = &mut pane.preview {
+                                if let Some(editor) = &mut preview.editor {
+                                    let sw = app.sidebar_width();
+                                    let (w, h) = app.terminal_size;
+                                    let cw = w.saturating_sub(sw);
+                                    let pc = app.panes.len();
+                                    let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                                    let pane_area = ratatui::layout::Rect::new(
+                                        sw + (app.focused_pane_index as u16 * pw),
+                                        1, pw, h.saturating_sub(1)
+                                    );
+                                    editor.handle_event(&evt, pane_area);
+                                }
                             }
                         }
                         return true;
@@ -1803,10 +1835,17 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     _ => {
                         let handled = app.input.handle_event(&evt);
                         if handled {
-                            // Live Filter Update
+                            // Update Live Filters
                             if let Some(preview) = &mut app.editor_state {
                                 if let Some(editor) = &mut preview.editor {
                                     editor.set_filter(&app.input.value);
+                                }
+                            }
+                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                if let Some(preview) = &mut pane.preview {
+                                    if let Some(editor) = &mut preview.editor {
+                                        editor.set_filter(&app.input.value);
+                                    }
                                 }
                             }
                         }
