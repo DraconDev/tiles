@@ -10,7 +10,7 @@ when clicking on the side editor on the right we should not hit the file list, o
 
 the editer needs some highlighting
 
-we are not opening more panel just toggling whether we have double or single panel in 
+we are not opening more panel just toggling whether we have double or single panel in editor view 
 
 ## Doing
 
