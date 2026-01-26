@@ -1,7 +1,5 @@
 ## Do
 
-add a simpler editor
-
 we need scroll on the editor
 
 we are not opening more panel just toggling whether we have double or single panel in editor view 
