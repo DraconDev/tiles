@@ -1828,13 +1828,13 @@ fn collect_tree_items(path: &PathBuf, depth: u16, app: &App, items: &mut Vec<(Pa
 fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize) {
     let is_focused = pane_idx == app.focused_pane_index && !app.sidebar_focus;
     
+    let active_tab_idx = app.panes[pane_idx].active_tab_index;
     let (path, search_filter) = {
-        let pane = &app.panes[pane_idx];
-        let tab = &pane.tabs[pane.active_tab_index];
+        let tab = &app.panes[pane_idx].tabs[active_tab_idx];
         (tab.current_path.clone(), tab.search_filter.clone())
     };
 
-    if let Some(tab) = app.panes[pane_idx].tabs.get_mut(app.panes[pane_idx].active_tab_index) {
+    if let Some(tab) = app.panes[pane_idx].tabs.get_mut(active_tab_idx) {
         tab.breadcrumb_bounds.clear();
     }
 
