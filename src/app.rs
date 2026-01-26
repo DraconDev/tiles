@@ -879,6 +879,7 @@ impl App {
             sidebar_width_percent: 20,
             is_resizing_sidebar: false,
             show_sidebar: true,
+            show_panel: false,
             initial_window_size: None,
             path_colors: HashMap::new(),
             folder_selections: HashMap::new(),
