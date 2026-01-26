@@ -858,6 +858,70 @@ async fn run_tty() -> color_eyre::Result<()> {
                     }
                     needs_draw = true;
                 }
+                AppEvent::GitHistory => {
+                    let (p_idx, t_idx, path, base_path) = {
+                        let app_guard = app.lock().unwrap();
+                        let p_idx = app_guard.focused_pane_index;
+                        let pane = &app_guard.panes[p_idx];
+                        let t_idx = pane.active_tab_index;
+                        let tab = &pane.tabs[t_idx];
+                        let base_path = tab.current_path.clone();
+                        
+                        // If a file is selected, show history for THAT file
+                        let target_path = if let Some(idx) = tab.selection.selected {
+                            if let Some(p) = tab.files.get(idx) {
+                                if p.to_string_lossy() != "__DIVIDER__" {
+                                    p.clone()
+                                } else {
+                                    base_path.clone()
+                                }
+                            } else {
+                                base_path.clone()
+                            }
+                        } else {
+                            base_path.clone()
+                        };
+                        
+                        (p_idx, t_idx, target_path, base_path)
+                    };
+
+                    let tx = event_tx.clone();
+                    tokio::spawn(async move {
+                        let history = crate::modules::files::get_git_history(&path, 100);
+                        let pending = crate::modules::files::get_git_status(&base_path);
+                        let _ = tx.send(AppEvent::GitHistoryUpdated(p_idx, t_idx, history, pending)).await;
+                    });
+
+                    let mut app_guard = app.lock().unwrap();
+                    if app_guard.current_view == CurrentView::Git {
+                        app_guard.current_view = CurrentView::Files;
+                    } else {
+                        app_guard.current_view = CurrentView::Git;
+                    }
+                    needs_draw = true;
+                }
+                AppEvent::GitHistoryUpdated(p_idx, t_idx, history, pending) => {
+                    let mut app_guard = app.lock().unwrap();
+                    if let Some(pane) = app_guard.panes.get_mut(p_idx) {
+                        if let Some(tab) = pane.tabs.get_mut(t_idx) {
+                            tab.git_history = history;
+                            tab.git_pending = pending;
+                            if tab.git_history_state.selected().is_none() && !tab.git_history.is_empty() {
+                                tab.git_history_state.select(Some(0));
+                            }
+                        }
+                    }
+                    needs_draw = true;
+                }
+                AppEvent::Editor => {
+                    let mut app_guard = app.lock().unwrap();
+                    if app_guard.current_view == CurrentView::Editor {
+                        app_guard.current_view = CurrentView::Files;
+                    } else {
+                        app_guard.current_view = CurrentView::Editor;
+                    }
+                    needs_draw = true;
+                }
                 AppEvent::TaskProgress(id, progress, status) => {
                     let mut app_guard = app.lock().unwrap();
                     if let Some(task) = app_guard.background_tasks.iter_mut().find(|t| t.id == id) {
@@ -1054,6 +1118,44 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 if has_control {
                     app.running = false;
                     return true;
+                }
+            }
+
+            // IDE/Editor Mode Key Handling
+            if app.current_view == CurrentView::Editor && !app.sidebar_focus {
+                let pane_idx = app.focused_pane_index;
+                let (w, h) = app.terminal_size;
+                let sw = app.sidebar_width();
+                let pc = app.panes.len();
+                let cw = w.saturating_sub(sw);
+                let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                let pane_area = ratatui::layout::Rect::new(
+                    sw + (pane_idx as u16 * pw),
+                    1, 
+                    pw,
+                    h.saturating_sub(3),
+                );
+
+                if let Some(pane) = app.panes.get_mut(pane_idx) {
+                    if let Some(preview) = &mut pane.preview {
+                        if let Some(editor) = &mut preview.editor {
+                            if key.code == KeyCode::Esc {
+                                app.sidebar_focus = true;
+                                return true;
+                            }
+
+                            if editor.handle_event(&evt, pane_area) {
+                                if app.auto_save && editor.modified {
+                                    let _ = event_tx.try_send(AppEvent::SaveFile(
+                                        preview.path.clone(),
+                                        editor.get_content(),
+                                    ));
+                                    editor.modified = false;
+                                }
+                                return true;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1309,6 +1411,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 KeyCode::Char('g') | KeyCode::Char('G') if has_control => {
                     app.mode = AppMode::Settings;
                     app.settings_scroll = 0;
+                    return true;
+                }
+                KeyCode::Char('l') | KeyCode::Char('L') if has_control => {
+                    let _ = event_tx.try_send(AppEvent::GitHistory);
+                    return true;
+                }
+                KeyCode::Char('e') | KeyCode::Char('E') if has_control => {
+                    let _ = event_tx.try_send(AppEvent::Editor);
                     return true;
                 }
                 KeyCode::Char('n')
@@ -1740,7 +1850,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 AppMode::Header(idx) => {
                     let idx = *idx;
                     let total_tabs: usize = app.panes.iter().map(|p| p.tabs.len()).sum();
-                    let max_idx = 4 + total_tabs; // 5 icons (0-4) + tabs
+                    let max_idx = 6 + total_tabs; // 7 icons (0-6) + tabs
 
                     match key.code {
                         KeyCode::Esc => {
@@ -1748,8 +1858,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return true;
                         }
                         KeyCode::Down => {
-                            if idx >= 5 {
-                                let target_tab_idx = idx - 5;
+                            if idx >= 7 {
+                                let target_tab_idx = idx - 7;
                                 let mut current_global = 0;
                                 for (p_i, pane) in app.panes.iter_mut().enumerate() {
                                     for _t_i in 0..pane.tabs.len() {
@@ -1770,8 +1880,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             if idx > 0 {
                                 let new_idx = idx - 1;
                                 app.mode = AppMode::Header(new_idx);
-                                if new_idx >= 5 {
-                                    let target_tab_idx = new_idx - 5;
+                                if new_idx >= 7 {
+                                    let target_tab_idx = new_idx - 7;
                                     let mut current_global = 0;
                                     for (p_i, pane) in app.panes.iter().enumerate() {
                                         for _t_i in 0..pane.tabs.len() {
@@ -1791,8 +1901,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             if idx < max_idx {
                                 let new_idx = idx + 1;
                                 app.mode = AppMode::Header(new_idx);
-                                if new_idx >= 5 {
-                                    let target_tab_idx = new_idx - 5;
+                                if new_idx >= 7 {
+                                    let target_tab_idx = new_idx - 7;
                                     let mut current_global = 0;
                                     for (p_i, pane) in app.panes.iter().enumerate() {
                                         for _t_i in 0..pane.tabs.len() {
@@ -1808,7 +1918,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return true;
                         }
                         KeyCode::Enter => {
-                            if idx <= 4 {
+                            if idx <= 6 {
                                 match idx {
                                     0 => app.mode = AppMode::Settings,
                                     1 => {
@@ -1832,11 +1942,17 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     4 => {
                                         let _ = event_tx.try_send(AppEvent::SystemMonitor);
                                     }
+                                    5 => {
+                                        let _ = event_tx.try_send(AppEvent::GitHistory);
+                                    }
+                                    6 => {
+                                        let _ = event_tx.try_send(AppEvent::Editor);
+                                    }
                                     _ => {}
                                 }
                             } else {
                                 // Switch to selected tab
-                                let target_tab_idx = idx - 5;
+                                let target_tab_idx = idx - 7;
                                 let mut current_global = 0;
                                 for (p_i, pane) in app.panes.iter_mut().enumerate() {
                                     for _t_i in 0..pane.tabs.len() {
@@ -2592,126 +2708,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return true;
                         }
                         KeyCode::Up => {
-                            if app.sidebar_focus {
-                                if has_alt {
-                                    // Reorder favorites
-                                    let target_opt = app
-                                        .sidebar_bounds
-                                        .iter()
-                                        .find(|b| b.index == app.sidebar_index)
-                                        .map(|b| b.target.clone());
-
-                                    if let Some(SidebarTarget::Favorite(path)) = target_opt {
-                                        if let Some(pos) =
-                                            app.starred.iter().position(|p| *p == path)
-                                        {
-                                            if pos > 0 {
-                                                app.starred.swap(pos, pos - 1);
-                                                app.sidebar_index -= 1;
-                                                let _ = crate::config::save_state(app);
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    if app.sidebar_index == 0 {
-                                        app.mode = AppMode::Header(0); // Go to Burger icon
-                                    } else {
-                                        app.sidebar_index = app.sidebar_index.saturating_sub(1);
-                                    }
-                                }
-                            } else if let Some(fs) = app.current_file_state_mut() {
-                                if let Some(sel) = fs.selection.selected {
-                                    if sel > 0 {
-                                        let next = sel - 1;
-                                        let is_divider = fs.files.get(next).map(|p| p.to_string_lossy() == "__DIVIDER__").unwrap_or(false);
-                                        if is_divider {
-                                            if next > 0 {
-                                                fs.selection.selected = Some(next - 1);
-                                                fs.table_state.select(Some(next - 1));
-                                            }
-                                        } else {
-                                            fs.selection.selected = Some(next);
-                                            fs.table_state.select(Some(next));
-                                        }
-
-                                        if key.modifiers.contains(KeyModifiers::SHIFT) {
-                                            fs.selection.handle_move(next, true);
-                                            fs.table_state.select(fs.selection.selected);
-                                        } else {
-                                            fs.selection.handle_move(next, false);
-                                            fs.table_state.select(Some(next));
-                                        }
-                                    } else {
-                                        // At top of list, go to Header (Tab 1 of current pane)
-                                        let mut tab_offset = 5;
-                                        for i in 0..app.focused_pane_index {
-                                            tab_offset += app.panes[i].tabs.len();
-                                        }
-                                        let current_tab_idx =
-                                            app.panes[app.focused_pane_index].active_tab_index;
-                                        app.mode = AppMode::Header(tab_offset + current_tab_idx);
-                                    }
-                                } else {
-                                    // Empty folder or nothing selected
-                                    app.mode = AppMode::Header(5);
-                                }
-                            }
+                            let shift = key.modifiers.contains(KeyModifiers::SHIFT);
+                            app.move_up(shift);
                             return true;
                         }
                         KeyCode::Down => {
-                            if app.sidebar_focus {
-                                if has_alt {
-                                    // Reorder favorites
-                                    let target_opt = app
-                                        .sidebar_bounds
-                                        .iter()
-                                        .find(|b| b.index == app.sidebar_index)
-                                        .map(|b| b.target.clone());
-
-                                    if let Some(SidebarTarget::Favorite(path)) = target_opt {
-                                        if let Some(pos) =
-                                            app.starred.iter().position(|p| *p == path)
-                                        {
-                                            if pos < app.starred.len() - 1 {
-                                                app.starred.swap(pos, pos + 1);
-                                                app.sidebar_index += 1;
-                                                let _ = crate::config::save_state(app);
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    // Clamp to max sidebar items (needs tracking or safe bound)
-                                    app.sidebar_index += 1;
-                                }
-                            } else if let Some(fs) = app.current_file_state_mut() {
-                                let _new_idx = match fs.selection.selected {
-                                    Some(sel) if sel < fs.files.len().saturating_sub(1) => sel + 1,
-                                    _ => fs.files.len().saturating_sub(1),
-                                };
-                                if let Some(sel) = fs.selection.selected {
-                                    if sel < fs.files.len().saturating_sub(1) {
-                                        let next = sel + 1;
-                                        let is_divider = fs.files.get(next).map(|p| p.to_string_lossy() == "__DIVIDER__").unwrap_or(false);
-                                        if is_divider {
-                                            if next + 1 < fs.files.len() {
-                                                fs.selection.handle_move(next + 1, false);
-                                                fs.table_state.select(fs.selection.selected);
-                                            }
-                                        } else {
-                                            if key.modifiers.contains(KeyModifiers::SHIFT) {
-                                                fs.selection.handle_move(next, true);
-                                                fs.table_state.select(fs.selection.selected);
-                                            } else {
-                                                fs.selection.handle_move(next, false);
-                                                fs.table_state.select(fs.selection.selected);
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    fs.selection.handle_move(0, false);
-                                    fs.table_state.select(Some(0));
-                                }
-                            }
+                            let shift = key.modifiers.contains(KeyModifiers::SHIFT);
+                            app.move_down(shift);
                             return true;
                         }
                         KeyCode::Left => {
@@ -2799,6 +2802,36 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                              return true;
                         }
                         KeyCode::Enter => {
+                            if app.current_view == CurrentView::Editor && app.sidebar_focus {
+                                let target_opt = app
+                                    .sidebar_bounds
+                                    .iter()
+                                    .find(|b| b.index == app.sidebar_index)
+                                    .map(|b| b.target.clone());
+
+                                if let Some(SidebarTarget::Project(path)) = target_opt {
+                                    if path.is_dir() {
+                                        if let Some(fs) = app.current_file_state_mut() {
+                                            fs.current_path = path.clone();
+                                            fs.selection.selected = Some(0);
+                                            fs.selection.anchor = Some(0);
+                                            fs.selection.clear_multi();
+                                            *fs.table_state.offset_mut() = 0;
+                                            crate::event_helpers::push_history(fs, path);
+                                            let _ = event_tx
+                                                .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                            app.sidebar_index = 0;
+                                        }
+                                    } else {
+                                        let _ = event_tx.try_send(AppEvent::PreviewRequested(
+                                            app.focused_pane_index,
+                                            path,
+                                        ));
+                                        app.sidebar_focus = false;
+                                    }
+                                }
+                                return true;
+                            }
                             if app.sidebar_focus {
                                 let target_opt = app
                                     .sidebar_bounds
@@ -3702,6 +3735,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     ));
                                     let _ = event_tx.try_send(AppEvent::SystemMonitor);
                                 }
+                                "git" => {
+                                    let _ = event_tx.try_send(AppEvent::GitHistory);
+                                }
+                                "project" => {
+                                    let _ = event_tx.try_send(AppEvent::Editor);
+                                }
                                 _ => {}
                             }
                             app.sidebar_focus = false;
@@ -3856,6 +3895,51 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         }
                     }
 
+                    // IDE/Editor Mode clicks
+                    if app.current_view == CurrentView::Editor && column >= sw {
+                        let cw = w.saturating_sub(sw);
+                        let pc = app.panes.len();
+                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                        let cp = (column.saturating_sub(sw) / pw) as usize;
+                        if cp < pc {
+                            app.focused_pane_index = cp;
+                            app.sidebar_focus = false;
+
+                            // Pass event to TextEditor
+                            if let Some(pane) = app.panes.get_mut(cp) {
+                                if let Some(preview) = &mut pane.preview {
+                                    if let Some(editor) = &mut preview.editor {
+                                        // Area is roughly inner of PW
+                                        let pane_area = ratatui::layout::Rect::new(
+                                            sw + (cp as u16 * pw),
+                                            1, // Header height
+                                            pw,
+                                            h.saturating_sub(3), // Header(1) + Footer(2)
+                                        );
+                                        editor.handle_mouse_event(me, pane_area);
+                                    }
+                                }
+                            }
+                            return true;
+                        }
+                    }
+
+                    // Git History Selection
+                    if app.current_view == CurrentView::Git {
+                        if row >= 2 { // Header(1) + margin(1) = 2
+                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                if let Some(tab) = pane.tabs.get_mut(pane.active_tab_index) {
+                                    let scroll_offset = tab.git_history_state.offset();
+                                    let rel_row = (row - 2) as usize + scroll_offset;
+                                    if rel_row < tab.git_history.len() {
+                                        tab.git_history_state.select(Some(rel_row));
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if column < sw {
                         app.sidebar_focus = true;
                         app.drag_start_pos = Some((column, row));
@@ -3880,6 +3964,28 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             app.focused_pane_index,
                                             *idx,
                                         ));
+                                    }
+                                    SidebarTarget::Project(path) => {
+                                        if path.is_dir() {
+                                            if let Some(fs) = app.current_file_state_mut() {
+                                                fs.current_path = path.clone();
+                                                fs.selection.selected = Some(0);
+                                                fs.selection.anchor = Some(0);
+                                                fs.selection.clear_multi();
+                                                *fs.table_state.offset_mut() = 0;
+                                                crate::event_helpers::push_history(fs, path.clone());
+                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(
+                                                    app.focused_pane_index,
+                                                ));
+                                                app.sidebar_index = 0;
+                                            }
+                                        } else {
+                                            let _ = event_tx.try_send(AppEvent::PreviewRequested(
+                                                app.focused_pane_index,
+                                                path.clone(),
+                                            ));
+                                            app.sidebar_focus = false;
+                                        }
                                     }
                                     SidebarTarget::Disk(name) => {
                                         if let Some(disk) =
