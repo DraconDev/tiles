@@ -1762,8 +1762,6 @@ fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
             
             let bread_rect = Rect::new(cur_x, breadcrumb_y, width, 1);
             f.render_widget(Paragraph::new(Span::styled(segment, style)), bread_rect);
-            // We can also store bounds if we want them clickable in IDE mode
-            tab.breadcrumb_bounds.borrow_mut().push((bread_rect, s_path));
             
             cur_x += width;
             if !is_last {
