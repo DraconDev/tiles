@@ -522,6 +522,7 @@ pub struct App {
     pub initial_window_size: Option<(u16, u16)>,
     pub path_colors: HashMap<PathBuf, u8>,
     pub folder_selections: HashMap<PathBuf, usize>,
+    pub expanded_folders: HashSet<PathBuf>,
     pub ignore_resize_until: Option<std::time::Instant>,
     pub last_action_msg: Option<(String, std::time::Instant)>,
     pub pending_remote: RemoteBookmark,
@@ -668,6 +669,7 @@ impl App {
                     initial_window_size: state.window_size,
                     path_colors: state.path_colors,
                     folder_selections: HashMap::new(),
+                    expanded_folders: HashSet::new(),
                     ignore_resize_until: None,
                     last_action_msg: None,
                     pending_remote: RemoteBookmark {
@@ -883,6 +885,7 @@ impl App {
             initial_window_size: None,
             path_colors: HashMap::new(),
             folder_selections: HashMap::new(),
+            expanded_folders: HashSet::new(),
             ignore_resize_until: None,
             last_action_msg: None,
             pending_remote: RemoteBookmark {
@@ -1046,13 +1049,11 @@ impl App {
             return;
         }
         if self.current_view == CurrentView::Editor && self.sidebar_focus {
-            if let Some(fs) = self.current_file_state() {
-                self.sidebar_index = if self.sidebar_index == 0 {
-                    fs.files.len().saturating_sub(1)
-                } else {
-                    self.sidebar_index - 1
-                };
-            }
+            self.sidebar_index = if self.sidebar_index == 0 {
+                self.sidebar_bounds.len().saturating_sub(1)
+            } else {
+                self.sidebar_index - 1
+            };
             return;
         }
         if self.sidebar_focus {
@@ -1097,13 +1098,11 @@ impl App {
             return;
         }
         if self.current_view == CurrentView::Editor && self.sidebar_focus {
-            if let Some(fs) = self.current_file_state() {
-                self.sidebar_index = if self.sidebar_index >= fs.files.len().saturating_sub(1) {
-                    0
-                } else {
-                    self.sidebar_index + 1
-                };
-            }
+            self.sidebar_index = if self.sidebar_index >= self.sidebar_bounds.len().saturating_sub(1) {
+                0
+            } else {
+                self.sidebar_index + 1
+            };
             return;
         }
         if self.sidebar_focus {
