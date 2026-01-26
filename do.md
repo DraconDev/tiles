@@ -4,7 +4,9 @@ add a simpler editor
 
 we need scroll on the editor
 
-w
+we need tabs
+
+
 
 ## Doing
 
