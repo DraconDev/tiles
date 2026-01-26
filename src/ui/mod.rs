@@ -1772,11 +1772,20 @@ fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
     );
 }
 
-fn draw_bottom_panel(f: &mut Frame, area: Rect, app: &mut App) {
+fn draw_side_panel(f: &mut Frame, area: Rect, app: &mut App) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(" TOOLS ")
+        .border_style(Style::default().fg(Color::Rgb(40, 45, 55)));
+    
+    let inner_area = block.inner(area);
+    f.render_widget(block, area);
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(1), Constraint::Fill(1)])
-        .split(area);
+        .split(inner_area);
 
     // 1. Panel Tabs
     let mut tab_spans = Vec::new();
