@@ -1763,7 +1763,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
                         }
                         // 2. Clear filter on Cancel (IDE)
-                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                        let focused_idx = app.focused_pane_index;
+                        if let Some(pane) = app.panes.get_mut(focused_idx) {
                             if let Some(preview) = &mut pane.preview {
                                 if let Some(editor) = &mut preview.editor {
                                     editor.set_filter("");
@@ -1785,19 +1786,21 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
                         }
                         // 2. Clear filter on Enter (IDE)
-                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                        let (w, h) = app.terminal_size;
+                        let sw = app.sidebar_width();
+                        let pc = app.panes.len();
+                        let cw = w.saturating_sub(sw);
+                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                        let focused_idx = app.focused_pane_index;
+                        let pane_area = ratatui::layout::Rect::new(
+                            sw + (focused_idx as u16 * pw),
+                            1, pw, h.saturating_sub(1)
+                        );
+
+                        if let Some(pane) = app.panes.get_mut(focused_idx) {
                             if let Some(preview) = &mut pane.preview {
                                 if let Some(editor) = &mut preview.editor {
                                     editor.set_filter("");
-                                    let sw = app.sidebar_width();
-                                    let (w, h) = app.terminal_size;
-                                    let cw = w.saturating_sub(sw);
-                                    let pc = app.panes.len();
-                                    let pw = if pc > 0 { cw / pc as u16 } else { cw };
-                                    let pane_area = ratatui::layout::Rect::new(
-                                        sw + (app.focused_pane_index as u16 * pw),
-                                        1, pw, h.saturating_sub(1)
-                                    );
                                     editor.ensure_cursor_centered(pane_area);
                                 }
                             }
@@ -1815,18 +1818,20 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 editor.handle_event(&evt, area);
                             }
                         }
-                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                        let (w, h) = app.terminal_size;
+                        let sw = app.sidebar_width();
+                        let pc = app.panes.len();
+                        let cw = w.saturating_sub(sw);
+                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                        let focused_idx = app.focused_pane_index;
+                        let pane_area = ratatui::layout::Rect::new(
+                            sw + (focused_idx as u16 * pw),
+                            1, pw, h.saturating_sub(1)
+                        );
+
+                        if let Some(pane) = app.panes.get_mut(focused_idx) {
                             if let Some(preview) = &mut pane.preview {
                                 if let Some(editor) = &mut preview.editor {
-                                    let sw = app.sidebar_width();
-                                    let (w, h) = app.terminal_size;
-                                    let cw = w.saturating_sub(sw);
-                                    let pc = app.panes.len();
-                                    let pw = if pc > 0 { cw / pc as u16 } else { cw };
-                                    let pane_area = ratatui::layout::Rect::new(
-                                        sw + (app.focused_pane_index as u16 * pw),
-                                        1, pw, h.saturating_sub(1)
-                                    );
                                     editor.handle_event(&evt, pane_area);
                                 }
                             }
@@ -1842,7 +1847,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     editor.set_filter(&app.input.value);
                                 }
                             }
-                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                            let focused_idx = app.focused_pane_index;
+                            if let Some(pane) = app.panes.get_mut(focused_idx) {
                                 if let Some(preview) = &mut pane.preview {
                                     if let Some(editor) = &mut preview.editor {
                                         editor.set_filter(&app.input.value);
