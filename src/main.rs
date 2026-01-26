@@ -1127,7 +1127,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 match key.code {
                     KeyCode::Char('p') | KeyCode::Char('P') => {
                         if app.current_view == CurrentView::Editor {
-                            app.show_side_panel = !app.show_side_panel;
+                            app.toggle_split();
                             return true;
                         }
                     }
