@@ -1,5 +1,5 @@
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{
@@ -444,6 +444,21 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
         if app.current_view == CurrentView::Processes {
             draw_monitor_page(f, f.area(), app);
+        } else if app.current_view == CurrentView::Git {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(1),
+                    Constraint::Fill(1),
+                    Constraint::Length(2),
+                ])
+                .split(f.area());
+
+            draw_global_header(f, chunks[0], 0, app);
+            draw_git_page(f, chunks[1], app);
+            draw_footer(f, chunks[2], app);
+        } else if app.current_view == CurrentView::Editor {
+            draw_editor_view(f, f.area(), app);
         } else {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -678,6 +693,7 @@ fn draw_hotkeys_modal(f: &mut Frame, _area: Rect) {
                 ("Ctrl + B", "Toggle Sidebar"),
                 ("Ctrl + P", "Toggle Split View"),
                 ("Ctrl + G", "Open Settings"),
+                ("Ctrl + L", "Git History"),
                 ("Ctrl + Space", "Command Palette"),
                 ("Ctrl + N", "Open Terminal"),
                 ("Backspace", "Go Up Directory"),
@@ -1510,6 +1526,8 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let burger_icon = Icon::Burger.get(app.icon_mode);
 
     let monitor_icon = Icon::Monitor.get(app.icon_mode);
+    let git_icon = Icon::Git.get(app.icon_mode);
+    let project_icon = Icon::Folder.get(app.icon_mode); // Use Folder icon for IDE/Project
 
     app.header_icon_bounds.clear();
     let mut cur_icon_x = area.x + 2;
@@ -1520,6 +1538,8 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         (forward_icon, "forward"),
         (split_icon, "split"),
         (monitor_icon, "monitor"),
+        (git_icon, "git"),
+        (project_icon, "project"),
     ];
 
     for (i, (icon, id)) in icons.into_iter().enumerate() {
@@ -1560,7 +1580,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         ));
 
     app.tab_bounds.clear();
-    let mut global_tab_idx = 5; // Start after 5 icons (0-4)
+    let mut global_tab_idx = 7; // Start after 7 icons (0-6)
     for (p_i, pane) in app.panes.iter().enumerate() {
         let chunk = pane_chunks[p_i];
         let mut current_x = chunk.x;
@@ -1641,6 +1661,275 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
         }
         CurrentView::Processes => {
             draw_monitor_page(f, area, app);
+        }
+        CurrentView::Git => {
+            draw_git_page(f, area, app);
+        }
+        CurrentView::Editor => {
+            draw_editor_stage(f, area, app);
+        }
+    }
+}
+
+fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1), // Header
+            Constraint::Fill(1),   // Main Stage
+            Constraint::Length(2), // Footer
+        ])
+        .split(area);
+
+    draw_global_header(f, chunks[0], app.sidebar_width(), app);
+
+    let workspace_constraints = if app.show_sidebar {
+        [Constraint::Length(app.sidebar_width()), Constraint::Fill(1)]
+    } else {
+        [Constraint::Length(0), Constraint::Fill(1)]
+    };
+
+    let workspace = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(workspace_constraints)
+        .split(chunks[1]);
+
+    if app.show_sidebar {
+        draw_project_sidebar(f, workspace[0], app);
+    }
+
+    draw_editor_stage(f, workspace[1], app);
+    draw_footer(f, chunks[2], app);
+}
+
+fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(" PROJECT ")
+        .border_style(if app.sidebar_focus {
+            Style::default().fg(THEME.border_active)
+        } else {
+            Style::default().fg(THEME.border_inactive)
+        });
+
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    // Get files for the current folder of the focused pane
+    let fs = if let Some(pane) = app.panes.get(app.focused_pane_index) {
+        if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
+            tab
+        } else {
+            return;
+        }
+    } else {
+        return;
+    };
+
+    let mut items = Vec::new();
+    app.sidebar_bounds.clear();
+    let mut current_y = inner.y;
+
+    for (_i, file) in fs.files.iter().enumerate() {
+        if file.to_string_lossy() == "__DIVIDER__" {
+            items.push(ListItem::new("──────────────").style(Style::default().fg(Color::DarkGray)));
+            current_y += 1;
+            continue;
+        }
+
+        let name = file.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("?".to_string());
+        let is_selected = app.sidebar_focus && app.sidebar_index == items.len();
+        
+        let mut style = Style::default().fg(THEME.fg);
+        if is_selected {
+            style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+        }
+
+        let cat = crate::modules::files::get_file_category(file);
+        let icon = Icon::get_for_path(file, cat, file.is_dir(), app.icon_mode);
+
+        items.push(ListItem::new(format!("{}{}", icon, name)).style(style));
+        app.sidebar_bounds.push(SidebarBounds {
+            y: current_y,
+            index: items.len() - 1,
+            target: SidebarTarget::Project(file.clone()),
+        });
+        current_y += 1;
+    }
+
+    f.render_widget(List::new(items), inner);
+}
+
+fn draw_editor_stage(f: &mut Frame, area: Rect, app: &mut App) {
+    let pane_count = app.panes.len();
+    if pane_count == 0 {
+        return;
+    }
+
+    let constraints = vec![Constraint::Fill(1); pane_count];
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(constraints)
+        .spacing(0)
+        .split(area);
+
+    for i in 0..pane_count {
+        let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
+        draw_pane_editor(f, chunks[i], app, i, is_focused);
+    }
+}
+
+fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool) {
+    let pane = &mut app.panes[pane_idx];
+    
+    let border_style = if is_focused {
+        Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(THEME.border_inactive)
+    };
+
+    let title = if let Some(preview) = &pane.preview {
+        format!(" {} ", preview.path.file_name().unwrap_or_default().to_string_lossy())
+    } else {
+        " (No file open) ".to_string()
+    };
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(title)
+        .border_style(border_style);
+
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    if let Some(preview) = &mut pane.preview {
+        if let Some(editor) = &preview.editor {
+            f.render_widget(editor, inner);
+        }
+    } else {
+        f.render_widget(
+            Paragraph::new("\n\n Select a file from the sidebar to edit.")
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(Color::DarkGray)),
+            inner
+        );
+    }
+}
+
+fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
+    let pane_idx = app.focused_pane_index;
+    let tab_idx = if let Some(pane) = app.panes.get(pane_idx) {
+        pane.active_tab_index
+    } else {
+        0
+    };
+
+    let (history, pending, current_path) = if let Some(pane) = app.panes.get(pane_idx) {
+        if let Some(tab) = pane.tabs.get(tab_idx) {
+            (&tab.git_history, &tab.git_pending, tab.current_path.clone())
+        } else {
+            return;
+        }
+    } else {
+        return;
+    };
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(format!(" GIT: {} ", current_path.display()))
+        .border_style(Style::default().fg(THEME.accent_primary));
+
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(if pending.is_empty() { 0 } else { (pending.len() as u16 + 2).min(inner.height / 3) }),
+            Constraint::Min(0),
+        ])
+        .split(inner);
+
+    // 1. Pending Changes
+    if !pending.is_empty() {
+        let pending_rows: Vec<_> = pending.iter().map(|p| {
+            let status_color = match p.status.as_str() {
+                "M" => Color::Yellow,
+                "A" | "??" => Color::Green,
+                "D" => Color::Red,
+                "R" => Color::Cyan,
+                _ => Color::White,
+            };
+            Row::new(vec![
+                Cell::from(p.status.clone()).style(Style::default().fg(status_color).add_modifier(Modifier::BOLD)),
+                Cell::from(p.path.clone()).style(Style::default().fg(THEME.fg)),
+            ])
+        }).collect();
+
+        let pending_table = Table::new(pending_rows, [Constraint::Length(4), Constraint::Fill(1)])
+            .header(Row::new(vec!["STA", "PATH"]).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)))
+            .block(Block::default().borders(Borders::BOTTOM).title(" PENDING CHANGES ").border_style(Style::default().fg(Color::Rgb(40, 45, 55))));
+        f.render_widget(pending_table, chunks[0]);
+    }
+
+    // 2. History
+    if history.is_empty() {
+        f.render_widget(
+            Paragraph::new("\n\n No git history found for this path or not a git repository.")
+                .alignment(Alignment::Center),
+            chunks[1],
+        );
+        return;
+    }
+
+    let rows: Vec<_> = history
+        .iter()
+        .map(|act| {
+            let h_short = act.hash.chars().take(7).collect::<String>();
+            let stats = if act.files_changed > 0 {
+                format!(" [{}f, +{}, -{}]", act.files_changed, act.insertions, act.deletions)
+            } else {
+                String::new()
+            };
+            
+            Row::new(vec![
+                Cell::from(act.date.clone()).style(Style::default().fg(Color::DarkGray)),
+                Cell::from(h_short).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)),
+                Cell::from(act.author.clone()).style(Style::default().fg(Color::Cyan)),
+                Cell::from(format!("{}{}", act.message, stats)).style(Style::default().fg(THEME.fg)),
+            ])
+        })
+        .collect();
+
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Length(25),
+            Constraint::Length(10),
+            Constraint::Length(15),
+            Constraint::Fill(1),
+        ],
+    )
+    .header(
+        Row::new(vec!["DATE", "HASH", "AUTHOR", "MESSAGE"])
+            .style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD))
+            .bottom_margin(1),
+    )
+    .block(Block::default().title(" HISTORY "))
+    .row_highlight_style(
+        Style::default()
+            .bg(Color::Rgb(40, 40, 50))
+            .fg(THEME.accent_secondary)
+            .add_modifier(Modifier::BOLD),
+    )
+    .highlight_symbol(" 󰁅 ");
+
+    if let Some(pane) = app.panes.get_mut(pane_idx) {
+        if let Some(tab) = pane.tabs.get_mut(tab_idx) {
+            f.render_stateful_widget(table, chunks[1], &mut tab.git_history_state);
         }
     }
 }
@@ -2275,6 +2564,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         shortcuts.extend(HotkeyHint::new("^N", "TermTab", THEME.accent_secondary));
         shortcuts.extend(HotkeyHint::new("^K", "TermWin", THEME.accent_secondary));
         shortcuts.extend(HotkeyHint::new("^H", "Hidden", hidden_color));
+        shortcuts.extend(HotkeyHint::new("^L", "History", THEME.accent_secondary));
         shortcuts.extend(HotkeyHint::new("Space", "Preview/Edit", THEME.accent_primary));
 
         for s in shortcuts {
