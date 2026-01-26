@@ -705,7 +705,8 @@ fn draw_hotkeys_modal(f: &mut Frame, _area: Rect) {
             "IDE Mode",
             vec![
                 ("Ctrl + B", "Toggle Sidebar"),
-                ("Ctrl + J", "Toggle Panel"),
+                ("Ctrl + P", "Toggle Panel"),
+                ("Ctrl + K", "Cycle Panel Tabs"),
                 ("Esc", "Focus Sidebar / Back"),
                 ("Enter", "Open File/Folder"),
                 ("Arrows", "Navigate Tree / Editor"),
