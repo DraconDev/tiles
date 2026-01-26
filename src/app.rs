@@ -54,6 +54,9 @@ pub enum AppEvent {
     StatusMsg(String),
     KillProcess(u32),
     SystemMonitor,
+    GitHistory,
+    Editor,
+    GitHistoryUpdated(usize, usize, Vec<CommitInfo>, Vec<GitStatus>), // pane_idx, tab_idx, history, pending
     TaskProgress(Uuid, f32, String), // id, progress, status
     TaskFinished(Uuid),
     GlobalSearchUpdated(usize, Vec<PathBuf>, HashMap<PathBuf, FileMetadata>), // pane_idx, files, metadata
@@ -63,6 +66,27 @@ pub enum AppEvent {
 pub enum CurrentView {
     Files,
     Processes,
+    Git,
+    Editor,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GitStatus {
+    pub path: String,
+    pub status: String, // "M", "A", "D", "R", etc.
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommitInfo {
+    pub hash: String,
+    pub author: String,
+    pub timestamp: u64,
+    pub date: String,
+    pub message: String,
+    pub refs: String,
+    pub insertions: usize,
+    pub deletions: usize,
+    pub files_changed: usize,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -120,6 +144,7 @@ pub enum AppMode {
     TabSearch,
     Properties,
     Highlight,
+    Ide,
     ContextMenu {
         x: u16,
         y: u16,
@@ -167,6 +192,7 @@ pub enum SidebarTarget {
     Remote(usize),
     Storage(usize),
     Disk(String),
+    Project(PathBuf),
 }
 
 #[derive(Clone, Debug)]
@@ -280,6 +306,12 @@ pub struct FileState {
     pub local_count: usize,
     #[serde(skip)]
     pub pending_select_path: Option<PathBuf>,
+    #[serde(skip)]
+    pub git_history: Vec<CommitInfo>,
+    #[serde(skip)]
+    pub git_pending: Vec<GitStatus>,
+    #[serde(skip)]
+    pub git_history_state: TableState,
 }
 
 impl FileState {
@@ -313,6 +345,9 @@ impl FileState {
             git_branch: None,
             local_count: 0,
             pending_select_path: None,
+            git_history: Vec::new(),
+            git_pending: Vec::new(),
+            git_history_state: TableState::default(),
         }
     }
 }
@@ -931,7 +966,9 @@ impl App {
     pub fn switch_view(&mut self) {
         self.current_view = match self.current_view {
             CurrentView::Files => CurrentView::Processes,
-            CurrentView::Processes => CurrentView::Files,
+            CurrentView::Processes => CurrentView::Git,
+            CurrentView::Git => CurrentView::Editor,
+            CurrentView::Editor => CurrentView::Files,
         };
     }
 
@@ -993,6 +1030,28 @@ impl App {
     }
 
     pub fn move_up(&mut self, shift: bool) {
+        if self.current_view == CurrentView::Git {
+            if let Some(tab) = self.current_file_state_mut() {
+                let old_idx = tab.git_history_state.selected().unwrap_or(0);
+                let new_idx = if old_idx == 0 {
+                    tab.git_history.len().saturating_sub(1)
+                } else {
+                    old_idx - 1
+                };
+                tab.git_history_state.select(Some(new_idx));
+            }
+            return;
+        }
+        if self.current_view == CurrentView::Editor && self.sidebar_focus {
+            if let Some(fs) = self.current_file_state() {
+                self.sidebar_index = if self.sidebar_index == 0 {
+                    fs.files.len().saturating_sub(1)
+                } else {
+                    self.sidebar_index - 1
+                };
+            }
+            return;
+        }
         if self.sidebar_focus {
             if self.sidebar_index > 0 {
                 self.sidebar_index -= 1;
@@ -1022,6 +1081,28 @@ impl App {
     }
 
     pub fn move_down(&mut self, shift: bool) {
+        if self.current_view == CurrentView::Git {
+            if let Some(tab) = self.current_file_state_mut() {
+                let old_idx = tab.git_history_state.selected().unwrap_or(0);
+                let new_idx = if old_idx >= tab.git_history.len().saturating_sub(1) {
+                    0
+                } else {
+                    old_idx + 1
+                };
+                tab.git_history_state.select(Some(new_idx));
+            }
+            return;
+        }
+        if self.current_view == CurrentView::Editor && self.sidebar_focus {
+            if let Some(fs) = self.current_file_state() {
+                self.sidebar_index = if self.sidebar_index >= fs.files.len().saturating_sub(1) {
+                    0
+                } else {
+                    self.sidebar_index + 1
+                };
+            }
+            return;
+        }
         if self.sidebar_focus {
             if self.sidebar_index < self.sidebar_bounds.len().saturating_sub(1) {
                 self.sidebar_index += 1;
