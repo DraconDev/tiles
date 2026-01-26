@@ -6,7 +6,7 @@ we need scroll on the editor
 
 we need tabs above the edtiro
 
-when click
+when clicking on the side 
 
 ## Doing
 
