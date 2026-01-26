@@ -2243,6 +2243,71 @@ fn draw_file_view(
         draw_pane_breadcrumbs(f, area, app, pane_idx);
 
         let mut display_columns = Vec::new();
+        for col in &file_state.columns {
+            match col {
+                FileColumn::Name => display_columns.push(FileColumn::Name),
+                FileColumn::Size if area.width > 40 => display_columns.push(FileColumn::Size),
+                FileColumn::Modified if area.width > 70 => {
+                    display_columns.push(FileColumn::Modified)
+                }
+                FileColumn::Created if area.width > 90 => display_columns.push(FileColumn::Created),
+                FileColumn::Permissions if area.width > 110 => {
+                    display_columns.push(FileColumn::Permissions)
+                }
+                _ => {}
+            }
+        }
+        // Ensure Name is always there as a safety fallback
+        if !display_columns.contains(&FileColumn::Name) {
+            display_columns.insert(0, FileColumn::Name);
+        }
+
+        let constraints: Vec<Constraint> = display_columns
+            .iter()
+            .map(|c| match c {
+                FileColumn::Name => Constraint::Fill(1),
+                FileColumn::Size => Constraint::Length(12),
+                FileColumn::Modified => Constraint::Length(20),
+                FileColumn::Created => Constraint::Length(20),
+                FileColumn::Permissions => Constraint::Length(12),
+            })
+            .collect();
+
+        let dummy_block = Block::default().borders(borders);
+        let inner_area = dummy_block.inner(area);
+        let column_layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(constraints.clone())
+            .spacing(0)
+            .split(inner_area);
+
+        let header_lines: Vec<Line> = display_columns
+            .iter()
+            .map(|c| {
+                let base_name = match c {
+                    FileColumn::Name => "Name",
+                    FileColumn::Size => "Size",
+                    FileColumn::Modified => "Modified",
+                    FileColumn::Created => "Created",
+                    FileColumn::Permissions => "Permissions",
+                };
+                let name = if *c == file_state.sort_column {
+                    if file_state.sort_ascending {
+                        format!("{} ▲", base_name)
+                    } else {
+                        format!("{} ▼", base_name)
+                    }
+                } else {
+                    base_name.to_string()
+                };
+                Line::from(vec![Span::styled(
+                    name,
+                    Style::default()
+                        .fg(THEME.header_fg)
+                        .add_modifier(Modifier::BOLD),
+                )])
+            })
+            .collect();
 
         // --- ABSOLUTE CELL ISOLATION RENDERING ---
         file_state.column_bounds.clear();
