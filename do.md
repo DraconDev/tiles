@@ -2,7 +2,7 @@
 
 
 
-we need tabs above the edtiro
+we need tabs above the editor panels
 
 when clicking on the side editor on the right we should not hide the file list, on the edtior screen 
 
