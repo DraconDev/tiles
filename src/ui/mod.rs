@@ -1899,9 +1899,9 @@ fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, i
         }
     }
 
-    let border_style = Style::default().fg(border_color);
+    let mut border_style = Style::default().fg(border_color);
     if is_focused {
-        border_style.add_modifier(Modifier::BOLD);
+        border_style = border_style.add_modifier(Modifier::BOLD);
     }
 
     let title = if let Some(preview) = &pane.preview {
