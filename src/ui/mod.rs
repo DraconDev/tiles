@@ -1730,17 +1730,47 @@ fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
     ));
     left_spans.push(Span::raw(" "));
 
-    // Show focused pane's file info
-    let pane = &app.panes[app.focused_pane_index];
-    if let Some(preview) = &pane.preview {
-        let name = preview.path.file_name().unwrap_or_default().to_string_lossy();
-        let status = if let Some(editor) = &preview.editor {
-            if editor.modified { " [Modified] " } else { " [Clean] " }
-        } else { "" };
-        left_spans.push(Span::styled(format!(" {} ", name), Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
-        left_spans.push(Span::styled(status, Style::default().fg(if status.contains("Modified") { Color::Yellow } else { Color::Green })));
-    } else {
-        left_spans.push(Span::styled(" (No file) ", Style::default().fg(Color::DarkGray)));
+    // Show path breadcrumbs
+    let current_pane = &app.panes[app.focused_pane_index];
+    let tab = &current_pane.tabs[current_pane.active_tab_index];
+    let path = &tab.current_path;
+    
+    let mut cur_p = PathBuf::new();
+    let mut cur_x = area.x + 15; // Offset after [IDE]
+    let breadcrumb_y = area.y;
+    
+    for (i, comp) in path.components().enumerate() {
+        match comp {
+            std::path::Component::RootDir => cur_p.push("/"),
+            std::path::Component::Prefix(p) => cur_p.push(p.as_os_str()),
+            std::path::Component::Normal(name) => cur_p.push(name),
+            _ => continue,
+        }
+        let d_name = if comp.as_os_str() == "/" { "/".to_string() } else { squarify(&comp.as_os_str().to_string_lossy()) };
+        if !d_name.is_empty() {
+            let s_path = cur_p.clone();
+            let is_last = i == path.components().count() - 1;
+            let style = if is_last { Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::Rgb(100, 100, 110)) };
+            
+            let segment = format!(" {} ", d_name);
+            let width = segment.chars().map(get_visual_width).sum::<usize>() as u16;
+            
+            if cur_x + width > area.x + area.width / 2 {
+                f.render_widget(Paragraph::new("..."), Rect::new(cur_x, breadcrumb_y, 3, 1));
+                break;
+            }
+            
+            let bread_rect = Rect::new(cur_x, breadcrumb_y, width, 1);
+            f.render_widget(Paragraph::new(Span::styled(segment, style)), bread_rect);
+            // We can also store bounds if we want them clickable in IDE mode
+            tab.breadcrumb_bounds.borrow_mut().push((bread_rect, s_path));
+            
+            cur_x += width;
+            if !is_last {
+                f.render_widget(Paragraph::new(Span::styled("›", Style::default().fg(Color::Rgb(80, 80, 90)))), Rect::new(cur_x, breadcrumb_y, 1, 1));
+                cur_x += 1;
+            }
+        }
     }
 
     let mut right_spans = Vec::new();
