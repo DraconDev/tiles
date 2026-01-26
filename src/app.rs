@@ -457,12 +457,9 @@ pub struct BackgroundTask {
     pub status: String,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub enum IdePanelTab {
-    Search,
-    Git,
-    Log,
-}
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum CurrentView {
+
 
 pub struct App {
     pub running: bool,
