@@ -1690,12 +1690,12 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1), // IDE Header
+            Constraint::Length(1), // Header (Icons & Tabs)
             Constraint::Fill(1),   // Workspace Area
         ])
         .split(area);
 
-    draw_ide_header(f, chunks[0], app);
+    draw_global_header(f, chunks[0], app.sidebar_width(), app);
 
     let workspace_constraints = [
         Constraint::Length(if app.show_sidebar { app.sidebar_width() } else { 0 }),
