@@ -1687,14 +1687,14 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1), // Header
+            Constraint::Length(1), // IDE Header
             Constraint::Fill(1),   // Main Stage
             Constraint::Length(if app.show_panel { 8 } else { 0 }), // Panel
             Constraint::Length(2), // Footer
         ])
         .split(area);
 
-    draw_global_header(f, chunks[0], app.sidebar_width(), app);
+    draw_ide_header(f, chunks[0], app);
 
     let workspace_constraints = if app.show_sidebar {
         [Constraint::Length(app.sidebar_width()), Constraint::Fill(1)]
@@ -1718,6 +1718,46 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     draw_footer(f, chunks[3], app);
+}
+
+fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
+    let mut left_spans = Vec::new();
+    left_spans.push(Span::styled(
+        " 󱐋 IDE ",
+        Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD),
+    ));
+    left_spans.push(Span::raw(" "));
+
+    // Show focused pane's file info
+    let pane = &app.panes[app.focused_pane_index];
+    if let Some(preview) = &pane.preview {
+        let name = preview.path.file_name().unwrap_or_default().to_string_lossy();
+        let status = if let Some(editor) = &preview.editor {
+            if editor.modified { " [Modified] " } else { " [Clean] " }
+        } else { "" };
+        left_spans.push(Span::styled(format!(" {} ", name), Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)));
+        left_spans.push(Span::styled(status, Style::default().fg(if status.contains("Modified") { Color::Yellow } else { Color::Green })));
+    } else {
+        left_spans.push(Span::styled(" (No file) ", Style::default().fg(Color::DarkGray)));
+    }
+
+    let mut right_spans = Vec::new();
+    right_spans.extend(HotkeyHint::new("Esc", "Sidebar", Color::Red));
+    right_spans.extend(HotkeyHint::new("^B", "Tree", THEME.accent_secondary));
+    right_spans.extend(HotkeyHint::new("^J", "Panel", THEME.accent_secondary));
+    right_spans.extend(HotkeyHint::new("^E", "Exit IDE", Color::Red));
+
+    f.render_widget(
+        Paragraph::new(Line::from(left_spans))
+            .block(Block::default().borders(Borders::BOTTOM).border_style(Style::default().fg(Color::Rgb(30, 30, 35)))),
+        area,
+    );
+
+    f.render_widget(
+        Paragraph::new(Line::from(right_spans))
+            .alignment(Alignment::Right),
+        area,
+    );
 }
 
 fn draw_bottom_panel(f: &mut Frame, area: Rect, app: &mut App) {
