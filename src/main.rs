@@ -1672,6 +1672,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             let replace_term = app.input.value.clone();
                             let find_term = app.replace_buffer.clone();
 
+                            // 1. Check global editor_state (legacy/viewer)
                             if let Some(preview) = &mut app.editor_state {
                                 if let Some(editor) = &mut preview.editor {
                                     if key.modifiers.contains(KeyModifiers::CONTROL) {
@@ -1685,15 +1686,40 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         app.replace_buffer.clear();
                                     } else {
                                         editor.replace_next(&find_term, &replace_term);
-                                        // Stay in Replace mode for incremental next
                                         let (w, h) = app.terminal_size;
-                                        let area = ratatui::layout::Rect::new(
-                                            1,
-                                            1,
-                                            w.saturating_sub(2),
-                                            h.saturating_sub(2),
-                                        );
+                                        let area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
                                         editor.ensure_cursor_centered(area);
+                                    }
+                                }
+                            }
+                            
+                            // 2. Check focused pane's preview (IDE mode)
+                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                if let Some(preview) = &mut pane.preview {
+                                    if let Some(editor) = &mut preview.editor {
+                                        if key.modifiers.contains(KeyModifiers::CONTROL) {
+                                            editor.replace_all(&find_term, &replace_term);
+                                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                                "Replaced all '{}' with '{}'",
+                                                find_term, replace_term
+                                            )));
+                                            app.mode = app.previous_mode.clone();
+                                            app.input.clear();
+                                            app.replace_buffer.clear();
+                                        } else {
+                                            editor.replace_next(&find_term, &replace_term);
+                                            // Ensure cursor centered in pane area
+                                            let sw = app.sidebar_width();
+                                            let (w, h) = app.terminal_size;
+                                            let cw = w.saturating_sub(sw);
+                                            let pc = app.panes.len();
+                                            let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                                            let pane_area = ratatui::layout::Rect::new(
+                                                sw + (app.focused_pane_index as u16 * pw),
+                                                1, pw, h.saturating_sub(1)
+                                            );
+                                            editor.ensure_cursor_centered(pane_area);
+                                        }
                                     }
                                 }
                             }
