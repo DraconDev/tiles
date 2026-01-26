@@ -1763,6 +1763,11 @@ fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
             let bread_rect = Rect::new(cur_x, breadcrumb_y, width, 1);
             f.render_widget(Paragraph::new(Span::styled(segment, style)), bread_rect);
             
+            // Populate bounds for the FOCUSED tab
+            if let Some(mut_tab) = app.panes[app.focused_pane_index].tabs.get_mut(app.panes[app.focused_pane_index].active_tab_index) {
+                mut_tab.breadcrumb_bounds.push((bread_rect, s_path));
+            }
+
             cur_x += width;
             if !is_last {
                 f.render_widget(Paragraph::new(Span::styled("›", Style::default().fg(Color::Rgb(80, 80, 90)))), Rect::new(cur_x, breadcrumb_y, 1, 1));
