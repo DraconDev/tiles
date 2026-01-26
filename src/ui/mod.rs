@@ -1731,12 +1731,14 @@ fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
     left_spans.push(Span::raw(" "));
 
     // Show path breadcrumbs
-    let current_pane = &app.panes[app.focused_pane_index];
-    let tab = &current_pane.tabs[current_pane.active_tab_index];
-    let path = &tab.current_path;
+    let focused_pane_idx = app.focused_pane_index;
+    let (path, active_tab_idx) = {
+        let pane = &app.panes[focused_pane_idx];
+        (pane.tabs[pane.active_tab_index].current_path.clone(), pane.active_tab_index)
+    };
     
     // Clear bounds before repopulating
-    if let Some(mut_tab) = app.panes[app.focused_pane_index].tabs.get_mut(app.panes[app.focused_pane_index].active_tab_index) {
+    if let Some(mut_tab) = app.panes[focused_pane_idx].tabs.get_mut(active_tab_idx) {
         mut_tab.breadcrumb_bounds.clear();
     }
 
@@ -1744,7 +1746,10 @@ fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
     let mut cur_x = area.x + 15; // Offset after [IDE]
     let breadcrumb_y = area.y;
     
-    for (i, comp) in path.components().enumerate() {
+    let components: Vec<_> = path.components().collect();
+    let total_comps = components.len();
+
+    for (i, comp) in components.into_iter().enumerate() {
         match comp {
             std::path::Component::RootDir => cur_p.push("/"),
             std::path::Component::Prefix(p) => cur_p.push(p.as_os_str()),
@@ -1754,7 +1759,7 @@ fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
         let d_name = if comp.as_os_str() == "/" { "/".to_string() } else { squarify(&comp.as_os_str().to_string_lossy()) };
         if !d_name.is_empty() {
             let s_path = cur_p.clone();
-            let is_last = i == path.components().count() - 1;
+            let is_last = i == total_comps - 1;
             let style = if is_last { Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD) } else { Style::default().fg(Color::Rgb(100, 100, 110)) };
             
             let segment = format!(" {} ", d_name);
@@ -1769,7 +1774,7 @@ fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
             f.render_widget(Paragraph::new(Span::styled(segment, style)), bread_rect);
             
             // Populate bounds for the FOCUSED tab
-            if let Some(mut_tab) = app.panes[app.focused_pane_index].tabs.get_mut(app.panes[app.focused_pane_index].active_tab_index) {
+            if let Some(mut_tab) = app.panes[focused_pane_idx].tabs.get_mut(active_tab_idx) {
                 mut_tab.breadcrumb_bounds.push((bread_rect, s_path));
             }
 
