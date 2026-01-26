@@ -1719,6 +1719,14 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
 
 fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
     let mut left_spans = Vec::new();
+    
+    // File icon on far left
+    let file_icon = Icon::File.get(app.icon_mode);
+    left_spans.push(Span::styled(
+        format!(" {} ", file_icon),
+        Style::default().fg(THEME.accent_secondary),
+    ));
+
     left_spans.push(Span::styled(
         " 󱐋 IDE ",
         Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD),
@@ -1738,10 +1746,17 @@ fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
         left_spans.push(Span::styled(" (No file) ", Style::default().fg(Color::DarkGray)));
     }
 
+    // Search info in the middle
+    if !app.ide_search_input.is_empty() {
+        left_spans.push(Span::raw(" │ "));
+        left_spans.push(Span::styled(format!(" 󰍉 {} ", app.ide_search_input), Style::default().fg(Color::Cyan)));
+    }
+
     let mut right_spans = Vec::new();
     right_spans.extend(HotkeyHint::new("Esc", "Sidebar", Color::Red));
     right_spans.extend(HotkeyHint::new("^B", "Tree", THEME.accent_secondary));
-    right_spans.extend(HotkeyHint::new("^J", "Panel", THEME.accent_secondary));
+    right_spans.extend(HotkeyHint::new("^P", "Panel", THEME.accent_secondary));
+    right_spans.extend(HotkeyHint::new("^K", "Tab", THEME.accent_secondary));
     right_spans.extend(HotkeyHint::new("^E", "Exit IDE", Color::Red));
 
     f.render_widget(
@@ -1758,38 +1773,88 @@ fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_bottom_panel(f: &mut Frame, area: Rect, app: &mut App) {
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .title(" PANEL ")
-        .border_style(Style::default().fg(Color::Rgb(40, 45, 55)));
-    
-    let inner = block.inner(area);
-    f.render_widget(block, area);
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Fill(1)])
+        .split(area);
 
-    let mut lines = Vec::new();
-    
-    // Background Tasks
-    if !app.background_tasks.is_empty() {
-        for task in &app.background_tasks {
-            let progress_w: usize = 20;
-            let filled = (task.progress * progress_w as f32) as usize;
-            let bar = format!("[{}{}]", "█".repeat(filled), " ".repeat(progress_w.saturating_sub(filled)));
-            lines.push(Line::from(vec![
-                Span::styled(" TASK ", Style::default().bg(Color::Cyan).fg(Color::Black).add_modifier(Modifier::BOLD)),
-                Span::raw(format!(" {} ", task.name)),
-                Span::styled(bar, Style::default().fg(Color::Cyan)),
-                Span::raw(format!(" {:.0}%", task.progress * 100.0)),
-            ]));
+    // 1. Panel Tabs
+    let mut tab_spans = Vec::new();
+    for (i, tab) in app.ide_panel_tabs.iter().enumerate() {
+        let is_active = i == app.ide_active_panel_tab;
+        let name = match tab {
+            IdePanelTab::Search => " SEARCH ",
+            IdePanelTab::Git => " GIT ",
+            IdePanelTab::Log => " LOG ",
+        };
+        let style = if is_active {
+            Style::default().bg(THEME.accent_secondary).fg(Color::Black).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::DarkGray)
+        };
+        tab_spans.push(Span::styled(name, style));
+        if i < app.ide_panel_tabs.len() - 1 {
+            tab_spans.push(Span::styled(" │ ", Style::default().fg(Color::Rgb(30, 30, 35))));
         }
-    } else {
-        lines.push(Line::from(vec![
-            Span::styled(" LOG ", Style::default().bg(Color::DarkGray).fg(Color::Black).add_modifier(Modifier::BOLD)),
-            Span::styled(" No active tasks.", Style::default().fg(Color::DarkGray)),
-        ]));
     }
 
-    f.render_widget(Paragraph::new(lines), inner);
+    f.render_widget(
+        Paragraph::new(Line::from(tab_spans))
+            .block(Block::default().borders(Borders::BOTTOM).border_style(Style::default().fg(Color::Rgb(30, 30, 35)))),
+        chunks[0],
+    );
+
+    // 2. Active Tab Content
+    let inner = chunks[1];
+    match app.ide_panel_tabs[app.ide_active_panel_tab] {
+        IdePanelTab::Search => {
+            let mut lines = Vec::new();
+            lines.push(Line::from(vec![
+                Span::styled(" QUERY: ", Style::default().fg(Color::DarkGray)),
+                Span::styled(&app.ide_search_input, Style::default().fg(Color::Cyan)),
+                Span::styled("_", Style::default().fg(Color::White)),
+            ]));
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(" (Search results will appear here) ", Style::default().fg(Color::DarkGray))));
+            f.render_widget(Paragraph::new(lines), inner);
+        }
+        IdePanelTab::Git => {
+            // Reuse Git info from focused tab
+            let pane = &app.panes[app.focused_pane_index];
+            let tab = &pane.tabs[pane.active_tab_index];
+            let mut lines = Vec::new();
+            if tab.git_pending.is_empty() {
+                lines.push(Line::from(Span::styled(" No pending changes.", Style::default().fg(Color::DarkGray))));
+            } else {
+                for p in &tab.git_pending {
+                    lines.push(Line::from(vec![
+                        Span::styled(format!(" {} ", p.status), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                        Span::raw(format!(" {} ", p.path)),
+                    ]));
+                }
+            }
+            f.render_widget(Paragraph::new(lines), inner);
+        }
+        IdePanelTab::Log => {
+            let mut lines = Vec::new();
+            if !app.background_tasks.is_empty() {
+                for task in &app.background_tasks {
+                    let progress_w: usize = 20;
+                    let filled = (task.progress * progress_w as f32) as usize;
+                    let bar = format!("[{}{}]", "█".repeat(filled), " ".repeat(progress_w.saturating_sub(filled)));
+                    lines.push(Line::from(vec![
+                        Span::styled(" TASK ", Style::default().bg(Color::Cyan).fg(Color::Black).add_modifier(Modifier::BOLD)),
+                        Span::raw(format!(" {} ", task.name)),
+                        Span::styled(bar, Style::default().fg(Color::Cyan)),
+                        Span::raw(format!(" {:.0}% ", task.progress * 100.0)),
+                    ]));
+                }
+            } else {
+                lines.push(Line::from(Span::styled(" No active tasks.", Style::default().fg(Color::DarkGray))));
+            }
+            f.render_widget(Paragraph::new(lines), inner);
+        }
+    }
 }
 
 fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
