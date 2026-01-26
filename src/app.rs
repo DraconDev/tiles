@@ -1457,4 +1457,3 @@ mod tests {
         assert_eq!(fs.table_state.offset(), 0);
     }
 }
-}
