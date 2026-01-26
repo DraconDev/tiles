@@ -14,7 +14,7 @@ when clicking on the side editor on the right we should not hit the file list, o
 the editer needs some highlighting
 
 
-the icons are only visible over the sidepanel both in file and 
+the icons are only visible over the sidepanel both in file and editor vi
 
 
 
