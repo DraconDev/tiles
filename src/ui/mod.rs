@@ -1885,11 +1885,24 @@ fn draw_editor_stage(f: &mut Frame, area: Rect, app: &mut App) {
 fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool) {
     let pane = &mut app.panes[pane_idx];
     
-    let border_style = if is_focused {
-        Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
+    let mut border_color = if is_focused {
+        THEME.accent_primary
     } else {
-        Style::default().fg(THEME.border_inactive)
+        THEME.border_inactive
     };
+
+    if let Some(preview) = &pane.preview {
+        if let Some(last_saved) = preview.last_saved {
+            if last_saved.elapsed().as_secs() < 2 {
+                border_color = Color::Green;
+            }
+        }
+    }
+
+    let border_style = Style::default().fg(border_color);
+    if is_focused {
+        border_style.add_modifier(Modifier::BOLD);
+    }
 
     let title = if let Some(preview) = &pane.preview {
         format!(" {} ", preview.path.file_name().unwrap_or_default().to_string_lossy())
