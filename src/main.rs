@@ -1135,18 +1135,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         app.show_sidebar = !app.show_sidebar;
                         return true;
                     }
-                    KeyCode::Char('j') | KeyCode::Char('J') => {
-                        if app.current_view == CurrentView::Editor {
-                            app.show_side_panel = !app.show_side_panel;
-                            return true;
-                        }
-                    }
-                    KeyCode::Char('k') | KeyCode::Char('K') => {
-                        if app.current_view == CurrentView::Editor && app.show_side_panel {
-                            app.ide_active_panel_tab = (app.ide_active_panel_tab + 1) % app.ide_panel_tabs.len();
-                            return true;
-                        }
-                    }
                     KeyCode::Char('e') | KeyCode::Char('E') => {
                         let _ = event_tx.try_send(AppEvent::Editor);
                         return true;
