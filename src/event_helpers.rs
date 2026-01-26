@@ -31,6 +31,53 @@ pub fn push_history(fs: &mut FileState, path: PathBuf) {
     fs.history_index = fs.history.len() - 1;
 }
 
+pub fn navigate_up(app: &mut App) {
+    let pane_idx = app.focused_pane_index;
+    let mut to_restore = None;
+    let mut old_path = None;
+    let mut old_idx = 0;
+
+    if let Some(fs) = app
+        .panes
+        .get_mut(pane_idx)
+        .and_then(|p| p.current_state_mut())
+    {
+        if let Some(parent) = fs.current_path.parent() {
+            old_path = Some(fs.current_path.clone());
+            old_idx = fs.selection.selected.unwrap_or(0);
+            
+            let new_path = parent.to_path_buf();
+            fs.current_path = new_path.clone();
+            push_history(fs, new_path.clone());
+            to_restore = Some(new_path);
+        }
+    }
+
+    if let Some(p) = old_path {
+        app.folder_selections.insert(p.clone(), old_idx);
+    }
+
+    if let Some(path) = to_restore {
+        let restored_idx = app.folder_selections.get(&path).cloned().unwrap_or(0);
+        if let Some(fs) = app
+            .panes
+            .get_mut(pane_idx)
+            .and_then(|p| p.current_state_mut())
+        {
+            fs.selection.selected = Some(restored_idx);
+            fs.selection.anchor = Some(restored_idx);
+            fs.table_state.select(Some(restored_idx));
+            *fs.table_state.offset_mut() = restored_idx.saturating_sub(fs.view_height / 2);
+            fs.search_filter.clear();
+
+            // Allow selecting the folder we just came from
+            if let Some(old) = old_path {
+                fs.pending_select_path = Some(old);
+            }
+        }
+    }
+}
+
 pub fn navigate_back(app: &mut App) {
     let pane_idx = app.focused_pane_index;
     let mut to_restore = None;
