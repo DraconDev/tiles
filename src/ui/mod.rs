@@ -1544,7 +1544,13 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     app.header_icon_bounds.clear();
     let mut cur_icon_x = area.x + 2;
 
-    if app.show_sidebar {
+    let show_icons = if app.current_view == CurrentView::Files {
+        app.show_sidebar
+    } else {
+        true // Always show in Git/IDE/etc for now, or match sidebar if desired
+    };
+
+    if show_icons {
         let icons = [
             (burger_icon, "burger"),
             (back_icon, "back"),
@@ -1578,7 +1584,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     if pane_count == 0 {
         return;
     }
-    let start_x = if app.show_sidebar {
+    let start_x = if show_icons {
         std::cmp::max(area.x + sidebar_width, cur_icon_x + 1)
     } else {
         area.x + 2
@@ -1594,7 +1600,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         ));
 
     app.tab_bounds.clear();
-    let mut global_tab_idx = if app.show_sidebar { 7 } else { 0 }; 
+    let mut global_tab_idx = if show_icons { 7 } else { 0 }; 
     for (p_i, pane) in app.panes.iter().enumerate() {
         let chunk = pane_chunks[p_i];
         let mut current_x = chunk.x;
