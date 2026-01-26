@@ -1723,7 +1723,7 @@ fn draw_bottom_panel(f: &mut Frame, area: Rect, app: &mut App) {
     // Background Tasks
     if !app.background_tasks.is_empty() {
         for task in &app.background_tasks {
-            let progress_w = 20;
+            let progress_w: usize = 20;
             let filled = (task.progress * progress_w as f32) as usize;
             let bar = format!("[{}{}]", "█".repeat(filled), " ".repeat(progress_w.saturating_sub(filled)));
             lines.push(Line::from(vec![
