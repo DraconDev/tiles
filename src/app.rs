@@ -62,14 +62,6 @@ pub enum AppEvent {
     GlobalSearchUpdated(usize, Vec<PathBuf>, HashMap<PathBuf, FileMetadata>), // pane_idx, files, metadata
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum CurrentView {
-    Files,
-    Processes,
-    Git,
-    Editor,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitStatus {
     pub path: String,
