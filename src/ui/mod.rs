@@ -1907,37 +1907,68 @@ fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, i
         border_style = border_style.add_modifier(Modifier::BOLD);
     }
 
-    let title = if let Some(preview) = &pane.preview {
-        format!(" {} ", preview.path.file_name().unwrap_or_default().to_string_lossy())
-    } else {
-        " (No file open) ".to_string()
-    };
-
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(title)
         .border_style(border_style);
 
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    // Apply 2-char right margin/padding
-    let inner = Rect {
-        width: inner.width.saturating_sub(2),
-        ..inner
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1), // Local Tab Bar
+            Constraint::Fill(1),   // Editor Area
+        ])
+        .split(inner);
+
+    // Render Local Tabs
+    let mut current_tab_x = chunks[0].x;
+    for (t_idx, tab_state) in pane.tabs.iter().enumerate() {
+        let is_active = t_idx == pane.active_tab_index;
+        let name = tab_state.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("?".to_string());
+        
+        let style = if is_active {
+            if is_focused {
+                Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(THEME.accent_primary)
+            }
+        } else {
+            Style::default().fg(Color::DarkGray)
+        };
+
+        let text = format!(" {} ", name);
+        let width = text.width() as u16;
+        if current_tab_x + width > chunks[0].x + chunks[0].width {
+            break;
+        }
+
+        let tab_rect = Rect::new(current_tab_x, chunks[0].y, width, 1);
+        f.render_widget(Paragraph::new(text).style(style), tab_rect);
+        app.tab_bounds.push((tab_rect, pane_idx, t_idx));
+        current_tab_x += width + 1;
+    }
+
+    // Apply 2-char right margin/padding to editor area
+    let editor_area = Rect {
+        x: chunks[1].x,
+        y: chunks[1].y,
+        width: chunks[1].width.saturating_sub(2),
+        height: chunks[1].height,
     };
 
     if let Some(preview) = &mut pane.preview {
         if let Some(editor) = &preview.editor {
-            f.render_widget(editor, inner);
+            f.render_widget(editor, editor_area);
         }
     } else {
         f.render_widget(
             Paragraph::new("\n\n Select a file from the sidebar to edit.")
                 .alignment(Alignment::Center)
                 .style(Style::default().fg(Color::DarkGray)),
-            inner
+            editor_area
         );
     }
 }
