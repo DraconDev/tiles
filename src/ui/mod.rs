@@ -1826,7 +1826,7 @@ fn collect_tree_items(path: &PathBuf, depth: u16, app: &App, items: &mut Vec<(Pa
 }
 
 fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize) {
-    let is_focused = pane_idx == app.focused_pane_index && !app.sidebar_focus;
+    let _is_focused = pane_idx == app.focused_pane_index && !app.sidebar_focus;
     
     let active_tab_idx = app.panes[pane_idx].active_tab_index;
     let (path, search_filter) = {
