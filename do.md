@@ -1,6 +1,6 @@
 ## Do
 
-we need scroll on the editor
+
 
 we need tabs above the edtiro
 
