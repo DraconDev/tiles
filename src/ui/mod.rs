@@ -1686,6 +1686,7 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
+    app.tab_bounds.clear();
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
