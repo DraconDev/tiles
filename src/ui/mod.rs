@@ -1920,7 +1920,7 @@ fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         };
 
         let icon = Icon::get_for_path(&path, cat, is_dir, icon_mode);
-        let indent = " ".repeat(depth as usize);
+        let indent = "  ".repeat(depth as usize);
         
         sidebar_items.push(ListItem::new(format!("{}{}{}{}", indent, marker, icon, name)).style(style));
         app.sidebar_bounds.push(SidebarBounds {
