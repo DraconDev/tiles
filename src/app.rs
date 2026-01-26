@@ -459,7 +459,11 @@ pub struct BackgroundTask {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CurrentView {
-
+    Files,
+    Processes,
+    Git,
+    Editor,
+}
 
 pub struct App {
     pub running: bool,
