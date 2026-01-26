@@ -694,9 +694,21 @@ fn draw_hotkeys_modal(f: &mut Frame, _area: Rect) {
                 ("Ctrl + P", "Toggle Split View"),
                 ("Ctrl + G", "Open Settings"),
                 ("Ctrl + L", "Git History"),
+                ("Ctrl + E", "Toggle Editor View (IDE)"),
+                ("Ctrl + J", "Toggle Bottom Panel"),
                 ("Ctrl + Space", "Command Palette"),
                 ("Ctrl + N", "Open Terminal"),
                 ("Backspace", "Go Up Directory"),
+            ],
+        ),
+        (
+            "IDE Mode",
+            vec![
+                ("Ctrl + B", "Toggle Sidebar"),
+                ("Ctrl + J", "Toggle Panel"),
+                ("Esc", "Focus Sidebar / Back"),
+                ("Enter", "Open File/Folder"),
+                ("Arrows", "Navigate Tree / Editor"),
             ],
         ),
         (
