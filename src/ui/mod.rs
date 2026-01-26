@@ -1968,36 +1968,15 @@ fn draw_editor_stage(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool) {
-    let pane = &mut app.panes[pane_idx];
-    
-    let mut border_color = if is_focused {
-        THEME.accent_primary
-    } else {
-        THEME.border_inactive
-    };
-
-    if let Some(preview) = &pane.preview {
-        if let Some(last_saved) = preview.last_saved {
-            if last_saved.elapsed().as_secs() < 2 {
-                border_color = Color::Green;
-            }
-        }
-    }
-
-    let mut border_style = Style::default().fg(border_color);
-    if is_focused {
-        border_style = border_style.add_modifier(Modifier::BOLD);
-    }
-
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(border_style);
-
     let inner = block.inner(area);
     f.render_widget(block, area);
 
+    // Call breadcrumbs BEFORE mutably borrowing the pane
     draw_pane_breadcrumbs(f, area, app, pane_idx);
+
+    let pane = &mut app.panes[pane_idx];
+    
+    let mut border_color = if is_focused {
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
