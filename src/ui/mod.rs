@@ -1698,7 +1698,6 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
     let workspace_constraints = [
         Constraint::Length(if app.show_sidebar { app.sidebar_width() } else { 0 }),
         Constraint::Fill(1),
-        Constraint::Length(if app.show_side_panel { app.sidebar_width() } else { 0 }), // Symmetric width
     ];
 
     let workspace = Layout::default()
@@ -1711,10 +1710,6 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     draw_editor_stage(f, workspace[1], app);
-
-    if app.show_side_panel {
-        draw_side_panel(f, workspace[2], app);
-    }
 }
 
 fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
