@@ -1690,7 +1690,6 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
             Constraint::Length(1), // IDE Header
             Constraint::Fill(1),   // Main Stage
             Constraint::Length(if app.show_panel { 8 } else { 0 }), // Panel
-            Constraint::Length(2), // Footer
         ])
         .split(area);
 
@@ -1716,8 +1715,6 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
     if app.show_panel {
         draw_bottom_panel(f, chunks[2], app);
     }
-
-    draw_footer(f, chunks[3], app);
 }
 
 fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
@@ -1809,10 +1806,10 @@ fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    // Get files for the current folder of the focused pane
-    let fs = if let Some(pane) = app.panes.get(app.focused_pane_index) {
+    // Get the base path for the tree
+    let base_path = if let Some(pane) = app.panes.get(app.focused_pane_index) {
         if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
-            tab
+            tab.current_path.clone()
         } else {
             return;
         }
@@ -1820,38 +1817,83 @@ fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         return;
     };
 
-    let mut items = Vec::new();
+    let mut tree_items = Vec::new();
+    collect_tree_items(&base_path, 0, app, &mut tree_items);
+
+    let mut sidebar_items = Vec::new();
     app.sidebar_bounds.clear();
     let mut current_y = inner.y;
 
-    for (_i, file) in fs.files.iter().enumerate() {
-        if file.to_string_lossy() == "__DIVIDER__" {
-            items.push(ListItem::new("──────────────").style(Style::default().fg(Color::DarkGray)));
-            current_y += 1;
-            continue;
-        }
-
-        let name = file.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("?".to_string());
-        let is_selected = app.sidebar_focus && app.sidebar_index == items.len();
+    for (path, depth) in tree_items {
+        let is_dir = path.is_dir();
+        let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("?".to_string());
+        let current_idx = sidebar_items.len();
+        let is_selected = app.sidebar_focus && app.sidebar_index == current_idx;
         
         let mut style = Style::default().fg(THEME.fg);
         if is_selected {
             style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
         }
 
-        let cat = crate::modules::files::get_file_category(file);
-        let icon = Icon::get_for_path(file, cat, file.is_dir(), app.icon_mode);
+        let cat = crate::modules::files::get_file_category(&path);
+        let icon_mode = app.icon_mode;
+        
+        // Show expansion marker for folders
+        let marker = if is_dir {
+            if app.expanded_folders.contains(&path) { "▾ " } else { "▸ " }
+        } else {
+            "  "
+        };
 
-        items.push(ListItem::new(format!("{}{}", icon, name)).style(style));
+        let icon = Icon::get_for_path(&path, cat, is_dir, icon_mode);
+        let indent = " ".repeat(depth as usize);
+        
+        sidebar_items.push(ListItem::new(format!("{}{}{}{}", indent, marker, icon, name)).style(style));
         app.sidebar_bounds.push(SidebarBounds {
             y: current_y,
-            index: items.len() - 1,
-            target: SidebarTarget::Project(file.clone()),
+            index: current_idx,
+            target: SidebarTarget::Project(path.clone()),
         });
         current_y += 1;
+        
+        if current_y >= inner.y + inner.height {
+            break;
+        }
     }
 
-    f.render_widget(List::new(items), inner);
+    f.render_widget(List::new(sidebar_items), inner);
+}
+
+fn collect_tree_items(path: &PathBuf, depth: u16, app: &App, items: &mut Vec<(PathBuf, u16)>) {
+    // 1. Add current folder's contents
+    if let Ok(entries) = std::fs::read_dir(path) {
+        let mut sorted_entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
+        
+        // Sort: Dirs first, then alpha
+        sorted_entries.sort_by(|a, b| {
+            let a_is_dir = a.path().is_dir();
+            let b_is_dir = b.path().is_dir();
+            if a_is_dir && !b_is_dir { std::cmp::Ordering::Less }
+            else if !a_is_dir && b_is_dir { std::cmp::Ordering::Greater }
+            else { a.file_name().cmp(&b.file_name()) }
+        });
+
+        for entry in sorted_entries {
+            let p = entry.path();
+            let name = p.file_name().unwrap_or_default().to_string_lossy();
+            
+            // Skip hidden files if preferred (we could check app.default_show_hidden)
+            if !app.default_show_hidden && name.starts_with('.') {
+                continue;
+            }
+
+            items.push((p.clone(), depth));
+            
+            if p.is_dir() && app.expanded_folders.contains(&p) {
+                collect_tree_items(&p, depth + 1, app, items);
+            }
+        }
+    }
 }
 
 fn draw_editor_stage(f: &mut Frame, area: Rect, app: &mut App) {
