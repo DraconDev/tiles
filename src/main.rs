@@ -3739,35 +3739,33 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
 
                     // Tabs
-                    if row == 0 {
-                        if let Some((_, p_idx, t_idx)) = app
-                            .tab_bounds
-                            .iter()
-                            .find(|(r, _, _)| {
-                                r.contains(ratatui::layout::Position { x: column, y: row })
-                            })
-                            .cloned()
-                        {
-                            if button == MouseButton::Left {
-                                if let Some(p) = app.panes.get_mut(p_idx) {
-                                    p.active_tab_index = t_idx;
-                                    app.focused_pane_index = p_idx;
+                    if let Some((_, p_idx, t_idx)) = app
+                        .tab_bounds
+                        .iter()
+                        .find(|(r, _, _)| {
+                            r.contains(ratatui::layout::Position { x: column, y: row })
+                        })
+                        .cloned()
+                    {
+                        if button == MouseButton::Left {
+                            if let Some(p) = app.panes.get_mut(p_idx) {
+                                p.active_tab_index = t_idx;
+                                app.focused_pane_index = p_idx;
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
+                            }
+                        } else if button == MouseButton::Right {
+                            if let Some(p) = app.panes.get_mut(p_idx) {
+                                if p.tabs.len() > 1 {
+                                    p.tabs.remove(t_idx);
+                                    if p.active_tab_index >= p.tabs.len() {
+                                        p.active_tab_index = p.tabs.len() - 1;
+                                    }
                                     let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
                                 }
-                            } else if button == MouseButton::Right {
-                                if let Some(p) = app.panes.get_mut(p_idx) {
-                                    if p.tabs.len() > 1 {
-                                        p.tabs.remove(t_idx);
-                                        if p.active_tab_index >= p.tabs.len() {
-                                            p.active_tab_index = p.tabs.len() - 1;
-                                        }
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
-                                    }
-                                }
                             }
-                            app.sidebar_focus = false;
-                            return true;
                         }
+                        app.sidebar_focus = false;
+                        return true;
                     }
 
                     // Breadcrumbs
