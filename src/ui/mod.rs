@@ -1735,6 +1735,11 @@ fn draw_ide_header(f: &mut Frame, area: Rect, app: &mut App) {
     let tab = &current_pane.tabs[current_pane.active_tab_index];
     let path = &tab.current_path;
     
+    // Clear bounds before repopulating
+    if let Some(mut_tab) = app.panes[app.focused_pane_index].tabs.get_mut(app.panes[app.focused_pane_index].active_tab_index) {
+        mut_tab.breadcrumb_bounds.clear();
+    }
+
     let mut cur_p = PathBuf::new();
     let mut cur_x = area.x + 15; // Offset after [IDE]
     let breadcrumb_y = area.y;
