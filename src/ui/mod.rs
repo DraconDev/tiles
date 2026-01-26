@@ -1749,7 +1749,7 @@ fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         return;
     };
 
-    let mut tree_items = Vec::new();
+    let mut tree_items: Vec<(PathBuf, u16)> = Vec::new();
     collect_tree_items(&base_path, 0, app, &mut tree_items);
 
     let mut sidebar_items = Vec::new();
@@ -1794,6 +1794,35 @@ fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     f.render_widget(List::new(sidebar_items), inner);
+}
+
+fn collect_tree_items(path: &PathBuf, depth: u16, app: &App, items: &mut Vec<(PathBuf, u16)>) {
+    if let Ok(entries) = std::fs::read_dir(path) {
+        let mut sorted_entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
+        
+        sorted_entries.sort_by(|a, b| {
+            let a_is_dir = a.path().is_dir();
+            let b_is_dir = b.path().is_dir();
+            if a_is_dir && !b_is_dir { std::cmp::Ordering::Less }
+            else if !a_is_dir && b_is_dir { std::cmp::Ordering::Greater }
+            else { a.file_name().cmp(&b.file_name()) }
+        });
+
+        for entry in sorted_entries {
+            let p = entry.path();
+            let name = p.file_name().unwrap_or_default().to_string_lossy();
+            
+            if !app.default_show_hidden && name.starts_with('.') {
+                continue;
+            }
+
+            items.push((p.clone(), depth));
+            
+            if p.is_dir() && app.expanded_folders.contains(&p) {
+                collect_tree_items(&p, depth + 1, app, items);
+            }
+        }
+    }
 }
 
 fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize) {
