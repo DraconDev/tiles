@@ -4659,12 +4659,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         sw + (focused_idx as u16 * pw),
                                         1, pw, h.saturating_sub(1)
                                     );
-                                    editor.handle_mouse_event(me, pane_area);
+                                    // Change step from 3 to 1 for smoother scroll
+                                    let mut smooth_me = me;
+                                    if let MouseEventKind::ScrollUp = smooth_me.kind {
+                                        // TextEditor internal handle_mouse_event might have its own step, 
+                                        // but usually it responds to the event itself.
+                                        editor.handle_mouse_event(smooth_me, pane_area);
+                                    }
                                 }
                             }
                         }
                     } else if let Some(fs) = app.current_file_state_mut() {
-                        let new_offset = fs.table_state.offset().saturating_sub(3);
+                        let new_offset = fs.table_state.offset().saturating_sub(1);
                         *fs.table_state.offset_mut() = new_offset;
                     }
                     return true;
@@ -4696,7 +4702,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             .files
                             .len()
                             .saturating_sub(fs.view_height.saturating_sub(3));
-                        let new_offset = (fs.table_state.offset() + 3).min(max_offset);
+                        let new_offset = (fs.table_state.offset() + 1).min(max_offset);
                         *fs.table_state.offset_mut() = new_offset;
                     }
                     return true;
