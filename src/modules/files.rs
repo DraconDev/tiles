@@ -307,7 +307,7 @@ pub fn perform_global_search(
     (global_files, metadata)
 }
 
-fn get_git_branch(path: &std::path::Path) -> Option<String> {
+pub fn get_git_branch(path: &std::path::Path) -> Option<String> {
     let output = std::process::Command::new("git")
         .args(["rev-parse", "--abbrev-ref", "HEAD"])
         .current_dir(path)
@@ -321,6 +321,115 @@ fn get_git_branch(path: &std::path::Path) -> Option<String> {
         }
     }
     None
+}
+
+pub fn get_git_history(path: &std::path::Path, limit: usize) -> Vec<crate::app::CommitInfo> {
+    let mut cmd = std::process::Command::new("git");
+    cmd.args([
+        "log",
+        &format!("-n{}", limit),
+        "--pretty=format:COMMIT|%H|%an|%ct|%ad|%d|%s",
+        "--shortstat",
+    ]);
+
+    if path.is_file() {
+        if let Some(parent) = path.parent() {
+            cmd.current_dir(parent);
+            if let Some(filename) = path.file_name() {
+                cmd.arg("--");
+                cmd.arg(filename);
+            }
+        } else {
+            cmd.current_dir(path);
+        }
+    } else {
+        cmd.current_dir(path);
+    }
+
+    let output = cmd.output();
+
+    match output {
+        Ok(out) if out.status.success() => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            parse_log_output(&stdout)
+        }
+        _ => Vec::new(),
+    }
+}
+
+pub fn get_git_status(path: &std::path::Path) -> Vec<crate::app::GitStatus> {
+    let output = std::process::Command::new("git")
+        .args(["status", "--porcelain"])
+        .current_dir(path)
+        .output();
+
+    match output {
+        Ok(out) if out.status.success() => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            stdout
+                .lines()
+                .filter(|l| l.len() > 3)
+                .map(|l| crate::app::GitStatus {
+                    status: l[..2].trim().to_string(),
+                    path: l[3..].to_string(),
+                })
+                .collect()
+        }
+        _ => Vec::new(),
+    }
+}
+
+fn parse_log_output(stdout: &str) -> Vec<crate::app::CommitInfo> {
+    let mut commits = Vec::new();
+    let mut current_commit: Option<crate::app::CommitInfo> = None;
+
+    for line in stdout.lines() {
+        let line = line.trim();
+        if line.starts_with("COMMIT|") {
+            if let Some(c) = current_commit.take() {
+                commits.push(c);
+            }
+            let parts: Vec<&str> = line.split('|').collect();
+            if parts.len() >= 7 {
+                let timestamp = parts[3].parse().unwrap_or(0);
+                current_commit = Some(crate::app::CommitInfo {
+                    hash: parts[1].to_string(),
+                    author: parts[2].to_string(),
+                    timestamp,
+                    date: parts[4].to_string(),
+                    refs: parts[5].trim().to_string(),
+                    message: parts[6..].join("|"),
+                    insertions: 0,
+                    deletions: 0,
+                    files_changed: 0,
+                });
+            }
+        } else if let Some(ref mut c) = current_commit {
+            if line.contains("changed") {
+                let parts: Vec<&str> = line.split(',').collect();
+                for part in parts {
+                    let part = part.trim();
+                    if part.contains("changed") {
+                        if let Some(num_str) = part.split_whitespace().nth(0) {
+                            c.files_changed = num_str.parse().unwrap_or(0);
+                        }
+                    } else if part.contains("insertion") {
+                        if let Some(num_str) = part.split_whitespace().nth(0) {
+                            c.insertions = num_str.parse().unwrap_or(0);
+                        }
+                    } else if part.contains("deletion") {
+                        if let Some(num_str) = part.split_whitespace().nth(0) {
+                            c.deletions = num_str.parse().unwrap_or(0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if let Some(c) = current_commit {
+        commits.push(c);
+    }
+    commits
 }
 
 fn update_remote_files(state: &mut FileState, session: &ssh2::Session) {
