@@ -2691,16 +2691,26 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
 
                                 if let Some(idx) = fs.selection.selected {
                                     if let Some(path) = fs.files.get(idx).cloned() {
-                                        let is_dir = path.is_dir(); // Capture is_dir before path is moved
+                                        let is_dir = path.is_dir();
                                         if is_dir {
-                                            app.mode = AppMode::Properties;
-                                        } else if fs.selection.selected.is_some() {
-                                            let target_pane =
-                                                if app.focused_pane_index == 0 { 1 } else { 0 };
+                                            // Open folder in focused pane and switch to Editor view
+                                            fs.current_path = path.clone();
+                                            fs.selection.selected = Some(0);
+                                            fs.selection.anchor = Some(0);
+                                            fs.selection.clear_multi();
+                                            *fs.table_state.offset_mut() = 0;
+                                            crate::event_helpers::push_history(fs, path);
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                            app.current_view = CurrentView::Editor;
+                                            app.sidebar_focus = true;
+                                        } else {
+                                            // Request preview in focused pane and switch to Editor view
                                             let _ = event_tx.try_send(AppEvent::PreviewRequested(
-                                                target_pane,
+                                                app.focused_pane_index,
                                                 path,
                                             ));
+                                            app.current_view = CurrentView::Editor;
+                                            app.sidebar_focus = false;
                                         }
                                     }
                                 }
