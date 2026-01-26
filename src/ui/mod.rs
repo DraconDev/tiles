@@ -1544,33 +1544,35 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     app.header_icon_bounds.clear();
     let mut cur_icon_x = area.x + 2;
 
-    let icons = [
-        (burger_icon, "burger"),
-        (back_icon, "back"),
-        (forward_icon, "forward"),
-        (split_icon, "split"),
-        (monitor_icon, "monitor"),
-        (git_icon, "git"),
-        (project_icon, "project"),
-    ];
+    if app.show_sidebar {
+        let icons = [
+            (burger_icon, "burger"),
+            (back_icon, "back"),
+            (forward_icon, "forward"),
+            (split_icon, "split"),
+            (monitor_icon, "monitor"),
+            (git_icon, "git"),
+            (project_icon, "project"),
+        ];
 
-    for (i, (icon, id)) in icons.into_iter().enumerate() {
-        let width = icon.width() as u16;
-        let rect = Rect::new(cur_icon_x, area.y, width, 1);
+        for (i, (icon, id)) in icons.into_iter().enumerate() {
+            let width = icon.width() as u16;
+            let rect = Rect::new(cur_icon_x, area.y, width, 1);
 
-        let mut style = Style::default().fg(THEME.accent_secondary);
-        if let AppMode::Header(idx) = app.mode {
-            if idx == i {
-                style = style
-                    .bg(THEME.accent_primary)
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD);
+            let mut style = Style::default().fg(THEME.accent_secondary);
+            if let AppMode::Header(idx) = app.mode {
+                if idx == i {
+                    style = style
+                        .bg(THEME.accent_primary)
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD);
+                }
             }
-        }
 
-        f.render_widget(Paragraph::new(icon).style(style), rect);
-        app.header_icon_bounds.push((rect, id.to_string()));
-        cur_icon_x += width + 2;
+            f.render_widget(Paragraph::new(icon).style(style), rect);
+            app.header_icon_bounds.push((rect, id.to_string()));
+            cur_icon_x += width + 2;
+        }
     }
 
     if pane_count == 0 {
@@ -1579,7 +1581,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let start_x = if app.show_sidebar {
         std::cmp::max(area.x + sidebar_width, cur_icon_x + 1)
     } else {
-        cur_icon_x + 1
+        area.x + 2
     };
     let pane_chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -1592,7 +1594,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         ));
 
     app.tab_bounds.clear();
-    let mut global_tab_idx = 7; // Start after 7 icons (0-6)
+    let mut global_tab_idx = if app.show_sidebar { 7 } else { 0 }; 
     for (p_i, pane) in app.panes.iter().enumerate() {
         let chunk = pane_chunks[p_i];
         let mut current_x = chunk.x;
