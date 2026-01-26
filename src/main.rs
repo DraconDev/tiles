@@ -1126,10 +1126,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             if has_control {
                 match key.code {
                     KeyCode::Char('p') | KeyCode::Char('P') => {
-                        if app.current_view == CurrentView::Editor {
-                            app.toggle_split();
-                            return true;
-                        }
+                        app.toggle_split();
+                        let _ = crate::config::save_state(app);
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                        return true;
                     }
                     KeyCode::Char('b') | KeyCode::Char('B') => {
                         app.show_sidebar = !app.show_sidebar;
