@@ -418,7 +418,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                         }
                     }
                 }
-                AppEvent::PreviewRequested(_dummy_pane_idx, path) => {
+                AppEvent::PreviewRequested(target_pane_idx, path) => {
                     let mut app_guard = app.lock().unwrap();
                     let category = crate::modules::files::get_file_category(&path);
 
@@ -434,11 +434,6 @@ async fn run_tty() -> color_eyre::Result<()> {
                         is_text = matches!(category, FileCategory::Text | FileCategory::Script);
                         is_archive = matches!(category, FileCategory::Archive);
                     }
-
-                    crate::app::log_debug(&format!(
-                        "is_text: {}, is_archive: {}",
-                        is_text, is_archive
-                    ));
 
                     if is_text {
                         let (is_bin, is_large, mb) = terma::utils::check_file_suitability(&path, 1024 * 1024);
@@ -464,15 +459,16 @@ async fn run_tty() -> color_eyre::Result<()> {
                                     .bg(ratatui::style::Color::Rgb(255, 0, 85))
                                     .fg(ratatui::style::Color::Black);
 
-                                app_guard.editor_state = Some(crate::app::PreviewState {
-                                    path: path.clone(),
-                                    content: content.clone(),
-                                    scroll: 0,
-                                    editor: Some(editor),
-                                    last_saved: None,
-                                    image_data: None,
-                                });
-                                app_guard.mode = AppMode::Editor;
+                                if let Some(pane) = app_guard.panes.get_mut(target_pane_idx) {
+                                    pane.preview = Some(crate::app::PreviewState {
+                                        path: path.clone(),
+                                        content: content.clone(),
+                                        scroll: 0,
+                                        editor: Some(editor),
+                                        last_saved: None,
+                                        image_data: None,
+                                    });
+                                }
                                 needs_draw = true;
                             } else {
                                 let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
