@@ -1167,6 +1167,44 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 return true;
                             }
 
+                            // Manual Save
+                            if let KeyCode::Char('s') | KeyCode::Char('S') = key.code {
+                                if has_control {
+                                    let _ = event_tx.try_send(AppEvent::SaveFile(
+                                        preview.path.clone(),
+                                        editor.get_content(),
+                                    ));
+                                    editor.modified = false;
+                                    return true;
+                                }
+                            }
+
+                            // Search / Replace / GoToLine
+                            if has_control {
+                                match key.code {
+                                    KeyCode::Char('f') | KeyCode::Char('F') => {
+                                        app.previous_mode = app.mode.clone();
+                                        app.mode = AppMode::EditorSearch;
+                                        app.input.set_value(editor.filter_query.clone());
+                                        return true;
+                                    }
+                                    KeyCode::Char('g') | KeyCode::Char('G') => {
+                                        app.previous_mode = app.mode.clone();
+                                        app.mode = AppMode::EditorGoToLine;
+                                        app.input.clear();
+                                        return true;
+                                    }
+                                    KeyCode::Char('r') | KeyCode::Char('R') => {
+                                        app.previous_mode = app.mode.clone();
+                                        app.mode = AppMode::EditorReplace;
+                                        app.input.clear();
+                                        app.replace_buffer.clear();
+                                        return true;
+                                    }
+                                    _ => {}
+                                }
+                            }
+
                             if editor.handle_event(&evt, pane_area) {
                                 if app.auto_save && editor.modified {
                                     let _ = event_tx.try_send(AppEvent::SaveFile(
