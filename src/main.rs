@@ -4660,7 +4660,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         1, pw, h.saturating_sub(1)
                                     );
                                     // Change step from 3 to 1 for smoother scroll
-                                    let mut smooth_me = me;
+                                    let smooth_me = me;
                                     if let MouseEventKind::ScrollUp = smooth_me.kind {
                                         // TextEditor internal handle_mouse_event might have its own step, 
                                         // but usually it responds to the event itself.
