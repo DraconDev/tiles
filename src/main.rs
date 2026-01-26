@@ -3030,7 +3030,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
 
                             if !handled_search {
-                                crate::event_helpers::navigate_back(app);
+                                crate::event_helpers::navigate_up(app);
                                 let _ = event_tx
                                     .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             }
