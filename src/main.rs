@@ -4641,6 +4641,22 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 MouseEventKind::ScrollUp => {
                     if let AppMode::Settings = app.mode {
                         app.settings_scroll = app.settings_scroll.saturating_sub(2);
+                    } else if app.current_view == CurrentView::Editor {
+                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                            if let Some(preview) = &mut pane.preview {
+                                if let Some(editor) = &mut preview.editor {
+                                    let sw = app.sidebar_width();
+                                    let cw = w.saturating_sub(sw);
+                                    let pc = app.panes.len();
+                                    let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                                    let pane_area = ratatui::layout::Rect::new(
+                                        sw + (app.focused_pane_index as u16 * pw),
+                                        1, pw, h.saturating_sub(1)
+                                    );
+                                    editor.handle_mouse_event(me, pane_area);
+                                }
+                            }
+                        }
                     } else if let Some(fs) = app.current_file_state_mut() {
                         let new_offset = fs.table_state.offset().saturating_sub(3);
                         *fs.table_state.offset_mut() = new_offset;
@@ -4650,6 +4666,22 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 MouseEventKind::ScrollDown => {
                     if let AppMode::Settings = app.mode {
                         app.settings_scroll = app.settings_scroll.saturating_add(2);
+                    } else if app.current_view == CurrentView::Editor {
+                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                            if let Some(preview) = &mut pane.preview {
+                                if let Some(editor) = &mut preview.editor {
+                                    let sw = app.sidebar_width();
+                                    let cw = w.saturating_sub(sw);
+                                    let pc = app.panes.len();
+                                    let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                                    let pane_area = ratatui::layout::Rect::new(
+                                        sw + (app.focused_pane_index as u16 * pw),
+                                        1, pw, h.saturating_sub(1)
+                                    );
+                                    editor.handle_mouse_event(me, pane_area);
+                                }
+                            }
+                        }
                     } else if let Some(fs) = app.current_file_state_mut() {
                         let max_offset = fs
                             .files
