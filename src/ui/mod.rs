@@ -1797,8 +1797,7 @@ fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize) {
-    let focused_pane_idx = app.focused_pane_index;
-    let is_focused = pane_idx == focused_idx && !app.sidebar_focus;
+    let is_focused = pane_idx == app.focused_pane_index && !app.sidebar_focus;
     
     let (path, search_filter) = {
         let pane = &app.panes[pane_idx];
