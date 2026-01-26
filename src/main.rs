@@ -1129,8 +1129,27 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     sw + (pane_idx as u16 * pw),
                     1, 
                     pw,
-                    h.saturating_sub(3),
+                    h.saturating_sub(if app.show_panel { 9 } else { 1 }), // Header(1) + Panel(8)
                 );
+
+                // Check for Panel Search input focus
+                if app.show_panel && app.ide_panel_tabs[app.ide_active_panel_tab] == crate::app::IdePanelTab::Search {
+                    match key.code {
+                        KeyCode::Char(c) if key.modifiers.is_empty() => {
+                            app.ide_search_input.push(c);
+                            return true;
+                        }
+                        KeyCode::Backspace if key.modifiers.is_empty() => {
+                            app.ide_search_input.pop();
+                            return true;
+                        }
+                        KeyCode::Char('u') if has_control => {
+                            app.ide_search_input.clear();
+                            return true;
+                        }
+                        _ => {}
+                    }
+                }
 
                 if let Some(pane) = app.panes.get_mut(pane_idx) {
                     if let Some(preview) = &mut pane.preview {
