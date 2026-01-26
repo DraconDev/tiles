@@ -14,6 +14,9 @@ when clicking on the side editor on the right we should not hit the file list, o
 the editer needs some highlighting
 
 
+the icons are 
+
+
 
 ## Doing
 
