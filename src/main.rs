@@ -1366,27 +1366,28 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     return true;
                 }
                 KeyCode::Char('p') | KeyCode::Char('P') if has_control => {
-                    app.toggle_split();
-                    let _ = crate::config::save_state(app);
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                    if app.current_view == CurrentView::Editor {
+                        app.show_panel = !app.show_panel;
+                    } else {
+                        app.toggle_split();
+                        let _ = crate::config::save_state(app);
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                    }
                     return true;
                 }
-                KeyCode::Char('\\') if has_control => {
-                    app.toggle_split();
-                    let _ = crate::config::save_state(app);
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
-                    return true;
-                }
-                KeyCode::Char('.') | KeyCode::Char('k') | KeyCode::Char('K') if has_control => {
-                    if let Some(fs) = app.current_file_state() {
-                        let _ = event_tx.try_send(AppEvent::SpawnTerminal {
-                            path: fs.current_path.clone(),
-                            new_tab: false,
-                            remote: fs.remote_session.clone(),
-                            command: None,
-                        });
+                KeyCode::Char('k') | KeyCode::Char('K') if has_control => {
+                    if app.current_view == CurrentView::Editor && app.show_panel {
+                        app.ide_active_panel_tab = (app.ide_active_panel_tab + 1) % app.ide_panel_tabs.len();
+                    } else {
+                        if let Some(fs) = app.current_file_state() {
+                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                                path: fs.current_path.clone(),
+                                new_tab: false,
+                                remote: fs.remote_session.clone(),
+                                command: None,
+                            });
+                        }
                     }
                     return true;
                 }
