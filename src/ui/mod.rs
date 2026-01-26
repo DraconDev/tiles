@@ -1677,6 +1677,7 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
         .constraints([
             Constraint::Length(1), // Header
             Constraint::Fill(1),   // Main Stage
+            Constraint::Length(if app.show_panel { 8 } else { 0 }), // Panel
             Constraint::Length(2), // Footer
         ])
         .split(area);
@@ -1699,7 +1700,47 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     draw_editor_stage(f, workspace[1], app);
-    draw_footer(f, chunks[2], app);
+
+    if app.show_panel {
+        draw_bottom_panel(f, chunks[2], app);
+    }
+
+    draw_footer(f, chunks[3], app);
+}
+
+fn draw_bottom_panel(f: &mut Frame, area: Rect, app: &mut App) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(" PANEL ")
+        .border_style(Style::default().fg(Color::Rgb(40, 45, 55)));
+    
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let mut lines = Vec::new();
+    
+    // Background Tasks
+    if !app.background_tasks.is_empty() {
+        for task in &app.background_tasks {
+            let progress_w = 20;
+            let filled = (task.progress * progress_w as f32) as usize;
+            let bar = format!("[{}{}]", "█".repeat(filled), " ".repeat(progress_w.saturating_sub(filled)));
+            lines.push(Line::from(vec![
+                Span::styled(" TASK ", Style::default().bg(Color::Cyan).fg(Color::Black).add_modifier(Modifier::BOLD)),
+                Span::raw(format!(" {} ", task.name)),
+                Span::styled(bar, Style::default().fg(Color::Cyan)),
+                Span::raw(format!(" {:.0}%", task.progress * 100.0)),
+            ]));
+        }
+    } else {
+        lines.push(Line::from(vec![
+            Span::styled(" LOG ", Style::default().bg(Color::DarkGray).fg(Color::Black).add_modifier(Modifier::BOLD)),
+            Span::styled(" No active tasks.", Style::default().fg(Color::DarkGray)),
+        ]));
+    }
+
+    f.render_widget(Paragraph::new(lines), inner);
 }
 
 fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
