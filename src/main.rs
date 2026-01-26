@@ -4645,15 +4645,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     if let AppMode::Settings = app.mode {
                         app.settings_scroll = app.settings_scroll.saturating_sub(2);
                     } else if app.current_view == CurrentView::Editor {
-                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                        let (w, h) = app.terminal_size;
+                        let sw = app.sidebar_width();
+                        let pc = app.panes.len();
+                        let cw = w.saturating_sub(sw);
+                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                        let focused_idx = app.focused_pane_index;
+
+                        if let Some(pane) = app.panes.get_mut(focused_idx) {
                             if let Some(preview) = &mut pane.preview {
                                 if let Some(editor) = &mut preview.editor {
-                                    let sw = app.sidebar_width();
-                                    let cw = w.saturating_sub(sw);
-                                    let pc = app.panes.len();
-                                    let pw = if pc > 0 { cw / pc as u16 } else { cw };
                                     let pane_area = ratatui::layout::Rect::new(
-                                        sw + (app.focused_pane_index as u16 * pw),
+                                        sw + (focused_idx as u16 * pw),
                                         1, pw, h.saturating_sub(1)
                                     );
                                     editor.handle_mouse_event(me, pane_area);
@@ -4670,15 +4673,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     if let AppMode::Settings = app.mode {
                         app.settings_scroll = app.settings_scroll.saturating_add(2);
                     } else if app.current_view == CurrentView::Editor {
-                        if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                        let (w, h) = app.terminal_size;
+                        let sw = app.sidebar_width();
+                        let pc = app.panes.len();
+                        let cw = w.saturating_sub(sw);
+                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                        let focused_idx = app.focused_pane_index;
+
+                        if let Some(pane) = app.panes.get_mut(focused_idx) {
                             if let Some(preview) = &mut pane.preview {
                                 if let Some(editor) = &mut preview.editor {
-                                    let sw = app.sidebar_width();
-                                    let cw = w.saturating_sub(sw);
-                                    let pc = app.panes.len();
-                                    let pw = if pc > 0 { cw / pc as u16 } else { cw };
                                     let pane_area = ratatui::layout::Rect::new(
-                                        sw + (app.focused_pane_index as u16 * pw),
+                                        sw + (focused_idx as u16 * pw),
                                         1, pw, h.saturating_sub(1)
                                     );
                                     editor.handle_mouse_event(me, pane_area);
