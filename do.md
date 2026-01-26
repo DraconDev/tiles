@@ -6,7 +6,7 @@ we need scroll on the editor
 
 we need tabs above the edtiro
 
-when clicking on the side 
+when clicking on the side editor on the ri
 
 ## Doing
 
