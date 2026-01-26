@@ -1432,18 +1432,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     app.settings_scroll = 0;
                     return true;
                 }
-                KeyCode::Char('l') | KeyCode::Char('L') if has_control => {
-                    let _ = event_tx.try_send(AppEvent::GitHistory);
-                    return true;
-                }
-                KeyCode::Char('e') | KeyCode::Char('E') if has_control => {
-                    let _ = event_tx.try_send(AppEvent::Editor);
-                    return true;
-                }
-                KeyCode::Char('j') | KeyCode::Char('J') if has_control => {
-                    app.show_panel = !app.show_panel;
-                    return true;
-                }
                 KeyCode::Char('n')
                 | KeyCode::Char('N')
                 | KeyCode::Char('o')
