@@ -2821,16 +2821,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
 
                                 if let Some(SidebarTarget::Project(path)) = target_opt {
                                     if path.is_dir() {
-                                        if let Some(fs) = app.current_file_state_mut() {
-                                            fs.current_path = path.clone();
-                                            fs.selection.selected = Some(0);
-                                            fs.selection.anchor = Some(0);
-                                            fs.selection.clear_multi();
-                                            *fs.table_state.offset_mut() = 0;
-                                            crate::event_helpers::push_history(fs, path);
-                                            let _ = event_tx
-                                                .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                            app.sidebar_index = 0;
+                                        if app.expanded_folders.contains(&path) {
+                                            app.expanded_folders.remove(&path);
+                                        } else {
+                                            app.expanded_folders.insert(path);
                                         }
                                     } else {
                                         let _ = event_tx.try_send(AppEvent::PreviewRequested(
@@ -3977,17 +3971,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     }
                                     SidebarTarget::Project(path) => {
                                         if path.is_dir() {
-                                            if let Some(fs) = app.current_file_state_mut() {
-                                                fs.current_path = path.clone();
-                                                fs.selection.selected = Some(0);
-                                                fs.selection.anchor = Some(0);
-                                                fs.selection.clear_multi();
-                                                *fs.table_state.offset_mut() = 0;
-                                                crate::event_helpers::push_history(fs, path.clone());
-                                                let _ = event_tx.try_send(AppEvent::RefreshFiles(
-                                                    app.focused_pane_index,
-                                                ));
-                                                app.sidebar_index = 0;
+                                            if app.expanded_folders.contains(path) {
+                                                app.expanded_folders.remove(path);
+                                            } else {
+                                                app.expanded_folders.insert(path.clone());
                                             }
                                         } else {
                                             let _ = event_tx.try_send(AppEvent::PreviewRequested(
