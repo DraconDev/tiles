@@ -2050,41 +2050,15 @@ fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, i
     let inner = block.inner(area);
     f.render_widget(block, area);
 
+    draw_pane_breadcrumbs(f, area, app, pane_idx);
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1), // Local Tab Bar
+            Constraint::Length(1), // Breadcrumb space
             Constraint::Fill(1),   // Editor Area
         ])
         .split(inner);
-
-    // Render Local Tabs
-    let mut current_tab_x = chunks[0].x;
-    for (t_idx, tab_state) in pane.tabs.iter().enumerate() {
-        let is_active = t_idx == pane.active_tab_index;
-        let name = tab_state.current_path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("?".to_string());
-        
-        let style = if is_active {
-            if is_focused {
-                Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(THEME.accent_primary)
-            }
-        } else {
-            Style::default().fg(Color::DarkGray)
-        };
-
-        let text = format!(" {} ", name);
-        let width = text.width() as u16;
-        if current_tab_x + width > chunks[0].x + chunks[0].width {
-            break;
-        }
-
-        let tab_rect = Rect::new(current_tab_x, chunks[0].y, width, 1);
-        f.render_widget(Paragraph::new(text).style(style), tab_rect);
-        app.tab_bounds.push((tab_rect, pane_idx, t_idx));
-        current_tab_x += width + 1;
-    }
 
     // Apply 2-char right margin/padding to editor area
     let editor_area = Rect {
