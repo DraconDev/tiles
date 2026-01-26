@@ -1117,6 +1117,33 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 }
             }
 
+            // --- GLOBAL OVERRIDES (High Priority) ---
+            if has_control {
+                match key.code {
+                    KeyCode::Char('p') | KeyCode::Char('P') => {
+                        if app.current_view == CurrentView::Editor {
+                            app.show_panel = !app.show_panel;
+                            return true;
+                        }
+                    }
+                    KeyCode::Char('b') | KeyCode::Char('B') => {
+                        app.show_sidebar = !app.show_sidebar;
+                        return true;
+                    }
+                    KeyCode::Char('j') | KeyCode::Char('J') => {
+                        if app.current_view == CurrentView::Editor {
+                            app.show_panel = !app.show_panel;
+                            return true;
+                        }
+                    }
+                    KeyCode::Char('e') | KeyCode::Char('E') => {
+                        let _ = event_tx.try_send(AppEvent::Editor);
+                        return true;
+                    }
+                    _ => {}
+                }
+            }
+
             // IDE/Editor Mode Key Handling
             if app.current_view == CurrentView::Editor && !app.sidebar_focus {
                 let pane_idx = app.focused_pane_index;
