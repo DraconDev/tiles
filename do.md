@@ -5,7 +5,7 @@
 we need tabs above the edtiro
 
 
-when clicking on the side editor on the right we should not hit the file list, on the edtior screen 
+when clicking on the side editor on the right we should not hide the file list, on the edtior screen 
 
 the editer needs some highlighting
 
