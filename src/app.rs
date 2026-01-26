@@ -457,6 +457,13 @@ pub struct BackgroundTask {
     pub status: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum IdePanelTab {
+    Search,
+    Git,
+    Log,
+}
+
 pub struct App {
     pub running: bool,
     pub current_view: CurrentView,
@@ -519,6 +526,9 @@ pub struct App {
     pub is_resizing_sidebar: bool,
     pub show_sidebar: bool,
     pub show_panel: bool,
+    pub ide_panel_tabs: Vec<IdePanelTab>,
+    pub ide_active_panel_tab: usize,
+    pub ide_search_input: String,
     pub initial_window_size: Option<(u16, u16)>,
     pub path_colors: HashMap<PathBuf, u8>,
     pub folder_selections: HashMap<PathBuf, usize>,
