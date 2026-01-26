@@ -1694,7 +1694,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
                             
                             // 2. Check focused pane's preview (IDE mode)
-                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                            let focused_idx = app.focused_pane_index;
+                            let (w, h) = app.terminal_size;
+                            let sw = app.sidebar_width();
+                            let pc = app.panes.len();
+                            let cw = w.saturating_sub(sw);
+                            let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                            let pane_area = ratatui::layout::Rect::new(
+                                sw + (focused_idx as u16 * pw),
+                                1, pw, h.saturating_sub(1)
+                            );
+
+                            if let Some(pane) = app.panes.get_mut(focused_idx) {
                                 if let Some(preview) = &mut pane.preview {
                                     if let Some(editor) = &mut preview.editor {
                                         if key.modifiers.contains(KeyModifiers::CONTROL) {
@@ -1708,16 +1719,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             app.replace_buffer.clear();
                                         } else {
                                             editor.replace_next(&find_term, &replace_term);
-                                            // Ensure cursor centered in pane area
-                                            let sw = app.sidebar_width();
-                                            let (w, h) = app.terminal_size;
-                                            let cw = w.saturating_sub(sw);
-                                            let pc = app.panes.len();
-                                            let pw = if pc > 0 { cw / pc as u16 } else { cw };
-                                            let pane_area = ratatui::layout::Rect::new(
-                                                sw + (app.focused_pane_index as u16 * pw),
-                                                1, pw, h.saturating_sub(1)
-                                            );
                                             editor.ensure_cursor_centered(pane_area);
                                         }
                                     }
