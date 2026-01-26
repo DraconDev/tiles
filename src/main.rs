@@ -1861,22 +1861,36 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     KeyCode::Enter => {
                         let line_str = app.input.value.clone();
                         if let Ok(line_num) = line_str.parse::<usize>() {
+                            let target = line_num.saturating_sub(1); // 1-based to 0-based
+
+                            // 1. Update global editor_state (legacy/viewer)
                             if let Some(preview) = &mut app.editor_state {
                                 if let Some(editor) = &mut preview.editor {
-                                    let target = line_num.saturating_sub(1); // 1-based to 0-based
-                                    editor.cursor_row =
-                                        std::cmp::min(target, editor.lines.len().saturating_sub(1));
+                                    editor.cursor_row = std::cmp::min(target, editor.lines.len().saturating_sub(1));
                                     editor.cursor_col = 0;
-
-                                    // Ensure screen jumps to cursor and centers it
                                     let (w, h) = app.terminal_size;
-                                    let area = ratatui::layout::Rect::new(
-                                        1,
-                                        1,
-                                        w.saturating_sub(2),
-                                        h.saturating_sub(2),
-                                    );
+                                    let area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
                                     editor.ensure_cursor_centered(area);
+                                }
+                            }
+                            // 2. Update focused pane's preview (IDE mode)
+                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                                if let Some(preview) = &mut pane.preview {
+                                    if let Some(editor) = &mut preview.editor {
+                                        editor.cursor_row = std::cmp::min(target, editor.lines.len().saturating_sub(1));
+                                        editor.cursor_col = 0;
+                                        
+                                        let sw = app.sidebar_width();
+                                        let (w, h) = app.terminal_size;
+                                        let cw = w.saturating_sub(sw);
+                                        let pc = app.panes.len();
+                                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                                        let pane_area = ratatui::layout::Rect::new(
+                                            sw + (app.focused_pane_index as u16 * pw),
+                                            1, pw, h.saturating_sub(1)
+                                        );
+                                        editor.ensure_cursor_centered(pane_area);
+                                    }
                                 }
                             }
                         }
