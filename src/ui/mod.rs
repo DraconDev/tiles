@@ -2063,7 +2063,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             Span::styled(" GIT REPOSITORY ", Style::default().fg(Color::Black).bg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
             Span::raw(" "),
             Span::styled(current_path.display().to_string(), Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
-            Span::styled("  on  ", Style::default().fg(Color::DarkGray)),
+            Span::raw("  "),
             Span::styled(format!(" {}", branch_text), Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)),
         ]))
         .title(ratatui::widgets::block::Title::from(Line::from(vec![
