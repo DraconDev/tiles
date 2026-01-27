@@ -4078,11 +4078,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 if let Some(preview) = &mut pane.preview {
                                     if let Some(editor) = &mut preview.editor {
                                         // Area is roughly inner of PW
+                                        // y=2 to account for Global Header(1) + Pane Breadcrumbs(1)
                                         let pane_area = ratatui::layout::Rect::new(
                                             sw + (cp as u16 * pw),
-                                            1, // Header height
+                                            2, 
                                             pw,
-                                            h.saturating_sub(3), // Header(1) + Footer(2)
+                                            h.saturating_sub(2), 
                                         );
                                         editor.handle_mouse_event(me, pane_area);
                                     }
