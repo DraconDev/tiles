@@ -458,6 +458,10 @@ async fn run_tty() -> color_eyre::Result<()> {
                                 editor.cursor_style = ratatui::style::Style::default()
                                     .bg(ratatui::style::Color::Rgb(255, 0, 85))
                                     .fg(ratatui::style::Color::Black);
+                                
+                                // Set language for syntax highlighting
+                                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+                                editor.language = ext;
 
                                 if let Some(pane) = app_guard.panes.get_mut(target_pane_idx) {
                                     pane.preview = Some(crate::app::PreviewState {
