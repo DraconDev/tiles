@@ -460,8 +460,16 @@ async fn run_tty() -> color_eyre::Result<()> {
                                     .fg(ratatui::style::Color::Black);
                                 
                                 // Set language for syntax highlighting
-                                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-                                editor.language = ext;
+                                let lang = path.extension()
+                                    .and_then(|e| e.to_str())
+                                    .map(|s| s.to_string())
+                                    .unwrap_or_else(|| {
+                                        path.file_name()
+                                            .map(|n| n.to_string_lossy().to_string())
+                                            .unwrap_or_default()
+                                    })
+                                    .to_lowercase();
+                                editor.language = lang;
 
                                 if let Some(pane) = app_guard.panes.get_mut(target_pane_idx) {
                                     pane.preview = Some(crate::app::PreviewState {
