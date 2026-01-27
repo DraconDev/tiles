@@ -372,7 +372,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                         _ => {}
                                     }
                                     break;
-
+   
                                 }
                             }
                             if !hit_link {
