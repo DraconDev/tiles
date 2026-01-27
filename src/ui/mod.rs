@@ -1770,7 +1770,7 @@ fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         let cat = crate::modules::files::get_file_category(&path);
         let icon_mode = app.icon_mode;
         
-        let mut style = if is_selected {
+        let style = if is_selected {
             Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD)
         } else {
             let fg = match cat {
