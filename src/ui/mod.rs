@@ -1770,6 +1770,21 @@ fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         let cat = crate::modules::files::get_file_category(&path);
         let icon_mode = app.icon_mode;
         
+        let mut style = if is_selected {
+            Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD)
+        } else {
+            let fg = match cat {
+                FileCategory::Text | FileCategory::Script => THEME.file_code,
+                FileCategory::Config => THEME.file_config,
+                FileCategory::Media | FileCategory::Image | FileCategory::Video | FileCategory::Audio => THEME.file_media,
+                FileCategory::Archive => THEME.file_archive,
+                FileCategory::Execute => THEME.file_exec,
+                _ if is_dir => THEME.header_fg,
+                _ => THEME.fg,
+            };
+            Style::default().fg(fg)
+        };
+
         // Show expansion marker for folders
         let marker = if is_dir {
             if app.expanded_folders.contains(&path) { "▾ " } else { "▸ " }
