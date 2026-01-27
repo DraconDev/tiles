@@ -1149,7 +1149,23 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         let _ = event_tx.try_send(AppEvent::Editor);
                         return true;
                     }
+                    KeyCode::Char('l') | KeyCode::Char('L') => {
+                        let _ = event_tx.try_send(AppEvent::GitHistory);
+                        return true;
+                    }
                     _ => {}
+                }
+            }
+
+            // View-Specific Esc Handling (Prioritize over mode checks)
+            if key.code == KeyCode::Esc {
+                if app.current_view == CurrentView::Git {
+                    app.current_view = CurrentView::Files;
+                    return true;
+                }
+                if app.current_view == CurrentView::Processes {
+                    app.current_view = CurrentView::Files;
+                    return true;
                 }
             }
 
