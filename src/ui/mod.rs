@@ -1874,10 +1874,49 @@ fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usi
     let _is_focused = pane_idx == app.focused_pane_index && !app.sidebar_focus;
     
     let active_tab_idx = app.panes[pane_idx].active_tab_index;
-    let (path, search_filter) = {
+    let (path, mut search_filter) = {
         let tab = &app.panes[pane_idx].tabs[active_tab_idx];
         (tab.current_path.clone(), tab.search_filter.clone())
     };
+
+    let mut search_label = "  ";
+    let mut search_color = Color::Cyan;
+
+    // IDE Mode Search Integration
+    if app.current_view == CurrentView::Editor && search_filter.is_empty() {
+        if let Some(pane) = app.panes.get(pane_idx) {
+            if let Some(preview) = &pane.preview {
+                if let Some(editor) = &preview.editor {
+                    if _is_focused {
+                        match app.mode {
+                            AppMode::EditorSearch => {
+                                search_filter = app.input.value.clone();
+                                search_label = " FIND: ";
+                            }
+                            AppMode::EditorGoToLine => {
+                                search_filter = app.input.value.clone();
+                                search_label = " LINE: ";
+                            }
+                            AppMode::EditorReplace => {
+                                search_filter = app.input.value.clone();
+                                search_label = if app.replace_buffer.is_empty() { " FIND: " } else { " WITH: " };
+                                search_color = Color::Magenta;
+                            }
+                            _ => {
+                                if !editor.filter_query.is_empty() {
+                                    search_filter = editor.filter_query.clone();
+                                    search_label = " FIND: ";
+                                }
+                            }
+                        }
+                    } else if !editor.filter_query.is_empty() {
+                        search_filter = editor.filter_query.clone();
+                        search_label = " FIND: ";
+                    }
+                }
+            }
+        }
+    }
 
     if let Some(tab) = app.panes[pane_idx].tabs.get_mut(active_tab_idx) {
         tab.breadcrumb_bounds.clear();
@@ -1891,7 +1930,7 @@ fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usi
     let total_comps = components.len();
     
     let search_filter_text = if !search_filter.is_empty() {
-        format!(" [  {}  ]", search_filter)
+        format!(" [ {}{} ]", search_label, search_filter)
     } else {
         String::new()
     };
