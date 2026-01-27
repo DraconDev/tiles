@@ -386,6 +386,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
                                 if let Some(path) = fs.files.get(index) {
                                     if path.is_dir() {
                                         app.hovered_drop_target = Some(DropTarget::Folder(path.clone()));
+
                                     }
                                 }
                             }
