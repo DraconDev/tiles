@@ -70,6 +70,8 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
         icon_mode: Some(app.icon_mode),
         is_split_mode: app.is_split_mode,
         semantic_coloring: app.semantic_coloring,
+        show_sidebar: app.show_sidebar,
+        show_side_panel: app.show_side_panel,
     };
 
     let config_dir = dirs::config_dir()
