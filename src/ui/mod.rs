@@ -2768,13 +2768,21 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         };
 
         let mut shortcuts = Vec::new();
-        shortcuts.extend(HotkeyHint::new("^P", "Split", THEME.accent_secondary));
-        shortcuts.extend(HotkeyHint::new("^T", "Tab", THEME.accent_secondary));
-        shortcuts.extend(HotkeyHint::new("^N", "TermTab", THEME.accent_secondary));
-        shortcuts.extend(HotkeyHint::new("^K", "TermWin", THEME.accent_secondary));
-        shortcuts.extend(HotkeyHint::new("^H", "Hidden", hidden_color));
-        shortcuts.extend(HotkeyHint::new("^L", "History", THEME.accent_secondary));
-        shortcuts.extend(HotkeyHint::new("Space", "Preview/Edit", THEME.accent_primary));
+        if app.current_view == CurrentView::Editor {
+            shortcuts.extend(HotkeyHint::new("^F", "Find", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^R/F2", "Replace", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^G", "Line", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^S", "Save", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("Esc", "Sidebar", THEME.accent_primary));
+        } else {
+            shortcuts.extend(HotkeyHint::new("^P", "Split", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^T", "Tab", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^N", "TermTab", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^K", "TermWin", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^H", "Hidden", hidden_color));
+            shortcuts.extend(HotkeyHint::new("^L", "History", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("Space", "Preview/Edit", THEME.accent_primary));
+        }
 
         for s in shortcuts {
             left_spans.push(s);
