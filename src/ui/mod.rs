@@ -873,22 +873,22 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
 
         let mut style = if is_active {
             Style::default()
-                .fg(Color::Rgb(0, 180, 255))
+                .fg(THEME.accent_primary)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(Color::Rgb(60, 65, 75))
+            Style::default().fg(THEME.accent_secondary)
         };
         if app.mouse_pos.1 == nav_layout[0].y
             && app.mouse_pos.0 >= rect.x
             && app.mouse_pos.0 < rect.x + rect.width
         {
-            style = style.fg(Color::White);
+            style = style.fg(THEME.fg);
         }
 
         f.render_widget(Paragraph::new(name).style(style), rect);
         if is_active {
             f.render_widget(
-                Paragraph::new("━━━━").style(Style::default().fg(Color::Rgb(0, 180, 255))),
+                Paragraph::new("━━━━").style(Style::default().fg(THEME.accent_primary)),
                 Rect::new(rect.x, rect.y + 1, 4, 1),
             );
         }
@@ -899,9 +899,9 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
 
     if app.monitor_subview != MonitorSubview::Overview {
         let search_style = if app.process_search_filter.is_empty() {
-            Style::default().fg(Color::Rgb(40, 45, 55))
+            Style::default().fg(THEME.accent_secondary)
         } else {
-            Style::default().fg(Color::Rgb(0, 180, 255))
+            Style::default().fg(THEME.accent_primary)
         };
         f.render_widget(
             Paragraph::new(format!(" 󰍉 {}", app.process_search_filter)).style(search_style),
