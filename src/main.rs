@@ -4449,6 +4449,30 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     return true;
                 }
                 MouseEventKind::Up(_) => {
+                    // Forward Release to Editor in IDE mode
+                    if app.current_view == CurrentView::Editor && column >= app.sidebar_width() {
+                        let sw = app.sidebar_width();
+                        let cw = w.saturating_sub(sw);
+                        let pc = app.panes.len();
+                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                        let cp = (column.saturating_sub(sw) / pw) as usize;
+                        if cp < pc {
+                            if let Some(pane) = app.panes.get_mut(cp) {
+                                if let Some(preview) = &mut pane.preview {
+                                    if let Some(editor) = &mut preview.editor {
+                                        let pane_area = ratatui::layout::Rect::new(
+                                            sw + (cp as u16 * pw) + 1,
+                                            3, 
+                                            pw.saturating_sub(2),
+                                            h.saturating_sub(4),
+                                        );
+                                        editor.handle_mouse_event(me, pane_area);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if app.is_resizing_sidebar {
                         app.is_resizing_sidebar = false;
                         let _ = crate::config::save_state(app);
