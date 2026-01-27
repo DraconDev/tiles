@@ -920,6 +920,11 @@ async fn run_tty() -> color_eyre::Result<()> {
                         app_guard.show_sidebar = true; // Restore regular sidebar
                         app_guard.sidebar_focus = false;
                         app_guard.show_side_panel = false;
+                        
+                        // Clear all previews
+                        for pane in &mut app_guard.panes {
+                            pane.preview = None;
+                        }
                     } else {
                         app_guard.current_view = CurrentView::Editor;
                         app_guard.show_sidebar = false; // IDE starts clean
