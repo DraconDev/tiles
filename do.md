@@ -1,7 +1,7 @@
 ## Do
 
 search on editor view 
-now when i sear
+now when i search i type 
 
 be able to use the scroll when dragging, make it a little faster too, editor page
 
