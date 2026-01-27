@@ -1232,31 +1232,31 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         .map(|disk| {
             let ratio = (disk.used_space as f64 / disk.total_space as f64).clamp(0.0, 1.0);
             let color = if ratio > 0.9 {
-                Color::Rgb(255, 60, 60)
+                Color::Red
             } else if ratio > 0.7 {
-                Color::Rgb(255, 180, 0)
+                Color::Yellow
             } else {
-                Color::Rgb(0, 255, 150)
+                THEME.accent_primary
             };
 
             let track_w: usize = 12;
-            let pos = (ratio * track_w as f64) as usize;
+            let filled = (ratio * track_w as f64) as usize;
             let track = format!(
-                "[{}|{}]",
-                "-".repeat(pos),
-                "·".repeat(track_w.saturating_sub(pos))
+                "[{}{}]",
+                "█".repeat(filled),
+                "░".repeat(track_w.saturating_sub(filled))
             );
 
             ListItem::new(vec![
                 Line::from(vec![
-                    Span::styled("DSK ", Style::default().fg(Color::Rgb(60, 65, 75))),
-                    Span::styled(&disk.name, Style::default().fg(Color::White)),
+                    Span::styled("DSK ", Style::default().fg(THEME.accent_secondary)),
+                    Span::styled(&disk.name, Style::default().fg(THEME.fg)),
                 ]),
                 Line::from(vec![
                     Span::styled(track, Style::default().fg(color)),
                     Span::styled(
                         format!(" {:.0}%", ratio * 100.0),
-                        Style::default().fg(Color::Rgb(100, 100, 110)),
+                        Style::default().fg(THEME.accent_secondary),
                     ),
                 ]),
                 Line::from(""),
@@ -1270,11 +1270,11 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                 .title(Span::styled(
                     "STO // ARRAY",
                     Style::default()
-                        .fg(Color::Rgb(60, 65, 75))
+                        .fg(THEME.accent_secondary)
                         .add_modifier(Modifier::BOLD),
                 ))
                 .borders(Borders::LEFT)
-                .border_style(Style::default().fg(Color::Rgb(30, 30, 35))),
+                .border_style(Style::default().fg(THEME.border_inactive)),
         ),
         right_chunks[2],
     );
