@@ -1304,15 +1304,15 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
     let rows = app_procs.iter().enumerate().map(|(i, p)| {
         let mut is_selected = false;
         let mut style = if i % 2 == 0 {
-            Style::default().fg(Color::Rgb(180, 185, 190))
+            Style::default().fg(THEME.fg)
         } else {
-            Style::default().fg(Color::Rgb(140, 145, 150))
+            Style::default().fg(THEME.accent_secondary)
         };
         if app.process_selected_idx == Some(i)
             && app.monitor_subview == MonitorSubview::Applications
         {
             style = style
-                .bg(Color::Rgb(0, 180, 255))
+                .bg(THEME.accent_primary)
                 .fg(Color::Black)
                 .add_modifier(Modifier::BOLD);
             is_selected = true;
@@ -1322,7 +1322,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
         } else if p.cpu > 50.0 {
             Color::Red
         } else {
-            Color::Rgb(0, 255, 150)
+            THEME.fg
         };
         Row::new(vec![
             Cell::from(format!("  {}", p.name)),
@@ -1331,7 +1331,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
             Cell::from(p.pid.to_string()).style(Style::default().fg(if is_selected {
                 Color::Black
             } else {
-                Color::Rgb(60, 65, 75)
+                THEME.accent_secondary
             })),
             Cell::from(p.status.clone()),
         ])
@@ -1381,9 +1381,9 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
         Cell::from(text).style(
             Style::default()
                 .fg(if app.process_sort_col == *col {
-                    Color::Rgb(0, 180, 255)
+                    THEME.accent_primary
                 } else {
-                    Color::Rgb(60, 65, 75)
+                    THEME.header_fg
                 })
                 .add_modifier(Modifier::BOLD),
         )
@@ -1445,9 +1445,9 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
             Cell::from(text).style(
                 Style::default()
                     .fg(if app.process_sort_col == col {
-                        Color::Rgb(0, 180, 255)
+                        THEME.accent_primary
                     } else {
-                        Color::Rgb(60, 65, 75)
+                        THEME.header_fg
                     })
                     .add_modifier(Modifier::BOLD),
             )
@@ -1455,13 +1455,13 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
     let rows = app.system_state.processes.iter().enumerate().map(|(i, p)| {
         let mut is_selected = false;
         let mut style = if i % 2 == 0 {
-            Style::default().fg(Color::Rgb(180, 185, 190))
+            Style::default().fg(THEME.fg)
         } else {
-            Style::default().fg(Color::Rgb(140, 145, 150))
+            Style::default().fg(THEME.accent_secondary)
         };
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Processes {
             style = style
-                .bg(Color::Rgb(0, 180, 255))
+                .bg(THEME.accent_primary)
                 .fg(Color::Black)
                 .add_modifier(Modifier::BOLD);
             is_selected = true;
@@ -1471,19 +1471,19 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
         } else if p.cpu > 50.0 {
             Color::Red
         } else {
-            Color::Rgb(0, 255, 150)
+            THEME.fg
         };
         Row::new(vec![
             Cell::from(format!("  {}", p.pid)).style(Style::default().fg(if is_selected {
                 Color::Black
             } else {
-                Color::Rgb(60, 65, 75)
+                THEME.accent_secondary
             })),
             Cell::from(p.name.clone()).style(Style::default().add_modifier(Modifier::BOLD)),
             Cell::from(p.user.clone()).style(Style::default().fg(if is_selected {
                 Color::Black
             } else {
-                Color::Rgb(0, 180, 255)
+                THEME.accent_primary
             })),
             Cell::from(p.status.clone()),
             Cell::from(format!("{:.1}", p.cpu)).style(Style::default().fg(cpu_color)),
