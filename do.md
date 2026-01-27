@@ -6,7 +6,7 @@ on editor view showin the filepath over the sidebar would be more useful
 
 search on editor view 
 
-be able to use the scroll 
+be able to use the scroll when 
 
 ## Doing
 
