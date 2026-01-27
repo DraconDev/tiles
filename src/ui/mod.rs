@@ -330,7 +330,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     // Check if we are in any Editor-related mode or Viewer
-    let is_editor_mode = matches!(
+    let is_editor_mode = (matches!(
         app.mode,
         AppMode::Editor
             | AppMode::EditorSearch
@@ -345,7 +345,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 | AppMode::EditorGoToLine
                 | AppMode::EditorReplace
                 | AppMode::Viewer
-        ));
+        ))) && app.current_view != CurrentView::Editor;
 
     if is_editor_mode {
         let (border_color, status_text) = if let AppMode::Viewer = app.mode {
