@@ -2044,9 +2044,9 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         0
     };
 
-    let (history, pending, current_path) = if let Some(pane) = app.panes.get(pane_idx) {
+    let (history, pending, current_path, branch) = if let Some(pane) = app.panes.get(pane_idx) {
         if let Some(tab) = pane.tabs.get(tab_idx) {
-            (&tab.git_history, &tab.git_pending, tab.current_path.clone())
+            (&tab.git_history, &tab.git_pending, tab.current_path.clone(), tab.git_branch.clone())
         } else {
             return;
         }
@@ -2054,13 +2054,17 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         return;
     };
 
+    let branch_text = branch.unwrap_or_else(|| "HEAD".to_string());
+
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .title(Line::from(vec![
             Span::styled(" GIT REPOSITORY ", Style::default().fg(Color::Black).bg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
             Span::raw(" "),
-            Span::styled(current_path.display().to_string(), Style::default().fg(THEME.accent_primary)),
+            Span::styled(current_path.display().to_string(), Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
+            Span::styled("  on  ", Style::default().fg(Color::DarkGray)),
+            Span::styled(format!(" {}", branch_text), Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)),
         ]))
         .title(ratatui::widgets::block::Title::from(Line::from(vec![
             Span::styled(" [Esc] Back ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
@@ -2094,8 +2098,8 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             ])
         }).collect();
 
-        let pending_table = Table::new(pending_rows, [Constraint::Length(4), Constraint::Fill(1)])
-            .header(Row::new(vec!["STA", "PATH"]).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)))
+        let pending_table = Table::new(pending_rows, [Constraint::Length(6), Constraint::Fill(1)])
+            .header(Row::new(vec!["STATUS", "PATH"]).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)))
             .block(Block::default().borders(Borders::BOTTOM).title(" PENDING CHANGES ").border_style(Style::default().fg(Color::Rgb(40, 45, 55))));
         f.render_widget(pending_table, chunks[0]);
     }
@@ -2115,7 +2119,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         .map(|act| {
             let h_short = act.hash.chars().take(7).collect::<String>();
             let stats = if act.files_changed > 0 {
-                format!(" [{}f, +{}, -{}]", act.files_changed, act.insertions, act.deletions)
+                format!("{} files (+{}/-{})", act.files_changed, act.insertions, act.deletions)
             } else {
                 String::new()
             };
@@ -2124,7 +2128,8 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                 Cell::from(act.date.clone()).style(Style::default().fg(Color::DarkGray)),
                 Cell::from(h_short).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)),
                 Cell::from(act.author.clone()).style(Style::default().fg(Color::Cyan)),
-                Cell::from(format!("{}{}", act.message, stats)).style(Style::default().fg(THEME.fg)),
+                Cell::from(act.message.clone()).style(Style::default().fg(THEME.fg)),
+                Cell::from(stats).style(Style::default().fg(Color::Rgb(100, 100, 110))),
             ])
         })
         .collect();
@@ -2132,14 +2137,15 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     let table = Table::new(
         rows,
         [
-            Constraint::Length(25),
-            Constraint::Length(10),
-            Constraint::Length(15),
-            Constraint::Fill(1),
+            Constraint::Length(25), // DATE
+            Constraint::Length(12), // HASH
+            Constraint::Length(20), // AUTHOR
+            Constraint::Fill(1),    // MESSAGE
+            Constraint::Length(25), // STATS
         ],
     )
     .header(
-        Row::new(vec!["DATE", "HASH", "AUTHOR", "MESSAGE"])
+        Row::new(vec!["DATE", "HASH", "AUTHOR", "MESSAGE", "STATS"])
             .style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD))
             .bottom_margin(1),
     )
