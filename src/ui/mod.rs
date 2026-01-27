@@ -2024,7 +2024,7 @@ fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usi
             Paragraph::new(Span::styled(
                 display_filter,
                 Style::default()
-                    .fg(Color::Cyan)
+                    .fg(search_color)
                     .add_modifier(Modifier::BOLD),
             )),
             filter_rect,
