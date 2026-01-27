@@ -1973,7 +1973,7 @@ fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usi
     }
 
     if !search_filter_text.is_empty() {
-        let max_filter_w = area.width.saturating_sub(cur_x + 2) as usize;
+        let max_filter_w = area.right().saturating_sub(cur_x + 2) as usize;
         let display_filter = if search_filter_text.width() > max_filter_w {
             truncate_to_width(&search_filter_text, max_filter_w, "..]")
         } else {
