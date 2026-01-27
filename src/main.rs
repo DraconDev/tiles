@@ -1178,7 +1178,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             }
 
             // IDE/Editor Mode Key Handling
-            if app.current_view == CurrentView::Editor && !app.sidebar_focus {
+            if app.current_view == CurrentView::Editor && !app.sidebar_focus && matches!(app.mode, AppMode::Normal) {
                 let (w, h) = app.terminal_size;
                 let sw = app.sidebar_width();
                 let pc = app.panes.len();
