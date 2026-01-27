@@ -988,7 +988,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
             } else if ratio > 0.5 {
                 Color::Rgb(255, 180, 0)
             } else {
-                Color::Rgb(0, 255, 150)
+                THEME.accent_secondary
             };
 
             f.render_widget(
@@ -1105,7 +1105,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                     } else if intensity > 0.5 {
                         Color::Rgb(255, 180, 0)
                     } else {
-                        Color::Rgb(0, 255, 150)
+                        THEME.accent_secondary
                     };
 
                     let slot = core_cols[c as usize].inner(ratatui::layout::Margin {
@@ -1214,7 +1214,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         )),
         Line::from(""),
         Line::from(vec![
-            Span::styled("RX ▼ ", Style::default().fg(Color::Rgb(0, 255, 150))),
+            Span::styled("RX ▼ ", Style::default().fg(THEME.accent_secondary)),
             Span::styled(
                 format_size(rx),
                 Style::default().add_modifier(Modifier::BOLD),
@@ -1249,7 +1249,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
             } else if ratio > 0.7 {
                 Color::Rgb(255, 180, 0)
             } else {
-                Color::Rgb(0, 255, 150)
+                THEME.accent_secondary
             };
 
             let track_w: usize = 12;
@@ -1335,7 +1335,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
         } else if p.cpu > 50.0 {
             Color::Red
         } else {
-            Color::Rgb(0, 255, 150)
+            THEME.accent_secondary
         };
         Row::new(vec![
             Cell::from(format!("  {}", p.name)),
@@ -1484,7 +1484,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
         } else if p.cpu > 50.0 {
             Color::Red
         } else {
-            Color::Rgb(0, 255, 150)
+            THEME.accent_secondary
         };
         Row::new(vec![
             Cell::from(format!("  {}", p.pid)).style(Style::default().fg(if is_selected {
@@ -2612,7 +2612,7 @@ fn draw_stat_bar(label: &str, value: f32, max: f32) -> Line<'static> {
     for i in 0..width {
         let symbol = if i < filled { "█" } else { "░" };
         let color = if ratio < 0.4 {
-            Color::Rgb(0, 255, 150) // Cyber Green
+            THEME.accent_secondary // Cyber Green
         } else if ratio < 0.7 {
             Color::Rgb(255, 255, 0) // Yellow
         } else {
@@ -2722,7 +2722,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
             app.default_show_hidden
         };
         let hidden_color = if hidden_on {
-            Color::Rgb(0, 255, 150) // Cyber Green
+            THEME.accent_secondary // Cyber Green
         } else {
             Color::Red
         };
@@ -2754,7 +2754,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
             left_spans.push(Span::styled(
                 " REMOTE ",
                 Style::default()
-                    .bg(Color::Rgb(0, 255, 150))
+                    .bg(THEME.accent_secondary)
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD),
             ));
