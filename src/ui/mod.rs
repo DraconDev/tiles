@@ -397,9 +397,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                     header_left.push(Span::styled(&app.input.value, Style::default().fg(Color::White)));
                 }
             }
-            AppMode::Editor => {
+            AppMode::Editor | AppMode::Viewer => {
                 header_left.extend(HotkeyHint::new("^F", "Find", THEME.accent_secondary));
-                header_left.extend(HotkeyHint::new("^R", "Replace", THEME.accent_secondary));
+                header_left.extend(HotkeyHint::new("^R/F2", "Replace", THEME.accent_secondary));
                 header_left.extend(HotkeyHint::new("^G", "Line", THEME.accent_secondary));
             }
             _ => {}
