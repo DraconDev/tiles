@@ -445,18 +445,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         if app.current_view == CurrentView::Processes {
             draw_monitor_page(f, f.area(), app);
         } else if app.current_view == CurrentView::Git {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(1),
-                    Constraint::Fill(1),
-                    Constraint::Length(2),
-                ])
-                .split(f.area());
-
-            draw_global_header(f, chunks[0], 0, app);
-            draw_git_page(f, chunks[1], app);
-            draw_footer(f, chunks[2], app);
+            draw_git_page(f, f.area(), app);
         } else if app.current_view == CurrentView::Editor {
             draw_editor_view(f, f.area(), app);
         } else {
