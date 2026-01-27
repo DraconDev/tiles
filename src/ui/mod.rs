@@ -1147,34 +1147,34 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     // Identity
     let id_info = vec![
         Line::from(vec![
-            Span::styled("ID  ", Style::default().fg(Color::Rgb(60, 65, 75))),
+            Span::styled("ID  ", Style::default().fg(THEME.accent_secondary)),
             Span::styled(
                 &app.system_state.hostname,
-                Style::default().add_modifier(Modifier::BOLD),
+                Style::default().fg(THEME.fg).add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(vec![
-            Span::styled("UP  ", Style::default().fg(Color::Rgb(60, 65, 75))),
-            Span::raw(format!(
+            Span::styled("UP  ", Style::default().fg(THEME.accent_secondary)),
+            Span::styled(format!(
                 "{}d {}h",
                 app.system_state.uptime / 86400,
                 (app.system_state.uptime % 86400) / 3600
-            )),
+            ), Style::default().fg(THEME.fg)),
         ]),
         Line::from(vec![
-            Span::styled("KER ", Style::default().fg(Color::Rgb(60, 65, 75))),
-            Span::raw(&app.system_state.kernel_version),
+            Span::styled("KER ", Style::default().fg(THEME.accent_secondary)),
+            Span::styled(&app.system_state.kernel_version, Style::default().fg(THEME.fg)),
         ]),
         Line::from(vec![
-            Span::styled("OS  ", Style::default().fg(Color::Rgb(60, 65, 75))),
-            Span::raw(&app.system_state.os_name),
+            Span::styled("OS  ", Style::default().fg(THEME.accent_secondary)),
+            Span::styled(&app.system_state.os_name, Style::default().fg(THEME.fg)),
         ]),
     ];
     f.render_widget(
         Paragraph::new(id_info).block(
             Block::default()
                 .borders(Borders::LEFT)
-                .border_style(Style::default().fg(Color::Rgb(30, 30, 35))),
+                .border_style(Style::default().fg(THEME.border_inactive)),
         ),
         right_chunks[0],
     );
@@ -1196,22 +1196,22 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         Line::from(Span::styled(
             "NET // STREAM",
             Style::default()
-                .fg(Color::Rgb(60, 65, 75))
+                .fg(THEME.accent_secondary)
                 .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(vec![
-            Span::styled("RX ▼ ", Style::default().fg(Color::Rgb(0, 255, 150))),
+            Span::styled("RX ▼ ", Style::default().fg(THEME.accent_primary)),
             Span::styled(
                 format_size(rx),
-                Style::default().add_modifier(Modifier::BOLD),
+                Style::default().fg(THEME.fg).add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(vec![
-            Span::styled("TX ▲ ", Style::default().fg(Color::Rgb(0, 180, 255))),
+            Span::styled("TX ▲ ", Style::default().fg(Color::Magenta)),
             Span::styled(
                 format_size(tx),
-                Style::default().add_modifier(Modifier::BOLD),
+                Style::default().fg(THEME.fg).add_modifier(Modifier::BOLD),
             ),
         ]),
     ];
@@ -1219,7 +1219,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         Paragraph::new(net_lines).block(
             Block::default()
                 .borders(Borders::LEFT)
-                .border_style(Style::default().fg(Color::Rgb(30, 30, 35))),
+                .border_style(Style::default().fg(THEME.border_inactive)),
         ),
         right_chunks[1],
     );
