@@ -1639,46 +1639,6 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
             global_tab_idx += 1;
         }
     }
-
-    // Render Search/Replace/GoToLine Overlay in Header
-    match app.mode {
-        AppMode::EditorSearch | AppMode::EditorReplace | AppMode::EditorGoToLine => {
-            let (label, color) = match app.mode {
-                AppMode::EditorSearch => (" FIND: ", THEME.accent_secondary),
-                AppMode::EditorGoToLine => (" LINE: ", THEME.accent_secondary),
-                AppMode::EditorReplace => {
-                    if app.replace_buffer.is_empty() {
-                        (" REPLACE [FIND]: ", Color::Magenta)
-                    } else {
-                        (" REPLACE [WITH]: ", Color::Magenta)
-                    }
-                }
-                _ => (" ", THEME.accent_secondary),
-            };
-
-            let input_text = &app.input.value;
-            let display_text = format!("{}{}", label, input_text);
-            let width = display_text.width() as u16 + 4;
-            
-            // Draw on the far right of the header
-            let input_area = Rect::new(
-                area.x + area.width.saturating_sub(width + 2),
-                area.y,
-                width,
-                1
-            );
-
-            f.render_widget(Clear, input_area);
-            f.render_widget(
-                Paragraph::new(Line::from(vec![
-                    Span::styled(label, Style::default().bg(color).fg(Color::Black).add_modifier(Modifier::BOLD)),
-                    Span::styled(format!(" {} ", input_text), Style::default().fg(Color::White).bg(Color::Rgb(30, 30, 35))),
-                ])),
-                input_area
-            );
-        }
-        _ => {}
-    }
 }
 
 fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
