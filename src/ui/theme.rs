@@ -22,13 +22,13 @@ impl DraconTheme {
     pub fn cyberpunk() -> Self {
         Self {
             bg: Color::Rgb(0, 0, 0),                   // True Color Pure Black
-            fg: Color::Rgb(220, 220, 230),             // Off-white
+            fg: Color::Rgb(255, 255, 255),             // Pure White
             accent_primary: Color::Rgb(255, 0, 85),    // Neon Red/Pink
             accent_secondary: Color::Rgb(0, 255, 200), // Cyan
             selection_bg: Color::Rgb(255, 0, 85),      // Neon Red/Pink
             selection_fg: Color::Rgb(0, 0, 0),         // Black (for contrast)
             border_active: Color::Rgb(255, 0, 85),     // Primary Accent
-            border_inactive: Color::Rgb(60, 60, 70),   // Dim Grey
+            border_inactive: Color::Rgb(80, 80, 90),   // Dark Grey (Brightened for contrast)
             header_fg: Color::Rgb(0, 255, 200),        // Secondary Accent
             file_code: Color::Rgb(255, 128, 0),        // Orange (Code)
             file_config: Color::Rgb(255, 215, 0),      // Gold (Config)
