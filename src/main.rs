@@ -2134,14 +2134,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                     if let Some(preview) = &mut app.editor_state {
                         if let Some(editor) = &mut preview.editor {
-                            if let KeyCode::Char('f') | KeyCode::Char('F') = key.code {
-                                if has_control {
-                                    app.previous_mode = app.mode.clone();
-                                    app.mode = AppMode::EditorSearch;
-                                    // Pre-fill with current filter if any
-                                    app.input.set_value(editor.filter_query.clone());
-                                    return true;
-                                }
+                            if has_control && (key.code == KeyCode::Char('f') || key.code == KeyCode::Char('F')) {
+                                app.previous_mode = app.mode.clone();
+                                app.mode = AppMode::EditorSearch;
+                                // Pre-fill with current filter if any
+                                app.input.set_value(editor.filter_query.clone());
+                                return true;
                             }
                             if let KeyCode::Char('r') | KeyCode::Char('R') | KeyCode::F(2) = key.code {
                                 if has_control || key.code == KeyCode::F(2) {
@@ -2152,13 +2150,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     return true;
                                 }
                             }
-                            if let KeyCode::Char('g') | KeyCode::Char('G') = key.code {
-                                if has_control {
-                                    app.previous_mode = app.mode.clone();
-                                    app.mode = AppMode::EditorGoToLine;
-                                    app.input.clear();
-                                    return true;
-                                }
+                            if has_control && (key.code == KeyCode::Char('g') || key.code == KeyCode::Char('G')) {
+                                app.previous_mode = app.mode.clone();
+                                app.mode = AppMode::EditorGoToLine;
+                                app.input.clear();
+                                return true;
                             }
 
                             let (w, h) = app.terminal_size;
