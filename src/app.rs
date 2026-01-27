@@ -880,7 +880,7 @@ impl App {
             split_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified],
             sidebar_width_percent: 20,
             is_resizing_sidebar: false,
-            show_sidebar: false,
+            show_sidebar: true,
             show_side_panel: false,
             initial_window_size: None,
             path_colors: HashMap::new(),
