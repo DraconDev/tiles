@@ -717,7 +717,7 @@ fn draw_hotkeys_modal(f: &mut Frame, _area: Rect) {
             "Editor",
             vec![
                 ("Ctrl + F", "Find (Live Filter)"),
-                ("Ctrl + R", "Replace All"),
+                ("Ctrl + R / F2", "Replace All"),
                 ("Ctrl + G", "Go To Line"),
                 ("Ctrl + C", "Copy Line"),
                 ("Ctrl + X", "Cut Line / Delete Line"),
