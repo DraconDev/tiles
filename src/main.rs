@@ -3596,6 +3596,35 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         app.mouse_click_count = 1;
                                     }
 
+                                    // Fix: Editor area starts at y=1 (header), plus 1 for border/breadcrumbs = 2
+                                    // So content starts at y=2 effectively. 
+                                    // If we use editor_area.y which is 1, we might need to subtract 1 more if the widget has padding.
+                                    // Let's assume the widget handles its own local coordinates if we pass the correct area.
+                                    // But here we are doing logic OUTSIDE the widget to detect double/triple clicks.
+                                    
+                                    // The TextEditor widget renders content starting at area.y.
+                                    // In draw_editor_view -> draw_pane_editor:
+                                    // Header is at 0.
+                                    // Pane starts at 1 (global header).
+                                    // Inside Pane: Breadcrumbs at 0 (relative to pane), so y=1 absolute.
+                                    // Editor Area starts at 1 (relative to pane), so y=2 absolute.
+                                    
+                                    // We passed editor_area as Rect(1, 1, ...). Wait, no.
+                                    // In `draw` (Files/Global): Editor takes full screen. Header at 0. Editor widget at 1.
+                                    // In `draw` (IDE): Global Header at 0. Pane Breadcrumbs at 1. Editor content at 2.
+                                    
+                                    // The logic here (lines 3647) seems to assume `editor_area` is defined as:
+                                    // let editor_area = ratatui::layout::Rect::new(1, 1, ...);
+                                    // This matches the "Global Editor" mode (AppMode::Editor).
+                                    
+                                    // BUT the user complains about "editor page" which likely means IDE mode (CurrentView::Editor).
+                                    // Ah, I see `AppMode::Editor | AppMode::Viewer` block above.
+                                    // And a separate `if app.current_view == CurrentView::Editor` block earlier (around line 1170).
+                                    // I need to check the EARLIER block for IDE mode mouse handling.
+                                    
+                                    // Wait, I missed the IDE mode mouse handling in the previous read?
+                                    // Let me search for it.
+                                    
                                     let rel_row = (row - editor_area.y) as usize;
                                     let target_row = editor.scroll_row + rel_row;
 
