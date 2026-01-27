@@ -873,7 +873,7 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
 
         let mut style = if is_active {
             Style::default()
-                .bg(Color::Rgb(0, 180, 255))
+                .bg(THEME.accent_primary)
                 .fg(Color::Black)
                 .add_modifier(Modifier::BOLD)
         } else {
@@ -889,7 +889,7 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
         f.render_widget(Paragraph::new(name).style(style), rect);
         if is_active {
             f.render_widget(
-                Paragraph::new("━━━━").style(Style::default().fg(Color::Rgb(0, 180, 255))),
+                Paragraph::new("━━━━").style(Style::default().fg(THEME.accent_primary)),
                 Rect::new(rect.x, rect.y + 1, 4, 1),
             );
         }
@@ -902,7 +902,7 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
         let search_style = if app.process_search_filter.is_empty() {
             Style::default().fg(Color::Rgb(40, 45, 55))
         } else {
-            Style::default().fg(Color::Rgb(0, 180, 255))
+            Style::default().fg(THEME.accent_primary)
         };
         f.render_widget(
             Paragraph::new(format!(" 󰍉 {}", app.process_search_filter)).style(search_style),
@@ -1221,7 +1221,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
             ),
         ]),
         Line::from(vec![
-            Span::styled("TX ▲ ", Style::default().fg(Color::Rgb(0, 180, 255))),
+            Span::styled("TX ▲ ", Style::default().fg(THEME.accent_primary)),
             Span::styled(
                 format_size(tx),
                 Style::default().add_modifier(Modifier::BOLD),
@@ -1325,7 +1325,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
             && app.monitor_subview == MonitorSubview::Applications
         {
             style = style
-                .bg(Color::Rgb(0, 180, 255))
+                .bg(THEME.accent_primary)
                 .fg(Color::Black)
                 .add_modifier(Modifier::BOLD);
             is_selected = true;
@@ -1394,7 +1394,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
         Cell::from(text).style(
             Style::default()
                 .fg(if app.process_sort_col == *col {
-                    Color::Rgb(0, 180, 255)
+                    THEME.accent_primary
                 } else {
                     Color::Rgb(60, 65, 75)
                 })
@@ -1458,7 +1458,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
             Cell::from(text).style(
                 Style::default()
                     .fg(if app.process_sort_col == col {
-                        Color::Rgb(0, 180, 255)
+                        THEME.accent_primary
                     } else {
                         Color::Rgb(60, 65, 75)
                     })
@@ -1474,7 +1474,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
         };
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Processes {
             style = style
-                .bg(Color::Rgb(0, 180, 255))
+                .bg(THEME.accent_primary)
                 .fg(Color::Black)
                 .add_modifier(Modifier::BOLD);
             is_selected = true;
@@ -1496,7 +1496,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
             Cell::from(p.user.clone()).style(Style::default().fg(if is_selected {
                 Color::Black
             } else {
-                Color::Rgb(0, 180, 255)
+                THEME.accent_primary
             })),
             Cell::from(p.status.clone()),
             Cell::from(format!("{:.1}", p.cpu)).style(Style::default().fg(cpu_color)),
