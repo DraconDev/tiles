@@ -4077,13 +4077,17 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             if let Some(pane) = app.panes.get_mut(cp) {
                                 if let Some(preview) = &mut pane.preview {
                                     if let Some(editor) = &mut preview.editor {
-                                        // Area is roughly inner of PW
-                                        // y=2 to account for Global Header(1) + Pane Breadcrumbs(1)
+                                        // Area calculation for TextEditor mouse handling:
+                                        // sw: sidebar width
+                                        // cp: current pane index
+                                        // pw: pane width
+                                        // +1 for left rounded border
+                                        // y=3: Global Header(1) + Rounded Border(1) + Breadcrumbs(1)
                                         let pane_area = ratatui::layout::Rect::new(
-                                            sw + (cp as u16 * pw),
-                                            2, 
-                                            pw,
-                                            h.saturating_sub(2), 
+                                            sw + (cp as u16 * pw) + 1,
+                                            3, 
+                                            pw.saturating_sub(2), // Left/Right borders
+                                            h.saturating_sub(4), // Header(1) + Top/Bottom borders(2) + Breadcrumbs(1)
                                         );
                                         editor.handle_mouse_event(me, pane_area);
                                     }
