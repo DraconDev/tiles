@@ -2123,11 +2123,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                 }
                 AppMode::Viewer => {
-                    if key.code == KeyCode::Esc || key.code == KeyCode::Char(' ') {
-                        app.mode = AppMode::Normal;
-                        app.editor_state = None;
-                        return true;
-                    }
+                    if matches!(app.mode, AppMode::Viewer) {
+                        if key.code == KeyCode::Esc || key.code == KeyCode::Char(' ') {
+                            app.mode = AppMode::Normal;
+                            app.editor_state = None;
+                            return true;
+                        }
                     if key.code == KeyCode::Char('?') || key.code == KeyCode::F(1) {
                         app.previous_mode = app.mode.clone();
                         app.mode = AppMode::Hotkeys;
