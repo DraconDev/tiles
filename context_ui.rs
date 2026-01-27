@@ -1,4 +1,4 @@
-[<35;107;use ratatui::{
+[<35;use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
