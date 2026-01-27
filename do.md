@@ -6,6 +6,8 @@ on editor view showin the filepath over the sidebar would be more useful
 
 search on editor view 
 
+be able to use
+
 ## Doing
 
 ## Done
