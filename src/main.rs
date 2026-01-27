@@ -2149,6 +2149,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     return true;
                                 }
                             }
+                            if let KeyCode::Char('r') | KeyCode::Char('R') | KeyCode::F(2) = key.code {
+                                if has_control || key.code == KeyCode::F(2) {
+                                    app.previous_mode = app.mode.clone();
+                                    app.mode = AppMode::EditorReplace;
+                                    app.input.clear();
+                                    app.replace_buffer.clear();
+                                    return true;
+                                }
+                            }
                             if let KeyCode::Char('g') | KeyCode::Char('G') = key.code {
                                 if has_control {
                                     app.previous_mode = app.mode.clone();
