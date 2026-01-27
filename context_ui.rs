@@ -1,4 +1,4 @@
-[<35;107;27Muse ratatui::{
+[<35;107;27use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
