@@ -2129,6 +2129,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             app.editor_state = None;
                             return true;
                         }
+                    }
                     if key.code == KeyCode::Char('?') || key.code == KeyCode::F(1) {
                         app.previous_mode = app.mode.clone();
                         app.mode = AppMode::Hotkeys;
