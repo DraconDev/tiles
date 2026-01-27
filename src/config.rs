@@ -27,6 +27,10 @@ pub struct PersistentState {
     pub is_split_mode: bool,
     #[serde(default = "default_true")]
     pub semantic_coloring: bool,
+    #[serde(default = "default_true")]
+    pub show_sidebar: bool,
+    #[serde(default)]
+    pub show_side_panel: bool,
 }
 
 fn default_true() -> bool {
