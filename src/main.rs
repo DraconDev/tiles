@@ -4678,6 +4678,31 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 }
                 MouseEventKind::Moved | MouseEventKind::Drag(_) => {
                     app.mouse_pos = (column, row);
+
+                    // Forward Drag to Editor in IDE mode
+                    if app.current_view == CurrentView::Editor && column >= app.sidebar_width() {
+                        let sw = app.sidebar_width();
+                        let cw = w.saturating_sub(sw);
+                        let pc = app.panes.len();
+                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                        let cp = (column.saturating_sub(sw) / pw) as usize;
+                        if cp < pc {
+                            if let Some(pane) = app.panes.get_mut(cp) {
+                                if let Some(preview) = &mut pane.preview {
+                                    if let Some(editor) = &mut preview.editor {
+                                        let pane_area = ratatui::layout::Rect::new(
+                                            sw + (cp as u16 * pw) + 1,
+                                            3, 
+                                            pw.saturating_sub(2),
+                                            h.saturating_sub(4),
+                                        );
+                                        editor.handle_mouse_event(me, pane_area);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if app.is_resizing_sidebar {
                         app.sidebar_width_percent = (column as f32 / w as f32 * 100.0) as u16;
                         app.sidebar_width_percent = app.sidebar_width_percent.clamp(5, 50);
