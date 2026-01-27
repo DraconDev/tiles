@@ -1269,6 +1269,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 app.editor_state = None;
                                 return true;
                             }
+                        }
                         if let KeyCode::Char('c') | KeyCode::Char('C') = key.code {
                             if has_control {
                                 let content = if let Some(selected) = editor.get_selected_text() {
