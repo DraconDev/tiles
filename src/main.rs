@@ -578,7 +578,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                     editor.read_only = true;
                                     editor.wrap = true;
                                     editor.style = ratatui::style::Style::default()
-                                        .fg(ratatui::style::Color::Rgb(220, 220, 230));
+                                        .fg(ratatui::style::Color::Rgb(255, 255, 255));
                                     editor.cursor_style = ratatui::style::Style::default()
                                         .bg(ratatui::style::Color::Rgb(255, 0, 85))
                                         .fg(ratatui::style::Color::Black);
