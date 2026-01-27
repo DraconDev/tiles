@@ -1066,7 +1066,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
             Paragraph::new(Span::styled(
                 "RACK // THREAD_FLUX",
                 Style::default()
-                    .fg(THEME.accent_secondary)
+                    .fg(Color::Rgb(60, 65, 75))
                     .add_modifier(Modifier::BOLD),
             )),
             Rect::new(rack_area.x, rack_area.y - 1, 30, 1),
@@ -1101,11 +1101,11 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                     let usage = app.system_state.cpu_cores[idx];
                     let intensity = usage / 100.0;
                     let color = if intensity > 0.9 {
-                        Color::Red
+                        Color::Rgb(255, 60, 60)
                     } else if intensity > 0.5 {
-                        Color::Yellow
+                        Color::Rgb(255, 180, 0)
                     } else {
-                        THEME.accent_primary
+                        Color::Rgb(0, 255, 150)
                     };
 
                     let slot = core_cols[c as usize].inner(ratatui::layout::Margin {
@@ -1113,31 +1113,35 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                         vertical: 0,
                     });
 
-                    // 0x00 [||||||||  ] 50%
-                    let label = format!("0x{:02X}", idx);
-                    let label_width = 5;
-                    let pct_width = 5;
-                    let gauge_width = slot.width.saturating_sub(label_width + pct_width + 2);
-                    
-                    let gauge = ratatui::widgets::Gauge::default()
-                        .gauge_style(Style::default().fg(color).bg(Color::DarkGray))
-                        .ratio(intensity.into())
-                        .label("");
+                    let track_w: usize = slot.width.saturating_sub(14).into();
+                    let pos = (intensity * track_w as f32) as usize;
+                    let track = format!(
+                        "{}{}{}",
+                        "─".repeat(pos),
+                        "┼",
+                        "─".repeat(track_w.saturating_sub(pos))
+                    );
 
-                    let chunks = Layout::default()
-                        .direction(Direction::Horizontal)
-                        .constraints([
-                            Constraint::Length(label_width),
-                            Constraint::Length(1),
-                            Constraint::Length(gauge_width),
-                            Constraint::Length(1),
-                            Constraint::Length(pct_width),
-                        ])
-                        .split(slot);
-
-                    f.render_widget(Paragraph::new(label).style(Style::default().fg(THEME.accent_secondary)), chunks[0]);
-                    f.render_widget(gauge, chunks[2]);
-                    f.render_widget(Paragraph::new(format!("{:>3.0}%", usage)).style(Style::default().fg(THEME.fg)), chunks[4]);
+                    f.render_widget(
+                        Paragraph::new(Line::from(vec![
+                            Span::styled(
+                                format!("0x{:02X} ", idx),
+                                Style::default().fg(Color::Rgb(50, 55, 65)),
+                            ),
+                            Span::styled("╾", Style::default().fg(Color::Rgb(40, 40, 45))),
+                            Span::styled(track, Style::default().fg(color)),
+                            Span::styled("╼", Style::default().fg(Color::Rgb(40, 40, 45))),
+                            Span::styled(
+                                format!(" {:>3.0}%", usage),
+                                Style::default().fg(if intensity > 0.1 {
+                                    Color::White
+                                } else {
+                                    Color::Rgb(60, 65, 75)
+                                }),
+                            ),
+                        ])),
+                        slot,
+                    );
                 }
             }
         }
