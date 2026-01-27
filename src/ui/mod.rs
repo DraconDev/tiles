@@ -1774,11 +1774,11 @@ fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD)
         } else {
             let fg = match cat {
-                FileCategory::Text | FileCategory::Script => THEME.file_code,
-                FileCategory::Config => THEME.file_config,
-                FileCategory::Media | FileCategory::Image | FileCategory::Video | FileCategory::Audio => THEME.file_media,
+                FileCategory::Script => THEME.file_code,
+                FileCategory::Text => THEME.file_config,
+                FileCategory::Image | FileCategory::Video | FileCategory::Audio => THEME.file_media,
                 FileCategory::Archive => THEME.file_archive,
-                FileCategory::Execute => THEME.file_exec,
+                FileCategory::Document => THEME.fg,
                 _ if is_dir => THEME.header_fg,
                 _ => THEME.fg,
             };
