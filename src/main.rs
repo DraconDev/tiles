@@ -1238,6 +1238,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     _ => {}
                                 }
                             }
+                            if key.code == KeyCode::F(2) {
+                                app.previous_mode = app.mode.clone();
+                                app.mode = AppMode::EditorReplace;
+                                app.input.clear();
+                                app.replace_buffer.clear();
+                                return true;
+                            }
 
                             if editor.handle_event(&evt, pane_area) {
                                 if app.auto_save && editor.modified {
