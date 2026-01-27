@@ -2057,7 +2057,14 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(format!(" GIT: {} ", current_path.display()))
+        .title(Line::from(vec![
+            Span::styled(" GIT REPOSITORY ", Style::default().fg(Color::Black).bg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
+            Span::raw(" "),
+            Span::styled(current_path.display().to_string(), Style::default().fg(THEME.accent_primary)),
+        ]))
+        .title(Block::title_top(Line::from(vec![
+            Span::styled(" [Esc] Back ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+        ])).alignment(Alignment::Right))
         .border_style(Style::default().fg(THEME.accent_primary));
 
     let inner = block.inner(area);
