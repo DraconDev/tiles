@@ -2062,7 +2062,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             Span::raw(" "),
             Span::styled(current_path.display().to_string(), Style::default().fg(THEME.accent_primary)),
         ]))
-        .title(Block::title_top(Line::from(vec![
+        .title(ratatui::widgets::block::Title::from(Line::from(vec![
             Span::styled(" [Esc] Back ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
         ])).alignment(Alignment::Right))
         .border_style(Style::default().fg(THEME.accent_primary));
