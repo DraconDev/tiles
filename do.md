@@ -8,6 +8,8 @@ search on editor view
 
 be able to use the scroll when dragging, make it a little faster too, editor page
 
+wh
+
 ## Doing
 
 ## Done
