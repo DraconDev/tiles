@@ -11,7 +11,7 @@ on edtior the tree and split should be icons and only over the left sidebar
 
 the editer needs some highlighting, so does the editor sidebar
 
-on editor view show
+on editor view showin the fiel
 
 ## Doing
 
