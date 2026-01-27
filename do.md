@@ -11,6 +11,7 @@ be able to use the scroll when dragging, make it a little faster too, editor pag
 while coding the editor could work more like a real editor like when pressing enter we jump to the same indentation of the next row 
 
 
+## Done
 
 ## Doing
 
