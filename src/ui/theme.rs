@@ -22,19 +22,19 @@ impl DraconTheme {
     pub fn cyberpunk() -> Self {
         Self {
             bg: Color::Rgb(0, 0, 0),                   // True Color Pure Black
-            fg: Color::Rgb(220, 220, 230),             // Off-white
-            accent_primary: Color::Rgb(255, 0, 85),    // Neon Red/Pink
-            accent_secondary: Color::Rgb(0, 255, 200), // Cyan
-            selection_bg: Color::Rgb(255, 0, 85),      // Neon Red/Pink
-            selection_fg: Color::Rgb(0, 0, 0),         // Black (for contrast)
-            border_active: Color::Rgb(255, 0, 85),     // Primary Accent
-            border_inactive: Color::Rgb(60, 60, 70),   // Dim Grey
-            header_fg: Color::Rgb(0, 255, 200),        // Secondary Accent
-            file_code: Color::Rgb(255, 128, 0),        // Orange (Code)
-            file_config: Color::Rgb(255, 215, 0),      // Gold (Config)
-            file_media: Color::Rgb(138, 43, 226),      // Violet (Media)
-            file_archive: Color::Rgb(255, 105, 180),   // Hot Pink (Archive)
-            file_exec: Color::Rgb(50, 205, 50),        // Lime Green (Exec)
+            fg: Color::Rgb(255, 255, 255),             // Pure White
+            accent_primary: Color::Rgb(0, 150, 255),    // GitHub Blue
+            accent_secondary: Color::Rgb(0, 255, 150), // Mint Green
+            selection_bg: Color::Rgb(0, 150, 255),      // GitHub Blue
+            selection_fg: Color::Rgb(0, 0, 0),         // Black
+            border_active: Color::Rgb(0, 150, 255),     // Blue
+            border_inactive: Color::Rgb(40, 40, 50),   // Dark Grey
+            header_fg: Color::Rgb(0, 255, 150),        // Green
+            file_code: Color::Rgb(255, 128, 0),        // Orange
+            file_config: Color::Rgb(255, 215, 0),      // Gold
+            file_media: Color::Rgb(180, 50, 255),      // Purple
+            file_archive: Color::Rgb(255, 50, 80),     // Red
+            file_exec: Color::Rgb(0, 255, 100),        // Matrix Green
         }
     }
 
