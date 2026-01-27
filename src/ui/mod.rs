@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use std::time::SystemTime;
 
 use crate::app::{
-    App, AppMode, CurrentView, DropTarget, FileColumn, MonitorSubview, ProcessColumn,
+    App, AppMode, CurrentView, DropTarget, FileCategory, FileColumn, MonitorSubview, ProcessColumn,
     SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget,
 };
 use crate::icons::Icon;
