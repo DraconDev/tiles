@@ -1263,11 +1263,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             if let AppMode::Editor = app.mode {
                 if let Some(preview) = &mut app.editor_state {
                     if let Some(editor) = &mut preview.editor {
-                        if key.code == KeyCode::Esc {
-                            app.mode = AppMode::Normal;
-                            app.editor_state = None;
-                            return true;
-                        }
+                        if matches!(app.mode, AppMode::Editor) {
+                            if key.code == KeyCode::Esc {
+                                app.mode = AppMode::Normal;
+                                app.editor_state = None;
+                                return true;
+                            }
                         if let KeyCode::Char('c') | KeyCode::Char('C') = key.code {
                             if has_control {
                                 let content = if let Some(selected) = editor.get_selected_text() {
