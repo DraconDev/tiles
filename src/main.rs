@@ -1203,11 +1203,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 if let Some(pane) = app.panes.get_mut(pane_idx) {
                     if let Some(preview) = &mut pane.preview {
                         if let Some(editor) = &mut preview.editor {
-                            if key.code == KeyCode::Esc {
-                                app.sidebar_focus = true;
-                                return true;
-                            }
-
                             // Manual Save
                             if has_control && (key.code == KeyCode::Char('s') || key.code == KeyCode::Char('S')) {
                                 let _ = event_tx.try_send(AppEvent::SaveFile(
