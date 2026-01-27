@@ -967,7 +967,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                 Paragraph::new(Span::styled(
                     format!("SYS // {}", label),
                     Style::default()
-                        .fg(Color::Rgb(80, 85, 95))
+                        .fg(THEME.accent_secondary)
                         .add_modifier(Modifier::BOLD),
                 )),
                 chunks[0],
@@ -983,11 +983,11 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
 
             let ratio = (cur / if total > 0.0 { total } else { 100.0 }).clamp(0.0, 1.0);
             let color = if ratio > 0.85 {
-                Color::Rgb(255, 60, 60)
+                Color::Red
             } else if ratio > 0.5 {
-                Color::Rgb(255, 180, 0)
+                Color::Yellow
             } else {
-                Color::Rgb(0, 255, 150)
+                THEME.accent_primary
             };
 
             f.render_widget(
@@ -995,36 +995,28 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                     Span::styled(
                         val_str,
                         Style::default()
-                            .fg(Color::White)
+                            .fg(THEME.fg)
                             .add_modifier(Modifier::BOLD),
                     ),
                     Span::styled(
                         format!(" {}{}", unit, total_str),
-                        Style::default().fg(Color::Rgb(100, 100, 110)),
+                        Style::default().fg(THEME.accent_secondary),
                     ),
                 ])),
                 chunks[1],
             );
 
-            // Wireframe Pipe Gauge: "││││││············"
-            let gauge_w = chunks[2].width as usize;
-            let filled = (ratio * gauge_w as f32) as usize;
-            let pipe_gauge = format!(
-                "{}{}",
-                "│".repeat(filled),
-                "·".repeat(gauge_w.saturating_sub(filled))
-            );
-
-            f.render_widget(
-                Paragraph::new(Span::styled(pipe_gauge, Style::default().fg(color))),
-                chunks[2],
-            );
+            // Block Gauge
+            let gauge = ratatui::widgets::Gauge::default()
+                .gauge_style(Style::default().fg(color).bg(Color::DarkGray))
+                .ratio(ratio.into());
+            f.render_widget(gauge, chunks[2]);
 
             // Separator
             f.render_widget(
                 Block::default()
                     .borders(Borders::RIGHT)
-                    .border_style(Style::default().fg(Color::Rgb(30, 30, 35))),
+                    .border_style(Style::default().fg(THEME.border_inactive)),
                 area,
             );
         };
