@@ -1,7 +1,5 @@
 ## Do
 
-
-
 on editor view showin the filepath over the sidebar would be more useful
 
 search on editor view 
