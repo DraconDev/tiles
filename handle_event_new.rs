@@ -7,7 +7,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             app.terminal_size = (w, h);
             return true;
         }
-        Event::Key(key) => {    
+        Event::Key(key) => {  
             let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
             let has_alt = key.modifiers.contains(KeyModifiers::ALT);
 
