@@ -11,7 +11,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
             let has_alt = key.modifiers.contains(KeyModifiers::ALT);
 
-
             // 1. Full-Screen Editor Priority (Traps all input)
             if let AppMode::Editor = app.mode {
                 if let Some(preview) = &mut app.editor_state {
