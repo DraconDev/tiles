@@ -11,7 +11,7 @@ on edtior the tree and split should be icons and only over the left sidebar
 
 the editer needs some highlighting, so does the editor sidebar
 
-on editor view showin the filepath over the sidebar would be moreusef
+on editor view showin the filepath over the sidebar would be more 
 
 ## Doing
 
