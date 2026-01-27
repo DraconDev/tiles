@@ -1166,14 +1166,21 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             }
 
             // View-Specific Esc Handling (Prioritize over mode checks)
-            if key.code == KeyCode::Esc {
-                if app.current_view == CurrentView::Git {
-                    app.current_view = CurrentView::Files;
-                    return true;
-                }
-                if app.current_view == CurrentView::Processes {
-                    app.current_view = CurrentView::Files;
-                    return true;
+            if key.code == KeyCode::Esc && matches!(app.mode, AppMode::Normal) {
+                match app.current_view {
+                    CurrentView::Git | CurrentView::Processes => {
+                        app.current_view = CurrentView::Files;
+                        return true;
+                    }
+                    CurrentView::Editor => {
+                        if app.sidebar_focus {
+                            app.current_view = CurrentView::Files;
+                        } else {
+                            app.sidebar_focus = true;
+                        }
+                        return true;
+                    }
+                    _ => {}
                 }
             }
 
