@@ -1710,6 +1710,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             // Stage 1: Captured Find term
                             app.replace_buffer = app.input.value.clone();
                             app.input.clear();
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(
+                                format!("Replace '{}' with: (Enter: next, ^Enter: all)", app.replace_buffer)
+                            ));
                         } else {
                             // Stage 2: Captured Replace term
                             let replace_term = app.input.value.clone();
