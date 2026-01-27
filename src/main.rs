@@ -1215,32 +1215,38 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             if has_control {
                                 match key.code {
                                     KeyCode::Char('f') | KeyCode::Char('F') => {
-                                        app.previous_mode = app.mode.clone();
+                                        app.previous_mode = AppMode::Normal;
                                         app.mode = AppMode::EditorSearch;
                                         app.input.set_value(editor.filter_query.clone());
                                         return true;
                                     }
                                     KeyCode::Char('g') | KeyCode::Char('G') => {
-                                        app.previous_mode = app.mode.clone();
+                                        app.previous_mode = AppMode::Normal;
                                         app.mode = AppMode::EditorGoToLine;
                                         app.input.clear();
                                         return true;
                                     }
                                     KeyCode::Char('r') | KeyCode::Char('R') => {
-                                        app.previous_mode = app.mode.clone();
+                                        app.previous_mode = AppMode::Normal;
                                         app.mode = AppMode::EditorReplace;
                                         app.input.clear();
                                         app.replace_buffer.clear();
+                                        let _ = event_tx.try_send(AppEvent::StatusMsg(
+                                            "Replace: Type term to FIND, then press Enter/Tab".to_string(),
+                                        ));
                                         return true;
                                     }
                                     _ => {}
                                 }
                             }
                             if key.code == KeyCode::F(2) {
-                                app.previous_mode = app.mode.clone();
+                                app.previous_mode = AppMode::Normal;
                                 app.mode = AppMode::EditorReplace;
                                 app.input.clear();
                                 app.replace_buffer.clear();
+                                let _ = event_tx.try_send(AppEvent::StatusMsg(
+                                    "Replace: Type term to FIND, then press Enter/Tab".to_string(),
+                                ));
                                 return true;
                             }
 
