@@ -4030,6 +4030,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
                                 }
                                 "burger" => {
+                                    app.save_current_view_prefs();
                                     app.mode = AppMode::Settings;
                                     app.settings_scroll = 0;
                                 }
