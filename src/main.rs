@@ -1173,14 +1173,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         return true;
                     }
                     CurrentView::Editor => {
-                        if app.sidebar_focus {
-                            app.current_view = CurrentView::Files;
-                            // Clear previews to show file list
-                            for pane in &mut app.panes {
-                                pane.preview = None;
-                            }
-                        } else {
-                            app.sidebar_focus = true;
+                        app.current_view = CurrentView::Files;
+                        // Clear previews to show file list
+                        for pane in &mut app.panes {
+                            pane.preview = None;
                         }
                         return true;
                     }
