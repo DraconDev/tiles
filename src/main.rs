@@ -2802,41 +2802,47 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return true;
                         }
                         KeyCode::Char('c') if has_control => {
-                            if let Some(fs) = app.current_file_state() {
-                                if let Some(idx) = fs.selection.selected {
-                                    if let Some(path) = fs.files.get(idx) {
-                                        app.clipboard =
-                                            Some((path.clone(), crate::app::ClipboardOp::Copy));
+                            if app.current_view != CurrentView::Editor {
+                                if let Some(fs) = app.current_file_state() {
+                                    if let Some(idx) = fs.selection.selected {
+                                        if let Some(path) = fs.files.get(idx) {
+                                            app.clipboard =
+                                                Some((path.clone(), crate::app::ClipboardOp::Copy));
+                                        }
                                     }
                                 }
                             }
                             return true;
                         }
                         KeyCode::Char('x') if has_control => {
-                            if let Some(fs) = app.current_file_state() {
-                                if let Some(idx) = fs.selection.selected {
-                                    if let Some(path) = fs.files.get(idx) {
-                                        app.clipboard =
-                                            Some((path.clone(), crate::app::ClipboardOp::Cut));
+                            if app.current_view != CurrentView::Editor {
+                                if let Some(fs) = app.current_file_state() {
+                                    if let Some(idx) = fs.selection.selected {
+                                        if let Some(path) = fs.files.get(idx) {
+                                            app.clipboard =
+                                                Some((path.clone(), crate::app::ClipboardOp::Cut));
+                                        }
                                     }
                                 }
                             }
                             return true;
                         }
                         KeyCode::Char('v') if has_control => {
-                            if let Some((src, op)) = app.clipboard.clone() {
-                                if let Some(fs) = app.current_file_state() {
-                                    let dest = fs.current_path.join(
-                                        src.file_name()
-                                            .unwrap_or_else(|| std::ffi::OsStr::new("root")),
-                                    );
-                                    match op {
-                                        crate::app::ClipboardOp::Copy => {
-                                            let _ = event_tx.try_send(AppEvent::Copy(src, dest));
-                                        }
-                                        crate::app::ClipboardOp::Cut => {
-                                            let _ = event_tx.try_send(AppEvent::Rename(src, dest));
-                                            app.clipboard = None;
+                            if app.current_view != CurrentView::Editor {
+                                if let Some((src, op)) = app.clipboard.clone() {
+                                    if let Some(fs) = app.current_file_state() {
+                                        let dest = fs.current_path.join(
+                                            src.file_name()
+                                                .unwrap_or_else(|| std::ffi::OsStr::new("root")),
+                                        );
+                                        match op {
+                                            crate::app::ClipboardOp::Copy => {
+                                                let _ = event_tx.try_send(AppEvent::Copy(src, dest));
+                                            }
+                                            crate::app::ClipboardOp::Cut => {
+                                                let _ = event_tx.try_send(AppEvent::Rename(src, dest));
+                                                app.clipboard = None;
+                                            }
                                         }
                                     }
                                 }
