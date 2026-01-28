@@ -2,7 +2,7 @@
 
 search on editor view 
 
-search on editor view 
+search 
 
 be able to drag  scroll wheel, make it a little faster too, editor page, and jump to location via scroll 
 
