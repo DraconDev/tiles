@@ -1826,10 +1826,18 @@ fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usi
     let _is_focused = pane_idx == app.focused_pane_index && !app.sidebar_focus;
     
     let active_tab_idx = app.panes[pane_idx].active_tab_index;
-    let (path, mut search_filter) = {
+    let (mut path, mut search_filter) = {
         let tab = &app.panes[pane_idx].tabs[active_tab_idx];
         (tab.current_path.clone(), tab.search_filter.clone())
     };
+
+    if app.current_view == CurrentView::Editor {
+        if let Some(pane) = app.panes.get(pane_idx) {
+            if let Some(preview) = &pane.preview {
+                path = preview.path.clone();
+            }
+        }
+    }
 
     let mut search_label = "  ";
     let mut search_color = Color::Cyan;
