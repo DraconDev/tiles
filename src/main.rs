@@ -1144,6 +1144,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 match key.code {
                     KeyCode::Char('p') | KeyCode::Char('P') => {
                         app.toggle_split();
+                        app.save_current_view_prefs();
                         let _ = crate::config::save_state(app);
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
@@ -1151,6 +1152,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                     KeyCode::Char('b') | KeyCode::Char('B') => {
                         app.show_sidebar = !app.show_sidebar;
+                        app.save_current_view_prefs();
                         return true;
                     }
                     KeyCode::Char('e') | KeyCode::Char('E') => {
