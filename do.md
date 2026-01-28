@@ -6,7 +6,7 @@ be able to drag  scroll wheel, make it a little faster too, editor page, and jum
 
 make sure copy paste and undo works too with the expected hotkey on the editor 
 
-give hi
+give highlighting ot 
 
 ## Doing
 
