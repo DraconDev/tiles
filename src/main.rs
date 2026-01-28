@@ -2850,8 +2850,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return true;
                         }
                         KeyCode::Char('a') if has_control => {
-                            if let Some(fs) = app.current_file_state_mut() {
-                                fs.selection.select_all(fs.files.len());
+                            if app.current_view != CurrentView::Editor {
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    fs.selection.select_all(fs.files.len());
+                                }
                             }
                             return true;
                         }
