@@ -2,7 +2,6 @@
 
 search on editor view 
 
-search on editor view 
 
 search 
 
