@@ -1409,6 +1409,31 @@ impl App {
             }),
         }
     }
+
+    pub fn save_current_view_prefs(&mut self) {
+        let prefs = ViewPreferences {
+            show_sidebar: self.show_sidebar,
+            is_split_mode: self.is_split_mode,
+        };
+        match self.current_view {
+            CurrentView::Files => self.view_prefs.files = prefs,
+            CurrentView::Editor => self.view_prefs.editor = prefs,
+            _ => {}
+        }
+    }
+
+    pub fn load_view_prefs(&mut self, target: CurrentView) {
+        let prefs = match target {
+            CurrentView::Files => Some(&self.view_prefs.files),
+            CurrentView::Editor => Some(&self.view_prefs.editor),
+            _ => None,
+        };
+
+        if let Some(p) = prefs {
+            self.show_sidebar = p.show_sidebar;
+            self.is_split_mode = p.is_split_mode;
+        }
+    }
 }
 
 pub fn log_debug(msg: &str) {
