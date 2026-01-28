@@ -3596,8 +3596,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 | AppMode::AddRemote(_)
                 | AppMode::Hotkeys
                 | AppMode::Editor
+                | AppMode::EditorSearch
+                | AppMode::EditorReplace
+                | AppMode::EditorGoToLine
                 | AppMode::Viewer => {
-                    if let AppMode::Editor | AppMode::Viewer = app.mode {
+                    if let AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorReplace | AppMode::EditorGoToLine = app.mode {
                         if let Some(preview) = &mut app.editor_state {
                             if let Some(editor) = &mut preview.editor {
                                 let editor_area = ratatui::layout::Rect::new(
