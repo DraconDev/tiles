@@ -4102,7 +4102,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
 
                     // IDE/Editor Mode clicks
-                    if app.current_view == CurrentView::Editor && column >= sw {
+                    if app.current_view == CurrentView::Editor && column >= sw && (matches!(app.mode, AppMode::Normal) || matches!(app.mode, AppMode::EditorSearch) || matches!(app.mode, AppMode::EditorReplace) || matches!(app.mode, AppMode::EditorGoToLine)) {
                         let cw = w.saturating_sub(sw);
                         let pc = app.panes.len();
                         let pw = if pc > 0 { cw / pc as u16 } else { cw };
