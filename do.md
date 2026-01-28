@@ -2,7 +2,7 @@
 
 search on editor view 
 
-be able to drag  scroll wheeling, make it a little faster too, editor page
+be able to drag  scroll wheel, make it a little faster too, editor page
 
 while coding the editor could work more like a real editor like when pressing enter we jump to the same indentation of the next row 
 
