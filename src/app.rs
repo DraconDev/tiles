@@ -713,6 +713,10 @@ impl App {
                     monitor_subview: MonitorSubview::Processes,
                     monitor_subview_bounds: Vec::new(),
                     semantic_coloring: state.semantic_coloring,
+                    view_prefs: ViewStatePersistence {
+                        files: ViewPreferences { show_sidebar: true, is_split_mode: false },
+                        editor: ViewPreferences { show_sidebar: false, is_split_mode: true },
+                    },
                 };
 
                 // Inject CWD as active tab in first pane
