@@ -4470,7 +4470,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 }
                 MouseEventKind::Up(_) => {
                     // Forward Release to Editor in IDE mode
-                    if app.current_view == CurrentView::Editor && column >= app.sidebar_width() {
+                    if app.current_view == CurrentView::Editor && column >= app.sidebar_width() && (matches!(app.mode, AppMode::Normal) || matches!(app.mode, AppMode::EditorSearch) || matches!(app.mode, AppMode::EditorReplace) || matches!(app.mode, AppMode::EditorGoToLine)) {
                         let sw = app.sidebar_width();
                         let cw = w.saturating_sub(sw);
                         let pc = app.panes.len();
