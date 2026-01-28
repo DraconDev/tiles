@@ -4106,13 +4106,20 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                      nfs.history_index = 0;
                                      pane.open_tab(nfs);
                                 } else {
-                                     fs.current_path = path.clone();
-                                     fs.selection.selected = Some(0);
-                                     fs.selection.anchor = Some(0);
-                                     fs.selection.clear_multi();
-                                     fs.search_filter.clear();
-                                     *fs.table_state.offset_mut() = 0;
-                                     crate::event_helpers::push_history(fs, path);
+                                     if path.is_file() {
+                                         let _ = event_tx.try_send(AppEvent::PreviewRequested(p_idx, path.clone()));
+                                         app.save_current_view_prefs();
+                                         app.current_view = CurrentView::Editor;
+                                         app.load_view_prefs(CurrentView::Editor);
+                                     } else {
+                                         fs.current_path = path.clone();
+                                         fs.selection.selected = Some(0);
+                                         fs.selection.anchor = Some(0);
+                                         fs.selection.clear_multi();
+                                         fs.search_filter.clear();
+                                         *fs.table_state.offset_mut() = 0;
+                                         crate::event_helpers::push_history(fs, path);
+                                     }
                                 }
                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
                                 app.focused_pane_index = p_idx;
