@@ -1278,87 +1278,83 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 return true;
                             }
                         }
-                        if let KeyCode::Char('c') | KeyCode::Char('C') = key.code {
-                            if has_control {
-                                let content = if let Some(selected) = editor.get_selected_text() {
-                                    selected
-                                } else {
-                                    editor.lines.get(editor.cursor_row).cloned().unwrap_or_default()
-                                };
-
-                                // Store internally
-                                app.editor_clipboard = Some(content.clone());
-
-                                terma::utils::set_clipboard_text(&content);
-                                let _ = event_tx.try_send(AppEvent::StatusMsg(
-                                    "Copied to clipboard".to_string(),
-                                ));
-                                return true;
-                            }
+                        // 1. Copy (Selection or Line)
+                        if has_control && (key.code == KeyCode::Char('c') || key.code == KeyCode::Char('C')) {
+                            let content = if let Some(selected) = editor.get_selected_text() {
+                                selected
+                            } else {
+                                editor.lines.get(editor.cursor_row).cloned().unwrap_or_default()
+                            };
+                            app.editor_clipboard = Some(content.clone());
+                            terma::utils::set_clipboard_text(&content);
+                            let _ = event_tx.try_send(AppEvent::StatusMsg("Copied to clipboard".to_string()));
+                            return true;
                         }
-                        if let KeyCode::Char('x') | KeyCode::Char('X') = key.code {
-                            if has_control {
-                                let content = if let Some(selected) = editor.get_selected_text() {
-                                    let s = selected.clone();
-                                    editor.delete_selection();
-                                    s
-                                } else {
-                                    // Cut line
-                                    let line = editor.lines.get(editor.cursor_row).cloned().unwrap_or_default();
-                                    if editor.lines.len() > 1 {
-                                        editor.lines.remove(editor.cursor_row);
-                                        if editor.cursor_row >= editor.lines.len() {
-                                            editor.cursor_row =
-                                                editor.lines.len().saturating_sub(1);
-                                        }
-                                    } else {
-                                        editor.lines[0].clear();
+
+                        // 2. Cut (Selection or Line)
+                        if has_control && (key.code == KeyCode::Char('x') || key.code == KeyCode::Char('X')) {
+                            let content = if let Some(selected) = editor.get_selected_text() {
+                                let s = selected.clone();
+                                editor.delete_selection();
+                                s
+                            } else {
+                                let line = editor.lines.get(editor.cursor_row).cloned().unwrap_or_default();
+                                if editor.lines.len() > 1 {
+                                    editor.lines.remove(editor.cursor_row);
+                                    if editor.cursor_row >= editor.lines.len() {
+                                        editor.cursor_row = editor.lines.len().saturating_sub(1);
                                     }
-                                    editor.cursor_col = 0;
-                                    line
-                                };
+                                } else {
+                                    editor.lines[0].clear();
+                                }
+                                editor.cursor_col = 0;
+                                line
+                            };
+                            app.editor_clipboard = Some(content.clone());
+                            terma::utils::set_clipboard_text(&content);
+                            let _ = event_tx.try_send(AppEvent::StatusMsg("Cut to clipboard".to_string()));
+                            editor.modified = true;
+                            if app.auto_save {
+                                let _ = event_tx.try_send(AppEvent::SaveFile(preview.path.clone(), editor.get_content()));
+                                editor.modified = false;
+                            }
+                            return true;
+                        }
 
-                                // Store internally
-                                app.editor_clipboard = Some(content.clone());
-
-                                terma::utils::set_clipboard_text(&content);
-                                let _ = event_tx
-                                    .try_send(AppEvent::StatusMsg("Cut to clipboard".to_string()));
-
+                        // 3. Paste
+                        if has_control && (key.code == KeyCode::Char('v') || key.code == KeyCode::Char('V')) {
+                            let text_to_paste = app.editor_clipboard.clone().or_else(|| terma::utils::get_clipboard_text());
+                            if let Some(text) = text_to_paste {
+                                editor.insert_string(&text);
                                 editor.modified = true;
                                 if app.auto_save {
-                                    let _ = event_tx.try_send(AppEvent::SaveFile(
-                                        preview.path.clone(),
-                                        editor.get_content(),
-                                    ));
+                                    let _ = event_tx.try_send(AppEvent::SaveFile(preview.path.clone(), editor.get_content()));
                                     editor.modified = false;
                                 }
-                                return true;
                             }
+                            return true;
                         }
-                        if let KeyCode::Char('v') | KeyCode::Char('V') = key.code {
-                            if has_control {
-                                // Try internal clipboard first
-                                let mut text_to_paste = app.editor_clipboard.clone();
 
-                                // If internal is empty, try system clipboard
-                                if text_to_paste.is_none() {
-                                    text_to_paste = terma::utils::get_clipboard_text();
-                                }
-
-                                if let Some(text) = text_to_paste {
-                                    editor.insert_string(&text);
-                                    editor.modified = true;
-                                    if app.auto_save {
-                                        let _ = event_tx.try_send(AppEvent::SaveFile(
-                                            preview.path.clone(),
-                                            editor.get_content(),
-                                        ));
-                                        editor.modified = false;
-                                    }
-                                    return true;
-                                }
+                        // 4. Undo / Redo
+                        if has_control && (key.code == KeyCode::Char('z') || key.code == KeyCode::Char('Z')) {
+                            if let Some(prev) = editor.history.pop() {
+                                editor.redo_stack.push(editor.lines.clone());
+                                editor.lines = prev;
+                                editor.cursor_row = std::cmp::min(editor.cursor_row, editor.lines.len() - 1);
+                                editor.cursor_col = std::cmp::min(editor.cursor_col, editor.lines[editor.cursor_row].len());
+                                editor.modified = true;
                             }
+                            return true;
+                        }
+                        if has_control && (key.code == KeyCode::Char('y') || key.code == KeyCode::Char('Y')) {
+                            if let Some(next) = editor.redo_stack.pop() {
+                                editor.history.push(editor.lines.clone());
+                                editor.lines = next;
+                                editor.cursor_row = std::cmp::min(editor.cursor_row, editor.lines.len() - 1);
+                                editor.cursor_col = std::cmp::min(editor.cursor_col, editor.lines[editor.cursor_row].len());
+                                editor.modified = true;
+                            }
+                            return true;
                         }
                         if has_control && (key.code == KeyCode::Char('f') || key.code == KeyCode::Char('F')) {
                             app.previous_mode = AppMode::Normal;
