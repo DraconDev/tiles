@@ -1687,11 +1687,7 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
         ])
         .split(area);
 
-    // Pass show_sidebar=true to draw_global_header so it always shows icons in IDE mode
-    let old_sidebar = app.show_sidebar;
-    app.show_sidebar = true; 
     draw_global_header(f, chunks[0], app.sidebar_width(), app);
-    app.show_sidebar = old_sidebar;
 
     let workspace_constraints = [
         Constraint::Length(if app.show_sidebar { app.sidebar_width() } else { 0 }),
