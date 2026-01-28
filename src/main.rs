@@ -4127,7 +4127,53 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             pw.saturating_sub(2), // Left/Right borders
                                             h.saturating_sub(4), // Header(1) + Top/Bottom borders(2) + Breadcrumbs(1)
                                         );
-                                        editor.handle_mouse_event(me, pane_area);
+
+                                        if let MouseEventKind::Down(MouseButton::Left) = me.kind {
+                                            let now = std::time::Instant::now();
+                                            if now.duration_since(app.mouse_last_click) < std::time::Duration::from_millis(500)
+                                                && app.mouse_click_pos == (column, row) {
+                                                app.mouse_click_count += 1;
+                                            } else {
+                                                app.mouse_click_count = 1;
+                                            }
+
+                                            let rel_row = (row - pane_area.y) as usize;
+                                            let target_row = editor.scroll_row + rel_row;
+
+                                            match app.mouse_click_count {
+                                                2 => {
+                                                    if target_row < editor.lines.len() {
+                                                        let gutter = editor.gutter_width();
+                                                        if column >= pane_area.x + gutter as u16 {
+                                                            let rel_col = (column - pane_area.x - gutter as u16) as usize;
+                                                            let target_visual = editor.scroll_col + rel_col;
+                                                            let byte_col = editor.get_byte_index_from_visual(target_row, target_visual);
+                                                            editor.select_word_at(target_row, byte_col);
+                                                        }
+                                                    }
+                                                }
+                                                3 => {
+                                                    if target_row < editor.lines.len() {
+                                                        editor.select_line_at(target_row);
+                                                    }
+                                                    app.mouse_click_count = 0;
+                                                }
+                                                _ => {
+                                                    editor.handle_mouse_event(me, pane_area);
+                                                }
+                                            }
+                                            app.mouse_last_click = now;
+                                            app.mouse_click_pos = (column, row);
+                                        } else {
+                                            editor.handle_mouse_event(me, pane_area);
+                                        }
+
+                                        // AUTO-SYNC SELECTION TO CLIPBOARD
+                                        if let Some(selected_text) = editor.get_selected_text() {
+                                            if selected_text.width() > 1 {
+                                                terma::utils::set_clipboard_text(&selected_text);
+                                            }
+                                        }
                                     }
                                 }
                             }
