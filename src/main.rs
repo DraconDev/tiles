@@ -2962,7 +2962,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             *fs.table_state.offset_mut() = 0;
                                             crate::event_helpers::push_history(fs, path);
                                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                            app.save_current_view_prefs();
                                             app.current_view = CurrentView::Editor;
+                                            app.load_view_prefs(CurrentView::Editor);
                                             app.sidebar_focus = true;
                                         } else {
                                             // Request preview in focused pane and switch to Editor view
@@ -2970,7 +2972,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                                 app.focused_pane_index,
                                                 path,
                                             ));
+                                            app.save_current_view_prefs();
                                             app.current_view = CurrentView::Editor;
+                                            app.load_view_prefs(CurrentView::Editor);
                                             app.sidebar_focus = false;
                                         }
                                     }
