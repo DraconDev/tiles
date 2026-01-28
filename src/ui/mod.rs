@@ -415,6 +415,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
             .title(Line::from(header_left))
             .title(
                 ratatui::widgets::block::Title::from(Line::from(header_right))
+                    .position(ratatui::widgets::block::Position::Top)
                     .alignment(ratatui::layout::Alignment::Right),
             )
             .border_style(Style::default().fg(border_color))
