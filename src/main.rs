@@ -4024,6 +4024,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 }
                                 "split" => {
                                     app.toggle_split();
+                                    app.save_current_view_prefs();
                                     let _ = crate::config::save_state(app);
                                     let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                                     let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
