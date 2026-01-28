@@ -1534,11 +1534,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     app.header_icon_bounds.clear();
     let mut cur_icon_x = area.x + 2;
 
-    let show_icons = if app.current_view == CurrentView::Files {
-        app.show_sidebar
-    } else {
-        true // Always show in Git/IDE/etc for now, or match sidebar if desired
-    };
+    let show_icons = app.show_sidebar;
 
     if show_icons {
         let icons = [
