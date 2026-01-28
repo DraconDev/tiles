@@ -926,11 +926,13 @@ impl App {
             process_scroll: 0,
             process_search_filter: String::new(),
             process_column_bounds: Vec::new(),
-            monitor_subview: MonitorSubview::Processes,
+            monitor_subview: MonitorSubview::Overview,
             monitor_subview_bounds: Vec::new(),
-        };
-        log_debug("App::new finished successfully");
-        app
+            view_prefs: ViewStatePersistence {
+                files: ViewPreferences { show_sidebar: true, is_split_mode: false },
+                editor: ViewPreferences { show_sidebar: false, is_split_mode: true },
+            },
+        }
     }
 
     pub fn current_file_state_mut(&mut self) -> Option<&mut FileState> {
