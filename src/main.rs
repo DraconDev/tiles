@@ -1173,7 +1173,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         return true;
                     }
                     CurrentView::Editor => {
+                        app.save_current_view_prefs();
                         app.current_view = CurrentView::Files;
+                        app.load_view_prefs(CurrentView::Files);
                         // Clear previews to show file list
                         for pane in &mut app.panes {
                             pane.preview = None;
