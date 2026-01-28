@@ -953,7 +953,12 @@ impl App {
     }
 
     pub fn toggle_split(&mut self) {
-        if self.panes.len() == 1 {
+        let new_mode = !self.is_split_mode;
+        self.apply_split_mode(new_mode);
+    }
+
+    pub fn apply_split_mode(&mut self, enabled: bool) {
+        if enabled && self.panes.len() == 1 {
             // Entering Split Mode
             if let Some(fs) = self.current_file_state() {
                 let mut new_fs = fs.clone();
@@ -967,7 +972,7 @@ impl App {
                 }
             }
             self.is_split_mode = true;
-        } else {
+        } else if !enabled && self.panes.len() > 1 {
             // Entering Single Mode
             self.panes.pop();
             self.focused_pane_index = 0;
