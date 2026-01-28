@@ -457,6 +457,18 @@ pub enum CurrentView {
     Editor,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ViewPreferences {
+    pub show_sidebar: bool,
+    pub is_split_mode: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ViewStatePersistence {
+    pub files: ViewPreferences,
+    pub editor: ViewPreferences,
+}
+
 pub struct App {
     pub running: bool,
     pub current_view: CurrentView,
@@ -548,6 +560,8 @@ pub struct App {
     pub process_column_bounds: Vec<(Rect, ProcessColumn)>,
     pub monitor_subview: MonitorSubview,
     pub monitor_subview_bounds: Vec<(Rect, MonitorSubview)>,
+
+    pub view_prefs: ViewStatePersistence,
 }
 
 impl App {
