@@ -936,7 +936,8 @@ impl App {
                 files: ViewPreferences { show_sidebar: true, is_split_mode: false },
                 editor: ViewPreferences { show_sidebar: false, is_split_mode: true },
             },
-        }
+        };
+        app
     }
 
     pub fn current_file_state_mut(&mut self) -> Option<&mut FileState> {
