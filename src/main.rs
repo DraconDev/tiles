@@ -2856,49 +2856,53 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return true;
                         }
                         KeyCode::Char('z') if has_control => {
-                            if let Some(action) = app.undo_stack.pop() {
-                                match action.clone() {
-                                    UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                        let _ = std::fs::rename(&old, &new);
-                                        app.redo_stack.push(action);
+                            if app.current_view != CurrentView::Editor {
+                                if let Some(action) = app.undo_stack.pop() {
+                                    match action.clone() {
+                                        UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
+                                            let _ = std::fs::rename(&old, &new);
+                                            app.redo_stack.push(action);
+                                        }
+                                        UndoAction::Copy(src, dest) => {
+                                            let _ = if dest.is_dir() {
+                                                std::fs::remove_dir_all(&dest)
+                                            } else {
+                                                std::fs::remove_file(&dest)
+                                            };
+                                            app.redo_stack.push(UndoAction::Copy(src, dest));
+                                        }
+                                        _ => {}
                                     }
-                                    UndoAction::Copy(src, dest) => {
-                                        let _ = if dest.is_dir() {
-                                            std::fs::remove_dir_all(&dest)
-                                        } else {
-                                            std::fs::remove_file(&dest)
-                                        };
-                                        app.redo_stack.push(UndoAction::Copy(src, dest));
+                                    for i in 0..app.panes.len() {
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
                                     }
-                                    _ => {}
-                                }
-                                for i in 0..app.panes.len() {
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
-                                }
-                            } else if let Some(fs) = app.current_file_state_mut() {
-                                if !fs.search_filter.is_empty() {
-                                    fs.search_filter.clear();
-                                    let _ = event_tx
-                                        .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                } else if let Some(fs) = app.current_file_state_mut() {
+                                    if !fs.search_filter.is_empty() {
+                                        fs.search_filter.clear();
+                                        let _ = event_tx
+                                            .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                    }
                                 }
                             }
                             return true;
                         }
                         KeyCode::Char('y') if has_control => {
-                            if let Some(action) = app.redo_stack.pop() {
-                                match action.clone() {
-                                    UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                        let _ = std::fs::rename(&old, &new);
-                                        app.undo_stack.push(action);
+                            if app.current_view != CurrentView::Editor {
+                                if let Some(action) = app.redo_stack.pop() {
+                                    match action.clone() {
+                                        UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
+                                            let _ = std::fs::rename(&old, &new);
+                                            app.undo_stack.push(action);
+                                        }
+                                        UndoAction::Copy(src, dest) => {
+                                            let _ = crate::modules::files::copy_recursive(&src, &dest);
+                                            app.undo_stack.push(action);
+                                        }
+                                        _ => {}
                                     }
-                                    UndoAction::Copy(src, dest) => {
-                                        let _ = crate::modules::files::copy_recursive(&src, &dest);
-                                        app.undo_stack.push(action);
+                                    for i in 0..app.panes.len() {
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
                                     }
-                                    _ => {}
-                                }
-                                for i in 0..app.panes.len() {
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
                                 }
                             }
                             return true;
