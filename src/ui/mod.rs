@@ -1591,11 +1591,21 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         let chunk = pane_chunks[p_i];
         let mut current_x = chunk.x;
         for (t_i, tab) in pane.tabs.iter().enumerate() {
-            let mut name = tab
-                .current_path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or("/".to_string());
+            let mut name = if app.current_view == CurrentView::Editor && t_i == pane.active_tab_index {
+                if let Some(preview) = &pane.preview {
+                    preview.path.file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "/".to_string())
+                } else {
+                    tab.current_path.file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "/".to_string())
+                }
+            } else {
+                tab.current_path.file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "/".to_string())
+            };
             if let Some(branch) = &tab.git_branch {
                 name = format!("{} ({})", name, branch);
             }
