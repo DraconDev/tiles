@@ -412,10 +412,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         let block = Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .title(Line::from(header_left))
-            .title(
+            .title_top(Line::from(header_left))
+            .title_top(
                 ratatui::widgets::block::Title::from(Line::from(header_right))
-                    .position(ratatui::widgets::block::Position::Top)
                     .alignment(ratatui::layout::Alignment::Right),
             )
             .border_style(Style::default().fg(border_color))
