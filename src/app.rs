@@ -1433,16 +1433,14 @@ impl App {
     }
 
     pub fn load_view_prefs(&mut self, target: CurrentView) {
-        let prefs = match target {
-            CurrentView::Files => Some(&self.view_prefs.files),
-            CurrentView::Editor => Some(&self.view_prefs.editor),
-            _ => None,
+        let (show_sidebar, is_split_mode) = match target {
+            CurrentView::Files => (self.view_prefs.files.show_sidebar, self.view_prefs.files.is_split_mode),
+            CurrentView::Editor => (self.view_prefs.editor.show_sidebar, self.view_prefs.editor.is_split_mode),
+            _ => (self.show_sidebar, self.is_split_mode),
         };
 
-        if let Some(p) = prefs {
-            self.show_sidebar = p.show_sidebar;
-            self.is_split_mode = p.is_split_mode;
-        }
+        self.show_sidebar = show_sidebar;
+        self.apply_split_mode(is_split_mode);
     }
 }
 
