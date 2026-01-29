@@ -2888,28 +2888,30 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
 
     f.render_widget(Paragraph::new(Line::from(left_spans)), top_chunks[0]);
 
-    // 2. Center Section: Selection Summary
-    if let Some(fs) = app.current_file_state() {
-        let sel_count = if !fs.selection.is_empty() {
-            fs.selection.multi.len()
-        } else if fs.selection.selected.is_some() {
-            1
-        } else {
-            0
-        };
-        let total_count = fs.files.len();
-        let summary = format!(" SEL: {} / {} ", sel_count, total_count);
-        f.render_widget(
-            Paragraph::new(Span::styled(
-                summary,
-                Style::default()
-                    .bg(THEME.accent_primary)
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD),
-            ))
-            .alignment(ratatui::layout::Alignment::Right),
-            top_chunks[1],
-        );
+    // 2. Center Section: Selection Summary (Only in Files view)
+    if app.current_view != CurrentView::Editor {
+        if let Some(fs) = app.current_file_state() {
+            let sel_count = if !fs.selection.is_empty() {
+                fs.selection.multi.len()
+            } else if fs.selection.selected.is_some() {
+                1
+            } else {
+                0
+            };
+            let total_count = fs.files.len();
+            let summary = format!(" SEL: {} / {} ", sel_count, total_count);
+            f.render_widget(
+                Paragraph::new(Span::styled(
+                    summary,
+                    Style::default()
+                        .bg(THEME.accent_primary)
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD),
+                ))
+                .alignment(ratatui::layout::Alignment::Right),
+                top_chunks[1],
+            );
+        }
     }
 
     // 3. Stats (CPU/MEM) - Far Right
