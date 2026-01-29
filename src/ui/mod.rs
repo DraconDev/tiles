@@ -2200,17 +2200,16 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(Line::from(vec![
-            Span::styled(" GIT REPOSITORY ", Style::default().fg(Color::Black).bg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
+        .border_style(Style::default().fg(THEME.accent_primary))
+        .title_top(Line::from(vec![
+            Span::styled(" GIT HISTORY ", Style::default().fg(Color::Black).bg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
             Span::raw(" "),
-            Span::styled(current_path.display().to_string(), Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
-            Span::raw("  "),
-            Span::styled(format!(" {}", branch_text), Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("({})", branch.unwrap_or_default()), Style::default().fg(Color::Yellow)),
         ]))
-        .title(ratatui::widgets::block::Title::from(Line::from(vec![
-            Span::styled(" [Esc] Back ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
-        ])).alignment(Alignment::Right))
-        .border_style(Style::default().fg(THEME.accent_primary));
+        .title_top(ratatui::widgets::block::Title::from(Line::from(vec![
+            Span::styled(" Esc ", Style::default().fg(Color::Black).bg(Color::Red).add_modifier(Modifier::BOLD)),
+            Span::styled(" Back ", Style::default().fg(Color::Red)),
+        ])).alignment(Alignment::Right));
 
     let inner = block.inner(area);
     f.render_widget(block, area);
