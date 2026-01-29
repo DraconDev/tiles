@@ -2949,30 +2949,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     if let Some(path) = fs.files.get(idx).cloned() {
                                         let is_dir = path.is_dir();
                                         if is_dir {
-                                            // Open folder in focused pane and switch to Editor view
-                                            fs.current_path = path.clone();
-                                            fs.selection.selected = Some(0);
-                                            fs.selection.anchor = Some(0);
-                                            fs.selection.clear_multi();
-                                            *fs.table_state.offset_mut() = 0;
-                                            crate::event_helpers::push_history(fs, path);
-                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                            app.save_current_view_prefs();
-                                            app.current_view = CurrentView::Editor;
-                                            app.load_view_prefs(CurrentView::Editor);
-
-                                            // Smart Single Panel: If we are in split mode but other pane is empty, go single.
-                                            if app.is_split_mode {
-                                                let other_idx = if app.focused_pane_index == 0 { 1 } else { 0 };
-                                                if let Some(other_pane) = app.panes.get(other_idx) {
-                                                    if other_pane.preview.is_none() {
-                                                        app.apply_split_mode(false);
-                                                        app.save_current_view_prefs();
-                                                    }
-                                                }
-                                            }
-
-                                            app.sidebar_focus = true;
+                                            // Show folder stats/properties instead of switching to editor
+                                            app.mode = AppMode::Properties;
                                         } else {
                                             // Request preview in focused pane and switch to Editor view
                                             let _ = event_tx.try_send(AppEvent::PreviewRequested(
