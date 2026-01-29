@@ -934,7 +934,7 @@ impl App {
             monitor_subview_bounds: Vec::new(),
             view_prefs: ViewStatePersistence {
                 files: ViewPreferences { show_sidebar: true, is_split_mode: false },
-                editor: ViewPreferences { show_sidebar: false, is_split_mode: true },
+                editor: ViewPreferences { show_sidebar: false, is_split_mode: false },
             },
         };
         app
