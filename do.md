@@ -2,7 +2,7 @@
 
 lets use the a different style for markdown
 
-opening on the second file panel doesnt wor
+opening on the second file panel doesnt work 
 
 ## Doing
 
