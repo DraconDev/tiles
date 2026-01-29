@@ -1255,8 +1255,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
 
                             // 3. Paste
-                            let is_paste = has_control && (key.code == KeyCode::Char('v') || key.code == KeyCode::Char('V'));
-                            if is_paste {
+                            if has_control && (key.code == KeyCode::Char('v') || key.code == KeyCode::Char('V')) {
                                 let text_to_paste = app.editor_clipboard.clone().or_else(|| terma::utils::get_clipboard_text());
                                 if let Some(text) = text_to_paste {
                                     editor.insert_string(&text);
