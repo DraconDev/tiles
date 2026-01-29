@@ -2850,7 +2850,6 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
             shortcuts.extend(HotkeyHint::new("^F", "Find", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::new("^R", "Replace", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::new("^G", "GoTo", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::new("^S", "Save", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::new("Esc", "Back", THEME.accent_primary));
         } else {
             shortcuts.extend(HotkeyHint::new("^P", "Split", THEME.accent_secondary));
