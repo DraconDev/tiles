@@ -5,7 +5,7 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 // Terma Imports
-use terma::input::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
+use terma::input::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind, KeyEventKind};
 use terma::integration::ratatui::TermaBackend;
 
 // Ratatui Imports
@@ -1121,6 +1121,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             return true;
         }
         Event::Key(key) => {
+            if key.kind != KeyEventKind::Press {
+                return false;
+            }
             if key.code == KeyCode::Char('?') {
                 crate::app::log_debug("DEBUG: '?' key detected at top level");
             }
@@ -1523,6 +1526,10 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 }
                 KeyCode::Char('h') | KeyCode::Char('H') if has_control => {
                     let idx = app.toggle_hidden();
+                    if let Some(fs) = app.panes.get(idx).and_then(|p| p.current_state()) {
+                        app.default_show_hidden = fs.show_hidden;
+                    }
+                    let _ = crate::config::save_state(app);
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(idx));
                     return true;
                 }

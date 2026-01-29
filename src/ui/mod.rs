@@ -1594,12 +1594,24 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         if app.current_view == CurrentView::Editor {
             // SINGLE FILE TAB for Editor View
             if let Some(preview) = &pane.preview {
-                let name = preview.path.file_name()
+                let mut name = preview.path.file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_else(|| "Editor".to_string());
                 
+                // Add git info if available from active tab
+                if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
+                    if let Some(branch) = &tab.git_branch {
+                        let pending = tab.git_pending.len();
+                        if pending > 0 {
+                            name = format!("{} ({} +{})", name, branch, pending);
+                        } else {
+                            name = format!("{} ({})", name, branch);
+                        }
+                    }
+                }
+                
                 let is_focused_pane = p_i == app.focused_pane_index && !app.sidebar_focus;
-                let mut style = if is_focused_pane {
+                let style = if is_focused_pane {
                     Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
                 } else {
                     Style::default().fg(THEME.accent_primary)
@@ -1620,7 +1632,12 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_else(|| "/".to_string());
             if let Some(branch) = &tab.git_branch {
-                name = format!("{} ({})", name, branch);
+                let pending = tab.git_pending.len();
+                if pending > 0 {
+                    name = format!("{} ({} +{})", name, branch, pending);
+                } else {
+                    name = format!("{} ({})", name, branch);
+                }
             }
             let is_active_tab = t_i == pane.active_tab_index;
             let is_focused_pane = p_i == app.focused_pane_index && !app.sidebar_focus;
