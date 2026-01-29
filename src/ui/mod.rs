@@ -1861,7 +1861,7 @@ fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usi
                         match app.mode {
                             AppMode::EditorSearch => {
                                 search_filter = app.input.value.clone();
-                                search_label = " FIND: ";
+                                search_label = " ";
                             }
                             AppMode::EditorGoToLine => {
                                 search_filter = app.input.value.clone();
@@ -1869,19 +1869,19 @@ fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usi
                             }
                             AppMode::EditorReplace => {
                                 search_filter = app.input.value.clone();
-                                search_label = if app.replace_buffer.is_empty() { " FIND: " } else { " WITH: " };
+                                search_label = if app.replace_buffer.is_empty() { " " } else { " WITH: " };
                                 search_color = Color::Magenta;
                             }
                             _ => {
                                 if !editor.filter_query.is_empty() {
                                     search_filter = editor.filter_query.clone();
-                                    search_label = " FIND: ";
+                                    search_label = " ";
                                 }
                             }
                         }
                     } else if !editor.filter_query.is_empty() {
                         search_filter = editor.filter_query.clone();
-                        search_label = " FIND: ";
+                        search_label = " ";
                     }
                 }
             }
