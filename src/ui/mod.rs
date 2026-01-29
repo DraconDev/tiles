@@ -1641,38 +1641,17 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         }
 
         for (t_i, tab) in pane.tabs.iter().enumerate() {
-            let mut name = tab.current_path.file_name()
+            let mut spans = Vec::new();
+            let base_name = tab.current_path.file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_else(|| "/".to_string());
-            if let Some(branch) = &tab.git_branch {
-                let pending = tab.git_pending.len();
-                let mut status = String::new();
-                if pending > 0 {
-                    status.push_str(&format!("+{}", pending));
-                }
-                if tab.git_ahead > 0 {
-                    if !status.is_empty() { status.push(' '); }
-                    status.push_str(&format!("↑{}", tab.git_ahead));
-                }
-                if tab.git_behind > 0 {
-                    if !status.is_empty() { status.push(' '); }
-                    status.push_str(&format!("↓{}", tab.git_behind));
-                }
-
-                if !status.is_empty() {
-                    name = format!("{} ({} {})", name, branch, status);
-                } else {
-                    name = format!("{} ({})", name, branch);
-                }
-            }
+            
             let is_active_tab = t_i == pane.active_tab_index;
             let is_focused_pane = p_i == app.focused_pane_index && !app.sidebar_focus;
 
-            let mut style = if is_active_tab {
+            let mut base_style = if is_active_tab {
                 if is_focused_pane {
-                    Style::default()
-                        .fg(THEME.accent_primary)
-                        .add_modifier(Modifier::BOLD)
+                    Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
                 } else {
                     Style::default().fg(THEME.accent_primary)
                 }
@@ -1682,20 +1661,51 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 
             if let AppMode::Header(idx) = app.mode {
                 if idx == global_tab_idx {
-                    style = style
-                        .bg(THEME.accent_primary)
-                        .fg(Color::Black)
-                        .add_modifier(Modifier::BOLD);
+                    base_style = base_style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
                 }
             }
 
-            let text = format!(" {} ", name);
-            let width = text.width() as u16;
+            spans.push(Span::styled(format!(" {} ", base_name), base_style));
+
+            if let Some(branch) = &tab.git_branch {
+                let pending = tab.git_pending.len();
+                let ahead = tab.git_ahead;
+                let behind = tab.git_behind;
+
+                let branch_color = if pending > 0 {
+                    Color::Red
+                } else if ahead > 0 || behind > 0 {
+                    Color::Yellow
+                } else {
+                    Color::Green
+                };
+
+                let mut branch_style = Style::default().fg(branch_color);
+                if is_active_tab && is_focused_pane {
+                    branch_style = branch_style.add_modifier(Modifier::BOLD);
+                }
+
+                spans.push(Span::styled(format!("({})", branch), branch_style));
+
+                if pending > 0 {
+                    spans.push(Span::styled(format!("+{}", pending), Style::default().fg(Color::Red)));
+                }
+                if ahead > 0 {
+                    spans.push(Span::styled(format!(" ↑{}", ahead), Style::default().fg(Color::Yellow)));
+                }
+                if behind > 0 {
+                    spans.push(Span::styled(format!(" ↓{}", behind), Style::default().fg(Color::Yellow)));
+                }
+                spans.push(Span::raw(" "));
+            }
+
+            let line = Line::from(spans);
+            let width = line.width() as u16;
             if current_x + width > chunk.x + chunk.width {
                 break;
             }
             let rect = Rect::new(current_x, area.y, width, 1);
-            f.render_widget(Paragraph::new(text).style(style), rect);
+            f.render_widget(Paragraph::new(line), rect);
             app.tab_bounds.push((rect, p_i, t_i));
             current_x += width + 1;
             global_tab_idx += 1;
