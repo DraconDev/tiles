@@ -2211,7 +2211,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         .title_top(ratatui::widgets::block::Title::from(Line::from(vec![
             Span::styled(" Esc ", Style::default().fg(Color::Black).bg(Color::Red).add_modifier(Modifier::BOLD)),
             Span::styled(" Back ", Style::default().fg(Color::Red)),
-        ])).alignment(Alignment::Right));
+        ])).alignment(Alignment::Right).into());
 
     let inner = block.inner(area);
     f.render_widget(block, area);
