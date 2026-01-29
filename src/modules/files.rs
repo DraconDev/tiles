@@ -323,6 +323,27 @@ pub fn get_git_branch(path: &std::path::Path) -> Option<String> {
     None
 }
 
+pub fn get_git_sync_status(path: &std::path::Path) -> (usize, usize) {
+    let output = std::process::Command::new("git")
+        .args(["rev-list", "--count", "--left-right", "HEAD...@{u}"])
+        .current_dir(path)
+        .output()
+        .ok();
+
+    if let Some(out) = output {
+        if out.status.success() {
+            let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            let parts: Vec<&str> = stdout.split_whitespace().collect();
+            if parts.len() == 2 {
+                let ahead = parts[0].parse().unwrap_or(0);
+                let behind = parts[1].parse().unwrap_or(0);
+                return (ahead, behind);
+            }
+        }
+    }
+    (0, 0)
+}
+
 pub fn get_git_history(path: &std::path::Path, limit: usize) -> Vec<crate::app::CommitInfo> {
     let mut cmd = std::process::Command::new("git");
     cmd.args([
