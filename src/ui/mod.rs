@@ -1633,8 +1633,21 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                     .unwrap_or_else(|| "/".to_string());
             if let Some(branch) = &tab.git_branch {
                 let pending = tab.git_pending.len();
+                let mut status = String::new();
                 if pending > 0 {
-                    name = format!("{} ({} +{})", name, branch, pending);
+                    status.push_str(&format!("+{}", pending));
+                }
+                if tab.git_ahead > 0 {
+                    if !status.is_empty() { status.push(' '); }
+                    status.push_str(&format!("↑{}", tab.git_ahead));
+                }
+                if tab.git_behind > 0 {
+                    if !status.is_empty() { status.push(' '); }
+                    status.push_str(&format!("↓{}", tab.git_behind));
+                }
+
+                if !status.is_empty() {
+                    name = format!("{} ({} {})", name, branch, status);
                 } else {
                     name = format!("{} ({})", name, branch);
                 }
