@@ -2783,11 +2783,6 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         } else {
             app.default_show_hidden
         };
-        let hidden_color = if hidden_on {
-            THEME.accent_secondary // Cyber Green
-        } else {
-            Color::Red
-        };
 
         let mut shortcuts = Vec::new();
         if app.current_view == CurrentView::Editor {
