@@ -1408,23 +1408,15 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
 
                         // 4. Undo / Redo
                         if has_control && (key.code == KeyCode::Char('z') || key.code == KeyCode::Char('Z')) {
-                            if let Some(prev) = editor.history.pop() {
-                                editor.redo_stack.push(editor.lines.clone());
-                                editor.lines = prev;
-                                editor.cursor_row = std::cmp::min(editor.cursor_row, editor.lines.len() - 1);
-                                editor.cursor_col = std::cmp::min(editor.cursor_col, editor.lines[editor.cursor_row].len());
-                                editor.modified = true;
-                            }
+                            let (w, h) = app.terminal_size;
+                            let editor_area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
+                            editor.handle_event(&evt, editor_area);
                             return true;
                         }
                         if has_control && (key.code == KeyCode::Char('y') || key.code == KeyCode::Char('Y')) {
-                            if let Some(next) = editor.redo_stack.pop() {
-                                editor.history.push(editor.lines.clone());
-                                editor.lines = next;
-                                editor.cursor_row = std::cmp::min(editor.cursor_row, editor.lines.len() - 1);
-                                editor.cursor_col = std::cmp::min(editor.cursor_col, editor.lines[editor.cursor_row].len());
-                                editor.modified = true;
-                            }
+                            let (w, h) = app.terminal_size;
+                            let editor_area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
+                            editor.handle_event(&evt, editor_area);
                             return true;
                         }
                         if has_control && (key.code == KeyCode::Char('f') || key.code == KeyCode::Char('F')) {
