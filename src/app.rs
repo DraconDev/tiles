@@ -715,7 +715,7 @@ impl App {
                     semantic_coloring: state.semantic_coloring,
                     view_prefs: ViewStatePersistence {
                         files: ViewPreferences { show_sidebar: true, is_split_mode: false },
-                        editor: ViewPreferences { show_sidebar: false, is_split_mode: true },
+                        editor: ViewPreferences { show_sidebar: false, is_split_mode: false },
                     },
                 };
 
