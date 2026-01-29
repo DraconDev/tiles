@@ -2181,7 +2181,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         0
     };
 
-    let (history, pending, current_path, branch) = if let Some(pane) = app.panes.get(pane_idx) {
+    let (history, pending, _current_path, branch) = if let Some(pane) = app.panes.get(pane_idx) {
         if let Some(tab) = pane.tabs.get(tab_idx) {
             (&tab.git_history, &tab.git_pending, tab.current_path.clone(), tab.git_branch.clone())
         } else {
@@ -2191,8 +2191,6 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         return;
     };
 
-    let branch_text = branch.unwrap_or_else(|| "HEAD".to_string());
-
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -2200,7 +2198,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         .title_top(Line::from(vec![
             Span::styled(" GIT HISTORY ", Style::default().fg(Color::Black).bg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
             Span::raw(" "),
-            Span::styled(format!("({})", branch.unwrap_or_default()), Style::default().fg(Color::Yellow)),
+            Span::styled(format!("({})", branch.as_ref().map(|s| s.as_str()).unwrap_or("HEAD")), Style::default().fg(Color::Yellow)),
         ]))
         .title_top(Line::from(vec![
             Span::styled(" Esc ", Style::default().fg(Color::Black).bg(Color::Red).add_modifier(Modifier::BOLD)),
