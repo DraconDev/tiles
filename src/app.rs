@@ -295,6 +295,10 @@ pub struct FileState {
     #[serde(skip)]
     pub git_branch: Option<String>,
     #[serde(skip)]
+    pub git_ahead: usize,
+    #[serde(skip)]
+    pub git_behind: usize,
+    #[serde(skip)]
     pub local_count: usize,
     #[serde(skip)]
     pub pending_select_path: Option<PathBuf>,
