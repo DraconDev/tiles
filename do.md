@@ -1,6 +1,6 @@
 ## Do
 
-lets use the a diffe
+lets use the a different style for markdown
 
 ## Doing
 
