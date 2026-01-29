@@ -1455,12 +1455,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         return true;
                                     }
                                 }
-                                KeyCode::Char('v') | KeyCode::Char('V') => {
-                                    if let Some(text) = terma::utils::get_clipboard_text() {
-                                        editor.insert_string(&text);
-                                        return true;
-                                    }
-                                }
                                 _ => {}
                             }
                         }
