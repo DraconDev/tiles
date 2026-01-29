@@ -2955,11 +2955,23 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             // Show folder stats/properties instead of switching to editor
                                             app.mode = AppMode::Properties;
                                         } else {
-                                            // Request preview in focused pane and switch to Editor view
+                                            // SMART TARGETING: If we are going to collapse to single pane, target pane 0.
+                                            let mut target_pane = app.focused_pane_index;
+                                            let will_go_single = !app.view_prefs.editor.is_split_mode || (app.is_split_mode && {
+                                                let other_idx = if app.focused_pane_index == 0 { 1 } else { 0 };
+                                                app.panes.get(other_idx).map(|p| p.preview.is_none()).unwrap_or(true)
+                                            });
+
+                                            if will_go_single {
+                                                target_pane = 0;
+                                            }
+
+                                            // Request preview in the determined target pane
                                             let _ = event_tx.try_send(AppEvent::PreviewRequested(
-                                                app.focused_pane_index,
+                                                target_pane,
                                                 path,
                                             ));
+                                            
                                             app.save_current_view_prefs();
                                             app.current_view = CurrentView::Editor;
                                             app.load_view_prefs(CurrentView::Editor);
@@ -2973,6 +2985,11 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                                         app.save_current_view_prefs();
                                                     }
                                                 }
+                                            }
+
+                                            // If we collapsed to single, ensure focus is on 0
+                                            if app.panes.len() == 1 {
+                                                app.focused_pane_index = 0;
                                             }
 
                                             app.sidebar_focus = false;
