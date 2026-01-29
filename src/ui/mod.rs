@@ -2202,10 +2202,10 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             Span::raw(" "),
             Span::styled(format!("({})", branch.unwrap_or_default()), Style::default().fg(Color::Yellow)),
         ]))
-        .title_top(ratatui::prelude::Line::from(ratatui::widgets::block::Title::from(Line::from(vec![
+        .title_top(Line::from(vec![
             Span::styled(" Esc ", Style::default().fg(Color::Black).bg(Color::Red).add_modifier(Modifier::BOLD)),
             Span::styled(" Back ", Style::default().fg(Color::Red)),
-        ])).alignment(Alignment::Right)));
+        ]).alignment(Alignment::Right));
 
     let inner = block.inner(area);
     f.render_widget(block, area);
