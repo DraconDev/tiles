@@ -2121,10 +2121,23 @@ fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, i
         border_style = border_style.add_modifier(Modifier::BOLD);
     }
 
-    let block = Block::default()
+    let mut block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(border_style);
+
+    if is_focused {
+        let mut hints = Vec::new();
+        hints.extend(HotkeyHint::new("^F", "Find", THEME.accent_secondary));
+        hints.extend(HotkeyHint::new("^R", "Replace", THEME.accent_secondary));
+        hints.extend(HotkeyHint::new("^G", "GoTo", THEME.accent_secondary));
+        hints.extend(HotkeyHint::new("^S", "Save", THEME.accent_secondary));
+        
+        block = block.title_bottom(
+            ratatui::widgets::block::Title::from(Line::from(hints))
+                .alignment(ratatui::layout::Alignment::Right)
+        );
+    }
 
     let inner = block.inner(area);
     f.render_widget(block, area);
