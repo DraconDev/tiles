@@ -1594,46 +1594,58 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         if app.current_view == CurrentView::Editor {
             // SINGLE FILE TAB for Editor View
             if let Some(preview) = &pane.preview {
-                let mut name = preview.path.file_name()
+                let base_name = preview.path.file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_else(|| "Editor".to_string());
                 
-                // Add git info if available from active tab
-                if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
-                    if let Some(branch) = &tab.git_branch {
-                        let pending = tab.git_pending.len();
-                        let mut status = String::new();
-                        if pending > 0 {
-                            status.push_str(&format!("+{}", pending));
-                        }
-                        if tab.git_ahead > 0 {
-                            if !status.is_empty() { status.push(' '); }
-                            status.push_str(&format!("↑{}", tab.git_ahead));
-                        }
-                        if tab.git_behind > 0 {
-                            if !status.is_empty() { status.push(' '); }
-                            status.push_str(&format!("↓{}", tab.git_behind));
-                        }
-
-                        if !status.is_empty() {
-                            name = format!("{} ({} {})", name, branch, status);
-                        } else {
-                            name = format!("{} ({})", name, branch);
-                        }
-                    }
-                }
-                
                 let is_focused_pane = p_i == app.focused_pane_index && !app.sidebar_focus;
-                let style = if is_focused_pane {
+                let base_style = if is_focused_pane {
                     Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
                 } else {
                     Style::default().fg(THEME.accent_primary)
                 };
 
-                let text = format!(" {} ", name);
-                let width = text.width() as u16;
+                let mut spans = vec![Span::styled(format!(" {} ", base_name), base_style)];
+
+                // Add git info if available from active tab
+                if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
+                    if let Some(branch) = &tab.git_branch {
+                        let pending = tab.git_pending.len();
+                        let ahead = tab.git_ahead;
+                        let behind = tab.git_behind;
+
+                        let branch_color = if pending > 0 {
+                            Color::Red
+                        } else if ahead > 0 || behind > 0 {
+                            Color::Yellow
+                        } else {
+                            Color::Green
+                        };
+
+                        let mut branch_style = Style::default().fg(branch_color);
+                        if is_focused_pane {
+                            branch_style = branch_style.add_modifier(Modifier::BOLD);
+                        }
+
+                        spans.push(Span::styled(format!("({})", branch), branch_style));
+
+                        if pending > 0 {
+                            spans.push(Span::styled(format!("+{}", pending), Style::default().fg(Color::Red)));
+                        }
+                        if ahead > 0 {
+                            spans.push(Span::styled(format!(" ↑{}", ahead), Style::default().fg(Color::Yellow)));
+                        }
+                        if behind > 0 {
+                            spans.push(Span::styled(format!(" ↓{}", behind), Style::default().fg(Color::Yellow)));
+                        }
+                        spans.push(Span::raw(" "));
+                    }
+                }
+
+                let line = Line::from(spans);
+                let width = line.width() as u16;
                 let rect = Rect::new(current_x, area.y, width, 1);
-                f.render_widget(Paragraph::new(text).style(style), rect);
+                f.render_widget(Paragraph::new(line), rect);
                 // We'll still register it as a 'tab' so header-mode can highlight it
                 app.tab_bounds.push((rect, p_i, pane.active_tab_index));
             }
