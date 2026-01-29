@@ -414,9 +414,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
             .border_type(BorderType::Rounded)
             .title_top(Line::from(header_left))
             .title_top(
-                ratatui::widgets::block::Title::from(Line::from(header_right))
-                    .alignment(ratatui::layout::Alignment::Right)
-                    .into(),
+                ratatui::prelude::Line::from(ratatui::widgets::block::Title::from(Line::from(header_right))
+                    .alignment(ratatui::layout::Alignment::Right))
             )
             .border_style(Style::default().fg(border_color))
             .style(Style::default().bg(Color::Rgb(0, 0, 0)));
