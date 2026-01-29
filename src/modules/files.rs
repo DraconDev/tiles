@@ -184,6 +184,10 @@ pub fn update_local_files(state: &mut FileState) {
     // Git Integration
     state.git_status.clear();
     state.git_branch = get_git_branch(&state.current_path);
+    let (ahead, behind) = get_git_sync_status(&state.current_path);
+    state.git_ahead = ahead;
+    state.git_behind = behind;
+    state.git_pending = get_git_status(&state.current_path);
 }
 
 pub fn perform_global_search(
