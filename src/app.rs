@@ -339,6 +339,8 @@ impl FileState {
             column_bounds: Vec::new(),
             hovered_breadcrumb: None,
             git_branch: None,
+            git_ahead: 0,
+            git_behind: 0,
             local_count: 0,
             pending_select_path: None,
             git_history: Vec::new(),
