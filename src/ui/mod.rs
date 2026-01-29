@@ -2137,6 +2137,7 @@ fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, i
         block = block.title_bottom(
             ratatui::widgets::block::Title::from(Line::from(hints))
                 .alignment(ratatui::layout::Alignment::Right)
+                .into()
         );
     }
 
