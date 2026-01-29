@@ -1590,22 +1590,35 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     for (p_i, pane) in app.panes.iter().enumerate() {
         let chunk = pane_chunks[p_i];
         let mut current_x = chunk.x;
-        for (t_i, tab) in pane.tabs.iter().enumerate() {
-            let mut name = if app.current_view == CurrentView::Editor && t_i == pane.active_tab_index {
-                if let Some(preview) = &pane.preview {
-                    preview.path.file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_else(|| "/".to_string())
-                } else {
-                    tab.current_path.file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_else(|| "/".to_string())
-                }
-            } else {
-                tab.current_path.file_name()
+
+        if app.current_view == CurrentView::Editor {
+            // SINGLE FILE TAB for Editor View
+            if let Some(preview) = &pane.preview {
+                let name = preview.path.file_name()
                     .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "/".to_string())
-            };
+                    .unwrap_or_else(|| "Editor".to_string());
+                
+                let is_focused_pane = p_i == app.focused_pane_index && !app.sidebar_focus;
+                let mut style = if is_focused_pane {
+                    Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(THEME.accent_primary)
+                };
+
+                let text = format!(" {} ", name);
+                let width = text.width() as u16;
+                let rect = Rect::new(current_x, area.y, width, 1);
+                f.render_widget(Paragraph::new(text).style(style), rect);
+                // We'll still register it as a 'tab' so header-mode can highlight it
+                app.tab_bounds.push((rect, p_i, pane.active_tab_index));
+            }
+            continue;
+        }
+
+        for (t_i, tab) in pane.tabs.iter().enumerate() {
+            let mut name = tab.current_path.file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "/".to_string());
             if let Some(branch) = &tab.git_branch {
                 name = format!("{} ({})", name, branch);
             }
