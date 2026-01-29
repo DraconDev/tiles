@@ -1971,6 +1971,27 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     _ => {
                         let handled = app.input.handle_event(&evt);
                         if handled {
+                            // If user cleared the search via backspace, cancel search mode
+                            if app.input.value.is_empty() {
+                                // 1. Clear filter (global)
+                                if let Some(preview) = &mut app.editor_state {
+                                    if let Some(editor) = &mut preview.editor {
+                                        editor.set_filter("");
+                                    }
+                                }
+                                // 2. Clear filter (IDE)
+                                let focused_idx = app.focused_pane_index;
+                                if let Some(pane) = app.panes.get_mut(focused_idx) {
+                                    if let Some(preview) = &mut pane.preview {
+                                        if let Some(editor) = &mut preview.editor {
+                                            editor.set_filter("");
+                                        }
+                                    }
+                                }
+                                app.mode = app.previous_mode.clone();
+                                return true;
+                            }
+
                             // Update Live Filters
                             if let Some(preview) = &mut app.editor_state {
                                 if let Some(editor) = &mut preview.editor {
