@@ -1356,26 +1356,19 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         // 2. Cut (Selection or Line)
                         if has_control && (key.code == KeyCode::Char('x') || key.code == KeyCode::Char('X')) {
                             let content = if let Some(selected) = editor.get_selected_text() {
-                                let s = selected.clone();
-                                editor.delete_selection();
-                                s
+                                selected
                             } else {
-                                let line = editor.lines.get(editor.cursor_row).cloned().unwrap_or_default();
-                                if editor.lines.len() > 1 {
-                                    editor.lines.remove(editor.cursor_row);
-                                    if editor.cursor_row >= editor.lines.len() {
-                                        editor.cursor_row = editor.lines.len().saturating_sub(1);
-                                    }
-                                } else {
-                                    editor.lines[0].clear();
-                                }
-                                editor.cursor_col = 0;
-                                line
+                                editor.lines.get(editor.cursor_row).cloned().unwrap_or_default()
                             };
                             app.editor_clipboard = Some(content.clone());
                             terma::utils::set_clipboard_text(&content);
+
+                            // Delegate to widget for history/deletion
+                            let (w, h) = app.terminal_size;
+                            let editor_area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
+                            editor.handle_event(&evt, editor_area);
+
                             let _ = event_tx.try_send(AppEvent::StatusMsg("Cut to clipboard".to_string()));
-                            editor.modified = true;
                             if app.auto_save {
                                 let _ = event_tx.try_send(AppEvent::SaveFile(preview.path.clone(), editor.get_content()));
                                 editor.modified = false;
