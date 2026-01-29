@@ -3286,7 +3286,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return false;
                         }
                         KeyCode::Char(c) if key.modifiers.is_empty() => {
-                            if (c as u32) < 32 || c == '\x7f' {
+                            if (c as u32) < 32 || c == '\x7f' || c == '\x1b' {
                                 return false;
                             }
                             if app.current_view == CurrentView::Processes {
