@@ -2801,9 +2801,9 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
             shortcuts.extend(HotkeyHint::new("^T", "Tab", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::new("^N", "TermTab", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::new("^K", "TermWin", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::new("^H", "Hidden", hidden_color));
-            shortcuts.extend(HotkeyHint::new("^L", "History", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::new("Space", "Preview/Edit", THEME.accent_primary));
+            shortcuts.extend(HotkeyHint::new("^H", "Hidden", if hidden_on { Color::Green } else { Color::Red }));
+            // Hide ^L History as requested
+            shortcuts.extend(HotkeyHint::new("Space", "Preview/Edit", Color::Rgb(88, 166, 255))); // GitHub Blue
         }
 
         for s in shortcuts {
