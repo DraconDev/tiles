@@ -2960,6 +2960,18 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             app.save_current_view_prefs();
                                             app.current_view = CurrentView::Editor;
                                             app.load_view_prefs(CurrentView::Editor);
+
+                                            // Smart Single Panel: If we are in split mode but other pane is empty, go single.
+                                            if app.is_split_mode {
+                                                let other_idx = if app.focused_pane_index == 0 { 1 } else { 0 };
+                                                if let Some(other_pane) = app.panes.get(other_idx) {
+                                                    if other_pane.preview.is_none() {
+                                                        app.apply_split_mode(false);
+                                                        app.save_current_view_prefs();
+                                                    }
+                                                }
+                                            }
+
                                             app.sidebar_focus = true;
                                         } else {
                                             // Request preview in focused pane and switch to Editor view
