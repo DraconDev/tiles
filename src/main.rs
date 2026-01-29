@@ -1133,7 +1133,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             ));
             let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
             let has_alt = key.modifiers.contains(KeyModifiers::ALT);
-            let has_shift = key.modifiers.contains(KeyModifiers::SHIFT);
+            let _has_shift = key.modifiers.contains(KeyModifiers::SHIFT);
 
             if key.code == KeyCode::Char('q') || key.code == KeyCode::Char('Q') {
                 if has_control {
