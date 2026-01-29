@@ -2286,6 +2286,14 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             return true;
                                         }
                                     }
+                                    KeyCode::Char('z') | KeyCode::Char('Z') => {
+                                        editor.handle_event(&evt, editor_area);
+                                        return true;
+                                    }
+                                    KeyCode::Char('y') | KeyCode::Char('Y') => {
+                                        editor.handle_event(&evt, editor_area);
+                                        return true;
+                                    }
                                     _ => {}
                                 }
                             }
