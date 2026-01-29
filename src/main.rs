@@ -2288,6 +2288,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             // AUTO-SYNC SELECTION TO CLIPBOARD
                             if let Some(selected_text) = editor.get_selected_text() {
                                 if selected_text.width() > 1 {
+                                    app.editor_clipboard = Some(selected_text.clone());
                                     terma::utils::set_clipboard_text(&selected_text);
                                 }
                             }
