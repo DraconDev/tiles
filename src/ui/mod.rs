@@ -2133,10 +2133,9 @@ fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, i
         hints.extend(HotkeyHint::new("^G", "GoTo", THEME.accent_secondary));
         hints.extend(HotkeyHint::new("^S", "Save", THEME.accent_secondary));
         
-        block = block.title(
+        block = block.title_bottom(
             ratatui::widgets::block::Title::from(Line::from(hints))
                 .alignment(ratatui::layout::Alignment::Right)
-                .position(ratatui::widgets::block::Position::Bottom)
         );
     }
 
