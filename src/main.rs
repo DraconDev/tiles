@@ -2260,9 +2260,9 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                     KeyCode::Char('x') | KeyCode::Char('X') => {
                                         if let Some(text) = editor.get_selected_text() {
                                             terma::utils::set_clipboard_text(&text);
-                                            editor.delete_selection();
-                                            return true;
                                         }
+                                        editor.handle_event(&evt, editor_area);
+                                        return true;
                                     }
                                     KeyCode::Char('v') | KeyCode::Char('V') => {
                                         if let Some(text) = terma::utils::get_clipboard_text() {
