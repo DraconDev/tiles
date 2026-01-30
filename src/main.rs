@@ -1792,6 +1792,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             )));
                                         }
                                         app.input.clear();
+                                        app.replace_buffer.clear();
+                                        app.mode = app.previous_mode.clone();
                                         let (w, h) = app.terminal_size;
                                         let area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
                                         editor.ensure_cursor_centered(area);
@@ -1833,6 +1835,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                                 )));
                                             }
                                             app.input.clear();
+                                            app.replace_buffer.clear();
+                                            app.mode = app.previous_mode.clone();
                                             editor.ensure_cursor_centered(pane_area);
                                         }
                                     }
