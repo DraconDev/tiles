@@ -2847,6 +2847,8 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         if app.current_view == CurrentView::Editor {
             shortcuts.push(Span::styled(" EDITOR ", Style::default().bg(Color::Rgb(255, 0, 85)).fg(Color::Black).add_modifier(Modifier::BOLD)));
             shortcuts.push(Span::raw(" "));
+            shortcuts.extend(HotkeyHint::new("^B", "Sidebar", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^P", "Split", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::new("^F", "Find", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::new("^R", "Replace", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::new("^G", "GoTo", THEME.accent_secondary));
