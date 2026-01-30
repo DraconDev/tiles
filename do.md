@@ -1,7 +1,5 @@
 ## Do
 
-
-
 ## Doing
 
 ## Done
