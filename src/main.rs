@@ -696,9 +696,13 @@ async fn run_tty() -> color_eyre::Result<()> {
                                 preview.last_saved = Some(std::time::Instant::now());
                             }
                         }
-                        drop(app_guard);
-                        let _ = event_tx
-                            .try_send(AppEvent::StatusMsg(format!("Saved {}", path.display())));
+                        for pane in &mut app_guard.panes {
+                            if let Some(preview) = &mut pane.preview {
+                                if preview.path == path {
+                                    preview.last_saved = Some(std::time::Instant::now());
+                                }
+                            }
+                        }
                     }
                 }
                 AppEvent::Rename(src, dest) => {
