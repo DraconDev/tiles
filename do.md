@@ -1,7 +1,6 @@
 ## Do
 
 
-ne
 
 
 ## Doing
