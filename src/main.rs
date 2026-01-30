@@ -3334,6 +3334,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return false;
                         }
                         KeyCode::Char(c) if key.modifiers.is_empty() => {
+                            // Check Esc Cooldown (SHIELD)
+                            if let Some(until) = app.ignore_resize_until {
+                                if std::time::Instant::now() < until {
+                                    return true; // Consumed but ignored
+                                }
+                            }
+
                             if (c as u32) < 32 || c == '\x7f' || c == '\x1b' {
                                 return false;
                             }
