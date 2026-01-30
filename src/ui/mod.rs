@@ -2103,9 +2103,9 @@ fn draw_editor_stage(f: &mut Frame, area: Rect, app: &mut App) {
 
 fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool) {
     let mut border_color = if is_focused {
-        THEME.accent_primary
+        Color::Rgb(255, 0, 85) // Neon Red/Pink
     } else {
-        THEME.border_inactive
+        Color::Rgb(80, 0, 0) // Dim Red
     };
 
     if let Some(pane) = app.panes.get(pane_idx) {
