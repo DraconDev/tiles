@@ -439,40 +439,45 @@ pub fn draw(f: &mut Frame, app: &mut App) {
             f.area(),
         );
 
-        if app.current_view == CurrentView::Processes {
-            draw_monitor_page(f, f.area(), app);
-        } else if app.current_view == CurrentView::Git {
-            draw_git_page(f, f.area(), app);
-        } else if app.current_view == CurrentView::Editor {
-            draw_editor_view(f, f.area(), app);
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1),
+                Constraint::Fill(1),
+                Constraint::Length(2),
+            ])
+            .split(f.area());
+
+        let workspace_constraints = if app.show_sidebar {
+            [Constraint::Length(app.sidebar_width()), Constraint::Fill(1)]
         } else {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(1),
-                    Constraint::Fill(1),
-                    Constraint::Length(2),
-                ])
-                .split(f.area());
+            [Constraint::Length(0), Constraint::Fill(1)]
+        };
 
-            let workspace_constraints = if app.show_sidebar {
-                [Constraint::Length(app.sidebar_width()), Constraint::Fill(1)]
-            } else {
-                [Constraint::Length(0), Constraint::Fill(1)]
-            };
+        let workspace = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(workspace_constraints)
+            .split(chunks[1]);
 
-            let workspace = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints(workspace_constraints)
-                .split(chunks[1]);
-
-            draw_global_header(f, chunks[0], workspace[0].width, app);
-            if app.show_sidebar {
-                draw_sidebar(f, workspace[0], app);
-            }
-            draw_main_stage(f, workspace[1], app);
-            draw_footer(f, chunks[2], app);
+        draw_global_header(f, chunks[0], workspace[0].width, app);
+        
+        if app.show_sidebar {
+            draw_sidebar(f, workspace[0], app);
         }
+
+        match app.current_view {
+            CurrentView::Processes => {
+                draw_monitor_page(f, workspace[1], app);
+            }
+            CurrentView::Git => {
+                draw_git_page(f, workspace[1], app);
+            }
+            _ => {
+                draw_main_stage(f, workspace[1], app);
+            }
+        }
+
+        draw_footer(f, chunks[2], app);
     }
 
     // --- OVERLAYS ---
