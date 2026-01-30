@@ -1185,6 +1185,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         for pane in &mut app.panes {
                             pane.preview = None;
                         }
+                        // SHIELD: Prevent trailing escape sequence fragments from leaking into search
+                        app.ignore_resize_until = Some(std::time::Instant::now() + std::time::Duration::from_millis(50));
                         return true;
                     }
                     _ => {}
