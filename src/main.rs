@@ -1827,7 +1827,19 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                         }
                         return true;
                     }
-                    _ => return app.input.handle_event(&evt),
+                    _ => {
+                        let res = app.input.handle_event(&evt);
+                        if res {
+                            // If we are in Stage 1 (Find) and user cleared the input, cancel
+                            if app.replace_buffer.is_empty() && app.input.value.is_empty() {
+                                app.mode = app.previous_mode.clone();
+                                app.input.clear();
+                                app.replace_buffer.clear();
+                                return true;
+                            }
+                        }
+                        return res;
+                    }
                 },
                 AppMode::CommandPalette => match key.code {
                     KeyCode::Esc => {
