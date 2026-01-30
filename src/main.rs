@@ -1772,6 +1772,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             if let Some(preview) = &mut app.editor_state {
                                 if let Some(editor) = &mut preview.editor {
                                     if key.modifiers.contains(KeyModifiers::CONTROL) {
+                                        editor.push_history();
                                         editor.replace_all(&find_term, &replace_term);
                                         let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
                                             "Replaced all '{}' with '{}'",
@@ -1781,6 +1782,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         app.input.clear();
                                         app.replace_buffer.clear();
                                     } else {
+                                        editor.push_history();
                                         editor.replace_next(&find_term, &replace_term);
                                         let (w, h) = app.terminal_size;
                                         let area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
@@ -1805,6 +1807,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 if let Some(preview) = &mut pane.preview {
                                     if let Some(editor) = &mut preview.editor {
                                         if key.modifiers.contains(KeyModifiers::CONTROL) {
+                                            editor.push_history();
                                             editor.replace_all(&find_term, &replace_term);
                                             let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
                                                 "Replaced all '{}' with '{}'",
@@ -1814,6 +1817,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             app.input.clear();
                                             app.replace_buffer.clear();
                                         } else {
+                                            editor.push_history();
                                             editor.replace_next(&find_term, &replace_term);
                                             editor.ensure_cursor_centered(pane_area);
                                         }
