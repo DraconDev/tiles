@@ -1783,7 +1783,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         app.replace_buffer.clear();
                                     } else {
                                         editor.push_history();
-                                        editor.replace_next(&find_term, &replace_term);
+                                        if !editor.replace_next(&find_term, &replace_term) {
+                                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                                "No more occurrences of '{}' found",
+                                                find_term
+                                            )));
+                                        }
                                         let (w, h) = app.terminal_size;
                                         let area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
                                         editor.ensure_cursor_centered(area);
@@ -1818,7 +1823,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                             app.replace_buffer.clear();
                                         } else {
                                             editor.push_history();
-                                            editor.replace_next(&find_term, &replace_term);
+                                            if !editor.replace_next(&find_term, &replace_term) {
+                                                let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                                    "No more occurrences of '{}' found",
+                                                    find_term
+                                                )));
+                                            }
                                             editor.ensure_cursor_centered(pane_area);
                                         }
                                     }
