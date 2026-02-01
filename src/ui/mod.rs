@@ -327,6 +327,9 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
             f.render_widget(List::new(sidebar_items).block(block), area);
         }
+        CurrentView::Editor => {
+            draw_project_sidebar(f, area, app);
+        }
         _ => {}
     }
 }
