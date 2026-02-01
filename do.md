@@ -9,7 +9,7 @@ selecting an arena and moving it with mouse should work on the editor, and delet
 
 del should with expected key combinations 
 
-select row and del should work as pex
+select row and del should work as pexpected
 
 ## Done
 
