@@ -3435,6 +3435,36 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
                             return false;
                         }
+                        KeyCode::Char('r') if key.modifiers.is_empty() => {
+                            let mut to_rename = None;
+                            if let Some(fs) = app.current_file_state() {
+                                if let Some(p) = fs.selection.selected.and_then(|idx| fs.files.get(idx))
+                                {
+                                    to_rename = Some(
+                                        p.file_name()
+                                            .unwrap_or_else(|| std::ffi::OsStr::new("root"))
+                                            .to_string_lossy()
+                                            .to_string(),
+                                    );
+                                }
+                            }
+                            if let Some(name) = to_rename {
+                                app.mode = AppMode::Rename;
+                                app.input.set_value(name.clone());
+                                if let Some(idx) = name.rfind('.') {
+                                    if idx > 0 {
+                                        app.input.cursor_position = idx;
+                                    } else {
+                                        app.input.cursor_position = name.len();
+                                    }
+                                } else {
+                                    app.input.cursor_position = name.len();
+                                }
+                                app.rename_selected = true;
+                                return true;
+                            }
+                            return false;
+                        }
                         KeyCode::Char(c) if key.modifiers.is_empty() => {
                             if (c as u32) < 32 || c == '\x7f' || c == '\x1b' {
                                 return false;
