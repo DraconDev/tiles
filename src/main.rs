@@ -1800,11 +1800,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     _ => return true,
                 },
                 AppMode::Hotkeys => {
-                    if key.code == KeyCode::Esc {
-                        app.mode = app.previous_mode.clone();
-                        return true;
+                    match key.code {
+                        KeyCode::Esc | KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Char('q') | KeyCode::Char('?') | KeyCode::F(1) => {
+                            app.mode = app.previous_mode.clone();
+                            return true;
+                        }
+                        _ => return true,
                     }
-                    return true;
                 }
                 AppMode::EditorReplace => match key.code {
                     KeyCode::Esc => {
