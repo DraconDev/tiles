@@ -2319,7 +2319,16 @@ fn draw_file_view(
                 cached.clone()
             } else {
                 let language = preview.path.extension().and_then(|s| s.to_str()).unwrap_or("");
-                let highlighted = terma::utils::highlight_code(&preview.content, language);
+                
+                // PERFORMANCE OPTIMIZATION: Only highlight what's likely to be visible + some buffer
+                // This is a PREVIEW, so full file highlighting is overkill for large files.
+                let content_to_highlight = if preview.content.lines().count() > 500 {
+                    preview.content.lines().take(500).collect::<Vec<_>>().join("\n")
+                } else {
+                    preview.content.clone()
+                };
+
+                let highlighted = terma::utils::highlight_code(&content_to_highlight, language);
                 let mut lines = Vec::new();
                 for (i, line) in highlighted.iter().enumerate() {
                     let mut spans = line.spans.iter().map(|s| Span::styled(s.content.to_string(), s.style)).collect::<Vec<_>>();
