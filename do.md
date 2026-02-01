@@ -1,16 +1,18 @@
+## Doing
+
+we sometimes inject keycodes makes sure that doesnt happen
+
 ## Do
+
+
+del should with expected key combinations 
+
+## Done
 
 the markdown letter color should be white on editor
 
 ctrl x with v should work as expected
 
-## Later
-we sometimes inject keycodes makes sure that doesnt happen
+alt up and down should move a row up and down
 
-selecting an area and moving it with mouse should work on the editor, and delete and backspace on it 
-
-del should with expected key combinations 
-
-select row and del should work as sepxtected
-
-## Done
+selecting an arena and moving it with mouse should work on the editor, and delete and backspace on it
