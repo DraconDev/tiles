@@ -2658,7 +2658,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                     }
                     KeyCode::Down => {
                         let max = match app.settings_section {
-                            SettingsSection::General => 3, // 4 items: 0-3
+                            SettingsSection::General => 4, // 5 items: 0-4
                             SettingsSection::Columns => 3, // 4 items: 0-3
                             _ => 0,
                         };
