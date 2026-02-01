@@ -435,6 +435,16 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 f.render_widget(editor, inner_area);
             }
         }
+    } else if matches!(app.mode, AppMode::Settings) {
+        f.render_widget(Block::default().style(Style::default().bg(Color::Black)), f.area());
+        draw_settings_modal(f, app);
+    } else if matches!(app.current_view, CurrentView::Processes | CurrentView::Git) {
+        f.render_widget(Block::default().style(Style::default().bg(Color::Black)), f.area());
+        match app.current_view {
+            CurrentView::Processes => draw_monitor_page(f, f.area(), app),
+            CurrentView::Git => draw_git_page(f, f.area(), app),
+            _ => {}
+        }
     } else {
         // Normal File Manager Background
         f.render_widget(
@@ -468,17 +478,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
             draw_sidebar(f, workspace[0], app);
         }
 
-        match app.current_view {
-            CurrentView::Processes => {
-                draw_monitor_page(f, workspace[1], app);
-            }
-            CurrentView::Git => {
-                draw_git_page(f, workspace[1], app);
-            }
-            _ => {
-                draw_main_stage(f, workspace[1], app);
-            }
-        }
+        draw_main_stage(f, workspace[1], app);
 
         draw_footer(f, chunks[2], app);
     }
