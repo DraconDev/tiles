@@ -2,7 +2,7 @@
 
 ## Do
 
-- editot 
+- editor
   - 
 
 ## Done
