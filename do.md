@@ -4,7 +4,7 @@ del should with expected key combinations
 
 the markdown letter color should be white on editor
 
-tiles crashed for 
+tiles crashed for some reason ?
 
 ## Done
 ctrl x with v should work as expected
