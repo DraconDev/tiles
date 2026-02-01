@@ -1,4 +1,4 @@
-## Doing
+## Do
 
 the markdown letter color should be white on editor
 
