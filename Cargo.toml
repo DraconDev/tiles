@@ -23,5 +23,6 @@ unicode-width = "0.2.0"
 uuid = { version = "1.11.0", features = ["v4"] }
 image = "0.24"
 notify = "8.2.0"
+notify-debouncer-mini = "0.7.0"
 
 [workspace]
