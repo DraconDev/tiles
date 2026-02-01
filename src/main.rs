@@ -429,6 +429,11 @@ async fn run_tty() -> color_eyre::Result<()> {
                             }
                             needs_draw = true;
                         }
+                    } else {
+                        // Pane is gone, cleanup watcher
+                        if let Some(old) = watched_paths.remove(&idx) {
+                            let _ = watcher.unwatch(&old);
+                        }
                     }
                 }
                 AppEvent::GlobalSearchUpdated(pane_idx, global_files, metadata) => {
