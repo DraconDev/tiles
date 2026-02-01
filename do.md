@@ -1,6 +1,6 @@
 ## Do
 
-we something inject keycodes makes sre t
+we something inject keycodes makes sure that does
 
 ## Doing
 
