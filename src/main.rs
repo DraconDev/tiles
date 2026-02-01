@@ -1549,8 +1549,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
             }
 
             // Global Help Override (Moved here so Editor takes priority)
-            if key.code == KeyCode::F(1) {
-                crate::app::log_debug("F1 Help Triggered");
+            if key.code == KeyCode::F(1) || (key.code == KeyCode::Char('?') && !matches!(app.mode, AppMode::Editor | AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Command | AppMode::Search | AppMode::EditorSearch | AppMode::EditorReplace | AppMode::EditorGoToLine)) {
+                crate::app::log_debug("Help Triggered");
                 if let AppMode::Hotkeys = app.mode {
                     app.mode = app.previous_mode.clone();
                 } else {
