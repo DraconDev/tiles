@@ -363,6 +363,21 @@ async fn run_tty() -> color_eyre::Result<()> {
                                 // 1. Local update (immediate)
                                 crate::modules::files::update_files(fs, None);
 
+                                // Update Watcher
+                                let p = fs.current_path.clone();
+                                let needs_update = watched_paths.get(&idx).map(|old| *old != p).unwrap_or(true);
+                                
+                                if needs_update {
+                                    if let Some(old) = watched_paths.get(&idx) {
+                                        let _ = watcher.unwatch(old);
+                                    }
+                                    if let Err(e) = watcher.watch(&p, RecursiveMode::NonRecursive) {
+                                         crate::app::log_debug(&format!("Watch failed for {:?}: {}", p, e));
+                                    } else {
+                                         watched_paths.insert(idx, p);
+                                    }
+                                }
+
                                 // Restore selection if navigating back
                                 if let Some(pending) = &fs.pending_select_path {
                                     if let Some(pos) = fs.files.iter().position(|p| p == pending) {
