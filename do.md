@@ -1,6 +1,6 @@
 ## Do
 
-we something inject k
+we something inject keycodes in
 
 ## Doing
 
