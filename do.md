@@ -17,4 +17,3 @@ the markdown letter color should be white on editor
 
 ctrl x with v should work as expected
 
-
