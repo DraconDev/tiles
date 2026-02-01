@@ -63,15 +63,14 @@ async fn run_tty() -> color_eyre::Result<()> {
 
     // Watcher Setup
     let tx_clone = event_tx.clone();
-    let mut watcher = notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
-        if let Ok(event) = res {
-             if matches!(event.kind, notify::EventKind::Create(_) | notify::EventKind::Remove(_) | notify::EventKind::Modify(_)) {
-                 for path in event.paths {
-                     let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(path));
-                 }
-             }
+    let mut debouncer = notify_debouncer_mini::new_debouncer(Duration::from_millis(500), move |res: notify_debouncer_mini::DebounceEventResult| {
+        if let Ok(events) = res {
+            for event in events {
+                let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(event.path));
+            }
         }
     })?;
+    let watcher = debouncer.watcher();
     let mut watched_paths: std::collections::HashMap<usize, PathBuf> = std::collections::HashMap::new();
 
     // 1. Input Loop (Thread)
