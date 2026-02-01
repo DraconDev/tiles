@@ -11,9 +11,9 @@ del should with expected key combinations
 
 select row and del should work as pexpected
 
-## Done
 
 the markdown letter color should be white on editor
 
+## Done
 ctrl x with v should work as expected
 
