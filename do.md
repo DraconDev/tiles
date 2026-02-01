@@ -9,6 +9,8 @@ selecting an arena and moving it with mouse should work on the editor, and delet
 
 del should with expected key combinations 
 
+select row a
+
 ## Done
 
 the markdown letter color should be white on editor
