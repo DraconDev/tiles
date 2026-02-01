@@ -388,6 +388,8 @@ pub enum LicenseStatus {
     FreeMode,
 }
 
+use ratatui::text::Line;
+
 #[derive(Clone, Debug)]
 pub struct PreviewState {
     pub path: PathBuf,
@@ -396,6 +398,7 @@ pub struct PreviewState {
     pub editor: Option<TextEditor>,
     pub last_saved: Option<std::time::Instant>,
     pub image_data: Option<(Vec<u8>, u32, u32)>, // (RGBA data, width, height)
+    pub highlighted_lines: Option<Vec<Line<'static>>>,
 }
 
 #[derive(Serialize, Deserialize)]
