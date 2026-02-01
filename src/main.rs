@@ -576,6 +576,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         editor: Some(editor),
                                         last_saved: None,
                                         image_data: None,
+                                        highlighted_lines: None,
                                     });
                                 }
                                 needs_draw = true;
@@ -697,6 +698,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         editor: Some(editor),
                                         last_saved: None,
                                         image_data: None,
+                                        highlighted_lines: None,
                                     });
                                     app_lock.mode = AppMode::Viewer;
                                     crate::app::log_debug("AppMode changed to Viewer");
