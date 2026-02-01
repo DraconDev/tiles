@@ -395,7 +395,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         if !editor.lines.last().map(|l| l.is_empty()).unwrap_or(false) {
                                             editor.lines.push(String::new());
                                         }
-                                        *editor.cache_valid.borrow_mut() = false;
+                                        editor.invalidate_from(0);
                                         preview.content = content;
                                         preview.highlighted_lines = None;
                                     }
@@ -407,7 +407,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                     if !editor.lines.last().map(|l| l.is_empty()).unwrap_or(false) {
                                         editor.lines.push(String::new());
                                     }
-                                    *editor.cache_valid.borrow_mut() = false;
+                                    editor.invalidate_from(0);
                                     editor_state.content = content;
                                     editor_state.highlighted_lines = None;
                                 }
