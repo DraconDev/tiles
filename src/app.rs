@@ -18,6 +18,7 @@ use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub enum AppEvent {
+    FilesChangedOnDisk(PathBuf),
     RefreshFiles(usize), // pane_index
     FilesUpdated(
         usize,
