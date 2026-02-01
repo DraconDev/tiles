@@ -775,7 +775,7 @@ impl App {
             previous_mode: AppMode::Normal,
             input: TextInput::new(),
             icon_mode: guess_icon_mode(),
-            semantic_coloring: true,
+            semantic_coloring: false,
 
             panes: vec![Pane::new(file_state)],
             focused_pane_index: 0,
