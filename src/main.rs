@@ -1307,7 +1307,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
 
                             // 1. Copy (Selection or Line)
-                            if has_control && (key.code == KeyCode::Char('c') || key.code == KeyCode::Char('C')) {
+                            if (has_control && (key.code == KeyCode::Char('c') || key.code == KeyCode::Char('C'))) || (has_control && key.code == KeyCode::Insert) {
                                 let content = if let Some(selected) = editor.get_selected_text() {
                                     selected
                                 } else {
@@ -1320,7 +1320,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
 
                             // 2. Cut (Selection or Line)
-                            if has_control && (key.code == KeyCode::Char('x') || key.code == KeyCode::Char('X')) {
+                            if (has_control && (key.code == KeyCode::Char('x') || key.code == KeyCode::Char('X'))) || (key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::Delete) {
                                 let content = if let Some(selected) = editor.get_selected_text() {
                                     selected
                                 } else {
@@ -1329,8 +1329,13 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                 app.editor_clipboard = Some(content.clone());
                                 terma::utils::set_clipboard_text(&content);
                                 
-                                // Delegate actual deletion/history to widget
-                                editor.handle_event(&evt, pane_area);
+                                if let Some(_) = editor.get_selection_range() {
+                                    editor.push_history();
+                                    editor.delete_selection();
+                                } else {
+                                    // Cut line if no selection
+                                    editor.delete_line(editor.cursor_row);
+                                }
                                 
                                 let _ = event_tx.try_send(AppEvent::StatusMsg("Cut to clipboard".to_string()));
                                 if app.auto_save {
@@ -1341,7 +1346,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             }
 
                             // 3. Paste
-                            if has_control && (key.code == KeyCode::Char('v') || key.code == KeyCode::Char('V')) {
+                            if (has_control && (key.code == KeyCode::Char('v') || key.code == KeyCode::Char('V'))) || (key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::Insert) {
                                 let text_to_paste = app.editor_clipboard.clone().or_else(|| terma::utils::get_clipboard_text());
                                 if let Some(text) = text_to_paste {
                                     editor.insert_string(&text);
