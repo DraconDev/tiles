@@ -3473,10 +3473,16 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
 }
 
 fn draw_settings_modal(f: &mut Frame, app: &App) {
-    let area = centered_rect(80, 80, f.area());
+    let area = f.area();
     f.render_widget(Clear, area);
     let block = Block::default()
-        .title(" Settings ")
+        .title_top(Line::from(vec![
+            Span::styled(" SETTINGS ", Style::default().fg(Color::Black).bg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
+        ]))
+        .title_top(Line::from(vec![
+            Span::styled(" Esc ", Style::default().fg(Color::Black).bg(Color::Red).add_modifier(Modifier::BOLD)),
+            Span::styled(" Back ", Style::default().fg(Color::Red)),
+        ]).alignment(Alignment::Right))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(THEME.accent_primary));
