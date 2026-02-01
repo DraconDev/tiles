@@ -351,6 +351,16 @@ async fn run_tty() -> color_eyre::Result<()> {
                 AppEvent::MountDisk(name) => {
                     let _ = event_tx.try_send(AppEvent::StatusMsg(format!("Mounting {}...", name)));
                 }
+                AppEvent::FilesChangedOnDisk(path) => {
+                    let app_guard = app.lock().unwrap();
+                    for i in 0..app_guard.panes.len() {
+                        if let Some(fs) = app_guard.panes[i].current_state() {
+                            if path == fs.current_path || path.parent() == Some(fs.current_path.as_path()) {
+                                 let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
+                            }
+                        }
+                    }
+                }
                 AppEvent::RefreshFiles(idx) => {
                     let mut app_guard = app.lock().unwrap();
                     if let Some(pane) = app_guard.panes.get_mut(idx) {
