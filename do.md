@@ -12,8 +12,6 @@ be able to move a row up and down with alt up and down
 
 del should with expected key combinations 
 
-
-
 ## Doing
 
 ## Done
