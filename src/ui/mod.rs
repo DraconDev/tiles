@@ -38,9 +38,6 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let mut sidebar_items = Vec::new();
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
-            // ... (rest of Files view logic)
-            app.sidebar_bounds.clear();
-            let mut current_y = inner.y;
 
             // 1. Collect markers ONLY for the active (visible) tab of each PANE
             let mut active_storage_markers: HashMap<String, Vec<usize>> = HashMap::new();
