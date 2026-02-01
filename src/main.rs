@@ -1175,7 +1175,7 @@ fn setup_app(
 }
 fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> bool {
     // SHIELD: Global input cooldown to prevent artifact leakage (e.g. from Escape sequences)
-    if let Some(until) = app.ignore_resize_until {
+    if let Some(until) = app.input_shield_until {
         if std::time::Instant::now() < until {
             // Still ignore resize events normally, but consume others
             match evt {
@@ -1230,7 +1230,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             for pane in &mut app.panes {
                                 pane.preview = None;
                             }
-                            app.ignore_resize_until = Some(std::time::Instant::now() + std::time::Duration::from_millis(50));
+                            app.input_shield_until = Some(std::time::Instant::now() + std::time::Duration::from_millis(50));
                             return true;
                         }
                         _ => {}
@@ -1287,7 +1287,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             pane.preview = None;
                         }
                         // SHIELD: Prevent trailing escape sequence fragments from leaking into search
-                        app.ignore_resize_until = Some(std::time::Instant::now() + std::time::Duration::from_millis(50));
+                        app.input_shield_until = Some(std::time::Instant::now() + std::time::Duration::from_millis(50));
                         return true;
                     }
                     _ => {}
