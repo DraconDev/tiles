@@ -10,6 +10,8 @@ alt up and down should move a row up and down
 
 selecting an arena and moving it with mouse should work on the editor, and delete and backspace on it 
 
+make s
+
 ## Do
 
 
