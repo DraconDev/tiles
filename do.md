@@ -6,7 +6,7 @@ the markdown letter color should be white
 
 be able to drag selected text on the editor page
 
-when i clic
+when i ctrl
 
 ## Doing
 
