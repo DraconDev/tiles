@@ -409,6 +409,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                     }
                                     *editor.cache_valid.borrow_mut() = false;
                                     editor_state.content = content;
+                                    editor_state.highlighted_lines = None;
                                 }
                             }
                         }
