@@ -543,7 +543,7 @@ pub struct App {
     pub path_colors: HashMap<PathBuf, u8>,
     pub folder_selections: HashMap<PathBuf, usize>,
     pub expanded_folders: HashSet<PathBuf>,
-    pub ignore_resize_until: Option<std::time::Instant>,
+    pub input_shield_until: Option<std::time::Instant>,
     pub last_action_msg: Option<(String, std::time::Instant)>,
     pub pending_remote: RemoteBookmark,
     pub editor_state: Option<PreviewState>,
