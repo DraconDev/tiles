@@ -1769,15 +1769,10 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
                 draw_file_view(f, chunks[i], app, i, is_focused, borders);
             }
         }
-        CurrentView::Processes => {
-            draw_monitor_page(f, area, app);
-        }
-        CurrentView::Git => {
-            draw_git_page(f, area, app);
-        }
         CurrentView::Editor => {
             draw_editor_stage(f, area, app);
         }
+        _ => {}
     }
 }
 
