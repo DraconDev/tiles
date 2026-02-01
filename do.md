@@ -10,7 +10,7 @@ when i ctrl x and v it correctly move
 
 be able to move a row up and down with alt up and down 
 
-del should with with 
+del should with expected 
 
 
 
