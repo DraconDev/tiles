@@ -1215,6 +1215,34 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                 }
             }
 
+            // Global Escape (Ctrl+[)
+            if has_control && key.code == KeyCode::Char('[') {
+                if matches!(app.mode, AppMode::Normal) {
+                    match app.current_view {
+                        CurrentView::Git | CurrentView::Processes => {
+                            app.current_view = CurrentView::Files;
+                            return true;
+                        }
+                        CurrentView::Editor => {
+                            app.save_current_view_prefs();
+                            app.current_view = CurrentView::Files;
+                            app.load_view_prefs(CurrentView::Files);
+                            for pane in &mut app.panes {
+                                pane.preview = None;
+                            }
+                            app.ignore_resize_until = Some(std::time::Instant::now() + std::time::Duration::from_millis(50));
+                            return true;
+                        }
+                        _ => {}
+                    }
+                } else {
+                    app.mode = AppMode::Normal;
+                    app.input.clear();
+                    app.rename_selected = false;
+                    return true;
+                }
+            }
+
             // --- GLOBAL OVERRIDES (High Priority) ---
             if has_control {
                 match key.code {
