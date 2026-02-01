@@ -4,7 +4,7 @@
 
 ## Done
 
-del should with expected key combinations (Shift+Delete for permanent, Ctrl+Delete word forward, instant 'y'/'d' in confirmation)
+del should with expected key combinations
 
 the markdown letter color should be white on editor
 
