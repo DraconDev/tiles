@@ -2312,19 +2312,26 @@ fn draw_file_view(
                     Style::default().fg(THEME.border_inactive)
                 });
 
-            let language = preview.path.extension().and_then(|s| s.to_str()).unwrap_or("");
-            let highlighted = terma::utils::highlight_code(&preview.content, language);
-            let mut lines = Vec::new();
-            for (i, line) in highlighted.iter().enumerate() {
-                let mut spans = line.spans.clone();
-                // Prepend line number gutter
-                let num = format!("{:>3} │ ", i + 1);
-                spans.insert(
-                    0,
-                    Span::styled(num, Style::default().fg(Color::Rgb(60, 60, 70))),
-                );
-                lines.push(Line::from(spans));
-            }
+            let lines = if let Some(cached) = &preview.highlighted_lines {
+                cached.clone()
+            } else {
+                let language = preview.path.extension().and_then(|s| s.to_str()).unwrap_or("");
+                let highlighted = terma::utils::highlight_code(&preview.content, language);
+                let mut lines = Vec::new();
+                for (i, line) in highlighted.iter().enumerate() {
+                    let mut spans = line.spans.iter().map(|s| Span::styled(s.content.to_string(), s.style)).collect::<Vec<_>>();
+                    // Prepend line number gutter
+                    let num = format!("{:>3} │ ", i + 1);
+                    spans.insert(
+                        0,
+                        Span::styled(num, Style::default().fg(Color::Rgb(60, 60, 70))),
+                    );
+                    lines.push(Line::from(spans));
+                }
+                preview.highlighted_lines = Some(lines.clone());
+                lines
+            };
+
             let text = Paragraph::new(lines)
                 .wrap(ratatui::widgets::Wrap { trim: false })
                 .block(block);
