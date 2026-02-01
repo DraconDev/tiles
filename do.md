@@ -6,10 +6,9 @@ the markdown letter color should be white on editor
 
 tiles crashed for some reason ?
 
+ctrl x with v should work as expected
 ## Done
 
-ctrl x with v should work as expected
-ctrl x with v should work as expected
 
 
 
