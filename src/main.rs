@@ -397,6 +397,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         }
                                         *editor.cache_valid.borrow_mut() = false;
                                         preview.content = content;
+                                        preview.highlighted_lines = None;
                                     }
                                 }
                             } else if let Some(editor_state) = &mut app_guard.editor_state {
