@@ -34,8 +34,11 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         horizontal: 1,
     });
     match app.current_view {
-        CurrentView::Files | CurrentView::Editor => {
+        CurrentView::Files => {
             let mut sidebar_items = Vec::new();
+            app.sidebar_bounds.clear();
+            let mut current_y = inner.y;
+            // ... (rest of Files view logic)
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
 
