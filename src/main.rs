@@ -2764,32 +2764,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             app.rename_selected = false;
                             return true;
                         }
-                        KeyCode::Char('y') | KeyCode::Char('d') | KeyCode::Char('Y') | KeyCode::Char('D') if app.mode == AppMode::Delete => {
-                            // Instant trigger for Delete mode
-                            app.input.set_value("y".to_string());
-                            // Fallthrough to Enter logic below via a trick or just duplicate? 
-                            // Duplicating the core logic for safety.
-                            let mut paths = Vec::new();
-                            if let Some(fs) = app.current_file_state() {
-                                if !fs.selection.is_empty() {
-                                    for &idx in fs.selection.multi_selected_indices() {
-                                        if let Some(p) = fs.files.get(idx) {
-                                            paths.push(p.clone());
-                                        }
-                                    }
-                                } else if let Some(idx) = fs.selection.selected {
-                                    if let Some(path) = fs.files.get(idx) {
-                                        paths.push(path.clone());
-                                    }
-                                }
-                                for p in paths {
-                                    let _ = event_tx.try_send(AppEvent::Delete(p));
-                                }
-                            }
-                            app.mode = AppMode::Normal;
-                            app.input.clear();
-                            return true;
-                        }
                         KeyCode::Char('w') if has_control => {
                             delete_word_backwards(&mut app.input.value);
                             app.input.cursor_position = app.input.value.len();
