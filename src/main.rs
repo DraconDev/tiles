@@ -1534,24 +1534,6 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             w.saturating_sub(2),
                             h.saturating_sub(2),
                         );
-                        if has_control {
-                            match key.code {
-                                KeyCode::Char('c') | KeyCode::Char('C') => {
-                                    if let Some(text) = editor.get_selected_text() {
-                                        terma::utils::set_clipboard_text(&text);
-                                        return true;
-                                    }
-                                }
-                                KeyCode::Char('x') | KeyCode::Char('X') => {
-                                    if let Some(text) = editor.get_selected_text() {
-                                        terma::utils::set_clipboard_text(&text);
-                                        editor.delete_selection();
-                                        return true;
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
 
                         if editor.handle_event(&evt, editor_area) {
                             // AUTO-SYNC SELECTION TO CLIPBOARD
