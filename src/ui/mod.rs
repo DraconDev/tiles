@@ -2301,7 +2301,7 @@ fn draw_file_view(
     borders: Borders,
 ) {
     if let Some(pane) = app.panes.get_mut(pane_idx) {
-        if let Some(preview) = &pane.preview {
+        if let Some(preview) = &mut pane.preview {
             let block = Block::default()
                 .borders(borders)
                 .border_type(BorderType::Rounded)
