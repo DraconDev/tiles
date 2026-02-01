@@ -14,6 +14,6 @@ select row and del should work as pexpected
 
 the markdown letter color should be white on editor
 
-## Done
 ctrl x with v should work as expected
 
+## Done
