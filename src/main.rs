@@ -1457,15 +1457,12 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             app.editor_clipboard = Some(content.clone());
                             terma::utils::set_clipboard_text(&content);
 
-                            // Delegate actual deletion/history to widget
-                            let (w, h) = app.terminal_size;
-                            let editor_area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
-                            if let Some(selected) = editor.get_selection_range() {
+                            if let Some(_) = editor.get_selection_range() {
                                 editor.push_history();
                                 editor.delete_selection();
                             } else {
                                 // Cut line if no selection
-                                editor.handle_event(&evt, editor_area);
+                                editor.delete_line(editor.cursor_row);
                             }
 
                             let _ = event_tx.try_send(AppEvent::StatusMsg("Cut to clipboard".to_string()));
