@@ -70,7 +70,6 @@ async fn run_tty() -> color_eyre::Result<()> {
             }
         }
     })?;
-    let watcher = debouncer.watcher();
     let mut watched_paths: std::collections::HashMap<usize, PathBuf> = std::collections::HashMap::new();
 
     // 1. Input Loop (Thread)
