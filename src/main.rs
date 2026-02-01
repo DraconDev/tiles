@@ -430,7 +430,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                     } else {
                         // Pane is gone, cleanup watcher
                         if let Some(old) = watched_paths.remove(&idx) {
-                            let _ = debouncer.unwatch(&old);
+                            let _ = debouncer.watcher().unwatch(&old);
                         }
                     }
                 }
