@@ -10,8 +10,6 @@ we sometimes inject keycodes makes sure that doesnt happen
 
 selecting an area and moving it with mouse should work on the editor, and delete and backspace on it 
 
-
-
 del should with expected key combinations 
 
 
