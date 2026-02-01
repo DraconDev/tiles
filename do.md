@@ -1,6 +1,3 @@
-## Doing
-
-
 ## Do
 
 del should with expected key combinations 
