@@ -483,6 +483,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         draw_footer(f, chunks[2], app);
     }
 
+    // --- OVERLAYS ---
+    if let AppMode::Hotkeys = app.mode {
+        draw_hotkeys_modal(f, f.area());
+    }
     if matches!(app.mode, AppMode::ContextMenu { .. }) {
         if let AppMode::ContextMenu { x, y, ref target, .. } = app.mode {
             draw_context_menu(f, x, y, target, app);
