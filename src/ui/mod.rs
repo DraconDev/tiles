@@ -483,15 +483,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         draw_footer(f, chunks[2], app);
     }
 
-    // --- OVERLAYS ---
-    if let AppMode::Hotkeys = app.mode {
-        draw_hotkeys_modal(f, f.area());
-    }
-    if let AppMode::ContextMenu {
-        x, y, ref target, ..
-    } = app.mode
-    {
-        draw_context_menu(f, x, y, target, app);
+    if matches!(app.mode, AppMode::ContextMenu { .. }) {
+        if let AppMode::ContextMenu { x, y, ref target, .. } = app.mode {
+            draw_context_menu(f, x, y, target, app);
+        }
     }
     if matches!(app.mode, AppMode::Highlight) {
         draw_highlight_modal(f, app);
@@ -510,9 +505,6 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     }
     if matches!(app.mode, AppMode::NewFile) {
         draw_new_file_modal(f, app);
-    }
-    if matches!(app.mode, AppMode::Settings) {
-        draw_settings_modal(f, app);
     }
     if matches!(app.mode, AppMode::CommandPalette) {
         draw_command_palette(f, app);
