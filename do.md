@@ -19,4 +19,3 @@ ctrl x with v should work as expected
 
 
 
-ctrl x with v should work as expectedctrl x with v should work as expected 
