@@ -350,11 +350,65 @@ async fn run_tty() -> color_eyre::Result<()> {
                     let _ = event_tx.try_send(AppEvent::StatusMsg(format!("Mounting {}...", name)));
                 }
                 AppEvent::FilesChangedOnDisk(path) => {
-                    let app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock().unwrap();
+                    let mut needs_reload = Vec::new();
+
+                    // Check if open previews/editors need reload
+                    if let Some(editor_state) = &mut app_guard.editor_state {
+                        if editor_state.path == path {
+                            if let Some(editor) = &editor_state.editor {
+                                if !editor.modified {
+                                    needs_reload.push((None, path.clone()));
+                                }
+                            }
+                        }
+                    }
+
                     for i in 0..app_guard.panes.len() {
-                        if let Some(fs) = app_guard.panes[i].current_state() {
+                        let pane = &mut app_guard.panes[i];
+                        if let Some(preview) = &mut pane.preview {
+                            if preview.path == path {
+                                if let Some(editor) = &preview.editor {
+                                    if !editor.modified {
+                                        needs_reload.push((Some(i), path.clone()));
+                                    }
+                                }
+                            }
+                        }
+
+                        if let Some(fs) = pane.current_state() {
                             if path == fs.current_path || path.parent() == Some(fs.current_path.as_path()) {
                                  let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
+                            }
+                        }
+                    }
+
+                    // Perform reloads
+                    for (pane_idx, p) in needs_reload {
+                        if let Ok(content) = std::fs::read_to_string(&p) {
+                            if let Some(p_idx) = pane_idx {
+                                if let Some(preview) = &mut app_guard.panes[p_idx].preview {
+                                    if let Some(editor) = &mut preview.editor {
+                                        editor.lines = content.lines().map(|s| s.to_string()).collect();
+                                        if editor.lines.is_empty() { editor.lines.push(String::new()); }
+                                        // Ensure trailing empty line for extra line after everything if not present
+                                        if !editor.lines.last().map(|l| l.is_empty()).unwrap_or(false) {
+                                            editor.lines.push(String::new());
+                                        }
+                                        *editor.cache_valid.borrow_mut() = false;
+                                        preview.content = content;
+                                    }
+                                }
+                            } else if let Some(editor_state) = &mut app_guard.editor_state {
+                                if let Some(editor) = &mut editor_state.editor {
+                                    editor.lines = content.lines().map(|s| s.to_string()).collect();
+                                    if editor.lines.is_empty() { editor.lines.push(String::new()); }
+                                    if !editor.lines.last().map(|l| l.is_empty()).unwrap_or(false) {
+                                        editor.lines.push(String::new());
+                                    }
+                                    *editor.cache_valid.borrow_mut() = false;
+                                    editor_state.content = content;
+                                }
                             }
                         }
                     }
