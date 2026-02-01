@@ -692,7 +692,7 @@ impl App {
                     path_colors: state.path_colors,
                     folder_selections: HashMap::new(),
                     expanded_folders: HashSet::new(),
-                    ignore_resize_until: None,
+                    input_shield_until: None,
                     last_action_msg: None,
                     pending_remote: RemoteBookmark {
                         name: String::new(),
@@ -912,7 +912,7 @@ impl App {
             path_colors: HashMap::new(),
             folder_selections: HashMap::new(),
             expanded_folders: HashSet::new(),
-            ignore_resize_until: None,
+            input_shield_until: None,
             last_action_msg: None,
             pending_remote: RemoteBookmark {
                 name: String::new(),
