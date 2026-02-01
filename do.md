@@ -8,7 +8,7 @@ ctrl x with v should work as expected
 
 alt up and down should move a row up and down
 
-selecting an arena and moving it with mouse should work on th
+selecting an arena and moving it with mouse should work on the editor
 
 ## Do
 
