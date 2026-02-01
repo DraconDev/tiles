@@ -37,7 +37,6 @@ pub enum AppEvent {
     Copy(PathBuf, PathBuf),
     Symlink(PathBuf, PathBuf),
     Delete(PathBuf),
-    PermanentDelete(PathBuf),
     SaveFile(PathBuf, String),             // path, content
     RemoteConnected(usize, RemoteSession), // pane_idx, session
     ConnectToRemote(usize, usize),         // pane_idx, bookmark_idx
