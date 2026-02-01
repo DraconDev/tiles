@@ -3400,29 +3400,8 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                             return false;
                         }
                         KeyCode::Delete => {
-                            let has_shift = key.modifiers.contains(KeyModifiers::SHIFT);
                             if let Some(fs) = app.current_file_state() {
                                 if fs.selection.selected.is_some() {
-                                    if has_shift {
-                                        // Permanent Delete (bypass confirm for now, or use same mode)
-                                        let mut paths = Vec::new();
-                                        if !fs.selection.is_empty() {
-                                            for &idx in fs.selection.multi_selected_indices() {
-                                                if let Some(p) = fs.files.get(idx) {
-                                                    paths.push(p.clone());
-                                                }
-                                            }
-                                        } else if let Some(idx) = fs.selection.selected {
-                                            if let Some(p) = fs.files.get(idx) {
-                                                paths.push(p.clone());
-                                            }
-                                        }
-                                        for p in paths {
-                                            let _ = event_tx.try_send(AppEvent::PermanentDelete(p));
-                                        }
-                                        return true;
-                                    }
-
                                     if app.confirm_delete {
                                         app.mode = AppMode::Delete;
                                     } else {
