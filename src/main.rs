@@ -4,7 +4,7 @@ use std::time::Duration;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
-use notify::{Watcher, RecursiveMode};
+use notify::RecursiveMode;
 
 // Terma Imports
 use terma::input::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind, KeyEventKind};
