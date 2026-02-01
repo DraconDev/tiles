@@ -849,10 +849,25 @@ fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
 }
 
 fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
+    let block = Block::default()
+        .title_top(Line::from(vec![
+            Span::styled(" SYSTEM MONITOR ", Style::default().fg(Color::Black).bg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
+        ]))
+        .title_top(Line::from(vec![
+            Span::styled(" Esc ", Style::default().fg(Color::Black).bg(Color::Red).add_modifier(Modifier::BOLD)),
+            Span::styled(" Back ", Style::default().fg(Color::Red)),
+        ]).alignment(Alignment::Right))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(THEME.accent_primary));
+    
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)])
-        .split(area);
+        .split(inner);
 
     let nav_area = chunks[0].inner(ratatui::layout::Margin {
         horizontal: 2,
