@@ -1157,13 +1157,22 @@ fn setup_app(
     (app, tx, rx)
 }
 fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> bool {
+    // SHIELD: Global input cooldown to prevent artifact leakage (e.g. from Escape sequences)
+    if let Some(until) = app.ignore_resize_until {
+        if std::time::Instant::now() < until {
+            // Still ignore resize events normally, but consume others
+            match evt {
+                Event::Resize(w, h) => {
+                    app.terminal_size = (w, h);
+                }
+                _ => {}
+            }
+            return true; 
+        }
+    }
+
     match evt {
         Event::Resize(w, h) => {
-            if let Some(until) = app.ignore_resize_until {
-                if std::time::Instant::now() < until {
-                    return true;
-                }
-            }
             app.terminal_size = (w, h);
             return true;
         }
