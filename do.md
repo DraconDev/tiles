@@ -9,8 +9,6 @@ selecting an area and moving it with mouse should work on the editor, and delete
 
 del should with expected key combinations 
 
-select row and del should work as pexpected
-
 
 the markdown letter color should be white on editor
 
