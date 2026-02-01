@@ -377,9 +377,9 @@ async fn run_tty() -> color_eyre::Result<()> {
                                 
                                 if needs_update {
                                     if let Some(old) = watched_paths.get(&idx) {
-                                        let _ = watcher.unwatch(old);
+                                        let _ = debouncer.unwatch(old);
                                     }
-                                    if let Err(e) = watcher.watch(&p, RecursiveMode::NonRecursive) {
+                                    if let Err(e) = debouncer.watch(&p, RecursiveMode::NonRecursive) {
                                          crate::app::log_debug(&format!("Watch failed for {:?}: {}", p, e));
                                     } else {
                                          watched_paths.insert(idx, p);
