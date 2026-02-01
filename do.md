@@ -8,7 +8,7 @@ be able to drag selected text on the editor page
 
 when i ctrl x and v it correctly move
 
-be able to move a row up and 
+be able to move a row up and down with alt up and do
 
 
 
