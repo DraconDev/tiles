@@ -727,6 +727,23 @@ async fn run_tty() -> color_eyre::Result<()> {
                         }
                     }
                 }
+                AppEvent::PermanentDelete(path) => {
+                    let res = if path.is_dir() {
+                        std::fs::remove_dir_all(&path)
+                    } else {
+                        std::fs::remove_file(&path)
+                    };
+
+                    if let Err(e) = res {
+                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!("Permanent delete failed: {}", e)));
+                    } else {
+                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!("Permanently deleted {}", path.display())));
+                        let app_guard = app.lock().unwrap();
+                        for i in 0..app_guard.panes.len() {
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(i));
+                        }
+                    }
+                }
                 AppEvent::SaveFile(path, content) => {
                     if let Err(e) = std::fs::write(&path, &content) {
                         let _ =
