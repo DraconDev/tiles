@@ -1,10 +1,10 @@
 ## Doing
 
 we sometimes inject keycodes makes sure that doesnt happen
+## Do
 
 selecting an arena and moving it with mouse should work on the editor, and delete and backspace on it 
 
-## Do
 
 
 del should with expected key combinations 
