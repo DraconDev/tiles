@@ -8,7 +8,7 @@ ctrl x with v should work as expected
 
 alt up and down should move a row up and down
 
-
+selecti
 
 ## Do
 
