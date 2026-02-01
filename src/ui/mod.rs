@@ -2614,10 +2614,12 @@ fn draw_file_view(
                                     suffix.push_str(" [*]");
                                 }
                                 if !is_selected && !is_multi_selected && !app.path_colors.contains_key(path) && !is_hovered_drop {
-                                    if is_dir {
-                                        cell_style = cell_style.fg(THEME.accent_secondary);
-                                    } else if app.semantic_coloring {
-                                        cell_style = cell_style.fg(cat.cyber_color());
+                                    if app.semantic_coloring {
+                                        if is_dir {
+                                            cell_style = cell_style.fg(THEME.accent_secondary);
+                                        } else {
+                                            cell_style = cell_style.fg(cat.cyber_color());
+                                        }
                                     }
                                 }
                                 let icon_w = icon_str.chars().map(get_visual_width).sum::<usize>();
