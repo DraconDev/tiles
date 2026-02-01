@@ -61,6 +61,19 @@ async fn run_tty() -> color_eyre::Result<()> {
 
     let (app, event_tx, mut event_rx) = setup_app(tile_queue);
 
+    // Watcher Setup
+    let tx_clone = event_tx.clone();
+    let mut watcher = notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+        if let Ok(event) = res {
+             if matches!(event.kind, notify::EventKind::Create(_) | notify::EventKind::Remove(_) | notify::EventKind::Modify(_)) {
+                 for path in event.paths {
+                     let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(path));
+                 }
+             }
+        }
+    })?;
+    let mut watched_paths: std::collections::HashMap<usize, PathBuf> = std::collections::HashMap::new();
+
     // 1. Input Loop (Thread)
     {
         let tx = event_tx.clone();
