@@ -11,7 +11,6 @@
 
 
 
-
 selecting an arena and moving it with mouse should work on the editor, and delete and backspace on it 
 
 we sometimes inject keycodes makes sure that doesnt happen
