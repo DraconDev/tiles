@@ -573,7 +573,7 @@ pub fn handle_context_menu_action(
         }
         ContextMenuAction::AddToFavorites => {
             crate::app::log_debug(&format!("DEBUG: AddToFavorites action triggered with target {:?}", target));
-            if let ContextMenuTarget::Folder(idx) = target {
+            if let ContextMenuTarget::Folder(idx) | ContextMenuTarget::File(idx) = target {
                 if let Some(fs) = app.current_file_state() {
                     if let Some(path) = fs.files.get(*idx) {
                         crate::app::log_debug(&format!("DEBUG: Adding path to favorites: {:?}", path));
