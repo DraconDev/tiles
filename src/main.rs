@@ -149,10 +149,15 @@ async fn run_tty() -> color_eyre::Result<()> {
         }
     }
 
-    crate::app::log_debug("Entering main loop");
-    let mut panes_needing_refresh = std::collections::HashSet::new();
-    loop {
-        let mut needs_draw = false;
+        crate::app::log_debug("Entering main loop");
+
+        let mut panes_needing_refresh = std::collections::HashSet::new();
+
+        loop {
+
+            let mut needs_draw = false;
+
+    
 
         while let Ok(event) = event_rx.try_recv() {
             match event {
