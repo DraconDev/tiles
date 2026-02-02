@@ -4171,17 +4171,27 @@ fn handle_event(
                                 return true;
                             }
 
-                            let (aw, ah) = match app.mode {
-                                AppMode::Properties => {
-                                    ((w as f32 * 0.5) as u16, (h as f32 * 0.5) as u16)
+                            if let AppMode::Hotkeys = app.mode {
+                                // Hotkeys modal is 70%x80%
+                                let (hw, hh) = ((w as f32 * 0.7) as u16, (h as f32 * 0.8) as u16);
+                                let (hx, hy) = ((w - hw) / 2, (h - hh) / 2);
+                                if column < hx || column >= hx + hw || row < hy || row >= hy + hh {
+                                    app.mode = app.previous_mode.clone();
+                                    return true;
                                 }
-                                AppMode::CommandPalette
-                                | AppMode::AddRemote(_)
-                                | AppMode::OpenWith(_) => {
-                                    ((w as f32 * 0.6) as u16, (h as f32 * 0.2) as u16)
+                                return true;
+                            }
+                            let (ax, ay) = ((w - aw) / 2, (h - ah) / 2);
+                            if column >= ax && column < ax + aw && row >= ay && row < ay + ah {
+                                if let AppMode::Properties = app.mode {
+                                    // Click inside properties?
                                 }
-                                _ => ((w as f32 * 0.4) as u16, (h as f32 * 0.1) as u16),
-                            };
+                            } else {
+                                app.mode = AppMode::Normal;
+                                app.input.clear();
+                            }
+                            return true;
+                        }
                         MouseEventKind::ScrollUp => {
                             if let AppMode::Editor = app.mode {
                                 if let Some(preview) = &mut app.editor_state {
