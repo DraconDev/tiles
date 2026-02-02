@@ -570,6 +570,18 @@ pub fn handle_context_menu_action(
                 let _ = save_state(app);
             }
         }
+        ContextMenuAction::AddToFavorites => {
+            if let ContextMenuTarget::Folder(idx) = target {
+                if let Some(fs) = app.current_file_state() {
+                    if let Some(path) = fs.files.get(*idx) {
+                        if !app.starred.contains(path) {
+                            app.starred.push(path.clone());
+                            let _ = save_state(app);
+                        }
+                    }
+                }
+            }
+        }
         ContextMenuAction::Copy => {
             if let ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) = target {
                 if let Some(fs) = app.current_file_state() {
