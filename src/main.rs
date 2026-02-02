@@ -4090,10 +4090,88 @@ fn handle_event(
                             return true; // Trap movement and release in modals
                         }
                         MouseEventKind::Down(_button) => {
-                            let (aw, ah) = match app.mode {
-                                AppMode::Settings => {
-                                    ((w as f32 * 0.8) as u16, (h as f32 * 0.8) as u16)
+                            if let AppMode::Settings = app.mode {
+                                // Full Screen Settings handling
+                                if row == 0 {
+                                    if column >= w.saturating_sub(10) {
+                                        app.mode = AppMode::Normal;
+                                        return true;
+                                    }
                                 }
+
+                                let inner_x = 1; // Border(1)
+                                let inner_y = 1; // Border(1)
+                                
+                                if column < inner_x + 20 { // Section list width is now 20
+                                    let rel_y = row.saturating_sub(inner_y);
+                                    match rel_y {
+                                        0 => app.settings_section = SettingsSection::Columns,
+                                        1 => app.settings_section = SettingsSection::Tabs,
+                                        2 => app.settings_section = SettingsSection::General,
+                                        3 => app.settings_section = SettingsSection::Remotes,
+                                        4 => app.settings_section = SettingsSection::Shortcuts,
+                                        _ => {}
+                                    }
+                                    app.settings_index = 0;
+                                } else {
+                                    match app.settings_section {
+                                        SettingsSection::General => {
+                                            // General uses Table starting at y=2 (Border 1 + Header 1)
+                                            let rel_y = row.saturating_sub(inner_y + 1);
+                                            if rel_y <= 5 { // 6 items: 0-5
+                                                app.settings_index = rel_y as usize;
+                                                match rel_y {
+                                                    0 => app.default_show_hidden = !app.default_show_hidden,
+                                                    1 => app.confirm_delete = !app.confirm_delete,
+                                                    2 => app.smart_date = !app.smart_date,
+                                                    3 => app.semantic_coloring = !app.semantic_coloring,
+                                                    4 => app.auto_save = !app.auto_save,
+                                                    5 => {
+                                                        app.icon_mode = match app.icon_mode {
+                                                            IconMode::Nerd => IconMode::Unicode,
+                                                            IconMode::Unicode => IconMode::ASCII,
+                                                            IconMode::ASCII => IconMode::Nerd,
+                                                        };
+                                                    }
+                                                    _ => {}
+                                                }
+                                                let _ = crate::config::save_state(app);
+                                            }
+                                        }
+                                        SettingsSection::Columns => {
+                                            // Columns uses Tabs at y=1, List at y=4
+                                            if row >= inner_y && row < inner_y + 3 {
+                                                let cx = column.saturating_sub(inner_x + 20);
+                                                if cx < 12 {
+                                                    app.settings_target = SettingsTarget::SingleMode;
+                                                } else if cx < 25 {
+                                                    app.settings_target = SettingsTarget::SplitMode;
+                                                }
+                                            } else if row >= inner_y + 4 {
+                                                let ry = row.saturating_sub(inner_y + 4);
+                                                if ry <= 3 {
+                                                    app.settings_index = ry as usize;
+                                                    let col = match ry {
+                                                        0 => crate::app::FileColumn::Size,
+                                                        1 => crate::app::FileColumn::Modified,
+                                                        2 => crate::app::FileColumn::Created,
+                                                        3 => crate::app::FileColumn::Permissions,
+                                                        _ => crate::app::FileColumn::Name,
+                                                    };
+                                                    if col != crate::app::FileColumn::Name {
+                                                        app.toggle_column(col);
+                                                    }
+                                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                                }
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                return true;
+                            }
+
+                            let (aw, ah) = match app.mode {
                                 AppMode::Properties => {
                                     ((w as f32 * 0.5) as u16, (h as f32 * 0.5) as u16)
                                 }
@@ -4104,109 +4182,6 @@ fn handle_event(
                                 }
                                 _ => ((w as f32 * 0.4) as u16, (h as f32 * 0.1) as u16),
                             };
-                            if let AppMode::Hotkeys = app.mode {
-                                // Hotkeys modal is 70%x80%
-                                let (hw, hh) = ((w as f32 * 0.7) as u16, (h as f32 * 0.8) as u16);
-                                let (hx, hy) = ((w - hw) / 2, (h - hh) / 2);
-                                if column < hx || column >= hx + hw || row < hy || row >= hy + hh {
-                                    app.mode = app.previous_mode.clone();
-                                    return true;
-                                }
-                                return true;
-                            }
-                            let (ax, ay) = ((w - aw) / 2, (h - ah) / 2);
-                            if column >= ax && column < ax + aw && row >= ay && row < ay + ah {
-                                // ... existing logic ...
-                                if let AppMode::Settings = app.mode {
-                                    let inner_x = ax + 1;
-                                    let inner_y = ay + 1;
-                                    if column < inner_x + 15 {
-                                        let rel_y = row.saturating_sub(inner_y);
-                                        match rel_y {
-                                            0 => app.settings_section = SettingsSection::Columns,
-                                            1 => app.settings_section = SettingsSection::Tabs,
-                                            2 => app.settings_section = SettingsSection::General,
-                                            3 => app.settings_section = SettingsSection::Remotes,
-                                            4 => app.settings_section = SettingsSection::Shortcuts,
-                                            _ => {}
-                                        }
-                                        app.settings_index = 0;
-                                    } else {
-                                        match app.settings_section {
-                                            SettingsSection::General => {
-                                                let rel_y = row.saturating_sub(inner_y + 1);
-                                                if rel_y <= 3 {
-                                                    app.settings_index = rel_y as usize;
-                                                    match rel_y {
-                                                        0 => {
-                                                            app.default_show_hidden =
-                                                                !app.default_show_hidden
-                                                        }
-                                                        1 => {
-                                                            app.confirm_delete = !app.confirm_delete
-                                                        }
-                                                        2 => app.smart_date = !app.smart_date,
-                                                        3 => {
-                                                            app.icon_mode = match app.icon_mode {
-                                                                IconMode::Nerd => IconMode::Unicode,
-                                                                IconMode::Unicode => {
-                                                                    IconMode::ASCII
-                                                                }
-                                                                IconMode::ASCII => IconMode::Nerd,
-                                                            };
-                                                        }
-                                                        _ => {}
-                                                    }
-                                                    let _ = crate::config::save_state(app);
-                                                }
-                                            }
-                                            SettingsSection::Columns => {
-                                                if row >= inner_y && row < inner_y + 3 {
-                                                    let cx = column.saturating_sub(inner_x + 15);
-                                                    if cx < 12 {
-                                                        app.settings_target =
-                                                            SettingsTarget::SingleMode;
-                                                    } else if cx < 25 {
-                                                        app.settings_target =
-                                                            SettingsTarget::SplitMode;
-                                                    }
-                                                } else if row >= inner_y + 4 {
-                                                    let ry = row.saturating_sub(inner_y + 4);
-                                                    if ry <= 3 {
-                                                        app.settings_index = ry as usize;
-                                                        match ry {
-                                                            0 => app.toggle_column(
-                                                                crate::app::FileColumn::Size,
-                                                            ),
-                                                            1 => app.toggle_column(
-                                                                crate::app::FileColumn::Modified,
-                                                            ),
-                                                            2 => app.toggle_column(
-                                                                crate::app::FileColumn::Created,
-                                                            ),
-                                                            3 => app.toggle_column(
-                                                                crate::app::FileColumn::Permissions,
-                                                            ),
-                                                            _ => {}
-                                                        }
-                                                        let _ = event_tx.try_send(
-                                                            AppEvent::RefreshFiles(
-                                                                app.focused_pane_index,
-                                                            ),
-                                                        );
-                                                    }
-                                                }
-                                            }
-                                            _ => {}
-                                        }
-                                    }
-                                }
-                            } else {
-                                app.mode = AppMode::Normal;
-                                app.input.clear();
-                            }
-                            return true;
-                        }
                         MouseEventKind::ScrollUp => {
                             if let AppMode::Editor = app.mode {
                                 if let Some(preview) = &mut app.editor_state {
