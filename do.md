@@ -1,6 +1,6 @@
 ## Do
 
-full screen folder moder 
+full screen folder mode
 
 
 ## Done
