@@ -1,5 +1,7 @@
 ## Do
 
+
+
 ## Done
 
 the settings screen needs work (Improved layout, added icons, more settings)
