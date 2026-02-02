@@ -204,6 +204,8 @@ impl App {
             semantic_coloring: true,
             auto_save: false,
             default_show_hidden: false,
+            single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
+            split_columns: vec![FileColumn::Name, FileColumn::Size],
             monitor_subview: MonitorSubview::Overview,
             monitor_subview_bounds: Vec::new(),
             process_sort_col: ProcessColumn::Cpu,
