@@ -1,27 +1,25 @@
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{
-        Block, BorderType, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Scrollbar,
-        ScrollbarOrientation, ScrollbarState, Table, TableState, Tabs,
+        Block, BorderType, Borders, Clear, List, ListItem, Paragraph, Scrollbar,
+        ScrollbarOrientation, ScrollbarState, TableState,
     },
     Frame,
 };
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
 use crate::app::{
-    App, AppMode, CurrentView, DropTarget, FileCategory, FileColumn, MonitorSubview, ProcessColumn,
-    SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget,
+    App, AppMode, CurrentView, DropTarget, FileColumn, 
+    SidebarBounds, SidebarTarget,
 };
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
-use terma::layout::centered_rect;
 use terma::widgets::HotkeyHint;
 use terma::utils::{
-    format_permissions, format_size, format_time, get_visual_width, squarify, truncate_to_width,
+    format_permissions, format_size, get_visual_width, squarify, truncate_to_width,
 };
 use unicode_width::UnicodeWidthStr;
 
