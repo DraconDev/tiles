@@ -1115,8 +1115,26 @@ fn setup_app(
     mpsc::Receiver<AppEvent>,
 ) {
     let (tx, rx) = mpsc::channel(1000);
-    let app = Arc::new(Mutex::new(App::new(tile_queue)));
-    (app, tx, rx)
+    let mut app = App::new(tile_queue);
+    
+    if let Some(state) = crate::config::load_state() {
+        app.panes = state.panes;
+        app.focused_pane_index = state.focused_pane_index;
+        app.starred = state.starred;
+        app.remote_bookmarks = state.remote_bookmarks;
+        app.current_view = state.current_view;
+        app.path_colors = state.path_colors;
+        app.external_tools = state.external_tools;
+        if let Some(mode) = state.icon_mode { app.icon_mode = mode; }
+        app.is_split_mode = state.is_split_mode;
+        app.semantic_coloring = state.semantic_coloring;
+        app.show_sidebar = state.show_sidebar;
+        app.show_side_panel = state.show_side_panel;
+        app.default_show_hidden = state.default_show_hidden;
+    }
+
+    let app_arc = Arc::new(Mutex::new(app));
+    (app_arc, tx, rx)
 }
 fn handle_event(
     evt: Event,
