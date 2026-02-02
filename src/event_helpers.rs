@@ -1215,3 +1215,22 @@ pub fn handle_context_menu_action(
     }
     app.mode = AppMode::Normal;
 }
+
+pub fn get_open_with_suggestions(app: &App, ext: &str) -> Vec<String> {
+    let mut suggestions = terma::utils::get_open_with_suggestions(ext);
+
+    // Add custom tools from App settings (persisted choices)
+    if let Some(custom_tools) = app.external_tools.get(ext) {
+        for tool in custom_tools {
+            if !suggestions.contains(&tool.command) {
+                suggestions.insert(0, tool.command.clone());
+            }
+        }
+    }
+
+    // Only return programs that actually exist on the system
+    suggestions
+        .into_iter()
+        .filter(|s| terma::utils::command_exists(s))
+        .collect()
+}
