@@ -498,7 +498,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::Rename) {
         draw_rename_modal(f, app);
     }
-    if matches!(app.mode, AppMode::Delete) {
+    if matches!(app.mode, AppMode::Delete | AppMode::DeleteFile(_)) {
         draw_delete_modal(f, app);
     }
     if matches!(app.mode, AppMode::Properties) {
