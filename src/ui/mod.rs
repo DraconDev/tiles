@@ -438,7 +438,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         }
     } else if matches!(app.mode, AppMode::Settings) {
         f.render_widget(Block::default().style(Style::default().bg(Color::Black)), f.area());
-        draw_settings_modal(f, app);
+        modals::draw_settings_modal(f, app);
     } else if matches!(app.current_view, CurrentView::Processes | CurrentView::Git) {
         f.render_widget(Block::default().style(Style::default().bg(Color::Black)), f.area());
         match app.current_view {
