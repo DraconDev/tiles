@@ -5,7 +5,7 @@ also if w can showfile length and file sizes maybe file sizes that would be grea
 
 we need to update teh terma path to be the github one 
 
-we want to support midle click paste using that clipboard, like 
+we want to support midle click paste using that clipboard, 
 
 
 ## Done
