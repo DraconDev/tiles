@@ -107,6 +107,7 @@ pub enum ContextMenuTarget {
     SidebarFavorite(PathBuf),
     SidebarRemote(usize),
     SidebarStorage(usize),
+    ProjectTree(PathBuf),
     Process(u32), // PID
 }
 
