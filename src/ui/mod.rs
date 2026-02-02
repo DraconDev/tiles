@@ -1,9 +1,7 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
     widgets::{
-        Block, BorderType, Borders, Clear,
+        Block, BorderType, Borders,
     },
     Frame,
 };
@@ -11,7 +9,6 @@ use ratatui::{
 use crate::app::{
     App, AppMode, CurrentView,
 };
-use crate::ui::theme::THEME;
 use terma::widgets::HotkeyHint;
 
 pub mod layout;
@@ -99,8 +96,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::Delete) {
         modals::draw_delete_modal(f, app);
     }
-    if let AppMode::DeleteFile(ref _path) = app.mode {
-        modals::draw_delete_modal(f, app); 
+    if let AppMode::DeleteFile(ref path) = app.mode {
+        modals::draw_delete_file_modal(f, app, path); 
     }
     if matches!(app.mode, AppMode::Properties) {
         modals::draw_properties_modal(f, app);
@@ -133,6 +130,12 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 }
 
 fn draw_editor_view(f: &mut Frame, app: &mut App) {
+    use ratatui::style::Modifier;
+    use ratatui::text::Span;
+    use ratatui::style::Color;
+    use ratatui::style::Style;
+    use ratatui::text::Line;
+
     let (border_color, status_text) = if let AppMode::Viewer = app.mode {
         (Color::White, " Viewer ")
     } else if let Some(preview) = &app.editor_state {
