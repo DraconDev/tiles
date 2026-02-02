@@ -16,13 +16,9 @@ pub use terma::widgets::context_menu::ContextMenuAction;
 use terma::widgets::{TextEditor, TextInput};
 use uuid::Uuid;
 
-pub mod state {
-    pub use crate::state::*;
-}
-
 pub use crate::state::{
     AppEvent, AppMode, ClipboardOp, CommandAction, CommitInfo, ContextMenuTarget, CurrentView,
-    DiskInfo as StateDiskInfo, DropTarget, FileMetadata, FileState, GitStatus, LicenseStatus,
+    DropTarget, FileMetadata, FileState, GitStatus, LicenseStatus,
     MonitorSubview, Pane, PreviewState, ProcessColumn, RemoteBookmark, RemoteSession,
     SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget, SystemState, UndoAction,
     ViewPreferences, ViewStatePersistence,
