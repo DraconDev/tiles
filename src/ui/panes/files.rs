@@ -348,9 +348,7 @@ pub fn draw_file_view(
                         FileColumn::Permissions => {
                             format_permissions(metadata.map(|m| m.permissions).unwrap_or(0))
                         }
-                        FileColumn::Extension => {
-                            metadata.map(|m| m.extension.clone()).unwrap_or_default()
-                        }
+                        _ => String::new(),
                     };
 
                     let alignment = match col_type {
