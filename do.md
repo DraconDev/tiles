@@ -1,5 +1,7 @@
 ## Do
 
-the settings screen n
+the settings screen needs work
+
+
 
 ## Done
