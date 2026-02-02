@@ -355,6 +355,17 @@ pub fn handle_modal_mouse(me: &terma::input::event::MouseEvent, app: &mut App, e
     let column = me.column;
     let row = me.row;
 
+    // Middle-click paste for input modals
+    if let MouseEventKind::Down(MouseButton::Middle) = me.kind {
+        if matches!(app.mode, AppMode::Rename | AppMode::NewFile | AppMode::NewFolder | AppMode::Delete | AppMode::AddRemote(_) | AppMode::EditorSearch | AppMode::EditorReplace | AppMode::EditorGoToLine) {
+            if let Some(text) = terma::utils::get_clipboard_text() {
+                app.input.push_str(&text);
+                app.rename_selected = false;
+                return true;
+            }
+        }
+    }
+
     match app.mode.clone() {
         AppMode::Highlight => {
             if let MouseEventKind::Down(_) = me.kind {

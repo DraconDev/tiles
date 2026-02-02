@@ -14,7 +14,7 @@ dirs = "5.0.1"
 chrono = "0.4.42"
 ratatui = "0.29.0"
 ssh2 = "0.9.5"
-terma = { git = "https://github.com/DraconDev/terma", branch = "master" }
+terma = { path = "../terma" }
 tokio = { version = "1.0", features = ["full"] }
 openssl = { version = "0.10", features = ["vendored"] }
 toml = "0.9.11"
