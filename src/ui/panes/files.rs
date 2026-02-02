@@ -18,6 +18,16 @@ use terma::utils::{
     format_permissions, format_size, truncate_to_width,
 };
 
+pub fn draw_pane(f: &mut Frame, area: Rect, pane_idx: usize, app: &mut App) {
+    let is_focused = app.focused_pane_index == pane_idx;
+    let borders = if app.is_split_mode {
+        if pane_idx == 0 { Borders::ALL } else { Borders::TOP | Borders::BOTTOM | Borders::RIGHT }
+    } else {
+        Borders::ALL
+    };
+    draw_file_view(f, area, app, pane_idx, is_focused, borders);
+}
+
 pub fn draw_file_view(
     f: &mut Frame,
     area: Rect,
