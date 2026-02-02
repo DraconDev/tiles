@@ -2,6 +2,6 @@
 
 the settings screen needs work
 
-the editor k
+the editor keeps crasing
 
 ## Done
