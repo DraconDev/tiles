@@ -1,6 +1,6 @@
 ## Do
 
-remotes and tabs sectionlcould use some love and sortcuts ca be extended if we 
+remotes and tabs sectionlcould use some love and sortcuts ca be extended if we yet to i
 
 ## Done
 
