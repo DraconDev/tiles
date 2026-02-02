@@ -17,10 +17,6 @@ use crate::app::{
     App, AppEvent, CurrentView,
     UndoAction,
 };
-use crate::icons::{Icon, IconMode};
-use unicode_width::UnicodeWidthStr;
-use terma::utils::get_visual_width;
-
 mod app;
 mod config;
 mod event;
