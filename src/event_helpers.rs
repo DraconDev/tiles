@@ -268,6 +268,7 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
             }
 
             actions.extend(vec![
+                ContextMenuAction::AddToFavorites,
                 ContextMenuAction::SetColor(None),
                 ContextMenuAction::Separator,
                 ContextMenuAction::Properties,
