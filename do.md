@@ -1,6 +1,6 @@
 ## Do
 
-full scree
+full screen fil
 
 
 ## Done
