@@ -313,8 +313,16 @@ fn handle_generic_editor_shortcuts(
         }
     }
     if key.code == KeyCode::F(2) {
-        *prev_mode = mode.clone(); *mode = AppMode::EditorReplace; input.clear(); replace_buffer.clear();
-        let _ = event_tx.try_send(AppEvent::StatusMsg("Replace: Type term to FIND, then press Enter/Tab".to_string()));
+        crate::app::log_debug("DEBUG: F2 pressed in Editor - triggering Rename");
+        let name = path.file_name().unwrap_or_else(|| std::ffi::OsStr::new("root")).to_string_lossy().to_string();
+        *prev_mode = mode.clone();
+        *mode = AppMode::Rename;
+        input.set_value(name.clone());
+        if let Some(idx) = name.rfind('.') {
+            input.cursor_position = if idx > 0 { idx } else { name.len() };
+        } else {
+            input.cursor_position = name.len();
+        }
         return true;
     }
 

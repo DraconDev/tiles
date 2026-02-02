@@ -174,6 +174,8 @@ fn handle_general_mouse(me: &terma::input::event::MouseEvent, app: &mut App, eve
     let (w, h) = app.terminal_size;
     app.mouse_pos = (column, row);
 
+    crate::app::log_debug(&format!("DEBUG: Mouse Event: {:?} at ({}, {})", me.kind, column, row));
+
     // 1. Sidebar Resizing
     if app.is_resizing_sidebar {
         match me.kind {
