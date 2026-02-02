@@ -1,5 +1,5 @@
 ## Do
 
-the settings 
+the settings screen
 
 ## Done
