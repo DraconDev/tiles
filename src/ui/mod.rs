@@ -37,12 +37,12 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     }
 
     if let AppMode::Settings = app.mode {
-        pages::settings::draw_settings_page(f, app);
+        pages::settings::draw_settings_modal(f, app);
         return;
     }
 
     if let AppMode::Hotkeys = app.mode {
-        modals::draw_hotkeys_modal(f, app);
+        modals::draw_hotkeys_modal(f, f.area());
         return;
     }
 
@@ -100,7 +100,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         modals::draw_delete_modal(f, app);
     }
     if let AppMode::DeleteFile(ref path) = app.mode {
-        modals::draw_delete_file_modal(f, app, path);
+        modals::draw_delete_modal(f, app); // Use general delete for now
     }
     if matches!(app.mode, AppMode::Properties) {
         modals::draw_properties_modal(f, app);
