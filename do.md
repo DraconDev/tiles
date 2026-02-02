@@ -1,6 +1,6 @@
 ## Do
 
-remotes and tabs sectionlcould 
+remotes and tabs sectionlcould use 
 
 ## Done
 
