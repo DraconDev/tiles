@@ -100,6 +100,10 @@ pub fn handle_editor_mouse(me: &MouseEvent, app: &mut App, event_tx: &mpsc::Send
     let column = me.column;
     let row = me.row;
 
+    if let MouseEventKind::Down(MouseButton::Middle) = me.kind {
+        crate::app::log_debug(&format!("DEBUG: Middle Click in handle_editor_mouse at ({}, {})", column, row));
+    }
+
     // A. Check for Full-Screen Editor
     if let AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorReplace | AppMode::EditorGoToLine = app.mode {
         if let Some(preview) = &mut app.editor_state {
