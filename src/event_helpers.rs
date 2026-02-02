@@ -526,12 +526,34 @@ pub fn handle_context_menu_action(
             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
         }
         ContextMenuAction::NewFile => {
-            app.mode = AppMode::NewFile;
+            if let ContextMenuTarget::ProjectTree(path) = target {
+                // If path is a file, use parent. If dir, use itself.
+                let base = if path.is_dir() { path.clone() } else { path.parent().unwrap_or(path).to_path_buf() };
+                app.mode = AppMode::NewFile;
+                // We need a way to tell the app where to create it. 
+                // Currently NewFile uses current_file_state.current_path.
+                // Let's assume for now it uses the focused pane's path if we don't change core logic.
+                // Better: Update current_path of focused pane to the tree base if needed? 
+                // User wants to create in THAT folder.
+                if let Some(fs) = app.current_file_state_mut() {
+                    fs.current_path = base;
+                }
+            } else {
+                app.mode = AppMode::NewFile;
+            }
             app.input.clear();
             return;
         }
         ContextMenuAction::NewFolder => {
-            app.mode = AppMode::NewFolder;
+            if let ContextMenuTarget::ProjectTree(path) = target {
+                let base = if path.is_dir() { path.clone() } else { path.parent().unwrap_or(path).to_path_buf() };
+                app.mode = AppMode::NewFolder;
+                if let Some(fs) = app.current_file_state_mut() {
+                    fs.current_path = base;
+                }
+            } else {
+                app.mode = AppMode::NewFolder;
+            }
             app.input.clear();
             return;
         }
