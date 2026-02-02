@@ -2862,7 +2862,7 @@ fn handle_event(
                     }
                     _ => return false,
                 },
-                AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete => {
+                AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::DeleteFile(_) => {
                     match key.code {
                         KeyCode::Esc => {
                             app.mode = AppMode::Normal;
@@ -2899,6 +2899,27 @@ fn handle_event(
                         }
                         KeyCode::Enter => {
                             let input = app.input.value.clone();
+                            
+                            // Special case for DeleteFile (no current_file_state needed for path)
+                            if let AppMode::DeleteFile(ref path) = app.mode {
+                                let ic = input.trim().to_lowercase();
+                                if ic == "y" || ic == "yes" || ic.is_empty() || !app.confirm_delete {
+                                    let path = path.clone();
+                                    let _ = event_tx.try_send(AppEvent::Delete(path));
+                                    app.mode = AppMode::Normal;
+                                    app.current_view = CurrentView::Files;
+                                    // Clear editors
+                                    for pane in &mut app.panes {
+                                        pane.preview = None;
+                                    }
+                                    app.editor_state = None;
+                                } else {
+                                    app.mode = AppMode::Normal;
+                                }
+                                app.input.clear();
+                                return true;
+                            }
+
                             if let Some(fs) = app.current_file_state() {
                                 let path = fs.current_path.join(&input);
                                 crate::app::log_debug(&format!(
