@@ -1,6 +1,7 @@
-use terma::input::event::{Event, KeyCode, KeyModifiers};
+use terma::input::event::{Event, KeyCode, KeyModifiers, MouseEventKind, MouseButton};
 use tokio::sync::mpsc;
 use crate::app::{App, AppEvent, AppMode, CurrentView};
+use unicode_width::UnicodeWidthStr;
 
 pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     let key = match evt {
@@ -92,6 +93,125 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
     }
 
     false
+}
+
+pub fn handle_editor_mouse(me: &terma::input::event::MouseEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
+    let (w, h) = app.terminal_size;
+    let column = me.column;
+    let row = me.row;
+
+    // A. Check for Full-Screen Editor
+    if let AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorReplace | AppMode::EditorGoToLine = app.mode {
+        if let Some(preview) = &mut app.editor_state {
+            if let Some(editor) = &mut preview.editor {
+                let editor_area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
+                
+                // Header buttons
+                if row == 0 && let MouseEventKind::Down(MouseButton::Left) = me.kind {
+                    if column >= w.saturating_sub(10) { app.running = false; return true; }
+                    else if column >= w.saturating_sub(20) { app.mode = AppMode::Normal; app.editor_state = None; return true; }
+                    return true;
+                }
+
+                return handle_text_editor_mouse(me, editor, app, editor_area, event_tx, &preview.path);
+            }
+        }
+    }
+
+    // B. Check for IDE Mode (Pane Editor)
+    if app.current_view == CurrentView::Editor && column >= app.sidebar_width() {
+        let sw = app.sidebar_width();
+        let cw = w.saturating_sub(sw);
+        let pc = app.panes.len();
+        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+        let cp = (column.saturating_sub(sw) / pw) as usize;
+        
+        if cp < pc {
+            app.focused_pane_index = cp;
+            app.sidebar_focus = false;
+
+            if let Some(pane) = app.panes.get_mut(cp) {
+                if let Some(preview) = &mut pane.preview {
+                    if let Some(editor) = &mut preview.editor {
+                        let pane_area = ratatui::layout::Rect::new(
+                            sw + (cp as u16 * pw) + 1,
+                            3, 
+                            pw.saturating_sub(2),
+                            h.saturating_sub(4),
+                        );
+                        return handle_text_editor_mouse(me, editor, app, pane_area, event_tx, &preview.path);
+                    }
+                }
+            }
+        }
+    }
+
+    false
+}
+
+fn handle_text_editor_mouse(
+    me: &terma::input::event::MouseEvent,
+    editor: &mut terma::widgets::TextEditor,
+    app: &mut App,
+    area: ratatui::layout::Rect,
+    event_tx: &mpsc::Sender<AppEvent>,
+    path: &std::path::PathBuf,
+) -> bool {
+    match me.kind {
+        MouseEventKind::Down(MouseButton::Left) => {
+            let now = std::time::Instant::now();
+            if now.duration_since(app.mouse_last_click) < std::time::Duration::from_millis(500)
+                && app.mouse_click_pos == (me.column, me.row) {
+                app.mouse_click_count += 1;
+            } else {
+                app.mouse_click_count = 1;
+            }
+
+            let rel_row = (me.row - area.y) as usize;
+            let target_row = editor.scroll_row + rel_row;
+
+            match app.mouse_click_count {
+                2 => {
+                    if target_row < editor.lines.len() {
+                        let gutter = editor.gutter_width();
+                        if me.column >= area.x + gutter as u16 {
+                            let rel_col = (me.column - area.x - gutter as u16) as usize;
+                            let target_visual = editor.scroll_col + rel_col;
+                            let byte_col = editor.get_byte_index_from_visual(target_row, target_visual);
+                            editor.select_word_at(target_row, byte_col);
+                        }
+                    }
+                }
+                3 => {
+                    if target_row < editor.lines.len() { editor.select_line_at(target_row); }
+                    app.mouse_click_count = 0;
+                }
+                _ => { editor.handle_mouse_event(me, area); }
+            }
+            app.mouse_last_click = now;
+            app.mouse_click_pos = (me.column, me.row);
+        }
+        MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
+            editor.handle_mouse_event(me, area);
+        }
+        _ => { editor.handle_mouse_event(me, area); }
+    }
+
+    // Sync selection to clipboard
+    if let Some(selected_text) = editor.get_selected_text() {
+        if selected_text.width() > 1 {
+            app.editor_clipboard = Some(selected_text.clone());
+            terma::utils::set_clipboard_text(&selected_text);
+        }
+    }
+
+    // Auto-save on modification
+    if app.auto_save && editor.modified {
+        let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
+        editor.modified = false;
+    }
+
+    true
 }
 
 fn handle_generic_editor_shortcuts(
