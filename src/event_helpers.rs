@@ -347,7 +347,7 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
                 ]);
             } else {
                 actions.extend(vec![
-                    ContextMenuAction::TerminalHere,
+                    ContextMenuAction::TerminalTab,
                     ContextMenuAction::Separator,
                 ]);
             }
