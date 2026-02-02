@@ -2800,7 +2800,7 @@ fn handle_event(
                                 }
                             }
                             SettingsSection::Remotes => {
-                                if let Some(bookmark) = app.remote_bookmarks.get(app.settings_index) {
+                                if let Some(_bookmark) = app.remote_bookmarks.get(app.settings_index) {
                                     let _ = event_tx.try_send(AppEvent::ConnectToRemote(app.focused_pane_index, app.settings_index));
                                     app.mode = AppMode::Normal;
                                 }
