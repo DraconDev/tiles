@@ -5,7 +5,7 @@ also if w can showfile length and file sizes maybe file sizes that would be grea
 
 we want to support midle click paste, you know in linux
 
-we also falsely injec
+we also falsely injeted two keyco
 
 
 ## Done
