@@ -401,16 +401,22 @@ pub fn handle_modal_mouse(me: &terma::input::event::MouseEvent, app: &mut App, e
             if dy + mh > h { dy = h.saturating_sub(mh); }
 
             if let MouseEventKind::Down(_) = me.kind {
+                crate::app::log_debug(&format!("DEBUG: ContextMenu click at ({}, {}) area: ({}, {}, {}, {})", column, row, dx, dy, mw, mh));
                 if column >= dx && column < dx + mw && row >= dy && row < dy + mh {
+                    let rel_y = row.saturating_sub(dy + 1);
                     if row > dy && row < dy + mh - 1 {
-                        if let Some(action) = actions.get((row - dy - 1) as usize) {
+                        if let Some(action) = actions.get(rel_y as usize) {
+                            crate::app::log_debug(&format!("DEBUG: ContextMenu action selected: {:?}", action));
                             if *action != ContextMenuAction::Separator {
                                 crate::event_helpers::handle_context_menu_action(action, target, app, event_tx.clone());
                                 app.mode = AppMode::Normal;
                             }
                         }
                     }
-                } else { app.mode = AppMode::Normal; }
+                } else { 
+                    crate::app::log_debug("DEBUG: ContextMenu clicked outside, closing");
+                    app.mode = AppMode::Normal; 
+                }
                 return true;
             }
         }
