@@ -468,6 +468,11 @@ pub fn handle_context_menu_action(
             }
         }
         ContextMenuAction::Delete => {
+            if let ContextMenuTarget::ProjectTree(path) = target {
+                app.mode = AppMode::DeleteFile(path.clone());
+                app.input.set_value("y".to_string());
+                return;
+            }
             app.mode = AppMode::Delete;
             return;
         }
