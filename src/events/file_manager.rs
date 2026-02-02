@@ -515,93 +515,92 @@ pub fn handle_file_mouse(me: &terma::input::event::MouseEvent, app: &mut App, ev
 
             // 3. File Row Interaction
             if row >= 3 {
-                    let idx = crate::event_helpers::fs_mouse_index(row, app);
-                    let mut sp = None;
-                    let mut is_dir = false;
-                    let is_shift = me.modifiers.contains(KeyModifiers::SHIFT) || me.modifiers.contains(KeyModifiers::ALT);
-                    let is_ctrl = me.modifiers.contains(KeyModifiers::CONTROL);
-                    let has_mods = is_shift || is_ctrl;
-                    app.prevent_mouse_up_selection_cleanup = has_mods;
+                let idx = crate::event_helpers::fs_mouse_index(row, app);
+                let mut sp = None;
+                let mut is_dir = false;
+                let is_shift = me.modifiers.contains(KeyModifiers::SHIFT) || me.modifiers.contains(KeyModifiers::ALT);
+                let is_ctrl = me.modifiers.contains(KeyModifiers::CONTROL);
+                let has_mods = is_shift || is_ctrl;
+                app.prevent_mouse_up_selection_cleanup = has_mods;
 
-                    let sel_mode = app.selection_mode;
-                    if let Some(fs) = app.current_file_state_mut() {
-                        if idx < fs.files.len() {
-                            let is_divider = fs.files[idx].to_string_lossy() == "__DIVIDER__";
-                            if is_divider {
-                                if idx + 1 < fs.files.len() { fs.selection.handle_move(idx + 1, false); fs.table_state.select(fs.selection.selected); }
-                                return true;
-                            }
-
-                            if button == MouseButton::Left {
-                                fs.selection.handle_click(idx, is_shift, is_ctrl, sel_mode && !is_shift);
-                                fs.table_state.select(fs.selection.selected);
-                            }
-                            
-                            let p = fs.files[idx].clone();
-                            is_dir = fs.metadata.get(&p).map(|m| m.is_dir).unwrap_or(false);
-                            sp = Some(p);
-                        } else if button == MouseButton::Left && !has_mods {
-                            fs.selection.clear();
-                            fs.table_state.select(None);
-                        } else if button == MouseButton::Right {
-                            let target = ContextMenuTarget::EmptySpace;
-                            let actions = crate::event_helpers::get_context_menu_actions(&target, app);
-                            app.mode = AppMode::ContextMenu { x: column, y: row, target, actions, selected_index: None };
+                let sel_mode = app.selection_mode;
+                if let Some(fs) = app.current_file_state_mut() {
+                    if idx < fs.files.len() {
+                        let is_divider = fs.files[idx].to_string_lossy() == "__DIVIDER__";
+                        if is_divider {
+                            if idx + 1 < fs.files.len() { fs.selection.handle_move(idx + 1, false); fs.table_state.select(fs.selection.selected); }
                             return true;
                         }
-                    }
 
-                    if let Some(path) = sp {
-                        if button == MouseButton::Right {
-                            let target = if is_dir { ContextMenuTarget::Folder(idx) } else { ContextMenuTarget::File(idx) };
-                            let actions = crate::event_helpers::get_context_menu_actions(&target, app);
-                            app.mode = AppMode::ContextMenu { x: column, y: row, target, actions, selected_index: None };
-                            return true;
+                        if button == MouseButton::Left {
+                            fs.selection.handle_click(idx, is_shift, is_ctrl, sel_mode && !is_shift);
+                            fs.table_state.select(fs.selection.selected);
                         }
-                        if button == MouseButton::Middle {
-                            if is_dir {
-                                if let Some(p) = app.panes.get_mut(app.focused_pane_index) {
-                                    if let Some(fs) = p.current_state() {
-                                        let mut nfs = fs.clone();
-                                        nfs.current_path = path.clone();
-                                        nfs.selection.clear();
-                                        crate::event_helpers::push_history(&mut nfs, path);
-                                        p.open_tab(nfs);
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                    }
-                                }
-                            } else {
-                                let _ = event_tx.try_send(AppEvent::PreviewRequested(if app.focused_pane_index == 0 { 1 } else { 0 }, path));
-                            }
-                            return true;
-                        }
-                        app.drag_source = Some(path.clone());
-                        app.drag_start_pos = Some((column, row));
                         
-                        // Double Click
-                        if button == MouseButton::Left && app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
-                            if path.is_dir() {
-                                if let Some(fs) = app.current_file_state_mut() {
-                                    fs.current_path = path.clone();
-                                    fs.selection.clear();
-                                    crate::event_helpers::push_history(fs, path);
-                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                                }
-                            } else {
-                                terma::utils::spawn_detached("xdg-open", vec![path.to_string_lossy().to_string()]);
-                            }
-                        }
-                        app.mouse_last_click = std::time::Instant::now();
-                        app.mouse_click_pos = (column, row);
+                        let p = fs.files[idx].clone();
+                        is_dir = fs.metadata.get(&p).map(|m| m.is_dir).unwrap_or(false);
+                        sp = Some(p);
+                    } else if button == MouseButton::Left && !has_mods {
+                        fs.selection.clear();
+                        fs.table_state.select(None);
+                    } else if button == MouseButton::Right {
+                        let target = ContextMenuTarget::EmptySpace;
+                        let actions = crate::event_helpers::get_context_menu_actions(&target, app);
+                        app.mode = AppMode::ContextMenu { x: column, y: row, target, actions, selected_index: None };
+                        return true;
                     }
                 }
-                
-                if button == MouseButton::Middle {
-                    if let Some(text) = terma::utils::get_primary_selection_text() {
-                        if let Some(fs) = app.current_file_state_mut() {
-                            fs.search_filter.push_str(&text);
-                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+
+                if let Some(path) = sp {
+                    if button == MouseButton::Right {
+                        let target = if is_dir { ContextMenuTarget::Folder(idx) } else { ContextMenuTarget::File(idx) };
+                        let actions = crate::event_helpers::get_context_menu_actions(&target, app);
+                        app.mode = AppMode::ContextMenu { x: column, y: row, target, actions, selected_index: None };
+                        return true;
+                    }
+                    if button == MouseButton::Middle {
+                        if is_dir {
+                            if let Some(p) = app.panes.get_mut(app.focused_pane_index) {
+                                if let Some(fs) = p.current_state() {
+                                    let mut nfs = fs.clone();
+                                    nfs.current_path = path.clone();
+                                    nfs.selection.clear();
+                                    crate::event_helpers::push_history(&mut nfs, path);
+                                    p.open_tab(nfs);
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                }
+                            }
+                        } else {
+                            let _ = event_tx.try_send(AppEvent::PreviewRequested(if app.focused_pane_index == 0 { 1 } else { 0 }, path));
                         }
+                        return true;
+                    }
+                    app.drag_source = Some(path.clone());
+                    app.drag_start_pos = Some((column, row));
+                    
+                    // Double Click
+                    if button == MouseButton::Left && app.mouse_last_click.elapsed() < Duration::from_millis(500) && app.mouse_click_pos == (column, row) {
+                        if path.is_dir() {
+                            if let Some(fs) = app.current_file_state_mut() {
+                                fs.current_path = path.clone();
+                                fs.selection.clear();
+                                crate::event_helpers::push_history(fs, path);
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                            }
+                        } else {
+                            terma::utils::spawn_detached("xdg-open", vec![path.to_string_lossy().to_string()]);
+                        }
+                    }
+                    app.mouse_last_click = std::time::Instant::now();
+                    app.mouse_click_pos = (column, row);
+                }
+            }
+            
+            if button == MouseButton::Middle {
+                if let Some(text) = terma::utils::get_primary_selection_text() {
+                    if let Some(fs) = app.current_file_state_mut() {
+                        fs.search_filter.push_str(&text);
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                 }
             }
