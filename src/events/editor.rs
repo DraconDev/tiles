@@ -1,4 +1,4 @@
-use terma::input::event::{Event, KeyCode, KeyModifiers, MouseEventKind, MouseButton};
+use terma::input::event::{Event, KeyCode, KeyModifiers, MouseEventKind, MouseButton, MouseEvent};
 use tokio::sync::mpsc;
 use crate::app::{App, AppEvent, AppMode, CurrentView};
 use unicode_width::UnicodeWidthStr;
@@ -95,7 +95,7 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
     false
 }
 
-pub fn handle_editor_mouse(me: &terma::input::event::MouseEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
+pub fn handle_editor_mouse(me: &MouseEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     let (w, h) = app.terminal_size;
     let column = me.column;
     let row = me.row;
@@ -107,13 +107,23 @@ pub fn handle_editor_mouse(me: &terma::input::event::MouseEvent, app: &mut App, 
                 let editor_area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
                 
                 // Header buttons
-                if row == 0 && let MouseEventKind::Down(MouseButton::Left) = me.kind {
-                    if column >= w.saturating_sub(10) { app.running = false; return true; }
-                    else if column >= w.saturating_sub(20) { app.mode = AppMode::Normal; app.editor_state = None; return true; }
-                    return true;
+                if row == 0 {
+                    if let MouseEventKind::Down(MouseButton::Left) = me.kind {
+                        if column >= w.saturating_sub(10) { app.running = false; return true; }
+                        else if column >= w.saturating_sub(20) { app.mode = AppMode::Normal; app.editor_state = None; return true; }
+                        return true;
+                    }
                 }
 
-                return handle_text_editor_mouse(me, editor, app, editor_area, event_tx, &preview.path);
+                let mut clipboard = app.editor_clipboard.clone();
+                let handled = handle_text_editor_mouse(
+                    me, editor, &mut clipboard,
+                    &mut app.mouse_last_click, &mut app.mouse_click_pos, &mut app.mouse_click_count,
+                    app.auto_save,
+                    editor_area, event_tx, &preview.path
+                );
+                app.editor_clipboard = clipboard;
+                return handled;
             }
         }
     }
@@ -139,7 +149,15 @@ pub fn handle_editor_mouse(me: &terma::input::event::MouseEvent, app: &mut App, 
                             pw.saturating_sub(2),
                             h.saturating_sub(4),
                         );
-                        return handle_text_editor_mouse(me, editor, app, pane_area, event_tx, &preview.path);
+                        let mut clipboard = app.editor_clipboard.clone();
+                        let handled = handle_text_editor_mouse(
+                            me, editor, &mut clipboard,
+                            &mut app.mouse_last_click, &mut app.mouse_click_pos, &mut app.mouse_click_count,
+                            app.auto_save,
+                            pane_area, event_tx, &preview.path
+                        );
+                        app.editor_clipboard = clipboard;
+                        return handled;
                     }
                 }
             }
@@ -150,9 +168,13 @@ pub fn handle_editor_mouse(me: &terma::input::event::MouseEvent, app: &mut App, 
 }
 
 fn handle_text_editor_mouse(
-    me: &terma::input::event::MouseEvent,
+    me: &MouseEvent,
     editor: &mut terma::widgets::TextEditor,
-    app: &mut App,
+    clipboard: &mut Option<String>,
+    mouse_last_click: &mut std::time::Instant,
+    mouse_click_pos: &mut (u16, u16),
+    mouse_click_count: &mut u8,
+    auto_save: bool,
     area: ratatui::layout::Rect,
     event_tx: &mpsc::Sender<AppEvent>,
     path: &std::path::PathBuf,
@@ -160,17 +182,17 @@ fn handle_text_editor_mouse(
     match me.kind {
         MouseEventKind::Down(MouseButton::Left) => {
             let now = std::time::Instant::now();
-            if now.duration_since(app.mouse_last_click) < std::time::Duration::from_millis(500)
-                && app.mouse_click_pos == (me.column, me.row) {
-                app.mouse_click_count += 1;
+            if now.duration_since(*mouse_last_click) < std::time::Duration::from_millis(500)
+                && *mouse_click_pos == (me.column, me.row) {
+                *mouse_click_count += 1;
             } else {
-                app.mouse_click_count = 1;
+                *mouse_click_count = 1;
             }
 
-            let rel_row = (me.row - area.y) as usize;
+            let rel_row = (me.row as i32 - area.y as i32) as usize;
             let target_row = editor.scroll_row + rel_row;
 
-            match app.mouse_click_count {
+            match *mouse_click_count {
                 2 => {
                     if target_row < editor.lines.len() {
                         let gutter = editor.gutter_width();
@@ -184,29 +206,26 @@ fn handle_text_editor_mouse(
                 }
                 3 => {
                     if target_row < editor.lines.len() { editor.select_line_at(target_row); }
-                    app.mouse_click_count = 0;
+                    *mouse_click_count = 0;
                 }
-                _ => { editor.handle_mouse_event(me, area); }
+                _ => { editor.handle_mouse_event(*me, area); }
             }
-            app.mouse_last_click = now;
-            app.mouse_click_pos = (me.column, me.row);
+            *mouse_last_click = now;
+            *mouse_click_pos = (me.column, me.row);
         }
-        MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
-            editor.handle_mouse_event(me, area);
-        }
-        _ => { editor.handle_mouse_event(me, area); }
+        _ => { editor.handle_mouse_event(*me, area); }
     }
 
     // Sync selection to clipboard
     if let Some(selected_text) = editor.get_selected_text() {
         if selected_text.width() > 1 {
-            app.editor_clipboard = Some(selected_text.clone());
+            *clipboard = Some(selected_text.clone());
             terma::utils::set_clipboard_text(&selected_text);
         }
     }
 
     // Auto-save on modification
-    if app.auto_save && editor.modified {
+    if auto_save && editor.modified {
         let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
         editor.modified = false;
     }

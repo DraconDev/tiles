@@ -1,6 +1,7 @@
 use terma::input::event::{Event, KeyCode, KeyModifiers, MouseEventKind, MouseButton};
 use tokio::sync::mpsc;
 use std::collections::HashSet;
+use std::path::PathBuf;
 use std::time::Duration;
 use unicode_width::UnicodeWidthStr;
 use terma::utils::get_visual_width;
@@ -439,7 +440,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
 pub fn handle_file_mouse(me: &terma::input::event::MouseEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>, _panes_needing_refresh: &mut HashSet<usize>) -> bool {
     let column = me.column;
     let row = me.row;
-    let (w, h) = app.terminal_size;
+    let (w, _h) = app.terminal_size;
     let sw = app.sidebar_width();
 
     match me.kind {
@@ -509,6 +510,7 @@ pub fn handle_file_mouse(me: &terma::input::event::MouseEvent, app: &mut App, ev
                     let has_mods = is_shift || is_ctrl;
                     app.prevent_mouse_up_selection_cleanup = has_mods;
 
+                    let sel_mode = app.selection_mode;
                     if let Some(fs) = app.current_file_state_mut() {
                         if idx < fs.files.len() {
                             let is_divider = fs.files[idx].to_string_lossy() == "__DIVIDER__";
@@ -518,7 +520,7 @@ pub fn handle_file_mouse(me: &terma::input::event::MouseEvent, app: &mut App, ev
                             }
 
                             if button == MouseButton::Left {
-                                fs.selection.handle_click(idx, is_shift, is_ctrl, app.selection_mode && !is_shift);
+                                fs.selection.handle_click(idx, is_shift, is_ctrl, sel_mode && !is_shift);
                                 fs.table_state.select(fs.selection.selected);
                             }
                             
@@ -588,7 +590,8 @@ pub fn handle_file_mouse(me: &terma::input::event::MouseEvent, app: &mut App, ev
                 // Drop Logic (simplified for brevity, should match original)
                 app.is_dragging = false;
             }
-            if row >= 3 && !app.prevent_mouse_up_selection_cleanup && !app.selection_mode && !me.modifiers.contains(KeyModifiers::SHIFT) {
+            let sel_mode = app.selection_mode;
+            if row >= 3 && !app.prevent_mouse_up_selection_cleanup && !sel_mode && !me.modifiers.contains(KeyModifiers::SHIFT) {
                 let idx = crate::event_helpers::fs_mouse_index(row, app);
                 if let Some(fs) = app.current_file_state_mut() {
                     if idx < fs.files.len() {
@@ -614,7 +617,8 @@ pub fn handle_file_mouse(me: &terma::input::event::MouseEvent, app: &mut App, ev
             }
             
             // Selection extension
-            if row >= 3 && column >= sw && (me.modifiers.contains(KeyModifiers::SHIFT) || app.selection_mode) && !app.is_dragging {
+            let sel_mode = app.selection_mode;
+            if row >= 3 && column >= sw && (me.modifiers.contains(KeyModifiers::SHIFT) || sel_mode) && !app.is_dragging {
                 let idx = crate::event_helpers::fs_mouse_index(row, app);
                 if let Some(fs) = app.current_file_state_mut() {
                     if !fs.files.is_empty() {
