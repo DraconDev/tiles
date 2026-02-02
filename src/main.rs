@@ -2929,10 +2929,16 @@ fn handle_event(
                                 match app.mode {
                                     AppMode::NewFile => {
                                         let _ = event_tx.try_send(AppEvent::CreateFile(path));
+                                        if let Some(fs) = app.current_file_state_mut() {
+                                            fs.search_filter.clear();
+                                        }
                                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     }
                                     AppMode::NewFolder => {
                                         let _ = event_tx.try_send(AppEvent::CreateFolder(path));
+                                        if let Some(fs) = app.current_file_state_mut() {
+                                            fs.search_filter.clear();
+                                        }
                                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     }
                                     AppMode::Rename => {
