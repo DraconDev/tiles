@@ -84,8 +84,8 @@ fn sort_files(state: &mut FileState) {
 }
 
 fn calculate_folder_size(path: &std::path::Path) -> u64 {
-    const MAX_DEPTH: usize = 3;
-    const MAX_FILES: usize = 500;
+    const MAX_DEPTH: usize = 2;
+    const MAX_FILES: usize = 100;
 
     fn walk_dir(path: &std::path::Path, depth: usize, count: &mut usize) -> std::io::Result<u64> {
         if depth > MAX_DEPTH {
