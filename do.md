@@ -1,6 +1,6 @@
 ## Do
 
-remotes and tabs sectionlcould use some
+remotes and tabs sectionlcould use some love and 
 
 ## Done
 
