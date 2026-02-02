@@ -173,7 +173,7 @@ fn handle_text_editor_mouse(
     clipboard: &mut Option<String>,
     mouse_last_click: &mut std::time::Instant,
     mouse_click_pos: &mut (u16, u16),
-    mouse_click_count: &mut u8,
+    mouse_click_count: &mut usize,
     auto_save: bool,
     area: ratatui::layout::Rect,
     event_tx: &mpsc::Sender<AppEvent>,
