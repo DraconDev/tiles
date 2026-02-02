@@ -3629,9 +3629,13 @@ fn handle_event(
                             }
                             if let Some(fs) = app.current_file_state_mut() {
                                 fs.search_filter.push(c);
-                                fs.selection.selected = Some(0);
-                                fs.selection.anchor = Some(0);
-                                *fs.table_state.offset_mut() = 0;
+                                if !app.sidebar_focus {
+                                    fs.selection.selected = Some(0);
+                                    fs.selection.anchor = Some(0);
+                                    *fs.table_state.offset_mut() = 0;
+                                } else {
+                                    app.sidebar_index = 0;
+                                }
                                 let _ = event_tx
                                     .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             }
@@ -3651,9 +3655,13 @@ fn handle_event(
                             if let Some(fs) = app.current_file_state_mut() {
                                 if !fs.search_filter.is_empty() {
                                     fs.search_filter.pop();
-                                    fs.selection.selected = Some(0);
-                                    fs.selection.anchor = Some(0);
-                                    *fs.table_state.offset_mut() = 0;
+                                    if !app.sidebar_focus {
+                                        fs.selection.selected = Some(0);
+                                        fs.selection.anchor = Some(0);
+                                        *fs.table_state.offset_mut() = 0;
+                                    } else {
+                                        app.sidebar_index = 0;
+                                    }
                                     let _ = event_tx
                                         .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     handled_search = true;
