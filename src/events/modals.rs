@@ -359,7 +359,13 @@ pub fn handle_modal_mouse(me: &terma::input::event::MouseEvent, app: &mut App, e
     if let MouseEventKind::Down(MouseButton::Middle) = me.kind {
         if matches!(app.mode, AppMode::Rename | AppMode::NewFile | AppMode::NewFolder | AppMode::Delete | AppMode::AddRemote(_) | AppMode::EditorSearch | AppMode::EditorReplace | AppMode::EditorGoToLine) {
             if let Some(text) = terma::utils::get_clipboard_text() {
-                app.input.insert_string(&text);
+                let pos = app.input.cursor_position;
+                if pos >= app.input.value.len() {
+                    app.input.value.push_str(&text);
+                } else {
+                    app.input.value.insert_str(pos, &text);
+                }
+                app.input.cursor_position += text.len();
                 app.rename_selected = false;
                 return true;
             }
