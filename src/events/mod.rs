@@ -132,9 +132,48 @@ pub fn handle_event(
     false
 }
 
-fn handle_general_mouse(me: &terma::input::event::MouseEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
+fn handle_general_mouse(me: &terma::input::event::MouseEvent, app: &mut App, _event_tx: &mpsc::Sender<AppEvent>) -> bool {
     // This will eventually delegate to file_manager::handle_file_mouse, etc.
     // For now, I'll implement the core routing logic.
     app.mouse_pos = (me.column, me.row);
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use terma::input::event::{KeyEvent, KeyModifiers, KeyEventKind};
+    use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn test_global_hotkeys_routing() {
+        let tile_queue = Arc::new(Mutex::new(Vec::new()));
+        let mut app = App::new(tile_queue);
+        let (tx, _rx) = mpsc::channel(100);
+        let mut refresh_set = HashSet::new();
+
+        // Test Sidebar Toggle (Ctrl+B)
+        let evt = Event::Key(KeyEvent {
+            code: KeyCode::Char('b'),
+            modifiers: KeyModifiers::CONTROL,
+            kind: KeyEventKind::Press,
+            state: terma::input::event::KeyEventState::empty(),
+        });
+        
+        let initial_sidebar = app.show_sidebar;
+        handle_event(evt, &mut app, tx.clone(), &mut refresh_set);
+        assert_ne!(app.show_sidebar, initial_sidebar);
+
+        // Test Split Toggle (Ctrl+P)
+        let evt_split = Event::Key(KeyEvent {
+            code: KeyCode::Char('p'),
+            modifiers: KeyModifiers::CONTROL,
+            kind: KeyEventKind::Press,
+            state: terma::input::event::KeyEventState::empty(),
+        });
+        
+        let initial_split = app.is_split_mode;
+        handle_event(evt_split, &mut app, tx.clone(), &mut refresh_set);
+        assert_ne!(app.is_split_mode, initial_split);
+    }
 }
