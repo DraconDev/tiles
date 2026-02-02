@@ -75,7 +75,7 @@ pub fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             let pc = app.panes.len();
             let pw = if pc > 0 { area.width / pc as u16 } else { area.width };
             
-            for (i, _pane) in app.panes.iter().enumerate() {
+            for i in 0..pc {
                 let pane_area = Rect::new(
                     area.x + (i as u16 * pw),
                     area.y,
