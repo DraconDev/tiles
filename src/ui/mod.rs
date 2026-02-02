@@ -443,7 +443,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     } else if matches!(app.current_view, CurrentView::Processes | CurrentView::Git) {
         f.render_widget(Block::default().style(Style::default().bg(Color::Black)), f.area());
         match app.current_view {
-            CurrentView::Processes => draw_monitor_page(f, f.area(), app),
+            CurrentView::Processes => pages::monitor::draw_monitor_page(f, f.area(), app),
             CurrentView::Git => draw_git_page(f, f.area(), app),
             _ => {}
         }
