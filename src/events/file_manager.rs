@@ -1,6 +1,6 @@
 use terma::input::event::{Event, KeyCode, KeyModifiers, MouseEventKind, MouseButton};
 use tokio::sync::mpsc;
-use std::path::PathBuf;
+use std::collections::HashSet;
 use std::time::Duration;
 use unicode_width::UnicodeWidthStr;
 use terma::utils::get_visual_width;
@@ -813,9 +813,13 @@ fn handle_quick_copy(app: &mut App, event_tx: &mpsc::Sender<AppEvent>, _to_left:
                  if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); }
              }
              for p in paths {
-                 let dest = dest_path.join(p.file_name().unwrap_or_else(|| std::ffi::OsStr::new("root")));
+                 let dest = path_join(&dest_path, p.file_name().unwrap_or_else(|| std::ffi::OsStr::new("root")));
                  let _ = event_tx.try_send(AppEvent::Copy(p, dest));
              }
          }
      }
+}
+
+fn path_join(base: &PathBuf, name: &std::ffi::OsStr) -> PathBuf {
+    base.join(name)
 }
