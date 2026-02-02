@@ -15,13 +15,12 @@ pub fn handle_modal_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<A
 }
 
 fn handle_modal_keys(key: &terma::input::event::KeyEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>, evt: &Event) -> bool {
-    let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
-    
-    match &app.mode {
-        AppMode::ContextMenu { actions, target, selected_index, .. } => {
-            handle_context_menu_keys(key, app, event_tx, actions, target, *selected_index)
+    let mode = app.mode.clone();
+    match mode {
+        AppMode::ContextMenu { ref actions, ref target, selected_index, .. } => {
+            handle_context_menu_keys(key, app, event_tx, actions, target, selected_index)
         }
-        AppMode::DragDropMenu { sources, target } => {
+        AppMode::DragDropMenu { ref sources, ref target } => {
             handle_drag_drop_keys(key, app, event_tx, sources, target)
         }
         AppMode::EditorReplace => {
@@ -37,7 +36,7 @@ fn handle_modal_keys(key: &terma::input::event::KeyEvent, app: &mut App, event_t
             handle_command_palette_keys(key, app, event_tx, evt)
         }
         AppMode::AddRemote(idx) => {
-            handle_add_remote_keys(key, app, event_tx, *idx, evt)
+            handle_add_remote_keys(key, app, event_tx, idx, evt)
         }
         AppMode::Highlight => {
             handle_highlight_keys(key, app)
@@ -46,7 +45,7 @@ fn handle_modal_keys(key: &terma::input::event::KeyEvent, app: &mut App, event_t
             handle_input_modals_keys(key, app, event_tx)
         }
         AppMode::Header(idx) => {
-            handle_header_keys(key, app, event_tx, *idx)
+            handle_header_keys(key, app, event_tx, idx)
         }
         _ => false,
     }
@@ -135,7 +134,6 @@ fn handle_editor_replace_keys(key: &terma::input::event::KeyEvent, app: &mut App
                 let find_term = app.replace_buffer.clone();
                 let is_all = key.modifiers.contains(KeyModifiers::CONTROL);
 
-                // Check global editor
                 if let Some(preview) = &mut app.editor_state {
                     if let Some(editor) = &mut preview.editor {
                         editor.push_history();
@@ -149,17 +147,13 @@ fn handle_editor_replace_keys(key: &terma::input::event::KeyEvent, app: &mut App
                         }
                     }
                 }
-                // Check IDE editor
                 let focused_idx = app.focused_pane_index;
                 if let Some(pane) = app.panes.get_mut(focused_idx) {
                     if let Some(preview) = &mut pane.preview {
                         if let Some(editor) = &mut preview.editor {
                             editor.push_history();
-                            if is_all {
-                                editor.replace_all(&find_term, &replace_term);
-                            } else {
-                                editor.replace_next(&find_term, &replace_term);
-                            }
+                            if is_all { editor.replace_all(&find_term, &replace_term); }
+                            else { editor.replace_next(&find_term, &replace_term); }
                         }
                     }
                 }
@@ -177,8 +171,8 @@ fn handle_editor_replace_keys(key: &terma::input::event::KeyEvent, app: &mut App
     }
 }
 
-fn handle_editor_search_keys(key: &terma::input::event::KeyEvent, app: &mut App, _event_tx: &mpsc::Sender<AppEvent>, evt: &Event) -> bool {
-    match key.code {
+fn handle_editor_search_keys(_key: &terma::input::event::KeyEvent, app: &mut App, _event_tx: &mpsc::Sender<AppEvent>, evt: &Event) -> bool {
+    match _key.code {
         KeyCode::Esc | KeyCode::Enter => {
             let clear_filter = |ed: &mut terma::widgets::TextEditor| ed.set_filter("");
             if let Some(preview) = &mut app.editor_state { if let Some(editor) = &mut preview.editor { clear_filter(editor); } }
@@ -203,8 +197,8 @@ fn handle_editor_search_keys(key: &terma::input::event::KeyEvent, app: &mut App,
     }
 }
 
-fn handle_editor_goto_keys(key: &terma::input::event::KeyEvent, app: &mut App, _event_tx: &mpsc::Sender<AppEvent>, evt: &Event) -> bool {
-    match key.code {
+fn handle_editor_goto_keys(_key: &terma::input::event::KeyEvent, app: &mut App, _event_tx: &mpsc::Sender<AppEvent>, evt: &Event) -> bool {
+    match _key.code {
         KeyCode::Esc => { app.mode = app.previous_mode.clone(); app.input.clear(); true }
         KeyCode::Enter => {
             if let Ok(line_num) = app.input.value.parse::<usize>() {
@@ -218,8 +212,8 @@ fn handle_editor_goto_keys(key: &terma::input::event::KeyEvent, app: &mut App, _
     }
 }
 
-fn handle_command_palette_keys(key: &terma::input::event::KeyEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>, evt: &Event) -> bool {
-    match key.code {
+fn handle_command_palette_keys(_key: &terma::input::event::KeyEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>, evt: &Event) -> bool {
+    match _key.code {
         KeyCode::Esc => { app.mode = AppMode::Normal; true }
         KeyCode::Enter => {
             if let Some(cmd) = app.filtered_commands.get(app.command_index).cloned() { crate::event_helpers::execute_command(cmd.action, app, event_tx.clone()); }
@@ -233,8 +227,8 @@ fn handle_command_palette_keys(key: &terma::input::event::KeyEvent, app: &mut Ap
     }
 }
 
-fn handle_add_remote_keys(key: &terma::input::event::KeyEvent, app: &mut App, _event_tx: &mpsc::Sender<AppEvent>, idx: usize, evt: &Event) -> bool {
-    match key.code {
+fn handle_add_remote_keys(_key: &terma::input::event::KeyEvent, app: &mut App, _event_tx: &mpsc::Sender<AppEvent>, idx: usize, evt: &Event) -> bool {
+    match _key.code {
         KeyCode::Esc => { app.mode = AppMode::Normal; app.input.clear(); true }
         KeyCode::Tab | KeyCode::Enter => {
             let val = app.input.value.clone();
@@ -278,9 +272,10 @@ fn handle_input_modals_keys(key: &terma::input::event::KeyEvent, app: &mut App, 
                 } else { app.mode = AppMode::Normal; }
                 app.input.clear(); return true;
             }
+            let mode = app.mode.clone();
             if let Some(fs) = app.current_file_state() {
                 let path = fs.current_path.join(&input);
-                match app.mode {
+                match mode {
                     AppMode::NewFile => { let _ = event_tx.try_send(AppEvent::CreateFile(path)); }
                     AppMode::NewFolder => { let _ = event_tx.try_send(AppEvent::CreateFolder(path)); }
                     AppMode::Rename => { if let Some(idx) = fs.selection.selected { if let Some(old) = fs.files.get(idx) { let _ = event_tx.try_send(AppEvent::Rename(old.clone(), old.parent().unwrap().join(&input))); } } }
@@ -294,38 +289,19 @@ fn handle_input_modals_keys(key: &terma::input::event::KeyEvent, app: &mut App, 
     }
 }
 
-fn handle_header_keys(key: &terma::input::event::KeyEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>, idx: usize) -> bool {
-    match key.code {
+fn handle_header_keys(_key: &terma::input::event::KeyEvent, app: &mut App, _event_tx: &mpsc::Sender<AppEvent>, _idx: usize) -> bool {
+    match _key.code {
         KeyCode::Esc => { app.mode = AppMode::Normal; true }
         KeyCode::Enter => {
-            if idx <= 6 { /* header icon logic */ }
-            else { /* tab logic */ }
+            // Header icon logic
             app.mode = AppMode::Normal; true
         }
-        KeyCode::Left => { if idx > 0 { app.mode = AppMode::Header(idx - 1); } true }
-        KeyCode::Right => { app.mode = AppMode::Header(idx + 1); true }
+        KeyCode::Left => { if _idx > 0 { app.mode = AppMode::Header(_idx - 1); } true }
+        KeyCode::Right => { app.mode = AppMode::Header(_idx + 1); true }
         _ => true,
     }
 }
 
-fn handle_modal_mouse(me: &terma::input::event::MouseEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
-    match &app.mode {
-        AppMode::ContextMenu { .. } => handle_context_menu_mouse(me, app, event_tx),
-        AppMode::Highlight => handle_highlight_mouse(me, app),
-        _ => false,
-    }
-}
-
-fn handle_context_menu_mouse(me: &terma::input::event::MouseEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
-    if let MouseEventKind::Down(_) = me.kind {
-        // click logic
-        true
-    } else { false }
-}
-
-fn handle_highlight_mouse(me: &terma::input::event::MouseEvent, app: &mut App) -> bool {
-    if let MouseEventKind::Down(_) = me.kind {
-        // click logic
-        true
-    } else { false }
+fn handle_modal_mouse(_me: &terma::input::event::MouseEvent, _app: &mut App, _event_tx: &mpsc::Sender<AppEvent>) -> bool {
+    false
 }
