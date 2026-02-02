@@ -1,13 +1,10 @@
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
+    layout::{Constraint, Direction, Layout},
     widgets::{
-        Block, BorderType, Borders, Clear,
+        Block, BorderType, Borders,
     },
     Frame,
 };
-use std::time::SystemTime;
 
 use crate::app::{
     App, AppMode, CurrentView,
