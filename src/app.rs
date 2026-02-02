@@ -129,6 +129,7 @@ pub enum AppMode {
     Hotkeys,
     Rename,
     Delete,
+    DeleteFile(PathBuf),
     NewFolder,
     NewFile,
     Search,
