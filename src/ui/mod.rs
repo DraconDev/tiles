@@ -3744,8 +3744,57 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
     );
 }
 
-fn draw_tab_settings(f: &mut Frame, area: Rect, _app: &App) {
-    f.render_widget(Paragraph::new("Tab settings placeholder"), area);
+fn draw_tab_settings(f: &mut Frame, area: Rect, app: &App) {
+    let mut rows = Vec::new();
+    let mut tab_counter = 0;
+
+    for (p_idx, pane) in app.panes.iter().enumerate() {
+        rows.push(Row::new(vec![
+            Cell::from(Span::styled(format!("PANE {}", p_idx + 1), Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD))),
+            Cell::from(""),
+            Cell::from(""),
+        ]));
+
+        for (t_idx, tab) in pane.tabs.iter().enumerate() {
+            let is_selected = tab_counter == app.settings_index && app.settings_section == SettingsSection::Tabs;
+            let mut style = Style::default().fg(THEME.fg);
+            if is_selected {
+                style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+            }
+
+            let is_active = t_idx == pane.active_tab_index;
+            let status = if is_active { " [ACTIVE] " } else { "          " };
+            let status_style = if is_active { Style::default().fg(Color::Green) } else { Style::default() };
+
+            rows.push(Row::new(vec![
+                Cell::from(format!("  Tab {}", t_idx + 1)).style(style),
+                Cell::from(tab.current_path.to_string_lossy().to_string()).style(style),
+                Cell::from(status).style(if is_selected { style } else { status_style }),
+            ]));
+            tab_counter += 1;
+        }
+        rows.push(Row::new(vec![Cell::from(""), Cell::from(""), Cell::from("")])); // Spacer
+    }
+
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Length(10),
+            Constraint::Fill(1),
+            Constraint::Length(12),
+        ],
+    )
+    .header(Row::new(vec![" TAB ", " PATH ", " STATUS "])
+        .style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)))
+    .block(
+        Block::default()
+            .title(" OPEN TABS MANAGEMENT ")
+            .borders(Borders::TOP)
+            .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
+    )
+    .column_spacing(2);
+
+    f.render_widget(table, area);
 }
 
 fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
