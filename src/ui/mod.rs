@@ -845,7 +845,7 @@ fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
     f.render_widget(list, chunks[2]);
 }
 
-fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
+fn format_modified_time(time: SystemTime) -> String {
     let _now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default()
