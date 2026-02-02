@@ -99,8 +99,8 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::Delete) {
         modals::draw_delete_modal(f, app);
     }
-    if let AppMode::DeleteFile(ref path) = app.mode {
-        modals::draw_delete_modal(f, app); // Use general delete for now
+    if let AppMode::DeleteFile(ref _path) = app.mode {
+        modals::draw_delete_modal(f, app); 
     }
     if matches!(app.mode, AppMode::Properties) {
         modals::draw_properties_modal(f, app);
