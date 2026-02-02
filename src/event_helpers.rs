@@ -291,6 +291,7 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
             ContextMenuAction::Delete,
             ContextMenuAction::Separator,
             // Group 3: Advanced
+            ContextMenuAction::AddToFavorites,
             ContextMenuAction::Compress,
             ContextMenuAction::SetColor(None),
             ContextMenuAction::Separator,
