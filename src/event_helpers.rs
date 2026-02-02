@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use tokio::sync::mpsc;
 use crate::app::{App, AppEvent, AppMode, CurrentView, ContextMenuAction, ContextMenuTarget, CommandAction, FileColumn, SelectionState, CommitInfo, GitStatus};
 use crate::config::save_state;
+use crate::state::FileState;
 
 pub fn update_commands(app: &mut App) {
     let mut commands = vec![
@@ -28,6 +29,11 @@ pub fn update_commands(app: &mut App) {
             cmd.desc
                 .to_lowercase()
                 .contains(&app.input.value.to_lowercase())
+        })
+        .map(|c| crate::app::CommandItem {
+            key: c.key,
+            desc: c.desc,
+            action: c.action,
         })
         .collect();
     app.command_index = app
@@ -193,29 +199,34 @@ pub fn handle_context_menu_action(
     match action {
         ContextMenuAction::Open => {
             if let ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) = target {
-                if let Some(fs) = app.current_file_state() {
-                    if let Some(path) = fs.files.get(*idx) {
-                        if path.is_dir() {
-                            let path = path.clone();
-                            if let Some(fs_mut) = app.current_file_state_mut() {
-                                fs_mut.current_path = path;
-                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                            }
-                        } else {
-                            let _ = event_tx.try_send(AppEvent::PreviewRequested(app.focused_pane_index, path.clone()));
+                let path_opt = app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned());
+                if let Some(path) = path_opt {
+                    if path.is_dir() {
+                        if let Some(fs_mut) = app.current_file_state_mut() {
+                            fs_mut.current_path = path;
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                         }
+                    } else {
+                        let _ = event_tx.try_send(AppEvent::PreviewRequested(app.focused_pane_index, path));
                     }
                 }
             }
         }
         ContextMenuAction::AddToFavorites => {
+            crate::app::log_debug(&format!("DEBUG: AddToFavorites action triggered with target {:?}", target));
             if let ContextMenuTarget::Folder(idx) | ContextMenuTarget::File(idx) = target {
-                if let Some(fs) = app.current_file_state() {
-                    if let Some(path) = fs.files.get(*idx) {
-                        if !app.starred.contains(path) {
-                            app.starred.push(path.clone());
-                            let _ = save_state(app);
+                let path_opt = app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned());
+                if let Some(path) = path_opt {
+                    crate::app::log_debug(&format!("DEBUG: Adding path to favorites: {:?}", path));
+                    if !app.starred.contains(&path) {
+                        app.starred.push(path);
+                        if let Err(e) = save_state(app) {
+                            crate::app::log_debug(&format!("DEBUG: Failed to save state after adding favorite: {}", e));
+                        } else {
+                            crate::app::log_debug("DEBUG: State saved successfully after adding favorite");
                         }
+                    } else {
+                        crate::app::log_debug("DEBUG: Path already in favorites");
                     }
                 }
             }
@@ -228,22 +239,20 @@ pub fn handle_context_menu_action(
         }
         ContextMenuAction::Rename => {
             if let ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) = target {
-                if let Some(fs) = app.current_file_state() {
-                    if let Some(path) = fs.files.get(*idx) {
-                        if let Some(name) = path.file_name() {
-                            app.mode = AppMode::Rename;
-                            app.input.set_value(name.to_string_lossy().to_string());
-                        }
+                let path_opt = app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned());
+                if let Some(path) = path_opt {
+                    if let Some(name) = path.file_name() {
+                        app.mode = AppMode::Rename;
+                        app.input.set_value(name.to_string_lossy().to_string());
                     }
                 }
             }
         }
         ContextMenuAction::Delete => {
             if let ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) = target {
-                if let Some(fs) = app.current_file_state() {
-                    if let Some(path) = fs.files.get(*idx) {
-                        let _ = event_tx.try_send(AppEvent::Delete(path.clone()));
-                    }
+                let path_opt = app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned());
+                if let Some(path) = path_opt {
+                    let _ = event_tx.try_send(AppEvent::Delete(path));
                 }
             }
         }
@@ -298,4 +307,14 @@ pub fn fs_mouse_index(row: u16, app: &App) -> usize {
 
 pub fn get_open_with_suggestions(_app: &App, ext: &str) -> Vec<String> {
     terma::utils::get_open_with_suggestions(ext)
+}
+
+pub fn navigate_up(app: &mut App) {
+    if let Some(fs) = app.current_file_state_mut() {
+        if let Some(parent) = fs.current_path.parent() {
+            let parent = parent.to_path_buf();
+            fs.current_path = parent.clone();
+            push_history(fs, parent);
+        }
+    }
 }
