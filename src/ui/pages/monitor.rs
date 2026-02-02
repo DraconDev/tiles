@@ -3,7 +3,7 @@ use ratatui::{
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{
-        Block, BorderType, Borders, Cell, Paragraph, Row, Table,
+        Block, BorderType, Borders, Cell, List, ListItem, Paragraph, Row, Table,
     },
     Frame,
 };
@@ -421,7 +421,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
     );
 
     // Storage Arrays
-    let disk_list: Vec<crate::widgets::ListItem> = app
+    let disk_list: Vec<ListItem> = app
         .system_state
         .disks
         .iter()
@@ -443,7 +443,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                 "·".repeat(track_w.saturating_sub(pos))
             );
 
-            crate::widgets::ListItem::new(vec![
+            ListItem::new(vec![
                 Line::from(vec![
                     Span::styled("DSK ", Style::default().fg(Color::Rgb(60, 65, 75))),
                     Span::styled(&disk.name, Style::default().fg(Color::White)),
@@ -461,7 +461,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         .collect();
 
     f.render_widget(
-        crate::widgets::List::new(disk_list).block(
+        List::new(disk_list).block(
             Block::default()
                 .title(Span::styled(
                     "STO // ARRAY",
