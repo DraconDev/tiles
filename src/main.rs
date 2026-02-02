@@ -4171,6 +4171,18 @@ fn handle_event(
                                 return true;
                             }
 
+                            let (aw, ah) = match app.mode {
+                                AppMode::Properties => {
+                                    ((w as f32 * 0.5) as u16, (h as f32 * 0.5) as u16)
+                                }
+                                AppMode::CommandPalette
+                                | AppMode::AddRemote(_)
+                                | AppMode::OpenWith(_) => {
+                                    ((w as f32 * 0.6) as u16, (h as f32 * 0.2) as u16)
+                                }
+                                _ => ((w as f32 * 0.4) as u16, (h as f32 * 0.1) as u16),
+                            };
+
                             if let AppMode::Hotkeys = app.mode {
                                 // Hotkeys modal is 70%x80%
                                 let (hw, hh) = ((w as f32 * 0.7) as u16, (h as f32 * 0.8) as u16);
