@@ -1,6 +1,6 @@
 ## Do
 
-full screen fi
+full screen folder 
 
 
 ## Done
