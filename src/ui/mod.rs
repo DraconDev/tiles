@@ -3732,13 +3732,14 @@ fn draw_tab_settings(f: &mut Frame, area: Rect, _app: &App) {
 }
 
 fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
+    let icon_mode_str = format!("{:?}", app.icon_mode);
     let options = vec![
         ("Show Hidden Files", if app.default_show_hidden { "ENABLED " } else { "DISABLED" }, "h"),
         ("Confirm Delete", if app.confirm_delete { "ENABLED " } else { "DISABLED" }, "d"),
         ("Smart Date Formatting", if app.smart_date { "ENABLED " } else { "DISABLED" }, "t"),
         ("Semantic Coloring", if app.semantic_coloring { "ENABLED " } else { "DISABLED" }, "s"),
         ("Auto Save", if app.auto_save { "ENABLED " } else { "DISABLED" }, "a"),
-        ("Icon Mode", &format!("{:?}", app.icon_mode), "i"),
+        ("Icon Mode", &icon_mode_str, "i"),
     ];
 
     let rows: Vec<_> = options
