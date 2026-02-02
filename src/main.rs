@@ -350,6 +350,13 @@ async fn run_tty() -> color_eyre::Result<()> {
                     let _ = event_tx.try_send(AppEvent::StatusMsg(format!("Mounting {}...", name)));
                 }
                 AppEvent::FilesChangedOnDisk(path) => {
+                    // SHIELD: Ignore our own log file to prevent infinite refresh loops
+                    if let Some(filename) = path.file_name() {
+                        if filename == "debug.log" {
+                            return;
+                        }
+                    }
+
                     let mut app_guard = app.lock().unwrap();
                     let mut needs_reload = Vec::new();
 
