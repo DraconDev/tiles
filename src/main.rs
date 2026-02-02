@@ -391,7 +391,7 @@ async fn run_tty() -> color_eyre::Result<()> {
 
                         if let Some(fs) = pane.current_state() {
                             if path == fs.current_path || path.parent() == Some(fs.current_path.as_path()) {
-                                 let _ = panes_needing_refresh.insert(i);
+                                 panes_needing_refresh.insert(i);
                             }
                         }
                     }
@@ -722,7 +722,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                             .push(UndoAction::Move(dest, path.clone())); // Undo is Move back
                         app_guard.redo_stack.clear();
                         for i in 0..app_guard.panes.len() {
-                            let _ = panes_needing_refresh.insert(i);
+                            panes_needing_refresh.insert(i);
                         }
                     }
                 }
@@ -770,7 +770,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                             )));
                             let app_guard = app.lock().unwrap();
                             for i in 0..app_guard.panes.len() {
-                                let _ = panes_needing_refresh.insert(i);
+                                panes_needing_refresh.insert(i);
                             }
                         }
                     }
@@ -784,7 +784,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                             .try_send(AppEvent::StatusMsg(format!("Created {}", path.display())));
                         let app_guard = app.lock().unwrap();
                         for i in 0..app_guard.panes.len() {
-                            let _ = panes_needing_refresh.insert(i);
+                            panes_needing_refresh.insert(i);
                         }
                     }
                 }
@@ -797,7 +797,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                             .try_send(AppEvent::StatusMsg(format!("Created {}", path.display())));
                         let app_guard = app.lock().unwrap();
                         for i in 0..app_guard.panes.len() {
-                            let _ = panes_needing_refresh.insert(i);
+                            panes_needing_refresh.insert(i);
                         }
                     }
                 }
@@ -3064,7 +3064,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         _ => {}
                                     }
                                     for i in 0..app.panes.len() {
-                                        let _ = panes_needing_refresh.insert(i);
+                                        panes_needing_refresh.insert(i);
                                     }
                                 } else if let Some(fs) = app.current_file_state_mut() {
                                     if !fs.search_filter.is_empty() {
@@ -3091,7 +3091,7 @@ fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> 
                                         _ => {}
                                     }
                                     for i in 0..app.panes.len() {
-                                        let _ = panes_needing_refresh.insert(i);
+                                        panes_needing_refresh.insert(i);
                                     }
                                 }
                             }
