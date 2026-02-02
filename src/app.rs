@@ -187,6 +187,7 @@ impl App {
             },
             external_tools: HashMap::new(),
             show_sidebar: true,
+            show_side_panel: true,
             sidebar_width_percent: 15,
             sidebar_bounds: Vec::new(),
             drag_start_pos: None,
