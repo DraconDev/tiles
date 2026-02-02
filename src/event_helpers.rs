@@ -333,6 +333,27 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
             ContextMenuAction::Separator,
             ContextMenuAction::Properties,
         ],
+        ContextMenuTarget::ProjectTree(path) => {
+            let mut actions = vec![
+                ContextMenuAction::NewFile,
+                ContextMenuAction::NewFolder,
+                ContextMenuAction::Separator,
+            ];
+            if path.is_file() {
+                actions.extend(vec![
+                    ContextMenuAction::Rename,
+                    ContextMenuAction::Delete,
+                    ContextMenuAction::Separator,
+                ]);
+            } else {
+                actions.extend(vec![
+                    ContextMenuAction::TerminalHere,
+                    ContextMenuAction::Separator,
+                ]);
+            }
+            actions.push(ContextMenuAction::Properties);
+            actions
+        }
         _ => vec![],
     }
 }
