@@ -18,40 +18,19 @@ impl SystemModule {
 
     pub fn update_app_state(app: &mut App, data: SystemData) {
         let s = &mut app.system_state;
-        s.cpu_usage = data.cpu_usage;
-        s.cpu_cores = data.cpu_cores.clone();
-        s.mem_usage = data.mem_usage;
+        s.cpu_usage = data.cpu_usage as f32;
+        s.cpu_cores = data.cpu_cores.iter().map(|&c| c as f32).collect();
+        s.mem_usage = data.mem_usage as f32;
         s.total_mem = data.total_mem;
-        s.swap_usage = data.swap_usage;
+        s.swap_usage = data.swap_usage as f32;
         s.total_swap = data.total_swap;
         s.disks = data.disks;
         s.uptime = data.uptime;
         s.processes = data.processes;
-
-        // Sort processes
-        let sort_col = app.process_sort_col;
-        let sort_asc = app.process_sort_asc;
-        s.processes.sort_by(|a, b| {
-            let cmp = match sort_col {
-                ProcessColumn::Pid => a.pid.cmp(&b.pid),
-                ProcessColumn::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
-                ProcessColumn::Cpu => a
-                    .cpu
-                    .partial_cmp(&b.cpu)
-                    .unwrap_or(std::cmp::Ordering::Equal),
-                ProcessColumn::Mem => a
-                    .mem
-                    .partial_cmp(&b.mem)
-                    .unwrap_or(std::cmp::Ordering::Equal),
-                ProcessColumn::User => a.user.to_lowercase().cmp(&b.user.to_lowercase()),
-                ProcessColumn::Status => a.status.to_lowercase().cmp(&b.status.to_lowercase()),
-            };
-            if sort_asc {
-                cmp
-            } else {
-                cmp.reverse()
-            }
-        });
+        s.hostname = data.hostname;
+        s.os_name = data.os_name;
+        s.os_version = data.os_version;
+        s.kernel_version = data.kernel_version;
 
         s.cpu_history.push(data.cpu_usage as u64);
         if s.cpu_history.len() > 100 {
