@@ -3660,10 +3660,11 @@ fn handle_event(
                             }
 
                             let mut handled_search = false;
+                            let is_sidebar = app.sidebar_focus;
                             if let Some(fs) = app.current_file_state_mut() {
                                 if !fs.search_filter.is_empty() {
                                     fs.search_filter.pop();
-                                    if !app.sidebar_focus {
+                                    if !is_sidebar {
                                         fs.selection.selected = Some(0);
                                         fs.selection.anchor = Some(0);
                                         *fs.table_state.offset_mut() = 0;
