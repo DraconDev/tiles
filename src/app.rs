@@ -55,6 +55,8 @@ pub struct App {
     pub sidebar_focus: bool,
     pub sidebar_index: usize,
     pub starred: Vec<PathBuf>,
+    pub remote_bookmarks: Vec<RemoteBookmark>,
+    pub pending_remote: RemoteBookmark,
     pub external_tools: HashMap<String, Vec<crate::config::ExternalTool>>,
     pub show_sidebar: bool,
     pub sidebar_width_percent: u16,
