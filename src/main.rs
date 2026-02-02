@@ -1272,7 +1272,7 @@ fn handle_event(
             ));
             let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
             let has_alt = key.modifiers.contains(KeyModifiers::ALT);
-            let _has_shift = key.modifiers.contains(KeyModifiers::SHIFT);
+            let has_shift = key.modifiers.contains(KeyModifiers::SHIFT);
 
             if key.code == KeyCode::Char('q') || key.code == KeyCode::Char('Q') {
                 if has_control {
