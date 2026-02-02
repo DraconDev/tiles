@@ -3692,7 +3692,7 @@ fn handle_event(
                                 *app.process_table_state.offset_mut() = 0;
                             } else if let Some(fs) = app.current_file_state_mut() {
                                 delete_word_backwards(&mut fs.search_filter);
-                                if !app.sidebar_focus {
+                                let is_sidebar = app.sidebar_focus; if !is_sidebar {
                                     fs.selection.selected = Some(0);
                                     *fs.table_state.offset_mut() = 0;
                                 } else {
@@ -3710,7 +3710,7 @@ fn handle_event(
                                 *app.process_table_state.offset_mut() = 0;
                             } else if let Some(fs) = app.current_file_state_mut() {
                                 delete_word_backwards(&mut fs.search_filter);
-                                if !app.sidebar_focus {
+                                let is_sidebar = app.sidebar_focus; if !is_sidebar {
                                     fs.selection.selected = Some(0);
                                     *fs.table_state.offset_mut() = 0;
                                 } else {
@@ -3728,7 +3728,7 @@ fn handle_event(
                                 *app.process_table_state.offset_mut() = 0;
                             } else if let Some(fs) = app.current_file_state_mut() {
                                 fs.search_filter.clear();
-                                if !app.sidebar_focus {
+                                let is_sidebar = app.sidebar_focus; if !is_sidebar {
                                     fs.selection.selected = Some(0);
                                     fs.selection.anchor = Some(0);
                                     *fs.table_state.offset_mut() = 0;
