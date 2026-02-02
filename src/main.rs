@@ -1234,7 +1234,12 @@ fn setup_app(
     let app = Arc::new(Mutex::new(App::new(tile_queue)));
     (app, tx, rx)
 }
-fn handle_event(evt: Event, app: &mut App, event_tx: mpsc::Sender<AppEvent>) -> bool {
+fn handle_event(
+    evt: Event,
+    app: &mut App,
+    event_tx: mpsc::Sender<AppEvent>,
+    panes_needing_refresh: &mut std::collections::HashSet<usize>,
+) -> bool {
     // SHIELD: Global input cooldown to prevent artifact leakage (e.g. from Escape sequences)
     if let Some(until) = app.input_shield_until {
         if std::time::Instant::now() < until {
