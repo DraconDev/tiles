@@ -8,6 +8,7 @@ use ratatui::{
     Frame,
 };
 use std::time::SystemTime;
+use unicode_width::UnicodeWidthStr;
 
 use crate::app::{
     App, AppMode, CurrentView,
