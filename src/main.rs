@@ -30,6 +30,7 @@ mod icons;
 mod license;
 mod modules;
 mod ui;
+mod events;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
