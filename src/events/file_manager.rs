@@ -2,6 +2,7 @@ use terma::input::event::{Event, KeyCode, KeyModifiers, MouseEventKind, MouseBut
 use tokio::sync::mpsc;
 use std::collections::HashSet;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use crate::app::{App, AppEvent, AppMode, CurrentView, SidebarTarget, ContextMenuTarget, UndoAction};
 use crate::events::input::delete_word_backwards;
