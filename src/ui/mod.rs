@@ -3479,32 +3479,66 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
 }
 
 fn draw_settings_modal(f: &mut Frame, app: &App) {
+
     let area = f.area();
+
     f.render_widget(Clear, area);
+
     let block = Block::default()
+
         .title_top(Line::from(vec![
+
             Span::styled(" SETTINGS ", Style::default().fg(Color::Black).bg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
+
         ]))
+
         .title_top(Line::from(vec![
+
             Span::styled(" Esc ", Style::default().fg(Color::Black).bg(Color::Red).add_modifier(Modifier::BOLD)),
+
             Span::styled(" Back ", Style::default().fg(Color::Red)),
+
         ]).alignment(Alignment::Right))
+
         .borders(Borders::ALL)
+
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.accent_primary));
+
+        .border_style(Style::default().fg(THEME.accent_primary))
+
+        .style(Style::default().bg(Color::Rgb(0, 0, 0)));
+
     let inner = block.inner(area);
+
     f.render_widget(block, area);
+
+
+
     let chunks = Layout::default()
+
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(15), Constraint::Min(0)])
+
+        .constraints([Constraint::Length(20), Constraint::Min(0)])
+
         .split(inner);
+
+
+
     let sections = vec![
-        ListItem::new(" 󰟜 Columns "),
-        ListItem::new(" 󰓩 Tabs "),
-        ListItem::new(" 󰒓 General "),
-        ListItem::new(" 󰒍 Remotes "),
-        ListItem::new(" 󰌌 Shortcuts "),
+
+        ListItem::new(" 󰟜  Columns "),
+
+        ListItem::new(" 󰓩  Tabs "),
+
+        ListItem::new(" 󰒓  General "),
+
+        ListItem::new(" 󰒍  Remotes "),
+
+        ListItem::new(" 󰌌  Shortcuts "),
+
     ];
+
+
     let sel = match app.settings_section {
         SettingsSection::Columns => 0,
         SettingsSection::Tabs => 1,
