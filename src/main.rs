@@ -7,16 +7,15 @@ use uuid::Uuid;
 use notify::RecursiveMode;
 
 // Terma Imports
-use terma::input::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind, KeyEventKind};
+use terma::input::event::{Event};
 use terma::integration::ratatui::TermaBackend;
 
 // Ratatui Imports
 use ratatui::Terminal;
 
 use crate::app::{
-    App, AppEvent, AppMode, CommandAction, ContextMenuAction, ContextMenuTarget, CurrentView,
-    DropTarget, FileCategory, FileColumn, MonitorSubview, ProcessColumn, SettingsSection,
-    SettingsTarget, SidebarTarget, UndoAction,
+    App, AppEvent, CurrentView,
+    UndoAction,
 };
 use crate::icons::{Icon, IconMode};
 use unicode_width::UnicodeWidthStr;
