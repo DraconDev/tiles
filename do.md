@@ -1,6 +1,6 @@
 ## Do
 
-remotes and tabs ection could use 
+remotes and tabs el
 
 ## Done
 
