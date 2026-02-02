@@ -15,7 +15,7 @@ use crate::app::{
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
 use terma::utils::{
-    format_permissions, format_size, get_visual_width, truncate_to_width,
+    format_permissions, format_size, truncate_to_width,
 };
 
 pub fn draw_file_view(

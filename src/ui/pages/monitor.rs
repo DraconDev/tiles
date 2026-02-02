@@ -7,13 +7,12 @@ use ratatui::{
     },
     Frame,
 };
-use std::time::SystemTime;
 
 use crate::app::{
-    App, FileColumn, MonitorSubview, ProcessColumn,
+    App, MonitorSubview, ProcessColumn,
 };
 use crate::ui::theme::THEME;
-use terma::utils::{format_size, format_time};
+use terma::utils::{format_size};
 
 pub fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
     let block = Block::default()
