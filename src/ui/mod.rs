@@ -220,15 +220,3 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         modals::draw_drag_drop_modal(f, app, sources, target);
     }
 }
-
-pub fn format_modified_time(time: SystemTime) -> String {
-    use chrono::{DateTime, Local};
-    let dt: DateTime<Local> = time.into();
-    let now = Local::now();
-
-    if dt.date_naive() == now.date_naive() {
-        dt.format("%H:%M:%S").to_string()
-    } else {
-        dt.format("%Y-%m-%d").to_string()
-    }
-}
