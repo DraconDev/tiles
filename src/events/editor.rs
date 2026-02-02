@@ -213,16 +213,6 @@ fn handle_text_editor_mouse(
             *mouse_last_click = now;
             *mouse_click_pos = (me.column, me.row);
         }
-        MouseEventKind::Down(MouseButton::Middle) => {
-            crate::app::log_debug("DEBUG: Middle Mouse Click detected in Editor");
-            if let Some(text) = terma::utils::get_primary_selection_text() {
-                crate::app::log_debug(&format!("DEBUG: PRIMARY text found: {}", text));
-                editor.insert_string(&text);
-                editor.modified = true;
-            } else {
-                crate::app::log_debug("DEBUG: PRIMARY selection empty or unavailable");
-            }
-        }
         _ => { editor.handle_mouse_event(*me, area); }
     }
 
