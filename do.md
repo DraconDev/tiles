@@ -2,6 +2,6 @@
 
 the settings screen needs work
 
-the editor 
+the editor k
 
 ## Done
