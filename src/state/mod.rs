@@ -108,6 +108,12 @@ pub enum SettingsSection {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum SettingsTarget {
+    SingleMode,
+    SplitMode,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum AppMode {
     Normal,
     Editor,
@@ -211,6 +217,16 @@ impl std::fmt::Debug for RemoteSession {
             .field("session", &"<ssh2 session>")
             .finish()
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RemoteBookmark {
+    pub name: String,
+    pub host: String,
+    pub user: String,
+    pub port: u16,
+    pub last_path: PathBuf,
+    pub key_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -422,4 +438,13 @@ pub enum UndoAction {
     Move(PathBuf, PathBuf),
     Copy(PathBuf, PathBuf),
     Delete(PathBuf),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LicenseStatus {
+    Valid,
+    Invalid,
+    TrialExpired,
+    Commercial,
+    FreeMode,
 }

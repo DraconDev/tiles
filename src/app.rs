@@ -70,6 +70,8 @@ pub struct App {
     pub semantic_coloring: bool,
     pub auto_save: bool,
     pub default_show_hidden: bool,
+    pub single_columns: Vec<FileColumn>,
+    pub split_columns: Vec<FileColumn>,
     pub monitor_subview: MonitorSubview,
     pub monitor_subview_bounds: Vec<(Rect, MonitorSubview)>,
     pub process_sort_col: ProcessColumn,
