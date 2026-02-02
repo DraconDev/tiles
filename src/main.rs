@@ -2750,7 +2750,6 @@ fn handle_event(
                                 }
                                 let _ = crate::config::save_state(app);
                             }
-                            }
                             SettingsSection::Columns => {
                                 let col = match app.settings_index {
                                     0 => crate::app::FileColumn::Size,
@@ -2795,6 +2794,27 @@ fn handle_event(
                     KeyCode::Char('d') if app.settings_section == SettingsSection::General => {
                         app.confirm_delete = !app.confirm_delete;
                         let _ = crate::config::save_state(app);
+                        return true;
+                    }
+                    KeyCode::Char('a') if app.settings_section == SettingsSection::General => {
+                        app.auto_save = !app.auto_save;
+                        let _ = crate::config::save_state(app);
+                        return true;
+                    }
+                    KeyCode::Char('s') if app.settings_section == SettingsSection::Columns => {
+                        app.toggle_column(crate::app::FileColumn::Size);
+                        return true;
+                    }
+                    KeyCode::Char('m') if app.settings_section == SettingsSection::Columns => {
+                        app.toggle_column(crate::app::FileColumn::Modified);
+                        return true;
+                    }
+                    KeyCode::Char('c') if app.settings_section == SettingsSection::Columns => {
+                        app.toggle_column(crate::app::FileColumn::Created);
+                        return true;
+                    }
+                    KeyCode::Char('p') if app.settings_section == SettingsSection::Columns => {
+                        app.toggle_column(crate::app::FileColumn::Permissions);
                         return true;
                     }
                     _ => return false,
