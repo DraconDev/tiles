@@ -173,7 +173,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                 }
                 AppEvent::SystemUpdated(data) => {
                     let mut app_guard = app.lock().unwrap();
-                    update_system_state(&mut app_guard, data);
+                    crate::modules::system::SystemModule::update_app_state(&mut app_guard, data);
                     needs_draw = true;
                 }
                 AppEvent::ConnectToRemote(pane_idx, bookmark_idx) => {
