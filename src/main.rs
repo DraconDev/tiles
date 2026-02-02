@@ -1622,8 +1622,8 @@ fn handle_event(
                             if editor.cursor_row == editor.lines.len().saturating_sub(1) && 
                                editor.cursor_col == editor.lines[editor.cursor_row].len() {
                                 // At EOF
-                                app.mode = AppMode::Delete;
-                                app.input.set_value("y".to_string()); // Default to yes?
+                                app.mode = AppMode::DeleteFile(preview.path.clone());
+                                app.input.set_value("y".to_string()); 
                                 return true;
                             }
                         }
