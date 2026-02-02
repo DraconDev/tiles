@@ -1912,7 +1912,20 @@ fn collect_tree_items(path: &PathBuf, depth: u16, app: &App, items: &mut Vec<(Pa
                 continue;
             }
 
-            items.push((p.clone(), depth));
+            // Check if matches search filter (if any)
+            let matches_filter = if let Some(fs) = app.panes.get(app.focused_pane_index).and_then(|p| p.current_state()) {
+                if !fs.search_filter.is_empty() && app.sidebar_focus {
+                    name.to_lowercase().contains(&fs.search_filter.to_lowercase())
+                } else {
+                    true
+                }
+            } else {
+                true
+            };
+
+            if matches_filter {
+                items.push((p.clone(), depth));
+            }
             
             if p.is_dir() && app.expanded_folders.contains(&p) {
                 collect_tree_items(&p, depth + 1, app, items);
