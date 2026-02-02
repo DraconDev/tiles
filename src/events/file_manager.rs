@@ -300,6 +300,10 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         return true;
                     }
                     KeyCode::F(2) => {
+                        handle_rename_shortcut(app);
+                        return true;
+                    }
+                    KeyCode::F(3) => {
                          app.selection_mode = !app.selection_mode;
                          if !app.selection_mode {
                              if let Some(fs) = app.current_file_state_mut() {
