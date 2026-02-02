@@ -13,7 +13,7 @@ use ratatui::Terminal;
 
 use crate::app::{
     App, AppEvent, AppMode, CurrentView,
-    FileCategory, MonitorSubview, UndoAction,
+    FileCategory, MonitorSubview, UndoAction, RemoteSession, PreviewState, FileMetadata, GitStatus, CommitInfo,
 };
 mod app;
 mod config;
@@ -144,15 +144,12 @@ async fn run_tty() -> color_eyre::Result<()> {
         }
     }
 
-        crate::app::log_debug("Entering main loop");
+    crate::app::log_debug("Entering main loop");
 
-        let mut panes_needing_refresh = std::collections::HashSet::new();
+    let mut panes_needing_refresh = std::collections::HashSet::new();
 
-        loop {
-
-            let mut needs_draw = false;
-
-    
+    loop {
+        let mut needs_draw = false;
 
         while let Ok(event) = event_rx.try_recv() {
             match event {
@@ -184,55 +181,21 @@ async fn run_tty() -> color_eyre::Result<()> {
                         )));
 
                         tokio::spawn(async move {
-                            crate::app::log_debug(&format!(
-                                "Attempting SSH connection to {}:{}",
-                                remote.host, remote.port
-                            ));
-                            match std::net::TcpStream::connect(format!(
-                                "{}:{}",
-                                remote.host, remote.port
-                            )) {
+                            match std::net::TcpStream::connect(format!("{}:{}", remote.host, remote.port)) {
                                 Ok(tcp) => {
                                     let mut sess = ssh2::Session::new().unwrap();
                                     sess.set_tcp_stream(tcp);
                                     sess.set_blocking(true);
-
                                     if let Err(e) = sess.handshake() {
-                                        crate::app::log_debug(&format!(
-                                            "SSH Handshake failed: {}",
-                                            e
-                                        ));
-                                        let _ = tx.try_send(AppEvent::StatusMsg(format!(
-                                            "Handshake failed: {}",
-                                            e
-                                        )));
+                                        let _ = tx.try_send(AppEvent::StatusMsg(format!("Handshake failed: {}", e)));
                                         return;
                                     }
-
-                                    crate::app::log_debug(
-                                        "SSH Handshake successful, attempting authentication...",
-                                    );
-
-                                    // Try Agent Auth
                                     let mut auth_ok = false;
                                     if let Ok(mut agent) = sess.agent() {
-                                        crate::app::log_debug(
-                                            "SSH Agent found, listing identities...",
-                                        );
                                         if agent.connect().is_ok() {
                                             if let Ok(_identities) = agent.list_identities() {
                                                 for identity in agent.identities().unwrap() {
-                                                    crate::app::log_debug(&format!(
-                                                        "Trying agent identity: {}",
-                                                        identity.comment()
-                                                    ));
-                                                    if agent
-                                                        .userauth(&remote.user, &identity)
-                                                        .is_ok()
-                                                    {
-                                                        crate::app::log_debug(
-                                                            "SSH Agent authentication successful",
-                                                        );
+                                                    if agent.userauth(&remote.user, &identity).is_ok() {
                                                         auth_ok = true;
                                                         break;
                                                     }
@@ -240,95 +203,27 @@ async fn run_tty() -> color_eyre::Result<()> {
                                             }
                                         }
                                     }
-
                                     if !auth_ok {
-                                        // Try Key Auth if provided
                                         if let Some(key_path) = &remote.key_path {
-                                            crate::app::log_debug(&format!(
-                                                "Trying key authentication with: {:?}",
-                                                key_path
-                                            ));
-                                            if sess
-                                                .userauth_pubkey_file(
-                                                    &remote.user,
-                                                    None,
-                                                    key_path,
-                                                    None,
-                                                )
-                                                .is_ok()
-                                            {
-                                                crate::app::log_debug(
-                                                    "SSH Key authentication successful",
-                                                );
+                                            if sess.userauth_publickey_from_file(&remote.user, None, key_path, None).is_ok() {
                                                 auth_ok = true;
                                             }
                                         }
                                     }
-
-                                    if !auth_ok {
-                                        // Try default key paths as fallback
-                                        let home = dirs::home_dir().unwrap_or_default();
-                                        let default_keys = vec![
-                                            home.join(".ssh/id_rsa"),
-                                            home.join(".ssh/id_ed25519"),
-                                            home.join(".ssh/id_ecdsa"),
-                                        ];
-                                        for key in default_keys {
-                                            if key.exists() {
-                                                crate::app::log_debug(&format!(
-                                                    "Trying fallback key: {:?}",
-                                                    key
-                                                ));
-                                                if sess
-                                                    .userauth_pubkey_file(
-                                                        &remote.user,
-                                                        None,
-                                                        &key,
-                                                        None,
-                                                    )
-                                                    .is_ok()
-                                                {
-                                                    crate::app::log_debug("SSH Fallback key authentication successful");
-                                                    auth_ok = true;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-
                                     if auth_ok {
-                                        crate::app::log_debug("SSH Connection fully established");
-                                        let _ = tx
-                                            .send(AppEvent::RemoteConnected(
-                                                p_idx,
-                                                crate::app::RemoteSession {
-                                                    name: remote.name.clone(),
-                                                    host: remote.host.clone(),
-                                                    user: remote.user.clone(),
-                                                    session: Arc::new(Mutex::new(sess)),
-                                                },
-                                            ))
-                                            .await;
-                                        let _ = tx.try_send(AppEvent::StatusMsg(format!(
-                                            "Connected to {}",
-                                            remote.name
-                                        )));
+                                        let session = RemoteSession {
+                                            host: remote.host.clone(),
+                                            user: remote.user.clone(),
+                                            name: remote.name.clone(),
+                                            session: Some(Arc::new(Mutex::new(sess))),
+                                        };
+                                        let _ = tx.send(AppEvent::RemoteConnected(p_idx, session)).await;
                                     } else {
-                                        crate::app::log_debug(
-                                            "SSH Authentication failed: no successful method found",
-                                        );
-                                        let _ = tx.try_send(AppEvent::StatusMsg(format!(
-                                            "Authentication failed for {}",
-                                            remote.name
-                                        )));
+                                        let _ = tx.try_send(AppEvent::StatusMsg("Authentication failed".to_string()));
                                     }
                                 }
                                 Err(e) => {
-                                    crate::app::log_debug(&format!("TCP Connection failed: {}", e));
-                                    let _ = tx.try_send(AppEvent::StatusMsg(format!(
-                                        "Connection failed: {}",
-                                        e
-                                    )));
+                                    let _ = tx.try_send(AppEvent::StatusMsg(format!("Connection failed: {}", e)));
                                 }
                             }
                         });
@@ -340,660 +235,129 @@ async fn run_tty() -> color_eyre::Result<()> {
                         if let Some(fs) = pane.current_state_mut() {
                             fs.remote_session = Some(session);
                             fs.current_path = PathBuf::from("/");
-                            fs.history = vec![PathBuf::from("/")];
-                            fs.history_index = 0;
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
                         }
                     }
                     needs_draw = true;
                 }
-                AppEvent::MountDisk(name) => {
-                    let _ = event_tx.try_send(AppEvent::StatusMsg(format!("Mounting {}...", name)));
+                AppEvent::RefreshFiles(pane_idx) => {
+                    panes_needing_refresh.insert(pane_idx);
                 }
                 AppEvent::FilesChangedOnDisk(path) => {
-                    // SHIELD: Ignore our own log file to prevent infinite refresh loops
-                    if let Some(filename) = path.file_name() {
-                        if filename == "debug.log" {
-                            continue;
-                        }
-                    }
-
                     let mut app_guard = app.lock().unwrap();
-                    let mut needs_reload = Vec::new();
-
-                    // Check if open previews/editors need reload
-                    if let Some(editor_state) = &mut app_guard.editor_state {
-                        if editor_state.path == path {
-                            if let Some(editor) = &editor_state.editor {
-                                if !editor.modified {
-                                    needs_reload.push((None, path.clone()));
-                                }
-                            }
-                        }
-                    }
-
-                    for i in 0..app_guard.panes.len() {
-                        let pane = &mut app_guard.panes[i];
-                        if let Some(preview) = &mut pane.preview {
-                            if preview.path == path {
-                                if let Some(editor) = &preview.editor {
-                                    if !editor.modified {
-                                        needs_reload.push((Some(i), path.clone()));
-                                    }
-                                }
-                            }
-                        }
-
+                    for (i, pane) in app_guard.panes.iter().enumerate() {
                         if let Some(fs) = pane.current_state() {
-                            if path == fs.current_path || path.parent() == Some(fs.current_path.as_path()) {
-                                 panes_needing_refresh.insert(i);
-                            }
-                        }
-                    }
-
-                    // Perform reloads
-                    for (pane_idx, p) in needs_reload {
-                        if let Ok(content) = std::fs::read_to_string(&p) {
-                            if let Some(p_idx) = pane_idx {
-                                if let Some(preview) = &mut app_guard.panes[p_idx].preview {
-                                    if let Some(editor) = &mut preview.editor {
-                                        editor.lines = content.lines().map(|s| s.to_string()).collect();
-                                        if editor.lines.is_empty() { editor.lines.push(String::new()); }
-                                        // Ensure trailing empty line for extra line after everything if not present
-                                        if !editor.lines.last().map(|l| l.is_empty()).unwrap_or(false) {
-                                            editor.lines.push(String::new());
-                                        }
-                                        editor.invalidate_from(0);
-                                        preview.content = content;
-                                        preview.highlighted_lines = None;
-                                    }
-                                }
-                            } else if let Some(editor_state) = &mut app_guard.editor_state {
-                                if let Some(editor) = &mut editor_state.editor {
-                                    editor.lines = content.lines().map(|s| s.to_string()).collect();
-                                    if editor.lines.is_empty() { editor.lines.push(String::new()); }
-                                    if !editor.lines.last().map(|l| l.is_empty()).unwrap_or(false) {
-                                        editor.lines.push(String::new());
-                                    }
-                                    editor.invalidate_from(0);
-                                    editor_state.content = content;
-                                    editor_state.highlighted_lines = None;
-                                }
-                            }
-                        }
-                    }
-                }
-                AppEvent::RefreshFiles(idx) => {
-                    panes_needing_refresh.insert(idx);
-                }
-                AppEvent::GlobalSearchUpdated(pane_idx, global_files, metadata) => {
-                    let mut app_guard = app.lock().unwrap();
-                    if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
-                        if let Some(fs) = pane.current_state_mut() {
-                            // Merge metadata
-                            for (p, m) in metadata {
-                                fs.metadata.insert(p, m);
-                            }
-
-                            // Combine with local files
-                            if !global_files.is_empty() {
-                                // Remove any existing divider/global results
-                                if let Some(pos) = fs
-                                    .files
-                                    .iter()
-                                    .position(|p| p.to_string_lossy() == "__DIVIDER__")
-                                {
-                                    fs.files.truncate(pos);
-                                }
-
-                                fs.files.push(std::path::PathBuf::from("__DIVIDER__"));
-                                fs.files.extend(global_files);
-                            }
-                            needs_draw = true;
-                        }
-                    }
-                }
-                AppEvent::PreviewRequested(target_pane_idx, path) => {
-                    let mut app_guard = app.lock().unwrap();
-                    let category = crate::modules::files::get_file_category(&path);
-
-                    let mut is_text = false;
-                    let mut is_archive = false;
-
-                    crate::app::log_debug(&format!(
-                        "PreviewRequested for {:?}, Category: {:?}",
-                        path, category
-                    ));
-
-                    if let Ok(_m) = std::fs::metadata(&path) {
-                        is_text = matches!(category, FileCategory::Text | FileCategory::Script);
-                        is_archive = matches!(category, FileCategory::Archive);
-                    }
-
-                    if is_text {
-                        let (is_bin, is_large, mb) = terma::utils::check_file_suitability(&path, 1024 * 1024);
-                        if is_large {
-                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                                "File too large for preview: {} ({} MB)",
-                                path.display(),
-                                mb
-                            )));
-                        } else if is_bin {
-                             let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                                "Binary file detected: {}",
-                                path.display()
-                            )));
-                        } else {
-                            if let Ok(content) = std::fs::read_to_string(&path) {
-                                let mut editor =
-                                    terma::widgets::editor::TextEditor::with_content(&content);
-                                editor.wrap = true;
-                                editor.style = ratatui::style::Style::default()
-                                    .fg(ratatui::style::Color::Rgb(255, 255, 255));
-                                editor.cursor_style = ratatui::style::Style::default()
-                                    .bg(ratatui::style::Color::Rgb(255, 0, 85))
-                                    .fg(ratatui::style::Color::Black);
-                                
-                                // Set language for syntax highlighting
-                                let lang = path.extension()
-                                    .and_then(|e| e.to_str())
-                                    .map(|s| s.to_string())
-                                    .unwrap_or_else(|| {
-                                        path.file_name()
-                                            .map(|n| n.to_string_lossy().to_string())
-                                            .unwrap_or_default()
-                                    })
-                                    .to_lowercase();
-                                editor.language = lang;
-
-                                if let Some(pane) = app_guard.panes.get_mut(target_pane_idx) {
-                                    pane.preview = Some(crate::app::PreviewState {
-                                        path: path.clone(),
-                                        content: content.clone(),
-                                        scroll: 0,
-                                        editor: Some(editor),
-                                        last_saved: None,
-                                        image_data: None,
-                                        highlighted_lines: None,
-                                    });
-                                }
-                                needs_draw = true;
-                            } else {
-                                let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                                    "Cannot read file as text: {}",
-                                    path.display()
-                                )));
-                            }
-                        }
-                    } else if is_archive {
-                        // Try to list contents
-                        let tx = event_tx.clone();
-                        let p = path.clone();
-                        let app_clone = app.clone();
-                        let ext = path
-                            .extension()
-                            .and_then(|e| e.to_str())
-                            .unwrap_or("")
-                            .to_lowercase();
-
-                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                            "Listing contents of {}...",
-                            p.file_name().unwrap_or_default().to_string_lossy()
-                        )));
-
-                        tokio::spawn(async move {
-                            crate::app::log_debug(&format!("Archive listing started for: {:?}", p));
-
-                            let has_lsar = std::process::Command::new("which")
-                                .arg("lsar")
-                                .output()
-                                .map(|o| o.status.success())
-                                .unwrap_or(false);
-                            let has_7z = std::process::Command::new("which")
-                                .arg("7z")
-                                .output()
-                                .map(|o| o.status.success())
-                                .unwrap_or(false);
-                            let has_unzip = std::process::Command::new("which")
-                                .arg("unzip")
-                                .output()
-                                .map(|o| o.status.success())
-                                .unwrap_or(false);
-                            let has_tar = std::process::Command::new("which")
-                                .arg("tar")
-                                .output()
-                                .map(|o| o.status.success())
-                                .unwrap_or(false);
-                            let has_python = std::process::Command::new("which")
-                                .arg("python3")
-                                .output()
-                                .map(|o| o.status.success())
-                                .unwrap_or(false);
-
-                            crate::app::log_debug(&format!(
-                                "Archive tools found: lsar={}, 7z={}, unzip={}, tar={}, python={}",
-                                has_lsar, has_7z, has_unzip, has_tar, has_python
-                            ));
-
-                            let output = if has_lsar {
-                                crate::app::log_debug("Using lsar");
-                                std::process::Command::new("lsar").arg(&p).output()
-                            } else if has_7z {
-                                crate::app::log_debug("Using 7z");
-                                std::process::Command::new("7z").arg("l").arg(&p).output()
-                            } else if has_unzip {
-                                crate::app::log_debug("Using unzip");
-                                std::process::Command::new("unzip")
-                                    .arg("-l")
-                                    .arg(&p)
-                                    .output()
-                            } else if ext == "zip" && has_python {
-                                crate::app::log_debug("Using python3 for zip listing");
-                                std::process::Command::new("python3")
-                                    .arg("-m")
-                                    .arg("zipfile")
-                                    .arg("-l")
-                                    .arg(&p)
-                                    .output()
-                            } else if has_tar {
-                                crate::app::log_debug("Using tar");
-                                std::process::Command::new("tar")
-                                    .arg("-tf")
-                                    .arg(&p)
-                                    .output()
-                            } else {
-                                crate::app::log_debug("No suitable listing tool found");
-                                Err(std::io::Error::new(
-                                    std::io::ErrorKind::NotFound,
-                                    "No suitable tool to list archive contents",
-                                ))
-                            };
-
-                            match output {
-                                Ok(out) if out.status.success() => {
-                                    let content = String::from_utf8_lossy(&out.stdout).into_owned();
-                                    crate::app::log_debug(&format!(
-                                        "Listing success, content len: {}",
-                                        content.len()
-                                    ));
-
-                                    let mut editor =
-                                        terma::widgets::editor::TextEditor::with_content(&content);
-                                    editor.read_only = true;
-                                    editor.wrap = true;
-                                    editor.style = ratatui::style::Style::default()
-                                        .fg(ratatui::style::Color::Rgb(255, 255, 255));
-                                    editor.cursor_style = ratatui::style::Style::default()
-                                        .bg(ratatui::style::Color::Rgb(255, 0, 85))
-                                        .fg(ratatui::style::Color::Black);
-                                    editor.language = "text".to_string();
-
-                                    let mut app_lock = app_clone.lock().unwrap();
-                                    app_lock.editor_state = Some(crate::app::PreviewState {
-                                        path: p.clone(),
-                                        content: content.clone(),
-                                        scroll: 0,
-                                        editor: Some(editor),
-                                        last_saved: None,
-                                        image_data: None,
-                                        highlighted_lines: None,
-                                    });
-                                    app_lock.mode = AppMode::Viewer;
-                                    crate::app::log_debug("AppMode changed to Viewer");
-                                }
-                                Ok(out) => {
-                                    let err = String::from_utf8_lossy(&out.stderr);
-                                    crate::app::log_debug(&format!(
-                                        "Listing tool returned error: {}",
-                                        err
-                                    ));
-                                    let _ = tx.try_send(AppEvent::StatusMsg(format!(
-                                        "Listing failed: {}",
-                                        err.trim()
-                                    )));
-                                }
-                                Err(e) => {
-                                    crate::app::log_debug(&format!("Listing tool error: {}", e));
-                                    let _ = tx.try_send(AppEvent::StatusMsg(format!(
-                                        "Listing error: {}",
-                                        e
-                                    )));
-                                }
-                            }
-                            let _ = tx.try_send(AppEvent::Tick); // Force a redraw
-                        });
-                    } else {
-                        let ext = path
-                            .extension()
-                            .and_then(|e| e.to_str())
-                            .unwrap_or("unknown")
-                            .to_lowercase();
-                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                            "Preview not available for .{} (Use Enter to Open)",
-                            ext
-                        )));
-                    }
-                }
-                AppEvent::SpawnTerminal {
-                    path,
-                    new_tab,
-                    remote,
-                    command,
-                } => {
-                    let mut final_command = command;
-                    let mut local_path = path.clone();
-
-                    if let Some(r) = remote {
-                        let ssh_base = format!("ssh {}@{}", r.user, r.host);
-                        let remote_path = path.to_string_lossy();
-                        let ssh_cmd = if let Some(c) = final_command {
-                            format!("{} -t \"cd '{}'; {}\"", ssh_base, remote_path, c)
-                        } else {
-                            format!("{} -t \"cd '{}'; exec $SHELL\"", ssh_base, remote_path)
-                        };
-                        final_command = Some(ssh_cmd);
-                        // If it's remote, the local path might not exist, use home
-                        local_path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
-                    }
-
-                    terma::utils::spawn_terminal_at(&local_path, new_tab, final_command.as_deref());
-                }
-                AppEvent::Delete(path) => {
-                    let trash_path = dirs::home_dir()
-                        .unwrap_or_default()
-                        .join(".local/share/Trash/files");
-                    let _ = std::fs::create_dir_all(&trash_path);
-                    let file_name = path.file_name().unwrap_or_default();
-                    let dest = trash_path.join(file_name);
-
-                    if let Err(e) = std::fs::rename(&path, &dest) {
-                        let _ =
-                            event_tx.try_send(AppEvent::StatusMsg(format!("Delete failed: {}", e)));
-                    } else {
-                        let _undo_action = UndoAction::Delete(dest.clone()); // Store where it is in trash
-                        let mut app_guard = app.lock().unwrap();
-                        app_guard
-                            .undo_stack
-                            .push(UndoAction::Move(dest, path.clone())); // Undo is Move back
-                        app_guard.redo_stack.clear();
-                        for i in 0..app_guard.panes.len() {
-                            panes_needing_refresh.insert(i);
-                        }
-                    }
-                }
-                AppEvent::SaveFile(path, content) => {
-                    if let Err(e) = std::fs::write(&path, &content) {
-                        let _ =
-                            event_tx.try_send(AppEvent::StatusMsg(format!("Error saving: {}", e)));
-                    } else {
-                        // Update last_saved timestamp
-                        let mut app_guard = app.lock().unwrap();
-                        if let Some(preview) = &mut app_guard.editor_state {
-                            if preview.path == path {
-                                preview.last_saved = Some(std::time::Instant::now());
-                            }
-                        }
-                        for pane in &mut app_guard.panes {
-                            if let Some(preview) = &mut pane.preview {
-                                if preview.path == path {
-                                    preview.last_saved = Some(std::time::Instant::now());
-                                }
-                            }
-                        }
-                    }
-                }
-                AppEvent::Rename(src, dest) => {
-                    if dest.exists() && src != dest {
-                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                            "Error: {} already exists!",
-                            dest.display()
-                        )));
-                    } else {
-                        if let Err(e) = crate::modules::files::move_recursive(&src, &dest) {
-                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!("Error: {}", e)));
-                        } else {
-                            let mut app_guard = app.lock().unwrap();
-                            app_guard
-                                .undo_stack
-                                .push(UndoAction::Rename(dest.clone(), src.clone()));
-                            app_guard.redo_stack.clear();
-                            drop(app_guard);
-                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                                "Moved {} to {}",
-                                src.display(),
-                                dest.display()
-                            )));
-                            let app_guard = app.lock().unwrap();
-                            for i in 0..app_guard.panes.len() {
+                            if path.starts_with(&fs.current_path) {
                                 panes_needing_refresh.insert(i);
                             }
                         }
                     }
                 }
-                AppEvent::CreateFile(path) => {
-                    if let Err(e) = std::fs::File::create(&path) {
-                        let _ = event_tx
-                            .try_send(AppEvent::StatusMsg(format!("Error creating file: {}", e)));
-                    } else {
-                        let _ = event_tx
-                            .try_send(AppEvent::StatusMsg(format!("Created {}", path.display())));
-                        let app_guard = app.lock().unwrap();
-                        for i in 0..app_guard.panes.len() {
-                            panes_needing_refresh.insert(i);
+                AppEvent::PreviewRequested(pane_idx, path) => {
+                    let tx = event_tx.clone();
+                    let app_clone = app.clone();
+                    tokio::spawn(async move {
+                        let (is_binary, is_too_large, size_mb) = terma::utils::check_file_suitability(&path, 5 * 1024 * 1024);
+                        let content = if is_binary {
+                            format!("<Binary file: {} MB>", size_mb)
+                        } else if is_too_large {
+                            format!("<File too large: {} MB>", size_mb)
+                        } else {
+                            std::fs::read_to_string(&path).unwrap_or_else(|e| format!("Error reading file: {}", e))
+                        };
+
+                        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
+                        let mut editor = terma::widgets::TextEditor::new(content.clone(), ext);
+                        editor.readonly = true;
+
+                        let mut app_guard = app_clone.lock().unwrap();
+                        let preview = PreviewState {
+                            path: path.clone(),
+                            content,
+                            scroll: 0,
+                            editor: Some(editor),
+                            last_saved: None,
+                            image_data: None,
+                            highlighted_lines: None,
+                        };
+
+                        if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
+                            pane.preview = Some(preview.clone());
+                        }
+                        if app_guard.current_view == CurrentView::Editor {
+                            app_guard.editor_state = Some(preview);
+                        }
+                        let _ = tx.send(AppEvent::Tick).await;
+                    });
+                }
+                AppEvent::SaveFile(path, content) => {
+                    let _ = std::fs::write(&path, content);
+                    let mut app_guard = app.lock().unwrap();
+                    if let Some(ref mut preview) = app_guard.editor_state {
+                        if preview.path == path {
+                            preview.last_saved = Some(std::time::Instant::now());
                         }
                     }
+                    for pane in &mut app_guard.panes {
+                        if let Some(ref mut preview) = pane.preview {
+                            if preview.path == path {
+                                preview.last_saved = Some(std::time::Instant::now());
+                            }
+                        }
+                    }
+                    needs_draw = true;
+                }
+                AppEvent::CreateFile(path) => {
+                    let _ = std::fs::File::create(&path);
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.lock().unwrap().focused_pane_index));
                 }
                 AppEvent::CreateFolder(path) => {
-                    if let Err(e) = std::fs::create_dir(&path) {
-                        let _ = event_tx
-                            .try_send(AppEvent::StatusMsg(format!("Error creating folder: {}", e)));
-                    } else {
-                        let _ = event_tx
-                            .try_send(AppEvent::StatusMsg(format!("Created {}", path.display())));
-                        let app_guard = app.lock().unwrap();
-                        for i in 0..app_guard.panes.len() {
-                            panes_needing_refresh.insert(i);
-                        }
-                    }
+                    let _ = std::fs::create_dir_all(&path);
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.lock().unwrap().focused_pane_index));
+                }
+                AppEvent::Rename(old, new) => {
+                    let _ = std::fs::rename(&old, &new);
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.lock().unwrap().focused_pane_index));
+                }
+                AppEvent::Delete(path) => {
+                    if path.is_dir() { let _ = std::fs::remove_dir_all(&path); }
+                    else { let _ = std::fs::remove_file(&path); }
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.lock().unwrap().focused_pane_index));
                 }
                 AppEvent::Copy(src, dest) => {
                     let tx = event_tx.clone();
-                    let app_arc = app.clone();
                     tokio::spawn(async move {
-                        let task_id = Uuid::new_v4();
-                        let _ = tx
-                            .send(AppEvent::TaskProgress(
-                                task_id,
-                                0.0,
-                                format!(
-                                    "Copying {}...",
-                                    src.file_name().unwrap_or_default().to_string_lossy()
-                                ),
-                            ))
-                            .await;
-
-                        let res = if src.is_dir() {
-                            // Simple way for now: use system 'cp' which is fast but hard to track detailed progress
-                            // For true progress we'd need to walk and copy manually
-                            std::process::Command::new("cp")
-                                .arg("-r")
-                                .arg(&src)
-                                .arg(&dest)
-                                .status()
-                                .map(|s| s.success())
-                                .unwrap_or(false)
-                        } else {
-                            std::fs::copy(&src, &dest).is_ok()
-                        };
-
-                        if res {
-                            let mut app_guard = app_arc.lock().unwrap();
-                            app_guard
-                                .undo_stack
-                                .push(UndoAction::Copy(src.clone(), dest.clone()));
-                            app_guard.redo_stack.clear();
-                            drop(app_guard);
-                            let _ = tx.try_send(AppEvent::StatusMsg(format!(
-                                "Copied {} to {}",
-                                src.display(),
-                                dest.display()
-                            )));
-                            let _ = tx.try_send(AppEvent::RefreshFiles(0));
-                            let _ = tx.try_send(AppEvent::RefreshFiles(1));
-                        } else {
-                            let _ = tx.try_send(AppEvent::StatusMsg(format!("Error copying")));
-                        }
-                        let _ = tx.send(AppEvent::TaskFinished(task_id)).await;
+                        let _ = terma::utils::copy_recursive(&src, &dest);
+                        let _ = tx.send(AppEvent::RefreshFiles(0)).await;
                     });
                 }
-                AppEvent::Symlink(src, dest) => {
-                    let tx = event_tx.clone();
-                    #[cfg(unix)]
-                    {
-                        if let Err(e) = std::os::unix::fs::symlink(&src, &dest) {
-                            let _ = tx.try_send(AppEvent::StatusMsg(format!("Error symlinking: {}", e)));
-                        } else {
-                            let _ = tx.try_send(AppEvent::StatusMsg(format!(
-                                "Symlinked {} to {}",
-                                src.display(),
-                                dest.display()
-                            )));
-                            let _ = tx.try_send(AppEvent::RefreshFiles(0));
-                            let _ = tx.try_send(AppEvent::RefreshFiles(1));
-                        }
-                    }
-                    #[cfg(not(unix))]
-                    {
-                        let _ = tx.try_send(AppEvent::StatusMsg(format!("Symlinking only supported on Unix")));
-                    }
+                AppEvent::SpawnTerminal { path, new_tab, remote, command } => {
+                    let cmd_str = command.as_deref();
+                    terma::utils::spawn_terminal_at(&path, new_tab, cmd_str);
                 }
                 AppEvent::SpawnDetached { cmd, args } => {
-                    let tx = event_tx.clone();
-                    let cmd_str = cmd.clone();
-                    tokio::spawn(async move {
-                        match std::process::Command::new(&cmd)
-                            .args(&args)
-                            .stdout(std::process::Stdio::null())
-                            .stderr(std::process::Stdio::null())
-                            .stdin(std::process::Stdio::null())
-                            .spawn()
-                        {
-                            Ok(_) => {
-                                let _ = tx
-                                    .try_send(AppEvent::StatusMsg(format!("Launched {}", cmd_str)));
-                            }
-                            Err(e) => {
-                                let _ = tx.try_send(AppEvent::StatusMsg(format!(
-                                    "Failed to launch {}: {}",
-                                    cmd_str, e
-                                )));
-                            }
-                        }
-                    });
+                    terma::utils::spawn_detached(&cmd, args);
                 }
                 AppEvent::KillProcess(pid) => {
-                    let _ = std::process::Command::new("kill")
-                        .arg("-9")
-                        .arg(pid.to_string())
-                        .status();
+                    let _ = std::process::Command::new("kill").arg("-9").arg(pid.to_string()).spawn();
                 }
-                AppEvent::SystemMonitor => {
-                    let mut app_guard = app.lock().unwrap();
-                    if app_guard.current_view == CurrentView::Processes {
-                        app_guard.current_view = CurrentView::Files;
-                    } else {
-                        app_guard.current_view = CurrentView::Processes;
-                        app_guard.monitor_subview = MonitorSubview::Overview;
-                    }
-                    needs_draw = true;
-                }
-                AppEvent::GitHistory => {
-                    let (p_idx, t_idx, path, base_path) = {
-                        let app_guard = app.lock().unwrap();
-                        let p_idx = app_guard.focused_pane_index;
-                        let pane = &app_guard.panes[p_idx];
-                        let t_idx = pane.active_tab_index;
-                        let tab = &pane.tabs[t_idx];
-                        let base_path = tab.current_path.clone();
-                        
-                        // If a file is selected, show history for THAT file
-                        let target_path = if let Some(idx) = tab.selection.selected {
-                            if let Some(p) = tab.files.get(idx) {
-                                if p.to_string_lossy() != "__DIVIDER__" {
-                                    p.clone()
-                                } else {
-                                    base_path.clone()
-                                }
-                            } else {
-                                base_path.clone()
-                            }
-                        } else {
-                            base_path.clone()
-                        };
-                        
-                        (p_idx, t_idx, target_path, base_path)
-                    };
-
-                    let tx = event_tx.clone();
-                    tokio::spawn(async move {
-                        let history = crate::modules::files::get_git_history(&path, 100);
-                        let pending = crate::modules::files::get_git_status(&base_path);
-                        let _ = tx.send(AppEvent::GitHistoryUpdated(p_idx, t_idx, history, pending)).await;
-                    });
-
-                    let mut app_guard = app.lock().unwrap();
-                    if app_guard.current_view == CurrentView::Git {
-                        app_guard.current_view = CurrentView::Files;
-                    } else {
-                        app_guard.current_view = CurrentView::Git;
-                    }
-                    needs_draw = true;
-                }
-                AppEvent::GitHistoryUpdated(p_idx, t_idx, history, pending) => {
+                AppEvent::GitHistoryUpdated(p_idx, _t_idx, history, pending) => {
                     let mut app_guard = app.lock().unwrap();
                     if let Some(pane) = app_guard.panes.get_mut(p_idx) {
-                        if let Some(tab) = pane.tabs.get_mut(t_idx) {
-                            tab.git_history = history;
-                            tab.git_pending = pending;
-                            if tab.git_history_state.selected().is_none() && !tab.git_history.is_empty() {
-                                tab.git_history_state.select(Some(0));
-                            }
+                        if let Some(fs) = pane.current_state_mut() {
+                            fs.git_history = history;
+                            fs.git_pending = pending;
                         }
                     }
                     needs_draw = true;
                 }
-                AppEvent::Editor => {
-                    let mut app_guard = app.lock().unwrap();
-                    if app_guard.current_view == CurrentView::Editor {
-                        app_guard.current_view = CurrentView::Files;
-                        app_guard.show_sidebar = true; // Restore regular sidebar
-                        app_guard.sidebar_focus = false;
-                        app_guard.show_side_panel = false;
-                        
-                        // Clear all previews
-                        for pane in &mut app_guard.panes {
-                            pane.preview = None;
-                        }
-                    } else {
-                        app_guard.current_view = CurrentView::Editor;
-                        app_guard.show_sidebar = false; // IDE starts clean
-                        app_guard.show_side_panel = false;
-                    }
-                    needs_draw = true;
-                }
-                AppEvent::TaskProgress(id, progress, status) => {
+                AppEvent::TaskProgress(id, progress, desc) => {
                     let mut app_guard = app.lock().unwrap();
                     if let Some(task) = app_guard.background_tasks.iter_mut().find(|t| t.id == id) {
                         task.progress = progress;
-                        task.status = status;
+                        task.description = desc;
                     } else {
-                        // New task
-                        app_guard.background_tasks.push(crate::app::BackgroundTask {
-                            id,
-                            name: status.clone(),
-                            progress,
-                            status,
-                        });
+                        app_guard.background_tasks.push(crate::app::BackgroundTask { id, description: desc, progress });
                     }
                     needs_draw = true;
                 }
@@ -1002,103 +366,56 @@ async fn run_tty() -> color_eyre::Result<()> {
                     app_guard.background_tasks.retain(|t| t.id != id);
                     needs_draw = true;
                 }
-                AppEvent::StatusMsg(msg) => {
+                AppEvent::GlobalSearchUpdated(pane_idx, files, _meta) => {
                     let mut app_guard = app.lock().unwrap();
-                    app_guard.last_action_msg = Some((msg, std::time::Instant::now()));
+                    if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
+                        if let Some(fs) = pane.current_state_mut() {
+                            fs.files = files;
+                        }
+                    }
                     needs_draw = true;
                 }
                 _ => {}
             }
         }
 
-        // --- PERFORM COALESCED REFRESHES ---
-        if !panes_needing_refresh.is_empty() {
-            let mut app_guard = app.lock().unwrap();
-            for idx in panes_needing_refresh.drain() {
-                if let Some(pane) = app_guard.panes.get_mut(idx) {
-                    if let Some(fs) = pane.current_state_mut() {
-                        let session_arc = fs.remote_session.as_ref().map(|s| s.session.clone());
-                        if let Some(arc) = session_arc {
-                            let sess = arc.lock().unwrap();
-                            crate::modules::files::update_files(fs, Some(&sess));
-                        } else {
-                            // 1. Local update (immediate)
-                            crate::modules::files::update_files(fs, None);
+        // Handle Refreshes
+        for pane_idx in panes_needing_refresh.drain() {
+            let (path, remote) = {
+                let app_guard = app.lock().unwrap();
+                if let Some(pane) = app_guard.panes.get(pane_idx) {
+                    if let Some(fs) = pane.current_state() {
+                        (fs.current_path.clone(), fs.remote_session.clone())
+                    } else { continue; }
+                } else { continue; }
+            };
 
-                            // Update Watcher
-                            let p = fs.current_path.clone();
-                            let needs_update = watched_paths.get(&idx).map(|old| *old != p).unwrap_or(true);
-                            
-                            if needs_update {
-                                if let Some(old) = watched_paths.get(&idx) {
-                                    let _ = debouncer.watcher().unwatch(old);
-                                }
-                                if let Err(e) = debouncer.watcher().watch(&p, RecursiveMode::NonRecursive) {
-                                     crate::app::log_debug(&format!("Watch failed for {:?}: {}", p, e));
-                                } else {
-                                     watched_paths.insert(idx, p);
-                                }
-                            }
-
-                            // Restore selection if navigating back
-                            if let Some(pending) = &fs.pending_select_path {
-                                if let Some(pos) = fs.files.iter().position(|p| p == pending) {
-                                    fs.selection.selected = Some(pos);
-                                    fs.selection.anchor = Some(pos);
-                                    fs.table_state.select(Some(pos));
-                                    if fs.view_height > 0 {
-                                        *fs.table_state.offset_mut() =
-                                            pos.saturating_sub(fs.view_height / 2);
-                                    }
-                                }
-                                fs.pending_select_path = None;
-                            }
-
-                            // 2. Trigger Global search if needed (background)
-                            if fs.search_filter.len() >= 3 {
-                                let filter = fs.search_filter.clone();
-                                let current_path = fs.current_path.clone();
-                                let show_hidden = fs.show_hidden;
-                                let local_files = fs.files.clone();
-                                let tx = event_tx.clone();
-                                let p_idx = idx;
-
-                                tokio::spawn(async move {
-                                    let (global_files, metadata) =
-                                        crate::modules::files::perform_global_search(
-                                            filter,
-                                            current_path,
-                                            show_hidden,
-                                            local_files,
-                                        );
-                                    let _ = tx.try_send(AppEvent::GlobalSearchUpdated(
-                                        p_idx,
-                                        global_files,
-                                        metadata,
-                                    ));
-                                });
-                            }
-                        }
-                    }
+            let tx = event_tx.clone();
+            let app_clone = app.clone();
+            tokio::spawn(async move {
+                let (files, metadata) = if let Some(session) = remote {
+                    // Remote refresh logic (mocked for now)
+                    (Vec::new(), std::collections::HashMap::new())
                 } else {
-                    // Pane is gone, cleanup watcher
-                    if let Some(old) = watched_paths.remove(&idx) {
-                        let _ = debouncer.watcher().unwatch(&old);
+                    crate::modules::files::read_dir_with_metadata(&path)
+                };
+
+                let mut app_guard = app_clone.lock().unwrap();
+                if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
+                    if let Some(fs) = pane.current_state_mut() {
+                        fs.files = files;
+                        fs.metadata = metadata;
+                        // Sort and filter here if needed
                     }
                 }
-            }
-            needs_draw = true;
+                let _ = tx.send(AppEvent::Tick).await;
+            });
         }
 
-        {
+        if needs_draw {
             let mut app_guard = app.lock().unwrap();
-            if !app_guard.running {
-                break;
-            }
-            if needs_draw {
-                app_guard.terminal_size = (terminal.size()?.width, terminal.size()?.height);
-                terminal.draw(|f| ui::draw(f, &mut app_guard))?;
-            }
+            if !app_guard.running { break; }
+            terminal.draw(|f| ui::draw(f, &mut app_guard))?;
         }
 
         tokio::time::sleep(Duration::from_millis(16)).await;
@@ -1136,6 +453,7 @@ fn setup_app(
     let app_arc = Arc::new(Mutex::new(app));
     (app_arc, tx, rx)
 }
+
 fn handle_event(
     evt: Event,
     app: &mut App,
@@ -1144,4 +462,3 @@ fn handle_event(
 ) -> bool {
     events::handle_event(evt, app, event_tx, panes_needing_refresh)
 }
-
