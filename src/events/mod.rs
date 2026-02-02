@@ -1,11 +1,8 @@
 use terma::input::event::{Event, KeyCode, KeyModifiers, KeyEventKind, MouseEventKind, MouseButton};
 use tokio::sync::mpsc;
-use crate::app::{App, AppEvent, AppMode, CurrentView, DropTarget, SidebarTarget, ContextMenuTarget, FileColumn, CommandAction, UndoAction};
-use crate::icons::Icon;
+use crate::app::{App, AppEvent, AppMode, CurrentView, SidebarTarget};
 use std::collections::HashSet;
 use std::time::Duration;
-use unicode_width::UnicodeWidthStr;
-use terma::utils::get_visual_width;
 
 pub mod editor;
 pub mod file_manager;
