@@ -4737,6 +4737,9 @@ fn handle_event(
                                     SidebarTarget::Storage(i) => {
                                         Some(ContextMenuTarget::SidebarStorage(*i))
                                     }
+                                    SidebarTarget::Project(path) => {
+                                        Some(ContextMenuTarget::ProjectTree(path.clone()))
+                                    }
                                     _ => None,
                                 };
                                 if let Some(target) = t {
