@@ -135,24 +135,21 @@ pub fn handle_editor_mouse(me: &MouseEvent, app: &mut App, event_tx: &mpsc::Send
     // B. Check for IDE Mode (Pane Editor)
     if app.current_view == CurrentView::Editor && column >= app.sidebar_width() {
         let sw = app.sidebar_width();
-        let cw = w.saturating_sub(sw);
         let pc = app.panes.len();
+        let cw = w.saturating_sub(sw);
         let pw = if pc > 0 { cw / pc as u16 } else { cw };
         let cp = (column.saturating_sub(sw) / pw) as usize;
         
         if cp < pc {
-            app.focused_pane_index = cp;
+            let pane_idx = cp;
+            app.focused_pane_index = pane_idx;
             app.sidebar_focus = false;
 
-            if let Some(pane) = app.panes.get_mut(cp) {
+            if let Some(pane) = app.panes.get_mut(pane_idx) {
                 if let Some(preview) = &mut pane.preview {
                     if let Some(editor) = &mut preview.editor {
                         // Correct calculation matching draw_pane_editor in src/ui/panes/editor.rs
-                        let cw = w.saturating_sub(sw);
-                        let pc = app.panes.len();
-                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
-                        
-                        let pane_x = sw + (cp as u16 * pw);
+                        let pane_x = sw + (pane_idx as u16 * pw);
                         let pane_area = ratatui::layout::Rect::new(pane_x, 1, pw, h.saturating_sub(1));
                         
                         let inner = ratatui::widgets::Block::default()
@@ -339,6 +336,7 @@ fn handle_generic_editor_shortcuts(
             _ => {}
         }
     }
+    
     if key.code == KeyCode::F(2) {
         crate::app::log_debug("DEBUG: F2 pressed in Editor - triggering Rename");
         let name = path.file_name().unwrap_or_else(|| std::ffi::OsStr::new("root")).to_string_lossy().to_string();
