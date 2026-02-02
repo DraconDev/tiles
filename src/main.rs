@@ -166,7 +166,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                 }
                 AppEvent::Raw(raw) => {
                     let mut app_guard = app.lock().unwrap();
-                    if handle_event(raw, &mut app_guard, event_tx.clone()) {
+                    if handle_event(raw, &mut app_guard, event_tx.clone(), &mut panes_needing_refresh) {
                         needs_draw = true;
                     }
                 }
