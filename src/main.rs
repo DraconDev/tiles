@@ -2683,7 +2683,7 @@ fn handle_event(
                     }
                     KeyCode::Down => {
                         let max = match app.settings_section {
-                            SettingsSection::General => 4, // 5 items: 0-4
+                            SettingsSection::General => 5, // 6 items: 0-5
                             SettingsSection::Columns => 3, // 4 items: 0-3
                             _ => 0,
                         };
@@ -2737,7 +2737,9 @@ fn handle_event(
                                     0 => app.default_show_hidden = !app.default_show_hidden,
                                     1 => app.confirm_delete = !app.confirm_delete,
                                     2 => app.smart_date = !app.smart_date,
-                                    3 => {
+                                    3 => app.semantic_coloring = !app.semantic_coloring,
+                                    4 => app.auto_save = !app.auto_save,
+                                    5 => {
                                         app.icon_mode = match app.icon_mode {
                                             IconMode::Nerd => IconMode::Unicode,
                                             IconMode::Unicode => IconMode::ASCII,
@@ -2747,6 +2749,7 @@ fn handle_event(
                                     _ => {}
                                 }
                                 let _ = crate::config::save_state(app);
+                            }
                             }
                             SettingsSection::Columns => {
                                 let col = match app.settings_index {
