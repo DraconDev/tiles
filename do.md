@@ -1,6 +1,6 @@
 ## Do
 
-fulll 
+full scree
 
 
 ## Done
