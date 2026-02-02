@@ -477,7 +477,22 @@ pub fn handle_context_menu_action(
             return;
         }
         ContextMenuAction::Rename => {
-            if let ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) = target {
+            if let ContextMenuTarget::ProjectTree(path) = target {
+                if let Some(name) = path.file_name() {
+                    let name_str = name.to_string_lossy().to_string();
+                    app.input.set_value(name_str.clone());
+                    if let Some(dot_idx) = name_str.rfind('.') {
+                        if dot_idx > 0 {
+                            app.input.cursor_position = dot_idx;
+                        } else {
+                            app.input.cursor_position = name_str.len();
+                        }
+                    } else {
+                        app.input.cursor_position = name_str.len();
+                    }
+                    app.rename_selected = true;
+                }
+            } else if let ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) = target {
                 if let Some(fs) = app.current_file_state() {
                     if let Some(path) = fs.files.get(*idx) {
                         if let Some(name) = path.file_name() {
