@@ -2764,6 +2764,37 @@ fn handle_event(
                                     app.toggle_column(col);
                                 }
                             }
+                            SettingsSection::Tabs => {
+                                let mut tab_counter = 0;
+                                let mut to_remove = None;
+                                for (p_idx, pane) in app.panes.iter().enumerate() {
+                                    for t_idx in 0..pane.tabs.len() {
+                                        if tab_counter == app.settings_index {
+                                            to_remove = Some((p_idx, t_idx));
+                                            break;
+                                        }
+                                        tab_counter += 1;
+                                    }
+                                    if to_remove.is_some() { break; }
+                                }
+                                if let Some((p_idx, t_idx)) = to_remove {
+                                    if let Some(p) = app.panes.get_mut(p_idx) {
+                                        if p.tabs.len() > 1 {
+                                            p.tabs.remove(t_idx);
+                                            if p.active_tab_index >= p.tabs.len() {
+                                                p.active_tab_index = p.tabs.len() - 1;
+                                            }
+                                            let _ = event_tx.try_send(AppEvent::RefreshFiles(p_idx));
+                                        }
+                                    }
+                                }
+                            }
+                            SettingsSection::Remotes => {
+                                if let Some(bookmark) = app.remote_bookmarks.get(app.settings_index) {
+                                    let _ = event_tx.try_send(AppEvent::ConnectToRemote(app.focused_pane_index, app.settings_index));
+                                    app.mode = AppMode::Normal;
+                                }
+                            }
                             _ => {}
                         }
                         return true;
