@@ -147,18 +147,40 @@ pub fn handle_editor_mouse(me: &MouseEvent, app: &mut App, event_tx: &mpsc::Send
             if let Some(pane) = app.panes.get_mut(cp) {
                 if let Some(preview) = &mut pane.preview {
                     if let Some(editor) = &mut preview.editor {
-                        let pane_area = ratatui::layout::Rect::new(
-                            sw + (cp as u16 * pw) + 1,
-                            3, 
-                            pw.saturating_sub(2),
-                            h.saturating_sub(4),
-                        );
+                        // Correct calculation matching draw_pane_editor in src/ui/panes/editor.rs
+                        let cw = w.saturating_sub(sw);
+                        let pc = app.panes.len();
+                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                        
+                        let pane_x = sw + (cp as u16 * pw);
+                        let pane_area = ratatui::layout::Rect::new(pane_x, 1, pw, h.saturating_sub(1));
+                        
+                        let inner = ratatui::widgets::Block::default()
+                            .borders(ratatui::widgets::Borders::ALL)
+                            .border_type(ratatui::widgets::BorderType::Rounded)
+                            .inner(pane_area);
+                        
+                        let chunks = ratatui::layout::Layout::default()
+                            .direction(ratatui::layout::Direction::Vertical)
+                            .constraints([
+                                ratatui::layout::Constraint::Length(1), // Breadcrumbs
+                                ratatui::layout::Constraint::Fill(1),   // Editor
+                            ])
+                            .split(inner);
+
+                        let editor_area = ratatui::layout::Rect {
+                            x: chunks[1].x,
+                            y: chunks[1].y,
+                            width: chunks[1].width.saturating_sub(2),
+                            height: chunks[1].height,
+                        };
+
                         let mut clipboard = app.editor_clipboard.clone();
                         let handled = handle_text_editor_mouse(
                             me, editor, &mut clipboard,
                             &mut app.mouse_last_click, &mut app.mouse_click_pos, &mut app.mouse_click_count,
                             app.auto_save,
-                            pane_area, event_tx, &preview.path
+                            editor_area, event_tx, &preview.path
                         );
                         app.editor_clipboard = clipboard;
                         return handled;
@@ -183,6 +205,7 @@ fn handle_text_editor_mouse(
     event_tx: &mpsc::Sender<AppEvent>,
     path: &std::path::PathBuf,
 ) -> bool {
+    crate::app::log_debug(&format!("DEBUG: Entering handle_text_editor_mouse with kind: {:?} at ({}, {}) in area {:?}", me.kind, me.column, me.row, area));
     match me.kind {
         MouseEventKind::Down(MouseButton::Left) => {
             let now = std::time::Instant::now();
