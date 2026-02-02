@@ -419,6 +419,7 @@ pub fn handle_modal_mouse(me: &terma::input::event::MouseEvent, app: &mut App, e
                 }
                 return true;
             }
+            return true; // Consume all mouse events while context menu is open
         }
         AppMode::Settings => {
             if let MouseEventKind::Down(_) = me.kind {
