@@ -3369,13 +3369,20 @@ fn draw_new_file_modal(f: &mut Frame, app: &App) {
     f.render_widget(&app.input, inner);
 }
 
-fn draw_delete_modal(f: &mut Frame, _app: &App) {
+fn draw_delete_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
+    
+    let title = if let AppMode::DeleteFile(ref path) = app.mode {
+        format!(" Delete {}? ", path.file_name().unwrap_or_default().to_string_lossy())
+    } else {
+        " Delete selected items? ".to_string()
+    };
+
     f.render_widget(
-        Paragraph::new("Delete selected item(s)? (y/n)").block(
+        Paragraph::new(format!("Confirm deletion? [Y/n]: {}", app.input.value)).block(
             Block::default()
-                .title(" Delete ")
+                .title(title)
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(Color::Red)),
