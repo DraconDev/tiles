@@ -2929,9 +2929,11 @@ fn handle_event(
                                 match app.mode {
                                     AppMode::NewFile => {
                                         let _ = event_tx.try_send(AppEvent::CreateFile(path));
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     }
                                     AppMode::NewFolder => {
                                         let _ = event_tx.try_send(AppEvent::CreateFolder(path));
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                     }
                                     AppMode::Rename => {
                                         if let Some(idx) = fs.selection.selected {
