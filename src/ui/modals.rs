@@ -287,12 +287,12 @@ pub fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
-    let mut suggestions = crate::get_open_with_suggestions(app, &ext);
+    let mut suggestions = get_open_with_suggestions(app, &ext);
 
     // Filter suggestions based on input
     if !app.input.value.is_empty() {
         let query = app.input.value.to_lowercase();
-        suggestions.retain(|s| s.to_lowercase().contains(&query));
+        suggestions.retain(|s: &String| s.to_lowercase().contains(&query));
     }
 
     let (mx, my) = app.mouse_pos;
