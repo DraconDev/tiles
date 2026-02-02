@@ -1,10 +1,6 @@
 use terma::input::event::{Event, KeyCode, KeyModifiers, MouseEventKind, MouseButton};
 use tokio::sync::mpsc;
-use crate::app::{App, AppEvent, AppMode, ContextMenuAction, DropTarget, SidebarTarget, ContextMenuTarget, FileColumn, SettingsSection, SettingsTarget, IconMode};
-use crate::events::input::delete_word_backwards;
-use crate::icons::Icon;
-use unicode_width::UnicodeWidthStr;
-use terma::utils::get_visual_width;
+use crate::app::{App, AppEvent, AppMode, ContextMenuAction, ContextMenuTarget, SettingsSection, IconMode};
 
 pub fn handle_modal_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     match evt {
