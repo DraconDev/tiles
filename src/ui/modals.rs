@@ -1,9 +1,9 @@
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Direction, Layout, Rect, Alignment},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{
-        Block, BorderType, Borders, Clear, Paragraph,
+        Block, BorderType, Borders, Cell, Clear, ListItem, Paragraph, Row, Table, List,
     },
     Frame,
 };
@@ -137,8 +137,7 @@ pub fn draw_drag_drop_modal(
     f.render_widget(Paragraph::new(text), inner);
 }
 
-pub fn draw_hotkeys_modal(f: &mut Frame, _area: Rect) {
-    let area = centered_rect(70, 80, f.area());
+pub fn draw_hotkeys_modal(f: &mut Frame, area: Rect) {
     f.render_widget(Clear, area);
     let block = Block::default()
         .borders(Borders::ALL)
@@ -159,7 +158,7 @@ pub fn draw_hotkeys_modal(f: &mut Frame, _area: Rect) {
     f.render_widget(
         Paragraph::new("Press ESC or F1 to Close")
             .style(Style::default().fg(Color::DarkGray))
-            .alignment(ratatui::layout::Alignment::Center),
+            .alignment(Alignment::Center),
         chunks[0],
     );
 
@@ -250,7 +249,7 @@ pub fn draw_hotkeys_modal(f: &mut Frame, _area: Rect) {
 }
 
 pub fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
-    let area = centered_rect(60, 60, f.area()); // Increased height
+    let area = centered_rect(60, 60, f.area());
     f.render_widget(Clear, area);
     let block = Block::default()
         .title(" Open With... ")
@@ -510,12 +509,24 @@ pub fn draw_delete_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
     
-    let title = if let AppMode::DeleteFile(ref path) = app.mode {
-        format!(" Delete {}? ", path.file_name().unwrap_or_default().to_string_lossy())
-    } else {
-        " Delete selected items? ".to_string()
-    };
+    let title = " Delete items? ".to_string();
 
+    f.render_widget(
+        Paragraph::new(format!("Confirm deletion? [Y/n]: {}", app.input.value)).block(
+            Block::default()
+                .title(title)
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(Color::Red)),
+        ),
+        area,
+    );
+}
+
+pub fn draw_delete_file_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
+    let area = centered_rect(40, 10, f.area());
+    f.render_widget(Clear, area);
+    let title = format!(" Delete {}? ", path.file_name().unwrap_or_default().to_string_lossy());
     f.render_widget(
         Paragraph::new(format!("Confirm deletion? [Y/n]: {}", app.input.value)).block(
             Block::default()
@@ -581,36 +592,6 @@ pub fn draw_properties_modal(f: &mut Frame, app: &App) {
                 Span::styled("Permissions: ", Style::default().fg(THEME.accent_secondary)),
                 Span::raw(format_permissions(meta.permissions)),
             ]));
-        } else {
-            if fs.remote_session.is_none() {
-                if let Ok(m) = std::fs::metadata(target_path) {
-                    let is_dir = m.is_dir();
-                    text.push(Line::from(vec![
-                        Span::styled("Type: ", Style::default().fg(THEME.accent_secondary)),
-                        Span::raw(if is_dir { "Folder" } else { "File" }),
-                    ]));
-                    text.push(Line::from(vec![
-                        Span::styled("Size: ", Style::default().fg(THEME.accent_secondary)),
-                        Span::raw(format_size(m.len())),
-                    ]));
-                    if let Ok(mod_time) = m.modified() {
-                        text.push(Line::from(vec![
-                            Span::styled("Modified: ", Style::default().fg(THEME.accent_secondary)),
-                            Span::raw(format_time(mod_time)),
-                        ]));
-                    }
-                } else {
-                    text.push(Line::from(Span::styled(
-                        "No metadata available",
-                        Style::default().fg(Color::DarkGray),
-                    )));
-                }
-            } else {
-                text.push(Line::from(Span::styled(
-                    "No metadata available (Remote)",
-                    Style::default().fg(Color::DarkGray),
-                )));
-            }
         }
     }
 
@@ -750,30 +731,14 @@ pub fn draw_highlight_modal(f: &mut Frame, _app: &App) {
     }
 
     f.render_widget(
-        Paragraph::new(Line::from(spans)).alignment(ratatui::layout::Alignment::Center),
+        Paragraph::new(Line::from(spans)).alignment(Alignment::Center),
         Rect::new(inner.x, inner.y + 1, inner.width, 1),
     );
     f.render_widget(
         Paragraph::new("1   2   3   4   5   6   0")
-            .alignment(ratatui::layout::Alignment::Center)
+            .alignment(Alignment::Center)
             .style(Style::default().fg(Color::DarkGray)),
         Rect::new(inner.x, inner.y + 2, inner.width, 1),
-    );
-}
-
-pub fn draw_delete_file_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
-    let area = centered_rect(40, 10, f.area());
-    f.render_widget(Clear, area);
-    let title = format!(" Delete {}? ", path.file_name().unwrap_or_default().to_string_lossy());
-    f.render_widget(
-        Paragraph::new(format!("Confirm deletion? [Y/n]: {}", app.input.value)).block(
-            Block::default()
-                .title(title)
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(Color::Red)),
-        ),
-        area,
     );
 }
 
