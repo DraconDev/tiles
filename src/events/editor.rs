@@ -61,8 +61,8 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
         }
     }
 
-    // 3. Full-Screen Editor Priority
-    if let AppMode::Editor = app.mode {
+    // 3. Full-Screen Editor/Viewer Priority
+    if let AppMode::Editor | AppMode::Viewer = app.mode {
         if let Some(preview) = &mut app.editor_state {
             if let Some(editor) = &mut preview.editor {
                 if key.code == KeyCode::Esc {
