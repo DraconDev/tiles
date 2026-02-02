@@ -2685,6 +2685,8 @@ fn handle_event(
                         let max = match app.settings_section {
                             SettingsSection::General => 5, // 6 items: 0-5
                             SettingsSection::Columns => 3, // 4 items: 0-3
+                            SettingsSection::Tabs => app.panes.iter().map(|p| p.tabs.len()).sum::<usize>().saturating_sub(1),
+                            SettingsSection::Remotes => app.remote_bookmarks.len().saturating_sub(1),
                             _ => 0,
                         };
                         if app.settings_index < max {
