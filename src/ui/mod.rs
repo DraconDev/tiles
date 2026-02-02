@@ -3173,6 +3173,7 @@ fn draw_context_menu(
         crate::app::ContextMenuTarget::SidebarFavorite(_) => " Favorite ",
         crate::app::ContextMenuTarget::SidebarRemote(_) => " Remote ",
         crate::app::ContextMenuTarget::SidebarStorage(_) => " Storage ",
+        crate::app::ContextMenuTarget::ProjectTree(_) => " Project ",
         crate::app::ContextMenuTarget::Process(_) => " Process ",
     };
 
