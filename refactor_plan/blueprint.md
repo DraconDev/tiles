@@ -1,21 +1,21 @@
 # Tiles Refactor Blueprint 󱐋
 
-## Status: Phase 1 & 2 Complete ✅
-- **UI Decomposition**: `src/ui/mod.rs` reduced from 4k lines to ~200. Logic moved to `modals.rs`, `pages/`, and `panes/`.
-- **Event Decomposition**: `handle_event` moved from `main.rs` to `src/events/` with specialized sub-handlers.
-- **System Logic**: Telemetry state updates moved to `src/modules/system.rs`.
+## Core Mandate: Full Terma Integration
+- **Zero Cutting**: We are NOT moving away from `terma`. We are organizing Tiles to use `terma` widgets (TextEditor, TextInput, HotkeyHint) more efficiently.
+- **Engine First**: All event handling must map directly to `terma::input::event::Event` variants.
+- **Widget Consistency**: UI components in `src/ui/panes/` must remain compatible with `terma`'s rendering patterns.
 
-## Phase 3: Verification & Stabilization (CURRENT)
-- [ ] Implement unit tests for `src/events/` routing.
-- [ ] Verify `FileState` and `SelectionState` logic in `src/app.rs`.
-- [ ] Clean up unused imports and dead code warnings.
-- [ ] Verify mouse coordinate mapping in refactored UI panes.
+## Current Status: Phase 1 & 2 (Stable) ✅
+- **UI Modularized**: God-file `ui/mod.rs` decomposed. Original Footer, Header, and Mouse-interactive areas restored and linked to Terma-based logic.
+- **Events Modularized**: Central `handle_event` in `main.rs` is now a thin wrapper. Logic moved to specialized sub-handlers in `src/events/`.
 
-## Phase 4: State Management Refinement
-- [ ] Extract `FileState`, `SystemState`, and `RemoteSession` into `src/state/`.
-- [ ] Decouple `App` coordinator from specific widget states.
+## Phase 3: State & Logic Hardening (CURRENT) 🚧
+- [ ] **Consolidate State**: Extract `FileState`, `SelectionState`, and `RemoteSession` from `app.rs` into a new `src/state/` module.
+- [ ] **Terma Widget Alignment**: Ensure `App` acts only as a coordinator, delegating specific state to `terma`-ready widgets.
+- [ ] **Warning Cleanup**: Systematic removal of dead code and unused imports from the transition.
+- [ ] **Verification**: Pass `cargo test` and `cargo check` after each state move.
 
-## Testing Strategy
-1. **Event Routing**: Ensure `handle_event` correctly delegates based on `AppMode` and `CurrentView`.
-2. **Editor Logic**: Test clipboard operations and text manipulation in `src/events/editor.rs`.
-3. **File Manager**: Test directory navigation and selection logic.
+## Phase 4: Performance & Polish 💎
+- [ ] **Incremental Rendering**: Optimize `draw` calls to only update changed panes (leveraging `panes_needing_refresh`).
+- [ ] **Selection Hardening**: Verify multi-pane drag-and-drop works flawlessly across all remote/local combinations.
+- [ ] **Documentation**: Document the new module boundaries for future feature additions.
