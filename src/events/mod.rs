@@ -157,7 +157,6 @@ mod tests {
             code: KeyCode::Char('b'),
             modifiers: KeyModifiers::CONTROL,
             kind: KeyEventKind::Press,
-            state: terma::input::event::KeyEventState::empty(),
         });
         
         let initial_sidebar = app.show_sidebar;
@@ -169,7 +168,6 @@ mod tests {
             code: KeyCode::Char('p'),
             modifiers: KeyModifiers::CONTROL,
             kind: KeyEventKind::Press,
-            state: terma::input::event::KeyEventState::empty(),
         });
         
         let initial_split = app.is_split_mode;
