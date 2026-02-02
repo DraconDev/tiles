@@ -1,7 +1,7 @@
 ## Do
 
 full screen folder mode
-also if w c
+also if w can 
 
 
 ## Done
