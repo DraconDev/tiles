@@ -14,8 +14,8 @@ use terma::integration::ratatui::TermaBackend;
 use ratatui::Terminal;
 
 use crate::app::{
-    App, AppEvent, CurrentView,
-    UndoAction,
+    App, AppEvent, AppMode, CurrentView,
+    FileCategory, MonitorSubview, UndoAction,
 };
 mod app;
 mod config;
