@@ -1,5 +1,5 @@
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{
@@ -11,13 +11,10 @@ use std::time::SystemTime;
 use unicode_width::UnicodeWidthStr;
 
 use crate::app::{
-    App, AppMode, CurrentView,
+    App, AppMode, CurrentView, DropTarget,
 };
-use crate::icons::Icon;
 use crate::ui::theme::THEME;
-use terma::utils::{
-    format_size,
-};
+use terma::widgets::HotkeyHint;
 
 pub fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut App) {
     let _now = SystemTime::now()
@@ -28,14 +25,14 @@ pub fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &m
     let pane_count = app.panes.len();
 
     // Toolbar Icons Cluster (Far Left)
-    let back_icon = Icon::Back.get(app.icon_mode);
-    let forward_icon = Icon::Forward.get(app.icon_mode);
-    let split_icon = Icon::Split.get(app.icon_mode);
-    let burger_icon = Icon::Burger.get(app.icon_mode);
+    let back_icon = crate::icons::Icon::Back.get(app.icon_mode);
+    let forward_icon = crate::icons::Icon::Forward.get(app.icon_mode);
+    let split_icon = crate::icons::Icon::Split.get(app.icon_mode);
+    let burger_icon = crate::icons::Icon::Burger.get(app.icon_mode);
 
-    let monitor_icon = Icon::Monitor.get(app.icon_mode);
-    let git_icon = Icon::Git.get(app.icon_mode);
-    let project_icon = Icon::Folder.get(app.icon_mode); // Use Folder icon for IDE/Project
+    let monitor_icon = crate::icons::Icon::Monitor.get(app.icon_mode);
+    let git_icon = crate::icons::Icon::Git.get(app.icon_mode);
+    let project_icon = crate::icons::Icon::Folder.get(app.icon_mode); // Use Folder icon for IDE/Project
 
     app.header_icon_bounds.clear();
     let mut cur_icon_x = area.x + 2;
@@ -268,63 +265,224 @@ pub fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
 
 pub fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
     let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Min(0),      // Log, Clipboard & Shortcuts
-            Constraint::Length(25), // Selection Info
-            Constraint::Length(45), // Stats (CPU/MEM)
-        ])
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Length(1)])
         .split(area);
 
+    let top_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Fill(1),    // Log, Clipboard & Shortcuts
+            Constraint::Length(20), // Selection Info
+            Constraint::Length(45), // Stats (CPU/MEM)
+        ])
+        .split(chunks[0]);
+
     // 1. Left Section: ^Q Quit, Activity Log, Clipboard & Essential Shortcuts
-    let mut left_spans = vec![
-        Span::styled(" ^Q ", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)), Span::raw("Quit "),
-    ];
-    
-    // Log
+    let mut left_spans = vec![Span::raw(" ")];
+
+    // Log - If present, hide other shortcuts on the left
+    let mut showing_log = false;
     if let Some((msg, time)) = &app.last_action_msg {
         if time.elapsed().as_secs() < 5 {
-            left_spans.push(Span::styled(format!(" [ SYSTEM ] {} ", msg), Style::default().fg(THEME.accent_secondary).bg(Color::Rgb(20, 25, 30))));
+            left_spans.push(Span::styled(
+                format!(" [ SYSTEM ] {} ", msg),
+                Style::default()
+                    .fg(THEME.accent_secondary)
+                    .bg(Color::Rgb(20, 25, 30)),
+            ));
+            showing_log = true;
         }
     }
-    
-    // Clipboard
-    if let Some((ref path, op)) = app.clipboard {
-        let op_str = match op { crate::app::ClipboardOp::Copy => "COPY", crate::app::ClipboardOp::Cut => "CUT" };
-        let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| path.to_string_lossy().to_string());
-        left_spans.push(Span::styled(format!(" [ {} ] {} ", op_str, name), Style::default().fg(Color::Yellow).bg(Color::Rgb(30, 30, 20))));
+
+    if app.is_dragging {
+        if let Some(src) = &app.drag_source {
+            let name = src.file_name().and_then(|n| n.to_str()).unwrap_or("...");
+            left_spans.push(Span::styled(
+                " DRAGGING ",
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(THEME.accent_primary)
+                    .add_modifier(Modifier::BOLD),
+            ));
+            left_spans.push(Span::styled(
+                format!(" {} ", name),
+                Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
+            ));
+
+            if let Some(target) = &app.hovered_drop_target {
+                left_spans.push(Span::raw(" to "));
+                let target_desc = match target {
+                    DropTarget::Folder(p) => {
+                        p.file_name().and_then(|n| n.to_str()).unwrap_or("Folder")
+                    }
+                    DropTarget::Pane(idx) => {
+                        if *idx == 0 {
+                            "Left Pane"
+                        } else {
+                            "Right Pane"
+                        }
+                    }
+                    DropTarget::Favorites => "Favorites",
+                    DropTarget::RemotesHeader => "Remotes",
+                    DropTarget::ImportServers => "Import Servers",
+                    DropTarget::ReorderFavorite(_) => "Favorites (Reorder)",
+                    DropTarget::SidebarArea => "Sidebar",
+                };
+                left_spans.push(Span::styled(
+                    format!(" {} ", target_desc),
+                    Style::default()
+                        .fg(Color::Rgb(0, 255, 200))
+                        .add_modifier(Modifier::BOLD),
+                ));
+            }
+            showing_log = true; // Use this to skip shortcuts
+        }
     }
 
-    // Spacing
-    if left_spans.len() > 2 {
-        left_spans.push(Span::raw("  "));
+    if !showing_log {
+        left_spans.extend(HotkeyHint::new("^Q", "Quit", Color::Red));
+
+        let hidden_on = if let Some(fs) = app.current_file_state() {
+            fs.show_hidden
+        } else {
+            app.default_show_hidden
+        };
+
+        let mut shortcuts = Vec::new();
+        if app.current_view == CurrentView::Editor {
+            shortcuts.extend(HotkeyHint::new("Esc", "Back", THEME.accent_primary));
+            shortcuts.extend(HotkeyHint::new("^B", "Sidebar", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^P", "Split", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^F", "Find", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^R", "Replace", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^G", "GoTo", THEME.accent_secondary));
+        } else {
+            shortcuts.extend(HotkeyHint::new("^P", "Split", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^T", "Tab", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^N", "TermTab", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^K", "TermWin", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::new("^H", "Hidden", if hidden_on { Color::Green } else { Color::Red }));
+            shortcuts.extend(HotkeyHint::new("Space", "Preview/Edit", Color::Rgb(88, 166, 255))); // GitHub Blue
+        }
+
+        for s in shortcuts {
+            left_spans.push(s);
+        }
+
+        // Add Remote Status Badge
+        let is_remote = app.panes.iter().any(|p| {
+            if let Some(fs) = p.current_state() {
+                fs.remote_session.is_some()
+            } else {
+                false
+            }
+        });
+
+        if is_remote {
+            left_spans.push(Span::raw(" │ "));
+            left_spans.push(Span::styled(
+                " REMOTE ",
+                Style::default()
+                    .bg(THEME.accent_secondary)
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD),
+            ));
+        }
     }
 
-    // Reduced Shortcuts
-    let shortcuts = vec![
-        Span::styled(" F1 ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Help "),
-        Span::styled(" ^N ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Terminal "),
-        Span::styled(" Space ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)), Span::raw("Preview/Edit "),
-    ];
-    left_spans.extend(shortcuts);
+    f.render_widget(Paragraph::new(Line::from(left_spans)), top_chunks[0]);
 
-    f.render_widget(Paragraph::new(Line::from(left_spans)), chunks[0]);
-
-    // 2. Middle Section: Selection Summary
-    if let Some(fs) = app.current_file_state() {
-        let sel_count = if !fs.selection.multi.is_empty() { fs.selection.multi.len() } else if fs.selection.selected.is_some() { 1 } else { 0 };
-        let total_count = fs.files.len();
-        let summary = format!(" SEL: {} / {} ", sel_count, total_count);
-        f.render_widget(Paragraph::new(summary).style(Style::default().fg(THEME.accent_primary).add_modifier(Modifier::BOLD)).alignment(ratatui::layout::Alignment::Right), chunks[1]);
+    // 2. Center Section: Selection Summary (Only in Files view)
+    if app.current_view != CurrentView::Editor {
+        if let Some(fs) = app.current_file_state() {
+            let sel_count = if !fs.selection.is_empty() {
+                fs.selection.multi.len()
+            } else if fs.selection.selected.is_some() {
+                1
+            } else {
+                0
+            };
+            let total_count = fs.files.len();
+            let summary = format!(" SEL: {} / {} ", sel_count, total_count);
+            f.render_widget(
+                Paragraph::new(Span::styled(
+                    summary,
+                    Style::default()
+                        .bg(THEME.accent_primary)
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD),
+                ))
+                .alignment(ratatui::layout::Alignment::Right),
+                top_chunks[1],
+            );
+        }
     }
 
-    // 3. Right Section: CPU/MEM Stats
+    // 3. Stats (CPU/MEM) - Far Right
     let cpu_bar = draw_stat_bar("CPU", app.system_state.cpu_usage, 100.0);
-    let mem_usage = (app.system_state.mem_usage as f32 / app.system_state.total_mem.max(1.0) as f32) * 100.0;
+    let mem_usage =
+        (app.system_state.mem_usage as f32 / app.system_state.total_mem.max(1.0) as f32) * 100.0;
     let mem_bar = draw_stat_bar("MEM", mem_usage, 100.0);
-    let stats_layout = Layout::default().direction(Direction::Horizontal).constraints([Constraint::Percentage(50), Constraint::Percentage(50)]).split(chunks[2]);
-    f.render_widget(Paragraph::new(cpu_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[0]);
-    f.render_widget(Paragraph::new(mem_bar).alignment(ratatui::layout::Alignment::Right), stats_layout[1]);
+
+    let stats_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(22),
+            Constraint::Length(22),
+            Constraint::Fill(1),
+        ])
+        .split(top_chunks[2]);
+
+    f.render_widget(
+        Paragraph::new(cpu_bar).alignment(ratatui::layout::Alignment::Right),
+        stats_layout[0],
+    );
+    f.render_widget(
+        Paragraph::new(mem_bar).alignment(ratatui::layout::Alignment::Right),
+        stats_layout[1],
+    );
+
+    // 4. CYBER_PULSE (Animated Indicator)
+    let time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    let pulse_frames = [" ", "▂", "▃", "▄", "▅", "▆", "▇", "█", "▇", "▆", "▅", "▄", "▃", "▂"];
+    let pulse_idx = (time / 80) % pulse_frames.len() as u128;
+    let pulse_char = pulse_frames[pulse_idx as usize];
+
+    let pulse_spans = vec![
+        Span::styled(" PULSE ", Style::default().fg(Color::DarkGray)),
+        Span::styled(
+            pulse_char.repeat(3),
+            Style::default().fg(THEME.accent_primary),
+        ),
+    ];
+
+    f.render_widget(
+        Paragraph::new(Line::from(pulse_spans)).alignment(ratatui::layout::Alignment::Right),
+        stats_layout[2],
+    );
+
+    // 5. Bottom Line: Background Tasks
+    let mut task_spans = Vec::new();
+    for task in &app.background_tasks {
+        let pct = (task.progress * 100.0) as usize;
+        let bar = "█".repeat(pct / 10) + &"░".repeat(10 - (pct / 10));
+        task_spans.push(Span::styled(
+            format!(" {} [{}%] ", task.name, pct),
+            Style::default().fg(Color::Cyan),
+        ));
+        task_spans.push(Span::styled(
+            format!("{} ", bar),
+            Style::default().fg(Color::Cyan),
+        ));
+    }
+
+    if !task_spans.is_empty() {
+        f.render_widget(Paragraph::new(Line::from(task_spans)), chunks[1]);
+    }
 }
 
 fn draw_stat_bar(label: &str, value: f32, max: f32) -> Line<'static> {
