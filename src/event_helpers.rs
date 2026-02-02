@@ -571,14 +571,26 @@ pub fn handle_context_menu_action(
             }
         }
         ContextMenuAction::AddToFavorites => {
+            crate::app::log_debug(&format!("DEBUG: AddToFavorites action triggered with target {:?}", target));
             if let ContextMenuTarget::Folder(idx) = target {
                 if let Some(fs) = app.current_file_state() {
                     if let Some(path) = fs.files.get(*idx) {
+                        crate::app::log_debug(&format!("DEBUG: Adding path to favorites: {:?}", path));
                         if !app.starred.contains(path) {
                             app.starred.push(path.clone());
-                            let _ = save_state(app);
+                            if let Err(e) = save_state(app) {
+                                crate::app::log_debug(&format!("DEBUG: Failed to save state after adding favorite: {}", e));
+                            } else {
+                                crate::app::log_debug("DEBUG: State saved successfully after adding favorite");
+                            }
+                        } else {
+                            crate::app::log_debug("DEBUG: Path already in favorites");
                         }
+                    } else {
+                        crate::app::log_debug(&format!("DEBUG: Could not find file at index {} in current file state", idx));
                     }
+                } else {
+                    crate::app::log_debug("DEBUG: No current file state found");
                 }
             }
         }
