@@ -761,7 +761,23 @@ pub fn draw_highlight_modal(f: &mut Frame, _app: &App) {
     );
 }
 
-pub fn draw_confirm_reset_modal(f: &mut Frame, _app: &App) {
+pub fn draw_delete_file_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
+    let area = centered_rect(40, 10, f.area());
+    f.render_widget(Clear, area);
+    let title = format!(" Delete {}? ", path.file_name().unwrap_or_default().to_string_lossy());
+    f.render_widget(
+        Paragraph::new(format!("Confirm deletion? [Y/n]: {}", app.input.value)).block(
+            Block::default()
+                .title(title)
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(Color::Red)),
+        ),
+        area,
+    );
+}
+
+pub fn draw_confirm_reset_modal(f: &mut Frame, _area: Rect) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
     let block = Block::default()
