@@ -4694,9 +4694,6 @@ fn handle_event(
                                             app.sidebar_focus = false;
                                         }
                                     }
-                                    SidebarTarget::Project(path) => {
-                                        Some(ContextMenuTarget::ProjectTree(path.clone()))
-                                    }
                                     SidebarTarget::Disk(name) => {
                                         if let Some(disk) =
                                             app.system_state.disks.iter().find(|d| d.name == *name)
