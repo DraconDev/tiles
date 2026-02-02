@@ -486,7 +486,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     // --- OVERLAYS ---
     if let AppMode::Hotkeys = app.mode {
-        draw_hotkeys_modal(f, f.area());
+        modals::draw_hotkeys_modal(f, f.area());
     }
     if matches!(app.mode, AppMode::ContextMenu { .. }) {
         if let AppMode::ContextMenu { x, y, ref target, .. } = app.mode {
@@ -494,41 +494,41 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         }
     }
     if matches!(app.mode, AppMode::Highlight) {
-        draw_highlight_modal(f, app);
+        modals::draw_highlight_modal(f, app);
     }
     if matches!(app.mode, AppMode::Rename) {
-        draw_rename_modal(f, app);
+        modals::draw_rename_modal(f, app);
     }
     if matches!(app.mode, AppMode::Delete | AppMode::DeleteFile(_)) {
-        draw_delete_modal(f, app);
+        modals::draw_delete_modal(f, app);
     }
     if matches!(app.mode, AppMode::Properties) {
-        draw_properties_modal(f, app);
+        modals::draw_properties_modal(f, app);
     }
     if matches!(app.mode, AppMode::NewFolder) {
-        draw_new_folder_modal(f, app);
+        modals::draw_new_folder_modal(f, app);
     }
     if matches!(app.mode, AppMode::NewFile) {
-        draw_new_file_modal(f, app);
+        modals::draw_new_file_modal(f, app);
     }
     if matches!(app.mode, AppMode::CommandPalette) {
-        draw_command_palette(f, app);
+        modals::draw_command_palette(f, app);
     }
     if matches!(app.mode, AppMode::AddRemote(_)) {
-        draw_add_remote_modal(f, app);
+        modals::draw_add_remote_modal(f, app);
     }
     if matches!(app.mode, AppMode::ImportServers) {
-        draw_import_servers_modal(f, app);
+        modals::draw_import_servers_modal(f, app);
     }
     if let AppMode::OpenWith(ref path) = app.mode {
-        draw_open_with_modal(f, app, path);
+        modals::draw_open_with_modal(f, app, path);
     }
     if let AppMode::DragDropMenu {
         ref sources,
         ref target,
     } = app.mode
     {
-        draw_drag_drop_modal(f, app, sources, target);
+        modals::draw_drag_drop_modal(f, app, sources, target);
     }
 }
 
