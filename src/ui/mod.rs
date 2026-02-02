@@ -29,6 +29,7 @@ pub mod layout;
 pub mod theme;
 pub mod modals;
 pub mod pages;
+pub mod panes;
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = area.inner(ratatui::layout::Margin {
