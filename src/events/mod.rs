@@ -1,4 +1,4 @@
-use terma::input::event::{Event, KeyCode, KeyModifiers, KeyEventKind};
+use terma::input::event::{Event, KeyCode, KeyModifiers, KeyEventKind, MouseEventKind, MouseButton};
 use tokio::sync::mpsc;
 use crate::app::{App, AppEvent, AppMode, CurrentView};
 use std::collections::HashSet;
@@ -39,31 +39,59 @@ pub fn handle_event(
         }
     }
 
-    // 4. View-specific logic
-    match app.current_view {
-        CurrentView::Editor => {
-            if editor::handle_editor_events(&evt, app, &event_tx) {
+    // 4. View-specific logic (Keyboard)
+    match &evt {
+        Event::Key(_) => {
+            match app.current_view {
+                CurrentView::Editor => {
+                    if editor::handle_editor_events(&evt, app, &event_tx) {
+                        return true;
+                    }
+                }
+                CurrentView::Processes => {
+                    if monitor::handle_monitor_events(&evt, app, &event_tx) {
+                        return true;
+                    }
+                }
+                CurrentView::Git => {
+                    if git::handle_git_events(&evt, app, &event_tx) {
+                        return true;
+                    }
+                }
+                CurrentView::Files => {
+                    if file_manager::handle_file_events(&evt, app, &event_tx) {
+                        return true;
+                    }
+                }
+            }
+        }
+        Event::Mouse(me) => {
+            // General Mouse Handling
+            if handle_general_mouse(me, app, &event_tx) {
                 return true;
             }
         }
-        CurrentView::Processes => {
-            if monitor::handle_monitor_events(&evt, app, &event_tx) {
-                return true;
+        Event::Paste(text) => {
+            if let AppMode::Editor = app.mode {
+                if let Some(preview) = &mut app.editor_state {
+                    if let Some(editor) = &mut preview.editor {
+                        editor.insert_string(text);
+                        if app.auto_save {
+                            let _ = event_tx.try_send(AppEvent::SaveFile(
+                                preview.path.clone(),
+                                editor.get_content(),
+                            ));
+                            editor.modified = false;
+                        }
+                        return true;
+                    }
+                }
             }
         }
-        CurrentView::Git => {
-            if git::handle_git_events(&evt, app, &event_tx) {
-                return true;
-            }
-        }
-        CurrentView::Files => {
-            if file_manager::handle_file_events(&evt, app, &event_tx) {
-                return true;
-            }
-        }
+        _ => {}
     }
 
-    // 5. Global Hotkeys (if not handled by mode/view)
+    // 5. Global Hotkeys (Keyboard fallback)
     if let Event::Key(key) = evt {
         if key.kind == KeyEventKind::Press {
             let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
@@ -101,5 +129,12 @@ pub fn handle_event(
         }
     }
 
+    false
+}
+
+fn handle_general_mouse(me: &terma::input::event::MouseEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
+    // This will eventually delegate to file_manager::handle_file_mouse, etc.
+    // For now, I'll implement the core routing logic.
+    app.mouse_pos = (me.column, me.row);
     false
 }
