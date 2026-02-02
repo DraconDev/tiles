@@ -29,13 +29,13 @@ pub fn draw_ide_editor(f: &mut Frame, area: Rect, app: &mut App) {
     let pw = if pc > 0 { chunks[1].width / pc as u16 } else { chunks[1].width };
 
     for i in 0..pc {
-        let is_focused = app.focused_pane_index == i;
         let pane_area = Rect::new(
             chunks[1].x + (i as u16 * pw),
             chunks[1].y,
             pw,
             chunks[1].height,
         );
+        let is_focused = app.focused_pane_index == i;
         draw_pane_editor(f, pane_area, app, i, is_focused);
     }
 }
