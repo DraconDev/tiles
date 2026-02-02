@@ -1618,6 +1618,16 @@ fn handle_event(
                             h.saturating_sub(2),
                         );
 
+                        if key.code == KeyCode::Delete && !has_control && !has_alt && !has_shift {
+                            if editor.cursor_row == editor.lines.len().saturating_sub(1) && 
+                               editor.cursor_col == editor.lines[editor.cursor_row].len() {
+                                // At EOF
+                                app.mode = AppMode::Delete;
+                                app.input.set_value("y".to_string()); // Default to yes?
+                                return true;
+                            }
+                        }
+
                         if editor.handle_event(&evt, editor_area) {
                             // AUTO-SYNC SELECTION TO CLIPBOARD
                             if let Some(selected_text) = editor.get_selected_text() {
