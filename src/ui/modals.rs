@@ -1,9 +1,9 @@
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{
-        Block, BorderType, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table, Tabs,
+        Block, BorderType, Borders, Clear, Paragraph,
     },
     Frame,
 };
