@@ -3690,16 +3690,19 @@ fn handle_event(
                                 delete_word_backwards(&mut app.process_search_filter);
                                 app.process_selected_idx = Some(0);
                                 *app.process_table_state.offset_mut() = 0;
-                            } else if let Some(fs) = app.current_file_state_mut() {
-                                delete_word_backwards(&mut fs.search_filter);
-                                let is_sidebar = app.sidebar_focus; if !is_sidebar {
-                                    fs.selection.selected = Some(0);
-                                    *fs.table_state.offset_mut() = 0;
-                                } else {
-                                    app.sidebar_index = 0;
+                            } else {
+                                let is_sidebar = app.sidebar_focus;
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    delete_word_backwards(&mut fs.search_filter);
+                                    if !is_sidebar {
+                                        fs.selection.selected = Some(0);
+                                        *fs.table_state.offset_mut() = 0;
+                                    } else {
+                                        app.sidebar_index = 0;
+                                    }
+                                    let _ = event_tx
+                                        .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                 }
-                                let _ = event_tx
-                                    .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             }
                             return true;
                         }
@@ -3708,16 +3711,19 @@ fn handle_event(
                                 delete_word_backwards(&mut app.process_search_filter);
                                 app.process_selected_idx = Some(0);
                                 *app.process_table_state.offset_mut() = 0;
-                            } else if let Some(fs) = app.current_file_state_mut() {
-                                delete_word_backwards(&mut fs.search_filter);
-                                let is_sidebar = app.sidebar_focus; if !is_sidebar {
-                                    fs.selection.selected = Some(0);
-                                    *fs.table_state.offset_mut() = 0;
-                                } else {
-                                    app.sidebar_index = 0;
+                            } else {
+                                let is_sidebar = app.sidebar_focus;
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    delete_word_backwards(&mut fs.search_filter);
+                                    if !is_sidebar {
+                                        fs.selection.selected = Some(0);
+                                        *fs.table_state.offset_mut() = 0;
+                                    } else {
+                                        app.sidebar_index = 0;
+                                    }
+                                    let _ = event_tx
+                                        .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                 }
-                                let _ = event_tx
-                                    .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             }
                             return true;
                         }
@@ -3726,17 +3732,20 @@ fn handle_event(
                                 app.process_search_filter.clear();
                                 app.process_selected_idx = Some(0);
                                 *app.process_table_state.offset_mut() = 0;
-                            } else if let Some(fs) = app.current_file_state_mut() {
-                                fs.search_filter.clear();
-                                let is_sidebar = app.sidebar_focus; if !is_sidebar {
-                                    fs.selection.selected = Some(0);
-                                    fs.selection.anchor = Some(0);
-                                    *fs.table_state.offset_mut() = 0;
-                                } else {
-                                    app.sidebar_index = 0;
+                            } else {
+                                let is_sidebar = app.sidebar_focus;
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    fs.search_filter.clear();
+                                    if !is_sidebar {
+                                        fs.selection.selected = Some(0);
+                                        fs.selection.anchor = Some(0);
+                                        *fs.table_state.offset_mut() = 0;
+                                    } else {
+                                        app.sidebar_index = 0;
+                                    }
+                                    let _ = event_tx
+                                        .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                 }
-                                let _ = event_tx
-                                    .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             }
                             return true;
                         }
