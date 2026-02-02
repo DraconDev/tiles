@@ -176,6 +176,10 @@ fn handle_general_mouse(me: &terma::input::event::MouseEvent, app: &mut App, eve
 
     crate::app::log_debug(&format!("DEBUG: Mouse Event: {:?} at ({}, {})", me.kind, column, row));
 
+    if let MouseEventKind::Down(MouseButton::Middle) = me.kind {
+        crate::app::log_debug("DEBUG: DETECTED MIDDLE MOUSE DOWN in handle_general_mouse");
+    }
+
     // 1. Sidebar Resizing
     if app.is_resizing_sidebar {
         match me.kind {
