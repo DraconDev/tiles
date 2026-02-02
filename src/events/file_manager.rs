@@ -2,12 +2,8 @@ use terma::input::event::{Event, KeyCode, KeyModifiers, MouseEventKind, MouseBut
 use tokio::sync::mpsc;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::time::Duration;
-use unicode_width::UnicodeWidthStr;
-use terma::utils::get_visual_width;
 
-use crate::app::{App, AppEvent, AppMode, CurrentView, SidebarTarget, ContextMenuTarget, FileColumn, CommandAction, DropTarget, UndoAction};
-use crate::icons::Icon;
+use crate::app::{App, AppEvent, AppMode, CurrentView, SidebarTarget, ContextMenuTarget, UndoAction};
 use crate::events::input::delete_word_backwards;
 
 pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
