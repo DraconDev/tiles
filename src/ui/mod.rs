@@ -439,12 +439,12 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         }
     } else if matches!(app.mode, AppMode::Settings) {
         f.render_widget(Block::default().style(Style::default().bg(Color::Black)), f.area());
-        modals::draw_settings_modal(f, app);
+        pages::settings::draw_settings_modal(f, app);
     } else if matches!(app.current_view, CurrentView::Processes | CurrentView::Git) {
         f.render_widget(Block::default().style(Style::default().bg(Color::Black)), f.area());
         match app.current_view {
             CurrentView::Processes => pages::monitor::draw_monitor_page(f, f.area(), app),
-            CurrentView::Git => draw_git_page(f, f.area(), app),
+            CurrentView::Git => pages::git::draw_git_page(f, f.area(), app),
             _ => {}
         }
     } else {
