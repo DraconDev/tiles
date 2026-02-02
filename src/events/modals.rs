@@ -1,6 +1,6 @@
 use terma::input::event::{Event, KeyCode, KeyModifiers, MouseEventKind, MouseButton};
 use tokio::sync::mpsc;
-use crate::app::{App, AppEvent, AppMode, ContextMenuAction, DropTarget, SidebarTarget, ContextMenuTarget, FileColumn};
+use crate::app::{App, AppEvent, AppMode, ContextMenuAction, DropTarget, SidebarTarget, ContextMenuTarget, FileColumn, SettingsSection, SettingsTarget, IconMode};
 use crate::events::input::delete_word_backwards;
 use crate::icons::Icon;
 use unicode_width::UnicodeWidthStr;
@@ -46,6 +46,14 @@ fn handle_modal_keys(key: &terma::input::event::KeyEvent, app: &mut App, event_t
         }
         AppMode::Header(idx) => {
             handle_header_keys(key, app, event_tx, idx)
+        }
+        AppMode::Hotkeys => {
+            if let KeyCode::Esc | KeyCode::Enter | KeyCode::F(1) = key.code {
+                app.mode = app.previous_mode.clone(); true
+            } else { true }
+        }
+        AppMode::Settings => {
+            handle_settings_keys(key, app, event_tx)
         }
         _ => false,
     }
@@ -302,6 +310,117 @@ fn handle_header_keys(_key: &terma::input::event::KeyEvent, app: &mut App, _even
     }
 }
 
-fn handle_modal_mouse(_me: &terma::input::event::MouseEvent, _app: &mut App, _event_tx: &mpsc::Sender<AppEvent>) -> bool {
+fn handle_settings_keys(key: &terma::input::event::KeyEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
+    match key.code {
+        KeyCode::Esc => { app.mode = AppMode::Normal; true }
+        KeyCode::Char('1') => { app.settings_section = SettingsSection::Columns; app.settings_index = 0; true }
+        KeyCode::Char('2') => { app.settings_section = SettingsSection::Tabs; app.settings_index = 0; true }
+        KeyCode::Char('3') => { app.settings_section = SettingsSection::General; app.settings_index = 0; true }
+        KeyCode::Char('4') => { app.settings_section = SettingsSection::Remotes; app.settings_index = 0; true }
+        KeyCode::Char('5') => { app.settings_section = SettingsSection::Shortcuts; app.settings_index = 0; true }
+        KeyCode::Up => { app.settings_index = app.settings_index.saturating_sub(1); true }
+        KeyCode::Down => {
+            let max = match app.settings_section {
+                SettingsSection::General => 5,
+                SettingsSection::Columns => 3,
+                _ => 0,
+            };
+            if app.settings_index < max { app.settings_index += 1; }
+            true
+        }
+        KeyCode::Enter => {
+            match app.settings_section {
+                SettingsSection::General => {
+                    match app.settings_index {
+                        0 => app.default_show_hidden = !app.default_show_hidden,
+                        1 => app.confirm_delete = !app.confirm_delete,
+                        2 => app.smart_date = !app.smart_date,
+                        3 => app.semantic_coloring = !app.semantic_coloring,
+                        4 => app.auto_save = !app.auto_save,
+                        5 => app.icon_mode = match app.icon_mode { IconMode::Nerd => IconMode::Unicode, IconMode::Unicode => IconMode::ASCII, IconMode::ASCII => IconMode::Nerd },
+                        _ => {}
+                    }
+                    let _ = crate::config::save_state(app);
+                }
+                _ => {}
+            }
+            true
+        }
+        _ => false,
+    }
+}
+
+pub fn handle_modal_mouse(me: &terma::input::event::MouseEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
+    let (w, h) = app.terminal_size;
+    let column = me.column;
+    let row = me.row;
+
+    match app.mode.clone() {
+        AppMode::Highlight => {
+            if let MouseEventKind::Down(_) = me.kind {
+                let area_w = 34; let area_h = 5;
+                let area_x = (w.saturating_sub(area_w)) / 2;
+                let area_y = (h.saturating_sub(area_h)) / 2;
+                if column >= area_x && column < area_x + area_w && row >= area_y && row < area_y + area_h {
+                    let rel_x = column.saturating_sub(area_x + 3);
+                    if row >= area_y + 2 && row <= area_y + 3 {
+                        let colors = [1, 2, 3, 4, 5, 6, 0];
+                        if let Some(&color_code) = colors.get((rel_x / 4) as usize) {
+                            let color = if color_code == 0 { None } else { Some(color_code as u8) };
+                            if let Some(fs) = app.current_file_state() {
+                                let mut paths = Vec::new();
+                                if !fs.selection.is_empty() { for &idx in fs.selection.multi_selected_indices() { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } } }
+                                else if let Some(idx) = fs.selection.selected { if let Some(p) = fs.files.get(idx) { paths.push(p.clone()); } }
+                                for p in paths { if let Some(col) = color { app.path_colors.insert(p, col); } else { app.path_colors.remove(&p); } }
+                                let _ = crate::config::save_state(app);
+                            }
+                            app.mode = AppMode::Normal;
+                        }
+                    }
+                } else { app.mode = AppMode::Normal; }
+                return true;
+            }
+        }
+        AppMode::ContextMenu { x, y, ref actions, ref target, .. } => {
+            let (mw, mh) = (25, actions.len() as u16 + 2);
+            let (mut dx, mut dy) = (x, y);
+            if dx + mw > w { dx = w.saturating_sub(mw); }
+            if dy + mh > h { dy = h.saturating_sub(mh); }
+
+            if let MouseEventKind::Down(_) = me.kind {
+                if column >= dx && column < dx + mw && row >= dy && row < dy + mh {
+                    if row > dy && row < dy + mh - 1 {
+                        if let Some(action) = actions.get((row - dy - 1) as usize) {
+                            if *action != ContextMenuAction::Separator {
+                                crate::event_helpers::handle_context_menu_action(action, target, app, event_tx.clone());
+                                app.mode = AppMode::Normal;
+                            }
+                        }
+                    }
+                } else { app.mode = AppMode::Normal; }
+                return true;
+            }
+        }
+        AppMode::Settings => {
+            if let MouseEventKind::Down(_) = me.kind {
+                if row == 0 && column >= w.saturating_sub(10) { app.mode = AppMode::Normal; return true; }
+                let inner_x = 1; let inner_y = 1;
+                if column < inner_x + 20 {
+                    let rel_y = row.saturating_sub(inner_y);
+                    match rel_y {
+                        0 => app.settings_section = SettingsSection::Columns,
+                        1 => app.settings_section = SettingsSection::Tabs,
+                        2 => app.settings_section = SettingsSection::General,
+                        3 => app.settings_section = SettingsSection::Remotes,
+                        4 => app.settings_section = SettingsSection::Shortcuts,
+                        _ => {}
+                    }
+                    app.settings_index = 0;
+                }
+                return true;
+            }
+        }
+        _ => {}
+    }
     false
 }
