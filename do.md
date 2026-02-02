@@ -1,5 +1,5 @@
 ## Do
 
-
+the settings 
 
 ## Done
