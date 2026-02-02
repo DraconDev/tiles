@@ -584,7 +584,7 @@ pub fn handle_file_mouse(me: &terma::input::event::MouseEvent, app: &mut App, ev
                 }
             }
             if button == MouseButton::Middle {
-                if let Some(text) = terma::utils::get_clipboard_text() {
+                if let Some(text) = terma::utils::get_primary_selection_text() {
                     if let Some(fs) = app.current_file_state_mut() {
                         fs.search_filter.push_str(&text);
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
