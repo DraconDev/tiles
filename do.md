@@ -1,7 +1,7 @@
 ## Do
 
-the settings screen needs work
-
-the editor keeps crasing
-
 ## Done
+
+the settings screen needs work (Improved layout, added icons, more settings)
+
+the editor keeps crasing (Added char boundary safety checks)
