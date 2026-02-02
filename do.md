@@ -1,6 +1,6 @@
 ## Do
 
-romtes and
+rem
 
 ## Done
 
