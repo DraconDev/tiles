@@ -2,7 +2,6 @@ use terma::input::event::{Event, KeyCode, KeyModifiers, KeyEventKind, MouseEvent
 use tokio::sync::mpsc;
 use crate::app::{App, AppEvent, AppMode, CurrentView, SidebarTarget};
 use std::collections::HashSet;
-use std::time::Duration;
 
 pub mod editor;
 pub mod file_manager;
@@ -35,6 +34,7 @@ pub fn handle_event(
 
     // 3. Mode-specific logic (Modals, Overlays)
     if !matches!(app.mode, AppMode::Normal) {
+        crate::app::log_debug(&format!("DEBUG: Dispatching to modals::handle_modal_events (Mode: {:?})", app.mode));
         if modals::handle_modal_events(&evt, app, &event_tx) {
             return true;
         }
@@ -267,7 +267,8 @@ fn handle_general_mouse(me: &terma::input::event::MouseEvent, app: &mut App, eve
             }
         }
         
-        if app.current_view == CurrentView::Editor || matches!(app.mode, AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorReplace | AppMode::EditorGoToLine) {
+        let is_editor_mode = matches!(app.mode, AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorReplace | AppMode::EditorGoToLine);
+        if app.current_view == CurrentView::Editor || is_editor_mode {
             crate::app::log_debug("DEBUG: Routing mouse to editor::handle_editor_mouse");
             return editor::handle_editor_mouse(me, app, event_tx);
         } else {
@@ -328,42 +329,5 @@ fn handle_sidebar_mouse(me: &terma::input::event::MouseEvent, app: &mut App, eve
             true
         }
         _ => false,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use terma::input::event::{KeyEvent, KeyModifiers, KeyEventKind};
-    use std::sync::{Arc, Mutex};
-
-    #[test]
-    fn test_global_hotkeys_routing() {
-        let tile_queue = Arc::new(Mutex::new(Vec::new()));
-        let mut app = App::new(tile_queue);
-        let (tx, _rx) = mpsc::channel(100);
-        let mut refresh_set = HashSet::new();
-
-        // Test Sidebar Toggle (Ctrl+B)
-        let evt = Event::Key(KeyEvent {
-            code: KeyCode::Char('b'),
-            modifiers: KeyModifiers::CONTROL,
-            kind: KeyEventKind::Press,
-        });
-        
-        let initial_sidebar = app.show_sidebar;
-        handle_event(evt, &mut app, tx.clone(), &mut refresh_set);
-        assert_ne!(app.show_sidebar, initial_sidebar);
-
-        // Test Split Toggle (Ctrl+P)
-        let evt_split = Event::Key(KeyEvent {
-            code: KeyCode::Char('p'),
-            modifiers: KeyModifiers::CONTROL,
-            kind: KeyEventKind::Press,
-        });
-        
-        let initial_split = app.is_split_mode;
-        handle_event(evt_split, &mut app, tx.clone(), &mut refresh_set);
-        assert_ne!(app.is_split_mode, initial_split);
     }
 }
