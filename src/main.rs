@@ -4461,52 +4461,6 @@ fn handle_event(
                         }
                     }
 
-                    // Monitor Subviews
-                    if app.current_view == CurrentView::Processes {
-                        // Tab Clicks
-                        if let Some((_, subview)) = app
-                            .monitor_subview_bounds
-                            .iter()
-                            .find(|(r, _)| column >= r.x && column < r.x + r.width && row == r.y)
-                        {
-                            app.monitor_subview = *subview;
-                            return true;
-                        }
-
-                        // Column Sorting Clicks
-                        if app.monitor_subview == MonitorSubview::Processes
-                            || app.monitor_subview == MonitorSubview::Applications
-                        {
-                            if let Some((_, col)) =
-                                app.process_column_bounds.iter().find(|(r, _)| {
-                                    column >= r.x && column < r.x + r.width && row == r.y
-                                })
-                            {
-                                if app.process_sort_col == *col {
-                                    app.process_sort_asc = !app.process_sort_asc;
-                                } else {
-                                    app.process_sort_col = *col;
-                                    app.process_sort_asc = true;
-                                }
-                                return true;
-                            }
-                        }
-
-                        // Selection Clicks (Approximate based on row)
-                        // Content area typically starts at y=6 (3 nav + 1 margin + 1 header + 1 margin)
-                        if row >= 6 {
-                            let scroll_offset = app.process_table_state.offset();
-                            let rel_row = (row - 6) as usize + scroll_offset;
-                            if app.monitor_subview == MonitorSubview::Processes
-                                || app.monitor_subview == MonitorSubview::Applications
-                            {
-                                app.process_selected_idx = Some(rel_row);
-                                app.process_table_state.select(Some(rel_row));
-                                return true;
-                            }
-                        }
-                    }
-
                     // IDE/Editor Mode clicks
                     if app.current_view == CurrentView::Editor && column >= sw && (matches!(app.mode, AppMode::Normal) || matches!(app.mode, AppMode::EditorSearch) || matches!(app.mode, AppMode::EditorReplace) || matches!(app.mode, AppMode::EditorGoToLine)) {
                         let cw = w.saturating_sub(sw);
@@ -4585,22 +4539,6 @@ fn handle_event(
                                 }
                             }
                             return true;
-                        }
-                    }
-
-                    // Git History Selection
-                    if app.current_view == CurrentView::Git {
-                        if row >= 2 { // Header(1) + margin(1) = 2
-                            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                                if let Some(tab) = pane.tabs.get_mut(pane.active_tab_index) {
-                                    let scroll_offset = tab.git_history_state.offset();
-                                    let rel_row = (row - 2) as usize + scroll_offset;
-                                    if rel_row < tab.git_history.len() {
-                                        tab.git_history_state.select(Some(rel_row));
-                                        return true;
-                                    }
-                                }
-                            }
                         }
                     }
 
