@@ -213,6 +213,12 @@ fn handle_text_editor_mouse(
             *mouse_last_click = now;
             *mouse_click_pos = (me.column, me.row);
         }
+        MouseEventKind::Down(MouseButton::Middle) => {
+            if let Some(text) = terma::utils::get_clipboard_text() {
+                editor.insert_string(&text);
+                editor.modified = true;
+            }
+        }
         _ => { editor.handle_mouse_event(*me, area); }
     }
 
