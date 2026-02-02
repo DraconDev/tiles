@@ -176,10 +176,6 @@ fn handle_general_mouse(me: &terma::input::event::MouseEvent, app: &mut App, eve
 
     crate::app::log_debug(&format!("DEBUG: Mouse Event: {:?} at ({}, {})", me.kind, column, row));
 
-    if let MouseEventKind::Down(MouseButton::Middle) = me.kind {
-        crate::app::log_debug("DEBUG: DETECTED MIDDLE MOUSE DOWN in handle_general_mouse");
-    }
-
     // 1. Sidebar Resizing
     if app.is_resizing_sidebar {
         match me.kind {
@@ -262,7 +258,7 @@ fn handle_general_mouse(me: &terma::input::event::MouseEvent, app: &mut App, eve
     if column < sw {
         return handle_sidebar_mouse(me, app, event_tx);
     } else {
-        // Dragging check
+        // Sidebar Resizing check (MUST BE LEFT CLICK ONLY)
         if let MouseEventKind::Down(MouseButton::Left) = me.kind {
             if column >= sw.saturating_sub(1) && column <= sw + 1 {
                 app.is_resizing_sidebar = true;
@@ -310,21 +306,14 @@ fn handle_sidebar_mouse(me: &terma::input::event::MouseEvent, app: &mut App, eve
                                 app.sidebar_focus = false;
                             }
                         }
-                        SidebarTarget::Disk(name) => {
-                            // ... mount logic ...
-                        }
                         _ => {}
                     }
                 }
                 if let SidebarTarget::Favorite(ref p) = b.target { app.drag_source = Some(p.clone()); }
-                if button == MouseButton::Right {
-                    // ... context menu ...
-                }
             }
             true
         }
         MouseEventKind::Up(_) => {
-            // ... drop logic ...
             app.is_dragging = false;
             true
         }

@@ -447,6 +447,19 @@ pub fn handle_file_mouse(me: &terma::input::event::MouseEvent, app: &mut App, ev
     let (w, _h) = app.terminal_size;
     let sw = app.sidebar_width();
 
+    if let MouseEventKind::Down(_) = me.kind {
+        if column >= sw {
+            let cw = w.saturating_sub(sw);
+            let pc = app.panes.len();
+            let pw = if pc > 0 { cw / pc as u16 } else { cw };
+            let cp = (column.saturating_sub(sw) / pw) as usize;
+            if cp < pc {
+                app.focused_pane_index = cp;
+                app.sidebar_focus = false;
+            }
+        }
+    }
+
     match me.kind {
         MouseEventKind::Down(button) => {
             // 1. Breadcrumb Click
@@ -478,34 +491,30 @@ pub fn handle_file_mouse(me: &terma::input::event::MouseEvent, app: &mut App, ev
                 }
             }
 
-            // 2. Pane Selection/Focus
-            if row >= 1 {
-                if column >= sw {
-                    let cw = w.saturating_sub(sw);
-                    let pc = app.panes.len();
-                    let pw = if pc > 0 { cw / pc as u16 } else { cw };
-                    let cp = (column.saturating_sub(sw) / pw) as usize;
-                    if cp < pc {
-                        // Header Sorting
-                        if row == 1 || row == 2 {
-                            if let Some(fs) = app.panes.get_mut(cp).and_then(|p| p.current_state_mut()) {
-                                for (r, col) in &fs.column_bounds {
-                                    if column >= r.x && column < r.x + r.width + 1 {
-                                        if fs.sort_column == *col { fs.sort_ascending = !fs.sort_ascending; }
-                                        else { fs.sort_column = *col; fs.sort_ascending = true; }
-                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(cp));
-                                        return true;
-                                    }
+            // 2. Sorting (Header Clicks)
+            if row == 1 || row == 2 {
+                if let MouseEventKind::Down(MouseButton::Left) = me.kind {
+                    if column >= sw {
+                        let cw = w.saturating_sub(sw);
+                        let pc = app.panes.len();
+                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                        let cp = (column.saturating_sub(sw) / pw) as usize;
+                        if let Some(fs) = app.panes.get_mut(cp).and_then(|p| p.current_state_mut()) {
+                            for (r, col) in &fs.column_bounds {
+                                if column >= r.x && column < r.x + r.width + 1 {
+                                    if fs.sort_column == *col { fs.sort_ascending = !fs.sort_ascending; }
+                                    else { fs.sort_column = *col; fs.sort_ascending = true; }
+                                    let _ = event_tx.try_send(AppEvent::RefreshFiles(cp));
+                                    return true;
                                 }
                             }
                         }
-                        app.focused_pane_index = cp;
-                        app.sidebar_focus = false;
                     }
                 }
+            }
 
-                // 3. File Row Interaction
-                if row >= 3 {
+            // 3. File Row Interaction
+            if row >= 3 {
                     let idx = crate::event_helpers::fs_mouse_index(row, app);
                     let mut sp = None;
                     let mut is_dir = false;
@@ -586,12 +595,13 @@ pub fn handle_file_mouse(me: &terma::input::event::MouseEvent, app: &mut App, ev
                         app.mouse_click_pos = (column, row);
                     }
                 }
-            }
-            if button == MouseButton::Middle {
-                if let Some(text) = terma::utils::get_primary_selection_text() {
-                    if let Some(fs) = app.current_file_state_mut() {
-                        fs.search_filter.push_str(&text);
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                
+                if button == MouseButton::Middle {
+                    if let Some(text) = terma::utils::get_primary_selection_text() {
+                        if let Some(fs) = app.current_file_state_mut() {
+                            fs.search_filter.push_str(&text);
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        }
                     }
                 }
             }
