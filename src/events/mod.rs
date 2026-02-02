@@ -263,7 +263,7 @@ fn handle_general_mouse(me: &terma::input::event::MouseEvent, app: &mut App, eve
             }
         }
         
-        if app.current_view == CurrentView::Editor {
+        if app.current_view == CurrentView::Editor || matches!(app.mode, AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorReplace | AppMode::EditorGoToLine) {
             return editor::handle_editor_mouse(me, app, event_tx);
         } else {
             return file_manager::handle_file_mouse(me, app, event_tx, panes_needing_refresh);
