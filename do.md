@@ -8,4 +8,6 @@ we need to update teh terma path to be the github one
 we want to support midle click paste, you know in linux
 
 
+
+
 ## Done
