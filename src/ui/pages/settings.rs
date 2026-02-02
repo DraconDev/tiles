@@ -402,7 +402,7 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
             Span::styled(" REMOTES [Import] ", Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)),
             Span::raw(" in the sidebar."),
         ]),
-        Line::from("Format (TOML): [[servers]] name="..." host="..." user="..." port=22"),
+        Line::from(r#"Format (TOML): [[servers]] name="..." host="..." user="..." port=22"#),
         Line::from(""),
     ];
 
