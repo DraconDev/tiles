@@ -440,11 +440,11 @@ pub enum UndoAction {
     Delete(PathBuf),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LicenseStatus {
     Valid,
-    Invalid,
+    Invalid(String),
     TrialExpired,
-    Commercial,
+    Commercial(String),
     FreeMode,
 }
