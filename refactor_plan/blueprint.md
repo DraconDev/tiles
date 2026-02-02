@@ -1,35 +1,21 @@
 # Tiles Refactor Blueprint 󱐋
 
-## Current Bottlenecks
-- `src/main.rs` (~5,500 lines): Handles event loop, input routing, and core state coordination.
-- `src/ui/mod.rs` (~4,000 lines): Contains all rendering logic for every mode (Editor, Monitor, Files, Settings, etc.).
+## Status: Phase 1 & 2 Complete ✅
+- **UI Decomposition**: `src/ui/mod.rs` reduced from 4k lines to ~200. Logic moved to `modals.rs`, `pages/`, and `panes/`.
+- **Event Decomposition**: `handle_event` moved from `main.rs` to `src/events/` with specialized sub-handlers.
+- **System Logic**: Telemetry state updates moved to `src/modules/system.rs`.
 
-## Target Architecture
+## Phase 3: Verification & Stabilization (CURRENT)
+- [ ] Implement unit tests for `src/events/` routing.
+- [ ] Verify `FileState` and `SelectionState` logic in `src/app.rs`.
+- [ ] Clean up unused imports and dead code warnings.
+- [ ] Verify mouse coordinate mapping in refactored UI panes.
 
-### 1. Event Handling (`src/events/`)
-Decompose the massive `handle_event` function in `main.rs`.
-- `mod.rs`: Main entry point for event routing.
-- `input.rs`: Raw key/mouse to logical command mapping.
-- `editor.rs`: Dedicated handlers for `AppMode::Editor`.
-- `file_manager.rs`: Handlers for `CurrentView::Files`.
-- `monitor.rs`: Handlers for `CurrentView::Processes`.
+## Phase 4: State Management Refinement
+- [ ] Extract `FileState`, `SystemState`, and `RemoteSession` into `src/state/`.
+- [ ] Decouple `App` coordinator from specific widget states.
 
-### 2. UI Modules (`src/ui/`)
-Decompose `src/ui/mod.rs` by functional area.
-- `mod.rs`: High-level layout and entry point (`draw` function).
-- `panes/`: Logic for rendering individual file panes and breadcrumbs.
-- `modals/`: Centralized rendering for all dialogs (Rename, New File, Delete, etc.).
-- `pages/`: Full-screen views like `System Monitor`, `Git History`, and `Settings`.
-- `editor/`: Unified logic for the full-screen and preview editors.
-
-### 3. State Management (`src/app.rs` refinement)
-- Extract nested structs (like `FileState`, `SystemState`) into a new `src/state/` module to keep `app.rs` focused on the `App` coordinator.
-
-## Phase 1: UI Decomposition (The "Easy" Wins)
-1. Move all modal drawing functions to `src/ui/modals.rs`.
-2. Move `draw_monitor_page` and its sub-functions to `src/ui/pages/monitor.rs`.
-3. Move `draw_settings_modal` to `src/ui/pages/settings.rs`.
-
-## Phase 2: Event Decomposition (The "Crucial" Fix)
-1. Extract `AppMode` specific event handling into `src/events/`.
-2. Reduce `main.rs` to just the `tokio` loop and high-level setup.
+## Testing Strategy
+1. **Event Routing**: Ensure `handle_event` correctly delegates based on `AppMode` and `CurrentView`.
+2. **Editor Logic**: Test clipboard operations and text manipulation in `src/events/editor.rs`.
+3. **File Manager**: Test directory navigation and selection logic.
