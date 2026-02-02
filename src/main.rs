@@ -353,7 +353,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                     // SHIELD: Ignore our own log file to prevent infinite refresh loops
                     if let Some(filename) = path.file_name() {
                         if filename == "debug.log" {
-                            return;
+                            continue;
                         }
                     }
 
