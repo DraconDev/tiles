@@ -3732,51 +3732,57 @@ fn draw_tab_settings(f: &mut Frame, area: Rect, _app: &App) {
 }
 
 fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
-    let items = vec![
-        ListItem::new(format!(
-            "[{}] Show Hidden Files (h)",
-            if app.default_show_hidden { "x" } else { " " }
-        )),
-        ListItem::new(format!(
-            "[{}] Confirm Delete (d)",
-            if app.confirm_delete { "x" } else { " " }
-        )),
-        ListItem::new(format!(
-            "[{}] Smart Date Formatting (t)",
-            if app.smart_date { "x" } else { " " }
-        )),
-        ListItem::new(format!(
-            "[{}] Semantic Coloring (s)",
-            if app.semantic_coloring { "x" } else { " " }
-        )),
-        ListItem::new(format!("Icon Mode: {:?} (i)", app.icon_mode)),
+    let options = vec![
+        ("Show Hidden Files", if app.default_show_hidden { "ENABLED " } else { "DISABLED" }, "h"),
+        ("Confirm Delete", if app.confirm_delete { "ENABLED " } else { "DISABLED" }, "d"),
+        ("Smart Date Formatting", if app.smart_date { "ENABLED " } else { "DISABLED" }, "t"),
+        ("Semantic Coloring", if app.semantic_coloring { "ENABLED " } else { "DISABLED" }, "s"),
+        ("Auto Save", if app.auto_save { "ENABLED " } else { "DISABLED" }, "a"),
+        ("Icon Mode", &format!("{:?}", app.icon_mode), "i"),
     ];
 
-    let items: Vec<ListItem> = items
-        .into_iter()
+    let rows: Vec<_> = options
+        .iter()
         .enumerate()
-        .map(|(i, item)| {
-            if i == app.settings_index && app.settings_section == SettingsSection::General {
-                item.style(
-                    Style::default()
-                        .bg(THEME.accent_primary)
-                        .fg(Color::Black)
-                        .add_modifier(Modifier::BOLD),
-                )
+        .map(|(i, (label, status, key))| {
+            let is_selected = i == app.settings_index && app.settings_section == SettingsSection::General;
+            let mut style = Style::default().fg(THEME.fg);
+            let mut status_style = if status.contains("ENABLED") {
+                Style::default().fg(Color::Green)
             } else {
-                item.style(Style::default().fg(THEME.fg))
+                Style::default().fg(Color::Red)
+            };
+
+            if is_selected {
+                style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+                status_style = status_style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
             }
+
+            Row::new(vec![
+                Cell::from(format!("  {}", label)).style(style),
+                Cell::from(format!(" [ {} ] ", status)).style(status_style),
+                Cell::from(format!("({})", key)).style(if is_selected { style } else { Style::default().fg(Color::DarkGray) }),
+            ])
         })
         .collect();
 
-    f.render_widget(
-        List::new(items).block(
-            Block::default()
-                .title(" General Preferences ")
-                .borders(Borders::NONE),
-        ),
-        area,
-    );
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Fill(1),
+            Constraint::Length(15),
+            Constraint::Length(5),
+        ],
+    )
+    .block(
+        Block::default()
+            .title(" SYSTEM PARAMETERS ")
+            .borders(Borders::TOP)
+            .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
+    )
+    .column_spacing(2);
+
+    f.render_widget(table, area);
 }
 
 fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
