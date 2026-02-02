@@ -1509,4 +1509,40 @@ mod tests {
         fs.view_height = 20;
         assert_eq!(fs.table_state.offset(), 0);
     }
+
+    #[test]
+    fn test_view_preferences_swap() {
+        let mut app = App::new(Arc::new(Mutex::new(Vec::new())));
+        
+        // Setup Files view
+        app.current_view = CurrentView::Files;
+        app.show_sidebar = true;
+        app.is_split_mode = false;
+        app.save_current_view_prefs();
+
+        // Setup Editor view
+        app.current_view = CurrentView::Editor;
+        app.show_sidebar = false;
+        app.is_split_mode = true;
+        app.save_current_view_prefs();
+
+        // Switch back to Files
+        app.load_view_prefs(CurrentView::Files);
+        assert_eq!(app.show_sidebar, true);
+        assert_eq!(app.is_split_mode, false);
+
+        // Switch back to Editor
+        app.load_view_prefs(CurrentView::Editor);
+        assert_eq!(app.show_sidebar, false);
+        assert_eq!(app.is_split_mode, true);
+    }
+
+    #[test]
+    fn test_selection_state_toggle() {
+        let mut sel = SelectionState::default();
+        sel.toggle(5);
+        assert!(sel.multi.contains(&5));
+        sel.toggle(5);
+        assert!(!sel.multi.contains(&5));
+    }
 }
