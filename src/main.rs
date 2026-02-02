@@ -1244,4 +1244,3 @@ fn handle_event(
     events::handle_event(evt, app, event_tx, panes_needing_refresh)
 }
 
-fn delete_word_backwards(s: &mut String) {
