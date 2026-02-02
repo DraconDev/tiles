@@ -3804,43 +3804,64 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
-    let items: Vec<ListItem> = app
-        .remote_bookmarks
-        .iter()
-        .map(|b| ListItem::new(format!("󰒍 {} ({}@{})", b.name, b.user, b.host)))
-        .collect();
-    let list = if items.is_empty() {
-        List::new(vec![ListItem::new("(No remote servers configured)")
-            .style(Style::default().fg(Color::DarkGray))])
-    } else {
-        List::new(items)
-    };
+    let rows: Vec<_> = app.remote_bookmarks.iter().enumerate().map(|(i, b)| {
+        let is_selected = i == app.settings_index && app.settings_section == SettingsSection::Remotes;
+        let mut style = Style::default().fg(THEME.fg);
+        if is_selected {
+            style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+        }
+
+        let icon = Icon::Remote.get(app.icon_mode);
+        Row::new(vec![
+            Cell::from(format!(" {} {}", icon, b.name)).style(style),
+            Cell::from(format!("{}@{}", b.user, b.host)).style(style),
+            Cell::from(b.port.to_string()).style(style),
+            Cell::from(b.last_path.to_string_lossy().to_string()).style(style),
+        ])
+    }).collect();
+
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Fill(1),
+            Constraint::Fill(1),
+            Constraint::Length(6),
+            Constraint::Fill(1),
+        ],
+    )
+    .header(Row::new(vec![" NAME ", " CONNECTION ", " PORT ", " LAST PATH "])
+        .style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)))
+    .block(
+        Block::default()
+            .title(" REMOTE SERVER BOOKMARKS ")
+            .borders(Borders::TOP)
+            .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
+    )
+    .column_spacing(2);
+
     let text = vec![
         Line::from("Manage your remote server bookmarks here."),
-        Line::from(""),
-        Line::from("Tip: You can bulk import servers by clicking the"),
         Line::from(vec![
-            Span::styled(
-                "REMOTES [Import] ",
-                Style::default()
-                    .fg(THEME.accent_secondary)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw("header in the sidebar."),
+            Span::raw("Tip: Import servers by clicking "),
+            Span::styled(" REMOTES [Import] ", Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)),
+            Span::raw(" in the sidebar."),
         ]),
         Line::from("Format (TOML): [[servers]] name=\"...\" host=\"...\" user=\"...\" port=22"),
         Line::from(""),
-        Line::from("Current Servers:"),
     ];
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(7), Constraint::Min(0)])
+        .constraints([Constraint::Length(4), Constraint::Min(0)])
         .split(area);
+
     f.render_widget(Paragraph::new(text), chunks[0]);
-    f.render_widget(
-        list.block(Block::default().borders(Borders::TOP).title(" Bookmarks ")),
-        chunks[1],
-    );
+
+    if app.remote_bookmarks.is_empty() {
+        f.render_widget(Paragraph::new("\n (No remote servers configured)").style(Style::default().fg(Color::DarkGray)), chunks[1]);
+    } else {
+        f.render_widget(table, chunks[1]);
+    }
 }
 
 fn draw_add_remote_modal(f: &mut Frame, app: &App) {
