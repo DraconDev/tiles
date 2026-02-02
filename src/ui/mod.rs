@@ -501,7 +501,7 @@ fn draw_editor_view(f: &mut Frame, area: Rect, app: &mut App) {
         .split(chunks[1]);
 
     if app.show_sidebar {
-        draw_project_sidebar(f, workspace[0], app);
+        panes::sidebar::draw_project_sidebar(f, workspace[0], app);
     }
 
     draw_editor_stage(f, workspace[1], app);
