@@ -13,6 +13,7 @@ use crate::app::{
 };
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
+use crate::event_helpers::get_open_with_suggestions;
 use terma::layout::centered_rect;
 use terma::widgets::HotkeyHint;
 use terma::utils::{
