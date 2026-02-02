@@ -55,6 +55,7 @@ pub struct App {
     pub pending_remote: RemoteBookmark,
     pub external_tools: HashMap<String, Vec<crate::config::ExternalTool>>,
     pub show_sidebar: bool,
+    pub show_side_panel: bool,
     pub sidebar_width_percent: u16,
     pub sidebar_bounds: Vec<SidebarBounds>,
     pub drag_start_pos: Option<(u16, u16)>,
