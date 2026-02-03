@@ -4,7 +4,8 @@ use std::path::PathBuf;
 use terma::widgets::TextEditor;
 use std::sync::{Arc, Mutex};
 
-pub use terma::utils::{FileCategory, FileColumn, IconMode, SelectionState, SystemData, DiskData, ProcessData};
+pub use terma::utils::{FileCategory, FileColumn, IconMode, SelectionState};
+pub use terma::system::{SystemData, DiskData, ProcessData};
 
 #[derive(Clone, Debug)]
 pub enum AppEvent {
@@ -176,6 +177,13 @@ pub struct SidebarBounds {
     pub target: SidebarTarget,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CommandItem {
+    pub key: String,
+    pub desc: String,
+    pub action: CommandAction,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum SidebarTarget {
     Favorite(PathBuf),
@@ -185,7 +193,7 @@ pub enum SidebarTarget {
     Header(String),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CommandAction {
     Quit,
     ToggleZoom,
@@ -216,13 +224,23 @@ pub struct RemoteBookmark {
     pub key_path: Option<PathBuf>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct RemoteSession {
     pub host: String,
     pub user: String,
     pub name: String,
     #[serde(skip)]
     pub session: Option<Arc<Mutex<ssh2::Session>>>,
+}
+
+impl std::fmt::Debug for RemoteSession {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RemoteSession")
+            .field("host", &self.host)
+            .field("user", &self.user)
+            .field("name", &self.name)
+            .finish()
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
