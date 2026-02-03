@@ -2,7 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use terma::compositor::engine::TilePlacement;
-use terma::widgets::{TextInput, TableState};
+use terma::widgets::TextInput;
+use ratatui::widgets::TableState;
 
 pub use crate::state::{
     AppEvent, AppMode, ClipboardOp, CommandAction, ContextMenuTarget, CurrentView,
@@ -85,7 +86,7 @@ pub struct App {
     pub prevent_mouse_up_selection_cleanup: bool,
     pub input_shield_until: Option<std::time::Instant>,
     pub command_index: usize,
-    pub filtered_commands: Vec<CommandItem>,
+    pub filtered_commands: Vec<crate::app::CommandItem>,
     pub view_prefs: ViewStatePersistence,
     pub settings_index: usize,
     pub settings_section: SettingsSection,
