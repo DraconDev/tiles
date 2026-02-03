@@ -1,11 +1,10 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use terma::compositor::engine::TilePlacement;
 use terma::widgets::TextEditor;
 use std::sync::{Arc, Mutex};
 
-pub use terma::utils::{FileCategory, FileColumn, IconMode, SelectionState};
+pub use terma::utils::{FileCategory, FileColumn, IconMode, SelectionState, SystemData, DiskData, ProcessData};
 
 #[derive(Clone, Debug)]
 pub enum AppEvent {
@@ -24,7 +23,24 @@ pub enum AppEvent {
     GitHistory,
     SystemMonitor,
     ConnectToRemote(usize, usize),
-    SystemUpdated(crate::modules::system::SystemData),
+    RemoteConnected(usize, RemoteSession),
+    SystemUpdated(SystemData),
+    MountDisk(String),
+    KillProcess(u32),
+    GitHistoryUpdated(usize, usize, Vec<CommitInfo>, Vec<GitStatus>),
+    TaskProgress(uuid::Uuid, f32, String),
+    TaskFinished(uuid::Uuid),
+    GlobalSearchUpdated(usize, Vec<PathBuf>, HashMap<PathBuf, FileMetadata>),
+    SpawnTerminal {
+        path: PathBuf,
+        new_tab: bool,
+        remote: Option<RemoteSession>,
+        command: Option<String>,
+    },
+    SpawnDetached {
+        cmd: String,
+        args: Vec<String>,
+    },
     Editor,
     Raw(terma::input::event::Event),
 }
@@ -37,7 +53,7 @@ pub enum CurrentView {
     Processes,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ContextMenuTarget {
     File(usize),
     Folder(usize),
@@ -49,7 +65,7 @@ pub enum ContextMenuTarget {
     Process(u32),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ContextMenuAction {
     Open,
     OpenNewTab,
@@ -128,6 +144,7 @@ pub enum AppMode {
     Hotkeys,
     Header(usize),
     Highlight,
+    OpenWith(PathBuf),
     DragDropMenu {
         sources: Vec<PathBuf>,
         target: PathBuf,
@@ -185,6 +202,8 @@ pub struct FileMetadata {
     pub created: std::time::SystemTime,
     pub permissions: u32,
     pub is_dir: bool,
+    #[serde(default)]
+    pub extension: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -195,6 +214,15 @@ pub struct RemoteBookmark {
     pub port: u16,
     pub last_path: PathBuf,
     pub key_path: Option<PathBuf>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct RemoteSession {
+    pub host: String,
+    pub user: String,
+    pub name: String,
+    #[serde(skip)]
+    pub session: Option<Arc<Mutex<ssh2::Session>>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -210,6 +238,14 @@ pub struct FileState {
     pub history_index: usize,
     pub sort_column: FileColumn,
     pub sort_ascending: bool,
+    #[serde(default)]
+    pub git_branch: Option<String>,
+    #[serde(default)]
+    pub git_ahead: usize,
+    #[serde(default)]
+    pub git_behind: usize,
+    #[serde(default)]
+    pub git_pending: Vec<GitStatus>,
     #[serde(skip)]
     pub metadata: HashMap<PathBuf, FileMetadata>,
     #[serde(skip)]
@@ -228,12 +264,10 @@ pub struct FileState {
     pub local_count: usize,
     #[serde(skip)]
     pub pending_select_path: Option<PathBuf>,
-}
-
-#[derive(Clone, Debug)]
-pub struct RemoteSession {
-    pub host: String,
-    pub user: String,
+    #[serde(skip)]
+    pub git_history: Vec<CommitInfo>,
+    #[serde(skip)]
+    pub git_history_state: ratatui::widgets::TableState,
 }
 
 impl FileState {
@@ -250,6 +284,10 @@ impl FileState {
             history_index: 0,
             sort_column: sort_col,
             sort_ascending: sort_asc,
+            git_branch: None,
+            git_ahead: 0,
+            git_behind: 0,
+            git_pending: Vec::new(),
             metadata: HashMap::new(),
             path_colors: HashMap::new(),
             preview: None,
@@ -259,6 +297,8 @@ impl FileState {
             breadcrumb_bounds: Vec::new(),
             local_count: 0,
             pending_select_path: None,
+            git_history: Vec::new(),
+            git_history_state: ratatui::widgets::TableState::default(),
         }
     }
 }
@@ -266,8 +306,8 @@ impl FileState {
 #[derive(Clone, Debug)]
 pub struct SystemState {
     pub last_update: std::time::Instant,
-    pub disks: Vec<crate::modules::system::DiskData>,
-    pub processes: Vec<crate::modules::system::ProcessData>,
+    pub disks: Vec<DiskData>,
+    pub processes: Vec<ProcessData>,
     pub cpu_usage: f32,
     pub cpu_cores: Vec<f32>,
     pub mem_usage: f32,
@@ -299,6 +339,7 @@ pub struct PreviewState {
     pub editor: Option<TextEditor>,
     pub last_saved: Option<std::time::Instant>,
     pub image_data: Option<(Vec<u8>, u32, u32)>,
+    pub highlighted_lines: Option<Vec<ratatui::text::Line<'static>>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -337,7 +378,8 @@ impl Pane {
 #[derive(Clone, Debug)]
 pub struct BackgroundTask {
     pub id: uuid::Uuid,
-    pub description: String,
+    pub name: String,
+    pub status: String,
     pub progress: f32,
 }
 
@@ -355,4 +397,50 @@ pub enum LicenseStatus {
     Invalid(String),
     TrialExpired,
     FreeMode,
+    Commercial(String),
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CommitInfo {
+    pub hash: String,
+    pub author: String,
+    pub date: String,
+    pub message: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum GitStatus {
+    Modified,
+    Added,
+    Deleted,
+    Renamed,
+    Untracked,
+    Staged,
+    Conflict,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum MonitorSubview {
+    Overview,
+    Cpu,
+    Memory,
+    Disk,
+    Network,
+    Processes,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum ProcessColumn {
+    Pid,
+    Name,
+    Cpu,
+    Mem,
+    User,
+    Status,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub enum ClipboardOp {
+    Copy,
+    Cut,
 }
