@@ -58,14 +58,14 @@ async fn run_tty() -> color_eyre::Result<()> {
 
     // Watcher Setup
     let tx_clone = event_tx.clone();
-    let mut debouncer = notify_debouncer_mini::new_debouncer(Duration::from_millis(500), move |res: notify_debouncer_mini::DebounceEventResult| {
+    let _debouncer = notify_debouncer_mini::new_debouncer(Duration::from_millis(500), move |res: notify_debouncer_mini::DebounceEventResult| {
         if let Ok(events) = res {
             for event in events {
                 let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(event.path));
             }
         }
     })?;
-    let mut watched_paths: std::collections::HashMap<usize, PathBuf> = std::collections::HashMap::new();
+    let _watched_paths: std::collections::HashMap<usize, PathBuf> = std::collections::HashMap::new();
 
     // 1. Input Loop (Thread)
     {
@@ -267,25 +267,26 @@ async fn run_tty() -> color_eyre::Result<()> {
                         };
 
                         let mut editor = terma::widgets::TextEditor::new();
-                        editor.get_content(); // Just to use it for now
                         editor.read_only = true;
 
-                        let mut app_guard = app_clone.lock().unwrap();
-                        let preview = PreviewState {
-                            path: path.clone(),
-                            content,
-                            scroll: 0,
-                            editor: Some(editor),
-                            last_saved: None,
-                            image_data: None,
-                            highlighted_lines: None,
-                        };
+                        {
+                            let mut app_guard = app_clone.lock().unwrap();
+                            let preview = PreviewState {
+                                path: path.clone(),
+                                content,
+                                scroll: 0,
+                                editor: Some(editor),
+                                last_saved: None,
+                                image_data: None,
+                                highlighted_lines: None,
+                            };
 
-                        if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
-                            pane.preview = Some(preview.clone());
-                        }
-                        if app_guard.current_view == CurrentView::Editor {
-                            app_guard.editor_state = Some(preview);
+                            if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
+                                pane.preview = Some(preview.clone());
+                            }
+                            if app_guard.current_view == CurrentView::Editor {
+                                app_guard.editor_state = Some(preview);
+                            }
                         }
                         let _ = tx.send(AppEvent::Tick).await;
                     });
@@ -400,12 +401,14 @@ async fn run_tty() -> color_eyre::Result<()> {
                     crate::modules::files::read_dir_with_metadata(&path)
                 };
 
-                let mut app_guard = app_clone.lock().unwrap();
-                if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
-                    if let Some(fs) = pane.current_state_mut() {
-                        fs.files = files;
-                        fs.metadata = metadata;
-                        // Sort and filter here if needed
+                {
+                    let mut app_guard = app_clone.lock().unwrap();
+                    if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
+                        if let Some(fs) = pane.current_state_mut() {
+                            fs.files = files;
+                            fs.metadata = metadata;
+                            // Sort and filter here if needed
+                        }
                     }
                 }
                 let _ = tx.send(AppEvent::Tick).await;
