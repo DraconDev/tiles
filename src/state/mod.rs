@@ -445,6 +445,7 @@ pub enum MonitorSubview {
     Disk,
     Network,
     Processes,
+    Applications,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
