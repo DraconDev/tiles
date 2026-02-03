@@ -1,6 +1,7 @@
 use terma::input::event::{Event, KeyCode, KeyModifiers, MouseEventKind, MouseButton};
 use tokio::sync::mpsc;
-use crate::app::{App, AppEvent, AppMode, ContextMenuAction, ContextMenuTarget, SettingsSection, IconMode};
+use crate::app::{App, AppEvent, AppMode, ContextMenuAction, ContextMenuTarget, SettingsSection};
+use crate::state::IconMode;
 
 pub fn handle_modal_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     match evt {
