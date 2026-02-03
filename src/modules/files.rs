@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
-use crate::app::{FileMetadata, GitStatus};
+use crate::app::{FileMetadata};
 
 pub fn read_dir_with_metadata(path: &Path) -> (Vec<PathBuf>, HashMap<PathBuf, FileMetadata>) {
     let mut files = Vec::new();
@@ -16,7 +16,6 @@ pub fn read_dir_with_metadata(path: &Path) -> (Vec<PathBuf>, HashMap<PathBuf, Fi
                     created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
                     permissions: 0, // Simplified
                     is_dir: m.is_dir(),
-                    extension: p.extension().map(|e| e.to_string_lossy().to_string()).unwrap_or_default(),
                 };
                 files.push(p.clone());
                 metadata.insert(p, meta);
