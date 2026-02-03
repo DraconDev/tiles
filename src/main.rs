@@ -302,7 +302,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                         };
 
                         let mut editor = terma::widgets::TextEditor::with_content(&content);
-                        editor.read_only = true;
+                        // editor.read_only = true; // Allow editing
 
                         {
                             let mut app_guard = app_clone.lock().unwrap();
