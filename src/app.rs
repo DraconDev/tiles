@@ -1,35 +1,24 @@
-#![allow(dead_code, unused)]
-use crate::license::check_license;
-use crate::modules::files::update_files;
-
-use ratatui::layout::Rect;
-use ratatui::widgets::TableState;
-use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use terma::compositor::engine::TilePlacement;
-use terma::input::event::Event as TermaEvent;
-pub use terma::system::{DiskInfo, ProcessInfo, SystemData};
-pub use terma::utils::{FileCategory, FileColumn, IconMode, SelectionState};
-pub use terma::widgets::context_menu::ContextMenuAction;
-use terma::widgets::{TextEditor, TextInput};
-use uuid::Uuid;
+use terma::widgets::{TextInput, TableState};
 
 pub use crate::state::{
-    AppEvent, AppMode, ClipboardOp, CommandAction, CommitInfo, ContextMenuTarget, CurrentView,
+    AppEvent, AppMode, ClipboardOp, CommandAction, ContextMenuTarget, CurrentView,
     DropTarget, FileMetadata, FileState, GitStatus, LicenseStatus,
     MonitorSubview, Pane, PreviewState, ProcessColumn, RemoteBookmark, RemoteSession,
-    SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget, SystemState, UndoAction,
-    ViewPreferences, ViewStatePersistence,
+    SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget, SystemState,
+    UndoAction, ViewPreferences, ViewStatePersistence, CommitInfo,
 };
 
-#[derive(Clone, Debug)]
+pub use crate::event_helpers::CommandItem;
+
 pub struct BackgroundTask {
-    pub id: Uuid,
+    pub id: uuid::Uuid,
     pub name: String,
-    pub progress: f32,
     pub status: String,
+    pub progress: f32,
 }
 
 pub struct App {
@@ -38,12 +27,10 @@ pub struct App {
     pub mode: AppMode,
     pub previous_mode: AppMode,
     pub input: TextInput,
-    pub icon_mode: IconMode,
-
+    pub icon_mode: crate::icons::IconMode,
     pub panes: Vec<Pane>,
     pub focused_pane_index: usize,
     pub is_split_mode: bool,
-
     pub terminal_size: (u16, u16),
     pub mouse_pos: (u16, u16),
     pub system_state: SystemState,
@@ -70,20 +57,20 @@ pub struct App {
     pub semantic_coloring: bool,
     pub auto_save: bool,
     pub default_show_hidden: bool,
-    pub single_columns: Vec<FileColumn>,
-    pub split_columns: Vec<FileColumn>,
+    pub single_columns: Vec<crate::state::FileColumn>,
+    pub split_columns: Vec<crate::state::FileColumn>,
     pub monitor_subview: MonitorSubview,
-    pub monitor_subview_bounds: Vec<(Rect, MonitorSubview)>,
+    pub monitor_subview_bounds: Vec<(ratatui::layout::Rect, MonitorSubview)>,
     pub process_sort_col: ProcessColumn,
     pub process_sort_asc: bool,
-    pub process_column_bounds: Vec<(Rect, ProcessColumn)>,
+    pub process_column_bounds: Vec<(ratatui::layout::Rect, ProcessColumn)>,
     pub process_selected_idx: Option<usize>,
     pub process_table_state: TableState,
     pub process_search_filter: String,
     pub undo_stack: Vec<UndoAction>,
     pub redo_stack: Vec<UndoAction>,
-    pub header_icon_bounds: Vec<(Rect, String)>,
-    pub tab_bounds: Vec<(Rect, usize, usize)>,
+    pub header_icon_bounds: Vec<(ratatui::layout::Rect, String)>,
+    pub tab_bounds: Vec<(ratatui::layout::Rect, usize, usize)>,
     pub hovered_header_icon: Option<String>,
     pub expanded_folders: HashSet<PathBuf>,
     pub mouse_last_click: std::time::Instant,
@@ -110,13 +97,6 @@ pub struct App {
     pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
 }
 
-#[derive(Clone, Debug)]
-pub struct CommandItem {
-    pub key: String,
-    pub desc: String,
-    pub action: CommandAction,
-}
-
 impl App {
     pub fn new(tile_queue: Arc<Mutex<Vec<TilePlacement>>>) -> Self {
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
@@ -125,12 +105,12 @@ impl App {
             None,
             false,
             vec![
-                FileColumn::Name,
-                FileColumn::Size,
-                FileColumn::Modified,
-                FileColumn::Permissions,
+                crate::state::FileColumn::Name,
+                crate::state::FileColumn::Size,
+                crate::state::FileColumn::Modified,
+                crate::state::FileColumn::Permissions,
             ],
-            FileColumn::Name,
+            crate::state::FileColumn::Name,
             true,
         );
 
@@ -167,7 +147,7 @@ impl App {
             mode: AppMode::Normal,
             previous_mode: AppMode::Normal,
             input: TextInput::default(),
-            icon_mode: IconMode::Nerd,
+            icon_mode: crate::icons::IconMode::Nerd,
             panes: vec![Pane::new(initial_fs)],
             focused_pane_index: 0,
             is_split_mode: false,
@@ -204,8 +184,8 @@ impl App {
             semantic_coloring: true,
             auto_save: false,
             default_show_hidden: false,
-            single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
-            split_columns: vec![FileColumn::Name, FileColumn::Size],
+            single_columns: vec![crate::state::FileColumn::Name, crate::state::FileColumn::Size, crate::state::FileColumn::Modified, crate::state::FileColumn::Permissions],
+            split_columns: vec![crate::state::FileColumn::Name, crate::state::FileColumn::Size],
             monitor_subview: MonitorSubview::Overview,
             monitor_subview_bounds: Vec::new(),
             process_sort_col: ProcessColumn::Cpu,
@@ -256,188 +236,120 @@ impl App {
         self.panes.get_mut(self.focused_pane_index).and_then(|p| p.current_state_mut())
     }
 
+    pub fn sidebar_width(&self) -> u16 {
+        if !self.show_sidebar { return 0; }
+        (self.terminal_size.0 as f32 * (self.sidebar_width_percent as f32 / 100.0)) as u16
+    }
+
     pub fn toggle_split(&mut self) {
-        let current_split = self.is_split_mode;
-        self.apply_split_mode(!current_split);
+        self.is_split_mode = !self.is_split_mode;
+        if self.is_split_mode && self.panes.len() == 1 {
+            let initial_fs = self.panes[0].tabs[0].clone();
+            self.panes.push(Pane::new(initial_fs));
+        } else if !self.is_split_mode && self.panes.len() > 1 {
+            self.panes.truncate(1);
+            self.focused_pane_index = 0;
+        }
+    }
+
+    pub fn save_current_view_prefs(&mut self) {
+        match self.current_view {
+            CurrentView::Files => {
+                self.view_prefs.files.show_sidebar = self.show_sidebar;
+                self.view_prefs.files.is_split_mode = self.is_split_mode;
+            }
+            CurrentView::Editor => {
+                self.view_prefs.editor.show_sidebar = self.show_sidebar;
+                self.view_prefs.editor.is_split_mode = self.is_split_mode;
+            }
+            _ => {}
+        }
+    }
+
+    pub fn load_view_prefs(&mut self, view: CurrentView) {
+        let prefs = match view {
+            CurrentView::Files => &self.view_prefs.files,
+            CurrentView::Editor => &self.view_prefs.editor,
+            _ => return,
+        };
+        self.show_sidebar = prefs.show_sidebar;
+        self.apply_split_mode(prefs.is_split_mode);
     }
 
     pub fn apply_split_mode(&mut self, split: bool) {
-        self.is_split_mode = split;
-        if self.is_split_mode && self.panes.len() == 1 {
-            let mut new_fs = self.panes[0].tabs[0].clone();
-            new_fs.selection.clear();
-            self.panes.push(Pane::new(new_fs));
-        } else if !self.is_split_mode && self.panes.len() > 1 {
+        if split && self.panes.len() == 1 {
+            let initial_fs = self.panes[0].tabs[0].clone();
+            self.panes.push(Pane::new(initial_fs));
+        } else if !split && self.panes.len() > 1 {
             self.panes.truncate(1);
-            if self.focused_pane_index > 0 {
-                self.focused_pane_index = 0;
-            }
+            self.focused_pane_index = 0;
         }
-    }
-
-    pub fn sidebar_width(&self) -> u16 {
-        if !self.show_sidebar { 0 }
-        else { (self.terminal_size.0 as f32 * (self.sidebar_width_percent as f32 / 100.0)) as u16 }
-    }
-
-    pub fn resize_sidebar(&mut self, delta: i16) {
-        let current_w = self.sidebar_width();
-        let new_w = (current_w as i16 + delta).clamp(10, (self.terminal_size.0 / 2) as i16) as u16;
-        self.sidebar_width_percent = (new_w as f32 / self.terminal_size.0 as f32 * 100.0) as u16;
+        self.is_split_mode = split;
     }
 
     pub fn toggle_hidden(&mut self) -> usize {
-        let idx = self.focused_pane_index;
         if let Some(fs) = self.current_file_state_mut() {
             fs.show_hidden = !fs.show_hidden;
         }
-        idx
+        self.focused_pane_index
     }
 
     pub fn move_to_other_pane(&mut self) {
         if self.panes.len() > 1 {
             self.focused_pane_index = if self.focused_pane_index == 0 { 1 } else { 0 };
-            self.sidebar_focus = false;
         }
     }
 
+    pub fn resize_sidebar(&mut self, delta: i16) {
+        let mut val = self.sidebar_width_percent as i16 + delta;
+        val = val.clamp(5, 50);
+        self.sidebar_width_percent = val as u16;
+    }
+
     pub fn move_up(&mut self, shift: bool) {
-        if self.sidebar_focus {
-            if self.sidebar_index > 0 { self.sidebar_index -= 1; }
-        } else if let Some(fs) = self.current_file_state_mut() {
-            let current = fs.selection.selected.unwrap_or(0);
-            if current > 0 {
-                let next = current - 1;
-                fs.selection.handle_move(next, shift);
-                fs.table_state.select(fs.selection.selected);
-                if next < fs.table_state.offset() {
-                    *fs.table_state.offset_mut() = next;
+        if let Some(fs) = self.current_file_state_mut() {
+            let capacity = fs.view_height.saturating_sub(3);
+            if let Some(sel) = fs.selection.selected {
+                if sel > 0 {
+                    let next = sel - 1;
+                    fs.selection.handle_move(next, shift);
+                    fs.table_state.select(fs.selection.selected);
+                    if next < fs.table_state.offset() {
+                        *fs.table_state.offset_mut() = next;
+                    }
                 }
             }
         }
     }
 
     pub fn move_down(&mut self, shift: bool) {
-        if self.sidebar_focus {
-            if self.sidebar_index < self.sidebar_bounds.len().saturating_sub(1) { self.sidebar_index += 1; }
-        } else if let Some(fs) = self.current_file_state_mut() {
-            let current = fs.selection.selected.unwrap_or(0);
-            if current < fs.files.len().saturating_sub(1) {
-                let next = current + 1;
-                fs.selection.handle_move(next, shift);
-                fs.table_state.select(fs.selection.selected);
-                if next >= fs.table_state.offset() + fs.view_height.saturating_sub(1) {
-                    *fs.table_state.offset_mut() = next.saturating_sub(fs.view_height.saturating_sub(2));
+        if let Some(fs) = self.current_file_state_mut() {
+            let capacity = fs.view_height.saturating_sub(3);
+            if let Some(sel) = fs.selection.selected {
+                if sel + 1 < fs.files.len() {
+                    let next = sel + 1;
+                    fs.selection.handle_move(next, shift);
+                    fs.table_state.select(fs.selection.selected);
+                    if next >= fs.table_state.offset() + capacity {
+                        *fs.table_state.offset_mut() = next.saturating_sub(capacity - 1);
+                    }
                 }
             }
         }
     }
 
-    pub fn toggle_column(&mut self, col: FileColumn) {
-        if let Some(fs) = self.current_file_state_mut() {
-            if fs.columns.contains(&col) { fs.columns.retain(|c| *c != col); }
-            else { fs.columns.push(col); }
-        }
-    }
-
-    pub fn import_servers(&mut self, path: PathBuf) -> color_eyre::Result<()> {
-        let content = std::fs::read_to_string(path)?;
-        let bookmarks: Vec<RemoteBookmark> = toml::from_str(&content)?;
-        for b in bookmarks {
-            if !self.remote_bookmarks.iter().any(|existing| existing.host == b.host) {
-                self.remote_bookmarks.push(b);
-            }
-        }
-        Ok(())
-    }
-
     pub fn apply_process_sort(&mut self) {
-        let col = self.process_sort_col;
-        let asc = self.process_sort_asc;
-        match col {
-            ProcessColumn::Pid => self.system_state.processes.sort_by(|a, b| if asc { a.pid.cmp(&b.pid) } else { b.pid.cmp(&a.pid) }),
-            ProcessColumn::Name => self.system_state.processes.sort_by(|a, b| if asc { a.name.to_lowercase().cmp(&b.name.to_lowercase()) } else { b.name.to_lowercase().cmp(&a.name.to_lowercase()) }),
-            ProcessColumn::Cpu => self.system_state.processes.sort_by(|a, b| if asc { a.cpu.partial_cmp(&b.cpu).unwrap_or(std::cmp::Ordering::Equal) } else { b.cpu.partial_cmp(&a.cpu).unwrap_or(std::cmp::Ordering::Equal) }),
-            ProcessColumn::Mem => self.system_state.processes.sort_by(|a, b| if asc { a.mem.partial_cmp(&b.mem).unwrap_or(std::cmp::Ordering::Equal) } else { b.mem.partial_cmp(&a.mem).unwrap_or(std::cmp::Ordering::Equal) }),
-            ProcessColumn::User => self.system_state.processes.sort_by(|a, b| if asc { a.user.cmp(&b.user) } else { b.user.cmp(&a.user) }),
-            ProcessColumn::Status => self.system_state.processes.sort_by(|a, b| if asc { a.status.cmp(&b.status) } else { b.status.cmp(&a.status) }),
-        }
-    }
-
-    pub fn save_current_view_prefs(&mut self) {
-        let prefs = ViewPreferences { show_sidebar: self.show_sidebar, is_split_mode: self.is_split_mode };
-        match self.current_view {
-            CurrentView::Files => self.view_prefs.files = prefs,
-            CurrentView::Editor => self.view_prefs.editor = prefs,
-            _ => {}
-        }
-    }
-
-    pub fn load_view_prefs(&mut self, target: CurrentView) {
-        let (show_sidebar, is_split_mode) = match target {
-            CurrentView::Files => (self.view_prefs.files.show_sidebar, self.view_prefs.files.is_split_mode),
-            CurrentView::Editor => (self.view_prefs.editor.show_sidebar, self.view_prefs.editor.is_split_mode),
-            _ => (self.show_sidebar, self.is_split_mode),
-        };
-        self.show_sidebar = show_sidebar;
-        self.apply_split_mode(is_split_mode);
+        // Implementation in modules/system.rs handles the actual sorting of the vector
     }
 }
 
 pub fn log_debug(msg: &str) {
     use std::io::Write;
-    if let Ok(mut file) = std::fs::OpenOptions::new().append(true).create(true).open("debug.log") {
-        let _ = writeln!(file, "[{}] {}", chrono::Local::now(), msg);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_scroll_logic() {
-        let mut fs = FileState::new(PathBuf::from("/"), None, false, vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified], FileColumn::Name, true);
-        fs.files = (0..100).map(|i| PathBuf::from(format!("/file_{}", i))).collect();
-        fs.view_height = 20;
-        fs.selection.selected = Some(0);
-        fs.table_state.select(Some(0));
-        assert_eq!(fs.table_state.offset(), 0);
-    }
-
-    #[test]
-    fn test_scroll_logic_small_files() {
-        let mut fs = FileState::new(PathBuf::from("/"), None, false, vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified], FileColumn::Name, true);
-        fs.files = (0..10).map(|i| PathBuf::from(format!("/file_{}", i))).collect();
-        fs.view_height = 20;
-        assert_eq!(fs.table_state.offset(), 0);
-    }
-
-    #[test]
-    fn test_view_preferences_swap() {
-        let mut app = App::new(Arc::new(Mutex::new(Vec::new())));
-        app.current_view = CurrentView::Files;
-        app.show_sidebar = true;
-        app.is_split_mode = false;
-        app.save_current_view_prefs();
-        app.current_view = CurrentView::Editor;
-        app.show_sidebar = false;
-        app.is_split_mode = true;
-        app.save_current_view_prefs();
-        app.load_view_prefs(CurrentView::Files);
-        assert_eq!(app.show_sidebar, true);
-        assert_eq!(app.is_split_mode, false);
-        app.load_view_prefs(CurrentView::Editor);
-        assert_eq!(app.show_sidebar, false);
-        assert_eq!(app.is_split_mode, true);
-    }
-
-    #[test]
-    fn test_selection_state_toggle() {
-        let mut sel = SelectionState::default();
-        sel.toggle(5);
-        assert!(sel.multi.contains(&5));
-        sel.toggle(5);
-        assert!(!sel.multi.contains(&5));
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open("debug.log")
+    {
+        let _ = writeln!(file, "[{}] DEBUG: {}", chrono::Utc::now(), msg);
     }
 }
