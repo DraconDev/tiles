@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use tokio::sync::mpsc;
 use crate::app::{App, AppEvent, AppMode, CurrentView, ContextMenuAction, ContextMenuTarget, CommandAction, FileColumn, SelectionState, CommitInfo, GitStatus};
 use crate::config::save_state;
-use crate::state::FileState;
+use crate::state::{FileState, CommandItem};
 
 pub fn update_commands(app: &mut App) {
     let mut commands = vec![
@@ -30,22 +30,10 @@ pub fn update_commands(app: &mut App) {
                 .to_lowercase()
                 .contains(&app.input.value.to_lowercase())
         })
-        .map(|c| crate::app::CommandItem {
-            key: c.key,
-            desc: c.desc,
-            action: c.action,
-        })
         .collect();
     app.command_index = app
         .command_index
         .min(app.filtered_commands.len().saturating_sub(1));
-}
-
-#[derive(Clone, Debug)]
-pub struct CommandItem {
-    pub key: String,
-    pub desc: String,
-    pub action: CommandAction,
 }
 
 pub fn execute_command(action: CommandAction, app: &mut App, event_tx: mpsc::Sender<AppEvent>) {
