@@ -133,8 +133,8 @@ fn draw_processes(f: &mut Frame, area: Rect, app: &mut App) {
         let cells = vec![
             Cell::from(p.pid.to_string()),
             Cell::from(p.name.clone()),
-            Cell::from(format!("{:.1}", p.cpu_usage)),
-            Cell::from(format_size(p.mem_usage)),
+            Cell::from(format!("{:.1}", p.cpu)),
+            Cell::from(format_size(p.mem as u64)),
             Cell::from(p.user.clone()),
             Cell::from(p.status.clone()),
         ];

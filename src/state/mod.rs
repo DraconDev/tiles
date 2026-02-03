@@ -5,7 +5,7 @@ use terma::widgets::TextEditor;
 use std::sync::{Arc, Mutex};
 
 pub use terma::utils::{FileCategory, FileColumn, IconMode, SelectionState};
-pub use terma::system::{SystemData, DiskData, ProcessData};
+pub use terma::system::{SystemData, DiskInfo, ProcessInfo};
 
 #[derive(Clone, Debug)]
 pub enum AppEvent {
@@ -322,8 +322,8 @@ impl FileState {
 #[derive(Clone, Debug)]
 pub struct SystemState {
     pub last_update: std::time::Instant,
-    pub disks: Vec<DiskData>,
-    pub processes: Vec<ProcessData>,
+    pub disks: Vec<DiskInfo>,
+    pub processes: Vec<ProcessInfo>,
     pub cpu_usage: f32,
     pub cpu_cores: Vec<f32>,
     pub mem_usage: f32,
