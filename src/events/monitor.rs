@@ -1,6 +1,6 @@
-use terma::input::event::{Event, KeyCode, KeyModifiers};
+use terma::input::event::{Event, KeyCode};
 use tokio::sync::mpsc;
-use crate::app::{App, AppEvent, AppMode, CurrentView, MonitorSubview};
+use crate::app::{App, AppEvent, CurrentView, MonitorSubview};
 
 pub fn handle_monitor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     if let Event::Key(key) = evt {
