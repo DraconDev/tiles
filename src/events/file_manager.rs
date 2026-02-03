@@ -350,7 +350,11 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         handle_rename_shortcut(app);
                         return true;
                     }
-                    KeyCode::Char(c) if key.modifiers.is_empty() => {
+                    KeyCode::Char(c)
+                        if !key.modifiers.intersects(
+                            KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER,
+                        ) =>
+                    {
                         if (c as u32) < 32 || c == '\x7f' || c == '\x1b' {
                             return false;
                         }
