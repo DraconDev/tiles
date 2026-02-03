@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 use tokio::sync::mpsc;
-use crate::app::{App, AppEvent, AppMode, CurrentView, ContextMenuAction, ContextMenuTarget, CommandAction, FileColumn, SelectionState, CommitInfo, GitStatus};
+use crate::app::{App, AppEvent, AppMode, CurrentView, ContextMenuAction, ContextMenuTarget, CommandAction, FileColumn, SelectionState, CommitInfo, GitStatus, FileState, CommandItem};
 use crate::config::save_state;
-use crate::state::{FileState, CommandItem};
 
 pub fn update_commands(app: &mut App) {
     let mut commands = vec![
