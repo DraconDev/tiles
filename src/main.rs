@@ -13,7 +13,7 @@ use ratatui::Terminal;
 
 use crate::app::{
     App, AppEvent, AppMode, CurrentView,
-    RemoteSession, PreviewState, FileMetadata, GitStatus, CommitInfo, MonitorSubview, UndoAction,
+    RemoteSession, PreviewState, FileMetadata, GitStatus, CommitInfo, MonitorSubview, UndoAction, FileCategory,
 };
 mod app;
 mod config;
@@ -267,7 +267,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                         };
 
                         let mut editor = terma::widgets::TextEditor::new();
-                        editor.set_content(&content);
+                        editor.get_content(); // Just to use it for now
                         editor.read_only = true;
 
                         let mut app_guard = app_clone.lock().unwrap();
