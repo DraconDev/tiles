@@ -1,6 +1,6 @@
-use terma::input::event::{Event, KeyCode, KeyModifiers, MouseEventKind, MouseButton, MouseEvent};
-use tokio::sync::mpsc;
 use crate::app::{App, AppEvent, AppMode, CurrentView};
+use terma::input::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use tokio::sync::mpsc;
 use unicode_width::UnicodeWidthStr;
 
 pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
@@ -10,21 +10,32 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
     };
 
     // 1. View-Specific Esc Handling
-    if key.code == KeyCode::Esc && matches!(app.mode, AppMode::Normal) {
-        if let CurrentView::Editor = app.current_view {
-            app.save_current_view_prefs();
-            app.current_view = CurrentView::Files;
-            app.load_view_prefs(CurrentView::Files);
-            for pane in &mut app.panes {
-                pane.preview = None;
+    if key.code == KeyCode::Esc {
+        crate::app::log_debug(&format!(
+            "DEBUG: Esc pressed in Editor View (Mode: {:?})",
+            app.mode
+        ));
+        if matches!(app.mode, AppMode::Normal) {
+            if let CurrentView::Editor = app.current_view {
+                app.save_current_view_prefs();
+                app.current_view = CurrentView::Files;
+                app.load_view_prefs(CurrentView::Files);
+                app.editor_state = None;
+                for pane in &mut app.panes {
+                    pane.preview = None;
+                }
+                app.input_shield_until =
+                    Some(std::time::Instant::now() + std::time::Duration::from_millis(50));
+                return true;
             }
-            app.input_shield_until = Some(std::time::Instant::now() + std::time::Duration::from_millis(50));
-            return true;
         }
     }
 
     // 2. IDE/Editor Mode Key Handling (Pane Editor)
-    if app.current_view == CurrentView::Editor && !app.sidebar_focus && matches!(app.mode, AppMode::Normal) {
+    if app.current_view == CurrentView::Editor
+        && !app.sidebar_focus
+        && matches!(app.mode, AppMode::Normal)
+    {
         let (w, h) = app.terminal_size;
         let sw = app.sidebar_width();
         let pc = app.panes.len();
@@ -32,12 +43,8 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
         let pw = if pc > 0 { cw / pc as u16 } else { cw };
         let pane_idx = app.focused_pane_index;
 
-        let pane_area = ratatui::layout::Rect::new(
-            sw + (pane_idx as u16 * pw),
-            1, 
-            pw,
-            h.saturating_sub(1),
-        );
+        let pane_area =
+            ratatui::layout::Rect::new(sw + (pane_idx as u16 * pw), 1, pw, h.saturating_sub(1));
 
         if let Some(pane) = app.panes.get_mut(pane_idx) {
             if let Some(preview) = &mut pane.preview {
@@ -48,8 +55,18 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
                     let mut prev_mode = app.previous_mode.clone();
 
                     let handled = handle_generic_editor_shortcuts(
-                        key, editor, &mut clipboard, auto_save, &mut mode, &mut prev_mode, 
-                        &mut app.input, &mut app.replace_buffer, event_tx, &preview.path, evt, pane_area
+                        key,
+                        editor,
+                        &mut clipboard,
+                        auto_save,
+                        &mut mode,
+                        &mut prev_mode,
+                        &mut app.input,
+                        &mut app.replace_buffer,
+                        event_tx,
+                        &preview.path,
+                        evt,
+                        pane_area,
                     );
 
                     app.editor_clipboard = clipboard;
@@ -72,7 +89,8 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
                 }
 
                 let (w, h) = app.terminal_size;
-                let editor_area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
+                let editor_area =
+                    ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
 
                 let mut clipboard = app.editor_clipboard.clone();
                 let auto_save = app.auto_save;
@@ -80,8 +98,18 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
                 let mut prev_mode = app.previous_mode.clone();
 
                 let handled = handle_generic_editor_shortcuts(
-                    key, editor, &mut clipboard, auto_save, &mut mode, &mut prev_mode,
-                    &mut app.input, &mut app.replace_buffer, event_tx, &preview.path, evt, editor_area
+                    key,
+                    editor,
+                    &mut clipboard,
+                    auto_save,
+                    &mut mode,
+                    &mut prev_mode,
+                    &mut app.input,
+                    &mut app.replace_buffer,
+                    event_tx,
+                    &preview.path,
+                    evt,
+                    editor_area,
                 );
 
                 app.editor_clipboard = clipboard;
@@ -95,36 +123,61 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
     false
 }
 
-pub fn handle_editor_mouse(me: &MouseEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
+pub fn handle_editor_mouse(
+    me: &MouseEvent,
+    app: &mut App,
+    event_tx: &mpsc::Sender<AppEvent>,
+) -> bool {
     let (w, h) = app.terminal_size;
     let column = me.column;
     let row = me.row;
 
     if let MouseEventKind::Down(MouseButton::Middle) = me.kind {
-        crate::app::log_debug(&format!("DEBUG: Middle Click in handle_editor_mouse at ({}, {})", column, row));
+        crate::app::log_debug(&format!(
+            "DEBUG: Middle Click in handle_editor_mouse at ({}, {})",
+            column, row
+        ));
     }
 
     // A. Check for Full-Screen Editor
-    if let AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorReplace | AppMode::EditorGoToLine = app.mode {
+    if let AppMode::Editor
+    | AppMode::Viewer
+    | AppMode::EditorSearch
+    | AppMode::EditorReplace
+    | AppMode::EditorGoToLine = app.mode
+    {
         if let Some(preview) = &mut app.editor_state {
             if let Some(editor) = &mut preview.editor {
-                let editor_area = ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
-                
+                let editor_area =
+                    ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
+
                 // Header buttons
                 if row == 0 {
                     if let MouseEventKind::Down(MouseButton::Left) = me.kind {
-                        if column >= w.saturating_sub(10) { app.running = false; return true; }
-                        else if column >= w.saturating_sub(20) { app.mode = AppMode::Normal; app.editor_state = None; return true; }
+                        if column >= w.saturating_sub(10) {
+                            app.running = false;
+                            return true;
+                        } else if column >= w.saturating_sub(20) {
+                            app.mode = AppMode::Normal;
+                            app.editor_state = None;
+                            return true;
+                        }
                         return true;
                     }
                 }
 
                 let mut clipboard = app.editor_clipboard.clone();
                 let handled = handle_text_editor_mouse(
-                    me, editor, &mut clipboard,
-                    &mut app.mouse_last_click, &mut app.mouse_click_pos, &mut app.mouse_click_count,
+                    me,
+                    editor,
+                    &mut clipboard,
+                    &mut app.mouse_last_click,
+                    &mut app.mouse_click_pos,
+                    &mut app.mouse_click_count,
                     app.auto_save,
-                    editor_area, event_tx, &preview.path
+                    editor_area,
+                    event_tx,
+                    &preview.path,
                 );
                 app.editor_clipboard = clipboard;
                 return handled;
@@ -139,7 +192,7 @@ pub fn handle_editor_mouse(me: &MouseEvent, app: &mut App, event_tx: &mpsc::Send
         let cw = w.saturating_sub(sw);
         let pw = if pc > 0 { cw / pc as u16 } else { cw };
         let cp = (column.saturating_sub(sw) / pw) as usize;
-        
+
         if cp < pc {
             let pane_idx = cp;
             app.focused_pane_index = pane_idx;
@@ -150,13 +203,14 @@ pub fn handle_editor_mouse(me: &MouseEvent, app: &mut App, event_tx: &mpsc::Send
                     if let Some(editor) = &mut preview.editor {
                         // Correct calculation matching draw_pane_editor in src/ui/panes/editor.rs
                         let pane_x = sw + (pane_idx as u16 * pw);
-                        let pane_area = ratatui::layout::Rect::new(pane_x, 1, pw, h.saturating_sub(1));
-                        
+                        let pane_area =
+                            ratatui::layout::Rect::new(pane_x, 1, pw, h.saturating_sub(1));
+
                         let inner = ratatui::widgets::Block::default()
                             .borders(ratatui::widgets::Borders::ALL)
                             .border_type(ratatui::widgets::BorderType::Rounded)
                             .inner(pane_area);
-                        
+
                         let chunks = ratatui::layout::Layout::default()
                             .direction(ratatui::layout::Direction::Vertical)
                             .constraints([
@@ -174,10 +228,16 @@ pub fn handle_editor_mouse(me: &MouseEvent, app: &mut App, event_tx: &mpsc::Send
 
                         let mut clipboard = app.editor_clipboard.clone();
                         let handled = handle_text_editor_mouse(
-                            me, editor, &mut clipboard,
-                            &mut app.mouse_last_click, &mut app.mouse_click_pos, &mut app.mouse_click_count,
+                            me,
+                            editor,
+                            &mut clipboard,
+                            &mut app.mouse_last_click,
+                            &mut app.mouse_click_pos,
+                            &mut app.mouse_click_count,
                             app.auto_save,
-                            editor_area, event_tx, &preview.path
+                            editor_area,
+                            event_tx,
+                            &preview.path,
                         );
                         app.editor_clipboard = clipboard;
                         return handled;
@@ -202,12 +262,16 @@ fn handle_text_editor_mouse(
     event_tx: &mpsc::Sender<AppEvent>,
     path: &std::path::PathBuf,
 ) -> bool {
-    crate::app::log_debug(&format!("DEBUG: Entering handle_text_editor_mouse with kind: {:?} at ({}, {}) in area {:?}", me.kind, me.column, me.row, area));
+    crate::app::log_debug(&format!(
+        "DEBUG: Entering handle_text_editor_mouse with kind: {:?} at ({}, {}) in area {:?}",
+        me.kind, me.column, me.row, area
+    ));
     match me.kind {
         MouseEventKind::Down(MouseButton::Left) => {
             let now = std::time::Instant::now();
             if now.duration_since(*mouse_last_click) < std::time::Duration::from_millis(500)
-                && *mouse_click_pos == (me.column, me.row) {
+                && *mouse_click_pos == (me.column, me.row)
+            {
                 *mouse_click_count += 1;
             } else {
                 *mouse_click_count = 1;
@@ -223,16 +287,21 @@ fn handle_text_editor_mouse(
                         if me.column >= area.x + gutter as u16 {
                             let rel_col = (me.column - area.x - gutter as u16) as usize;
                             let target_visual = editor.scroll_col + rel_col;
-                            let byte_col = editor.get_byte_index_from_visual(target_row, target_visual);
+                            let byte_col =
+                                editor.get_byte_index_from_visual(target_row, target_visual);
                             editor.select_word_at(target_row, byte_col);
                         }
                     }
                 }
                 3 => {
-                    if target_row < editor.lines.len() { editor.select_line_at(target_row); }
+                    if target_row < editor.lines.len() {
+                        editor.select_line_at(target_row);
+                    }
                     *mouse_click_count = 0;
                 }
-                _ => { editor.handle_mouse_event(*me, area); }
+                _ => {
+                    editor.handle_mouse_event(*me, area);
+                }
             }
             *mouse_last_click = now;
             *mouse_click_pos = (me.column, me.row);
@@ -243,7 +312,9 @@ fn handle_text_editor_mouse(
                 editor.modified = true;
             }
         }
-        _ => { editor.handle_mouse_event(*me, area); }
+        _ => {
+            editor.handle_mouse_event(*me, area);
+        }
     }
 
     // Sync selection to clipboard
@@ -285,37 +356,77 @@ fn handle_generic_editor_shortcuts(
         return true;
     }
 
-    if (has_control && (key.code == KeyCode::Char('c') || key.code == KeyCode::Char('C'))) || (has_control && key.code == KeyCode::Insert) {
-        let content = if let Some(selected) = editor.get_selected_text() { selected } else { editor.lines.get(editor.cursor_row).cloned().unwrap_or_default() };
+    if (has_control && (key.code == KeyCode::Char('c') || key.code == KeyCode::Char('C')))
+        || (has_control && key.code == KeyCode::Insert)
+    {
+        let content = if let Some(selected) = editor.get_selected_text() {
+            selected
+        } else {
+            editor
+                .lines
+                .get(editor.cursor_row)
+                .cloned()
+                .unwrap_or_default()
+        };
         *clipboard = Some(content.clone());
         terma::utils::set_clipboard_text(&content);
         let _ = event_tx.try_send(AppEvent::StatusMsg("Copied to clipboard".to_string()));
         return true;
     }
 
-    if (has_control && (key.code == KeyCode::Char('x') || key.code == KeyCode::Char('X'))) || (key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::Delete) {
-        let content = if let Some(selected) = editor.get_selected_text() { selected } else { editor.lines.get(editor.cursor_row).cloned().unwrap_or_default() };
+    if (has_control && (key.code == KeyCode::Char('x') || key.code == KeyCode::Char('X')))
+        || (key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::Delete)
+    {
+        let content = if let Some(selected) = editor.get_selected_text() {
+            selected
+        } else {
+            editor
+                .lines
+                .get(editor.cursor_row)
+                .cloned()
+                .unwrap_or_default()
+        };
         *clipboard = Some(content.clone());
         terma::utils::set_clipboard_text(&content);
-        if editor.get_selection_range().is_some() { editor.push_history(); editor.delete_selection(); }
-        else { editor.delete_line(editor.cursor_row); }
+        if editor.get_selection_range().is_some() {
+            editor.push_history();
+            editor.delete_selection();
+        } else {
+            editor.delete_line(editor.cursor_row);
+        }
         let _ = event_tx.try_send(AppEvent::StatusMsg("Cut to clipboard".to_string()));
-        if auto_save { let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content())); editor.modified = false; }
-        return true;
-    }
-
-    if (has_control && (key.code == KeyCode::Char('v') || key.code == KeyCode::Char('V'))) || (key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::Insert) {
-        let text_to_paste = clipboard.clone().or_else(|| terma::utils::get_clipboard_text());
-        if let Some(text) = text_to_paste {
-            editor.insert_string(&text);
-            editor.modified = true;
-            if auto_save { let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content())); editor.modified = false; }
+        if auto_save {
+            let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
+            editor.modified = false;
         }
         return true;
     }
 
-    if has_control && (key.code == KeyCode::Char('z') || key.code == KeyCode::Char('Z')) { editor.handle_event(evt, area); return true; }
-    if has_control && (key.code == KeyCode::Char('y') || key.code == KeyCode::Char('Y')) { editor.handle_event(evt, area); return true; }
+    if (has_control && (key.code == KeyCode::Char('v') || key.code == KeyCode::Char('V')))
+        || (key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::Insert)
+    {
+        let text_to_paste = clipboard
+            .clone()
+            .or_else(|| terma::utils::get_clipboard_text());
+        if let Some(text) = text_to_paste {
+            editor.insert_string(&text);
+            editor.modified = true;
+            if auto_save {
+                let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
+                editor.modified = false;
+            }
+        }
+        return true;
+    }
+
+    if has_control && (key.code == KeyCode::Char('z') || key.code == KeyCode::Char('Z')) {
+        editor.handle_event(evt, area);
+        return true;
+    }
+    if has_control && (key.code == KeyCode::Char('y') || key.code == KeyCode::Char('Y')) {
+        editor.handle_event(evt, area);
+        return true;
+    }
 
     if has_control {
         match key.code {
@@ -336,16 +447,22 @@ fn handle_generic_editor_shortcuts(
                 *mode = AppMode::EditorReplace;
                 input.clear();
                 replace_buffer.clear();
-                let _ = event_tx.try_send(AppEvent::StatusMsg("Replace: Type term to FIND, then press Enter/Tab".to_string()));
+                let _ = event_tx.try_send(AppEvent::StatusMsg(
+                    "Replace: Type term to FIND, then press Enter/Tab".to_string(),
+                ));
                 return true;
             }
             _ => {}
         }
     }
-    
+
     if key.code == KeyCode::F(2) {
         crate::app::log_debug("DEBUG: F2 pressed in Editor - triggering Rename");
-        let name = path.file_name().unwrap_or_else(|| std::ffi::OsStr::new("root")).to_string_lossy().to_string();
+        let name = path
+            .file_name()
+            .unwrap_or_else(|| std::ffi::OsStr::new("root"))
+            .to_string_lossy()
+            .to_string();
         *prev_mode = mode.clone();
         *mode = AppMode::Rename;
         input.set_value(name.clone());

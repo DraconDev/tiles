@@ -28,7 +28,15 @@ pub enum AppEvent {
     SystemUpdated(SystemData),
     MountDisk(String),
     KillProcess(u32),
-    GitHistoryUpdated(usize, usize, Vec<CommitInfo>, Vec<GitPendingChange>),
+    GitHistoryUpdated(
+        usize,
+        usize,
+        Vec<CommitInfo>,
+        Vec<GitPendingChange>,
+        Option<String>,
+        usize,
+        usize,
+    ),
     TaskProgress(uuid::Uuid, f32, String),
     TaskFinished(uuid::Uuid),
     GlobalSearchUpdated(usize, Vec<PathBuf>, HashMap<PathBuf, FileMetadata>),
@@ -400,6 +408,9 @@ impl Pane {
         self.tabs.get_mut(self.active_tab_index)
     }
     pub fn open_tab(&mut self, fs: FileState) {
+        if self.tabs.len() >= 3 {
+            return;
+        }
         self.tabs.push(fs);
         self.active_tab_index = self.tabs.len() - 1;
     }

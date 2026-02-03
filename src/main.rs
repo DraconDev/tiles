@@ -301,7 +301,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                 .unwrap_or_else(|e| format!("Error reading file: {}", e))
                         };
 
-                        let mut editor = terma::widgets::TextEditor::new();
+                        let mut editor = terma::widgets::TextEditor::with_content(&content);
                         editor.read_only = true;
 
                         {
@@ -396,12 +396,23 @@ async fn run_tty() -> color_eyre::Result<()> {
                         .arg(pid.to_string())
                         .spawn();
                 }
-                AppEvent::GitHistoryUpdated(p_idx, _t_idx, history, pending) => {
+                AppEvent::GitHistoryUpdated(
+                    p_idx,
+                    _t_idx,
+                    history,
+                    pending,
+                    branch,
+                    ahead,
+                    behind,
+                ) => {
                     let mut app_guard = app.lock().unwrap();
                     if let Some(pane) = app_guard.panes.get_mut(p_idx) {
                         if let Some(fs) = pane.current_state_mut() {
                             fs.git_history = history;
                             fs.git_pending = pending;
+                            fs.git_branch = branch;
+                            fs.git_ahead = ahead;
+                            fs.git_behind = behind;
                         }
                     }
                     needs_draw = true;
@@ -481,24 +492,139 @@ async fn run_tty() -> color_eyre::Result<()> {
             let tx = event_tx.clone();
             let app_clone = app.clone();
             tokio::spawn(async move {
-                let (files, metadata) = if let Some(_session) = remote {
+                let (files, metadata) = if let Some(_session) = &remote {
                     // Remote refresh logic (mocked for now)
                     (Vec::new(), std::collections::HashMap::new())
                 } else {
                     crate::modules::files::read_dir_with_metadata(&path)
                 };
 
+                let git_data = if remote.is_none() {
+                    crate::modules::files::fetch_git_data(&path)
+                } else {
+                    None
+                };
+
                 {
                     let mut app_guard = app_clone.lock().unwrap();
                     if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
                         if let Some(fs) = pane.current_state_mut() {
-                            fs.files = files;
+                            // Filter hidden files if needed
+                            let filtered_files: Vec<_> = files
+                                .into_iter()
+                                .filter(|p| {
+                                    fs.show_hidden
+                                        || !p
+                                            .file_name()
+                                            .and_then(|n| n.to_str())
+                                            .map(|s| s.starts_with('.'))
+                                            .unwrap_or(false)
+                                })
+                                .collect();
+
+                            // Sort: Folders First, then by Column
+                            let mut filtered_files = filtered_files;
+                            filtered_files.sort_by(|a, b| {
+                                let meta_a = metadata.get(a);
+                                let meta_b = metadata.get(b);
+                                let is_dir_a = meta_a.map(|m| m.is_dir).unwrap_or(false);
+                                let is_dir_b = meta_b.map(|m| m.is_dir).unwrap_or(false);
+
+                                // 1. Folders First (Always on top)
+                                if is_dir_a != is_dir_b {
+                                    return if is_dir_a {
+                                        std::cmp::Ordering::Less
+                                    } else {
+                                        std::cmp::Ordering::Greater
+                                    };
+                                }
+
+                                // 2. Column Sort
+                                let ord = match fs.sort_column {
+                                    crate::app::FileColumn::Name => {
+                                        let na = a
+                                            .file_name()
+                                            .and_then(|s| s.to_str())
+                                            .unwrap_or("")
+                                            .to_lowercase();
+                                        let nb = b
+                                            .file_name()
+                                            .and_then(|s| s.to_str())
+                                            .unwrap_or("")
+                                            .to_lowercase();
+                                        na.cmp(&nb)
+                                    }
+                                    crate::app::FileColumn::Size => {
+                                        let sa = meta_a.map(|m| m.size).unwrap_or(0);
+                                        let sb = meta_b.map(|m| m.size).unwrap_or(0);
+                                        sa.cmp(&sb)
+                                    }
+                                    crate::app::FileColumn::Modified => {
+                                        let da = meta_a
+                                            .map(|m| m.modified)
+                                            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                                        let db = meta_b
+                                            .map(|m| m.modified)
+                                            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                                        da.cmp(&db)
+                                    }
+                                    crate::app::FileColumn::Created => {
+                                        let da = meta_a
+                                            .map(|m| m.created)
+                                            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                                        let db = meta_b
+                                            .map(|m| m.created)
+                                            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                                        da.cmp(&db)
+                                    }
+                                    crate::app::FileColumn::Permissions => {
+                                        let pa = meta_a.map(|m| m.permissions).unwrap_or(0);
+                                        let pb = meta_b.map(|m| m.permissions).unwrap_or(0);
+                                        pa.cmp(&pb)
+                                    }
+                                    _ => {
+                                        let na = a
+                                            .file_name()
+                                            .and_then(|s| s.to_str())
+                                            .unwrap_or("")
+                                            .to_lowercase();
+                                        let nb = b
+                                            .file_name()
+                                            .and_then(|s| s.to_str())
+                                            .unwrap_or("")
+                                            .to_lowercase();
+                                        na.cmp(&nb)
+                                    }
+                                };
+
+                                if fs.sort_ascending {
+                                    ord
+                                } else {
+                                    ord.reverse()
+                                }
+                            });
+
+                            fs.files = filtered_files;
+                            fs.local_count = fs.files.len();
                             fs.metadata = metadata;
                             // Sort and filter here if needed
                         }
                     }
                 }
                 let _ = tx.send(AppEvent::Tick).await;
+                if let Some((history, pending, branch, ahead, behind)) = git_data {
+                    let _ = tx
+                        .send(AppEvent::GitHistoryUpdated(
+                            pane_idx,
+                            0,
+                            history,
+                            pending,
+                            Some(branch),
+                            ahead,
+                            behind,
+                        ))
+                        .await;
+                }
             });
         }
 

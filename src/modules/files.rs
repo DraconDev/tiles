@@ -1,6 +1,6 @@
-use std::path::{Path, PathBuf};
+use crate::app::FileMetadata;
 use std::collections::HashMap;
-use crate::app::{FileMetadata};
+use std::path::{Path, PathBuf};
 
 pub fn read_dir_with_metadata(path: &Path) -> (Vec<PathBuf>, HashMap<PathBuf, FileMetadata>) {
     let mut files = Vec::new();
@@ -30,12 +30,112 @@ pub fn get_file_category(path: &Path) -> crate::app::FileCategory {
     terma::utils::get_file_category(path)
 }
 
-pub fn update_git_status(state: &mut crate::app::FileState) {
-    // Mock implementation for now
-    state.git_branch = Some("master".to_string());
-    state.git_ahead = 0;
-    state.git_behind = 0;
-    state.git_pending = Vec::new();
+pub fn fetch_git_data(
+    path: &Path,
+) -> Option<(
+    Vec<crate::app::CommitInfo>,
+    Vec<crate::app::GitPendingChange>,
+    String,
+    usize,
+    usize,
+)> {
+    let output = std::process::Command::new("git")
+        .args(&["rev-parse", "--abbrev-ref", "HEAD"])
+        .current_dir(path)
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+    let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    // Ahead/Behind
+    let (ahead, behind) = if let Ok(out) = std::process::Command::new("git")
+        .args(&["rev-list", "--left-right", "--count", "HEAD...@{u}"])
+        .current_dir(path)
+        .output()
+    {
+        if out.status.success() {
+            let s = String::from_utf8_lossy(&out.stdout);
+            let parts: Vec<&str> = s.split_whitespace().collect();
+            if parts.len() == 2 {
+                (parts[0].parse().unwrap_or(0), parts[1].parse().unwrap_or(0))
+            } else {
+                (0, 0)
+            }
+        } else {
+            (0, 0)
+        }
+    } else {
+        (0, 0)
+    };
+
+    // Log
+    let mut history = Vec::new();
+    if let Ok(out) = std::process::Command::new("git")
+        .args(&["log", "-n", "50", "--pretty=format:%H|%an|%ar|%s", "--stat"])
+        .current_dir(path)
+        .output()
+    {
+        let out_str = String::from_utf8_lossy(&out.stdout);
+        let mut current_commit: Option<crate::app::CommitInfo> = None;
+
+        for line in out_str.lines() {
+            if line.contains('|') && !line.starts_with(' ') {
+                if let Some(c) = current_commit.take() {
+                    history.push(c);
+                }
+                let parts: Vec<&str> = line.split('|').collect();
+                if parts.len() >= 4 {
+                    current_commit = Some(crate::app::CommitInfo {
+                        hash: parts[0].to_string(),
+                        author: parts[1].to_string(),
+                        date: parts[2].to_string(),
+                        message: parts[3..].join("|"),
+                        files_changed: 0,
+                        insertions: 0,
+                        deletions: 0,
+                    });
+                }
+            } else if let Some(c) = current_commit.as_mut() {
+                // Parse stat: " 1 file changed, 1 insertion(+), 1 deletion(-)"
+                if line.contains("file") && line.contains("changed") {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    for (i, part) in parts.iter().enumerate() {
+                        if part.contains("changed") && i > 0 {
+                            c.files_changed = parts[i - 1].parse().unwrap_or(0);
+                        } else if part.contains("insertion") && i > 0 {
+                            c.insertions = parts[i - 1].parse().unwrap_or(0);
+                        } else if part.contains("deletion") && i > 0 {
+                            c.deletions = parts[i - 1].parse().unwrap_or(0);
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(c) = current_commit {
+            history.push(c);
+        }
+    }
+
+    // Status
+    let mut pending = Vec::new();
+    if let Ok(out) = std::process::Command::new("git")
+        .args(&["status", "--porcelain"])
+        .current_dir(path)
+        .output()
+    {
+        for line in String::from_utf8_lossy(&out.stdout).lines() {
+            if line.len() > 3 {
+                let status = line[0..2].trim().to_string();
+                let file = line[3..].to_string();
+                pending.push(crate::app::GitPendingChange { status, path: file });
+            }
+        }
+    }
+
+    Some((history, pending, branch, ahead, behind))
 }
 
 pub fn copy_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
