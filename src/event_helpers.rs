@@ -202,12 +202,13 @@ pub fn handle_context_menu_action(
                 let path_opt = app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned());
                 if let Some(path) = path_opt {
                     if path.is_dir() {
+                        let path_clone = path.clone();
                         if let Some(fs_mut) = app.current_file_state_mut() {
-                            fs_mut.current_path = path;
+                            fs_mut.current_path = path_clone;
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                         }
                     } else {
-                        let _ = event_tx.try_send(AppEvent::PreviewRequested(app.focused_pane_index, path));
+                        let _ = event_tx.try_send(AppEvent::PreviewRequested(app.focused_pane_index, path.clone()));
                     }
                 }
             }
@@ -233,7 +234,8 @@ pub fn handle_context_menu_action(
         }
         ContextMenuAction::RemoveFromFavorites => {
             if let ContextMenuTarget::SidebarFavorite(path) = target {
-                app.starred.retain(|p| p != path);
+                let path_clone = path.clone();
+                app.starred.retain(|p| p != &path_clone);
                 let _ = save_state(app);
             }
         }
@@ -242,8 +244,9 @@ pub fn handle_context_menu_action(
                 let path_opt = app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned());
                 if let Some(path) = path_opt {
                     if let Some(name) = path.file_name() {
+                        let name_str = name.to_string_lossy().to_string();
                         app.mode = AppMode::Rename;
-                        app.input.set_value(name.to_string_lossy().to_string());
+                        app.input.set_value(name_str);
                     }
                 }
             }
@@ -252,7 +255,7 @@ pub fn handle_context_menu_action(
             if let ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) = target {
                 let path_opt = app.current_file_state().and_then(|fs| fs.files.get(*idx).cloned());
                 if let Some(path) = path_opt {
-                    let _ = event_tx.try_send(AppEvent::Delete(path));
+                    let _ = event_tx.try_send(AppEvent::Delete(path.clone()));
                 }
             }
         }
