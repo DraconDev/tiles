@@ -1,5 +1,5 @@
-use terma::system::{SystemMonitor, SystemData};
 use crate::app::{App, ProcessColumn};
+use terma::system::{SystemData, SystemMonitor};
 
 pub struct SystemModule {
     monitor: SystemMonitor,
@@ -21,9 +21,9 @@ impl SystemModule {
         s.cpu_usage = data.cpu_usage as f32;
         s.cpu_cores = data.cpu_cores.iter().map(|&c| c as f32).collect();
         s.mem_usage = data.mem_usage as f32;
-        s.total_mem = data.total_mem;
+        s.total_mem = data.total_mem as f32;
         s.swap_usage = data.swap_usage as f32;
-        s.total_swap = data.total_swap;
+        s.total_swap = data.total_swap as f32;
         s.disks = data.disks;
         s.uptime = data.uptime;
         s.processes = data.processes;

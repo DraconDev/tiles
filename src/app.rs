@@ -1,16 +1,16 @@
+use ratatui::widgets::TableState;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use terma::compositor::engine::TilePlacement;
 use terma::widgets::TextInput;
-use ratatui::widgets::TableState;
 
 pub use crate::state::{
-    AppEvent, AppMode, ClipboardOp, CommandAction, ContextMenuAction, ContextMenuTarget, CurrentView,
-    DropTarget, FileCategory, FileColumn, FileMetadata, FileState, GitStatus, LicenseStatus,
-    MonitorSubview, Pane, PreviewState, ProcessColumn, RemoteBookmark, RemoteSession,
-    SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget, SystemState,
-    UndoAction, ViewPreferences, ViewStatePersistence, CommitInfo, SelectionState, CommandItem,
+    AppEvent, AppMode, ClipboardOp, CommandAction, CommandItem, CommitInfo, ContextMenuAction,
+    ContextMenuTarget, CurrentView, DropTarget, FileCategory, FileColumn, FileMetadata, FileState,
+    GitPendingChange, GitStatus, LicenseStatus, MonitorSubview, Pane, PreviewState, ProcessColumn,
+    RemoteBookmark, RemoteSession, SelectionState, SettingsSection, SettingsTarget, SidebarBounds,
+    SidebarTarget, SystemState, UndoAction, ViewPreferences, ViewStatePersistence,
 };
 
 pub struct BackgroundTask {
@@ -183,7 +183,12 @@ impl App {
             semantic_coloring: true,
             auto_save: false,
             default_show_hidden: false,
-            single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
+            single_columns: vec![
+                FileColumn::Name,
+                FileColumn::Size,
+                FileColumn::Modified,
+                FileColumn::Permissions,
+            ],
             split_columns: vec![FileColumn::Name, FileColumn::Size],
             monitor_subview: MonitorSubview::Overview,
             monitor_subview_bounds: Vec::new(),
@@ -213,8 +218,14 @@ impl App {
             command_index: 0,
             filtered_commands: Vec::new(),
             view_prefs: ViewStatePersistence {
-                files: ViewPreferences { show_sidebar: true, is_split_mode: false },
-                editor: ViewPreferences { show_sidebar: false, is_split_mode: true },
+                files: ViewPreferences {
+                    show_sidebar: true,
+                    is_split_mode: false,
+                },
+                editor: ViewPreferences {
+                    show_sidebar: false,
+                    is_split_mode: true,
+                },
             },
             settings_index: 0,
             settings_section: SettingsSection::General,
@@ -228,15 +239,21 @@ impl App {
     }
 
     pub fn current_file_state(&self) -> Option<&FileState> {
-        self.panes.get(self.focused_pane_index).and_then(|p| p.current_state())
+        self.panes
+            .get(self.focused_pane_index)
+            .and_then(|p| p.current_state())
     }
 
     pub fn current_file_state_mut(&mut self) -> Option<&mut FileState> {
-        self.panes.get_mut(self.focused_pane_index).and_then(|p| p.current_state_mut())
+        self.panes
+            .get_mut(self.focused_pane_index)
+            .and_then(|p| p.current_state_mut())
     }
 
     pub fn sidebar_width(&self) -> u16 {
-        if !self.show_sidebar { return 0; }
+        if !self.show_sidebar {
+            return 0;
+        }
         (self.terminal_size.0 as f32 * (self.sidebar_width_percent as f32 / 100.0)) as u16
     }
 

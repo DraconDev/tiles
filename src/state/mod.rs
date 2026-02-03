@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use terma::widgets::TextEditor;
 use std::sync::{Arc, Mutex};
+use terma::widgets::TextEditor;
 
+pub use terma::system::{DiskInfo, ProcessInfo, SystemData};
 pub use terma::utils::{FileCategory, FileColumn, IconMode, SelectionState};
-pub use terma::system::{SystemData, DiskInfo, ProcessInfo};
 
 #[derive(Clone, Debug)]
 pub enum AppEvent {
@@ -28,7 +28,7 @@ pub enum AppEvent {
     SystemUpdated(SystemData),
     MountDisk(String),
     KillProcess(u32),
-    GitHistoryUpdated(usize, usize, Vec<CommitInfo>, Vec<GitStatus>),
+    GitHistoryUpdated(usize, usize, Vec<CommitInfo>, Vec<GitPendingChange>),
     TaskProgress(uuid::Uuid, f32, String),
     TaskFinished(uuid::Uuid),
     GlobalSearchUpdated(usize, Vec<PathBuf>, HashMap<PathBuf, FileMetadata>),
@@ -283,11 +283,18 @@ pub struct FileState {
     #[serde(skip)]
     pub git_behind: usize,
     #[serde(skip)]
-    pub git_pending: Vec<GitStatus>,
+    pub git_pending: Vec<GitPendingChange>,
 }
 
 impl FileState {
-    pub fn new(path: PathBuf, remote: Option<RemoteSession>, show_hidden: bool, columns: Vec<FileColumn>, sort_col: FileColumn, sort_asc: bool) -> Self {
+    pub fn new(
+        path: PathBuf,
+        remote: Option<RemoteSession>,
+        show_hidden: bool,
+        columns: Vec<FileColumn>,
+        sort_col: FileColumn,
+        sort_asc: bool,
+    ) -> Self {
         Self {
             current_path: path.clone(),
             remote_session: remote,
@@ -327,9 +334,9 @@ pub struct SystemState {
     pub cpu_usage: f32,
     pub cpu_cores: Vec<f32>,
     pub mem_usage: f32,
-    pub total_mem: f64,
+    pub total_mem: f32,
     pub swap_usage: f32,
-    pub total_swap: f64,
+    pub total_swap: f32,
     pub cpu_history: Vec<u64>,
     pub core_history: Vec<Vec<u64>>,
     pub mem_history: Vec<u64>,
@@ -386,9 +393,16 @@ impl Pane {
             preview: None,
         }
     }
-    pub fn current_state(&self) -> Option<&FileState> { self.tabs.get(self.active_tab_index) }
-    pub fn current_state_mut(&mut self) -> Option<&mut FileState> { self.tabs.get_mut(self.active_tab_index) }
-    pub fn open_tab(&mut self, fs: FileState) { self.tabs.push(fs); self.active_tab_index = self.tabs.len() - 1; }
+    pub fn current_state(&self) -> Option<&FileState> {
+        self.tabs.get(self.active_tab_index)
+    }
+    pub fn current_state_mut(&mut self) -> Option<&mut FileState> {
+        self.tabs.get_mut(self.active_tab_index)
+    }
+    pub fn open_tab(&mut self, fs: FileState) {
+        self.tabs.push(fs);
+        self.active_tab_index = self.tabs.len() - 1;
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -422,6 +436,9 @@ pub struct CommitInfo {
     pub author: String,
     pub date: String,
     pub message: String,
+    pub files_changed: usize,
+    pub insertions: usize,
+    pub deletions: usize,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -433,6 +450,12 @@ pub enum GitStatus {
     Untracked,
     Staged,
     Conflict,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GitPendingChange {
+    pub status: String,
+    pub path: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
