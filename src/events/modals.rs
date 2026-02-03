@@ -99,6 +99,9 @@ fn handle_search_keys(
         }
     }
 
+    }
+}
+
 fn handle_properties_keys(key: &terma::input::event::KeyEvent, app: &mut App) -> bool {
     match key.code {
         KeyCode::Esc | KeyCode::Enter | KeyCode::Char('q') => {
