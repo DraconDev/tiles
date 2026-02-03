@@ -306,7 +306,7 @@ fn handle_header_keys(_key: &terma::input::event::KeyEvent, app: &mut App, _even
     }
 }
 
-fn handle_settings_keys(key: &terma::input::event::KeyEvent, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
+fn handle_settings_keys(key: &terma::input::event::KeyEvent, app: &mut App, _event_tx: &mpsc::Sender<AppEvent>) -> bool {
     match key.code {
         KeyCode::Esc => { app.mode = AppMode::Normal; true }
         KeyCode::Char('1') => { app.settings_section = SettingsSection::Columns; app.settings_index = 0; true }

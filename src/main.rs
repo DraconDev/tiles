@@ -13,7 +13,7 @@ use ratatui::Terminal;
 
 use crate::app::{
     App, AppEvent, AppMode, CurrentView,
-    FileCategory, MonitorSubview, UndoAction, RemoteSession, PreviewState, FileMetadata, GitStatus, CommitInfo,
+    RemoteSession, PreviewState, FileMetadata, GitStatus, CommitInfo, MonitorSubview, UndoAction,
 };
 mod app;
 mod config;
@@ -205,7 +205,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                     }
                                     if !auth_ok {
                                         if let Some(key_path) = &remote.key_path {
-                                            if sess.userauth_publickey_from_file(&remote.user, None, key_path, None).is_ok() {
+                                            if sess.userauth_pubkey_file(&remote.user, None, key_path, None).is_ok() {
                                                 auth_ok = true;
                                             }
                                         }
@@ -266,9 +266,9 @@ async fn run_tty() -> color_eyre::Result<()> {
                             std::fs::read_to_string(&path).unwrap_or_else(|e| format!("Error reading file: {}", e))
                         };
 
-                        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_string();
-                        let mut editor = terma::widgets::TextEditor::new(content.clone(), ext);
-                        editor.readonly = true;
+                        let mut editor = terma::widgets::TextEditor::new();
+                        editor.set_content(&content);
+                        editor.read_only = true;
 
                         let mut app_guard = app_clone.lock().unwrap();
                         let preview = PreviewState {
@@ -331,7 +331,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                         let _ = tx.send(AppEvent::RefreshFiles(0)).await;
                     });
                 }
-                AppEvent::SpawnTerminal { path, new_tab, remote, command } => {
+                AppEvent::SpawnTerminal { path, new_tab, remote: _, command } => {
                     let cmd_str = command.as_deref();
                     terma::utils::spawn_terminal_at(&path, new_tab, cmd_str);
                 }
@@ -351,13 +351,13 @@ async fn run_tty() -> color_eyre::Result<()> {
                     }
                     needs_draw = true;
                 }
-                AppEvent::TaskProgress(id, progress, desc) => {
+                AppEvent::TaskProgress(id, progress, status) => {
                     let mut app_guard = app.lock().unwrap();
                     if let Some(task) = app_guard.background_tasks.iter_mut().find(|t| t.id == id) {
                         task.progress = progress;
-                        task.description = desc;
+                        task.status = status;
                     } else {
-                        app_guard.background_tasks.push(crate::app::BackgroundTask { id, description: desc, progress });
+                        app_guard.background_tasks.push(crate::app::BackgroundTask { id, name: "Task".to_string(), status, progress });
                     }
                     needs_draw = true;
                 }
@@ -393,7 +393,7 @@ async fn run_tty() -> color_eyre::Result<()> {
             let tx = event_tx.clone();
             let app_clone = app.clone();
             tokio::spawn(async move {
-                let (files, metadata) = if let Some(session) = remote {
+                let (files, metadata) = if let Some(_session) = remote {
                     // Remote refresh logic (mocked for now)
                     (Vec::new(), std::collections::HashMap::new())
                 } else {
