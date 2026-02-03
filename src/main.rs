@@ -1,9 +1,9 @@
+use notify::RecursiveMode;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc;
 use uuid::Uuid;
-use notify::RecursiveMode;
 
 use terma::input::event::Event;
 use terma::integration::ratatui::TermaBackend;
@@ -12,19 +12,19 @@ use terma::integration::ratatui::TermaBackend;
 use ratatui::Terminal;
 
 use crate::app::{
-    App, AppEvent, AppMode, CurrentView,
-    RemoteSession, PreviewState, FileMetadata, GitStatus, CommitInfo, MonitorSubview, UndoAction, FileCategory,
+    App, AppEvent, AppMode, CommitInfo, CurrentView, FileCategory, FileMetadata, GitStatus,
+    MonitorSubview, PreviewState, RemoteSession, UndoAction,
 };
 mod app;
 mod config;
 mod event;
 mod event_helpers;
+mod events;
 mod icons;
 mod license;
 mod modules;
-mod ui;
-mod events;
 mod state;
+mod ui;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
@@ -58,14 +58,18 @@ async fn run_tty() -> color_eyre::Result<()> {
 
     // Watcher Setup
     let tx_clone = event_tx.clone();
-    let _debouncer = notify_debouncer_mini::new_debouncer(Duration::from_millis(500), move |res: notify_debouncer_mini::DebounceEventResult| {
-        if let Ok(events) = res {
-            for event in events {
-                let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(event.path));
+    let _debouncer = notify_debouncer_mini::new_debouncer(
+        Duration::from_millis(500),
+        move |res: notify_debouncer_mini::DebounceEventResult| {
+            if let Ok(events) = res {
+                for event in events {
+                    let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(event.path));
+                }
             }
-        }
-    })?;
-    let _watched_paths: std::collections::HashMap<usize, PathBuf> = std::collections::HashMap::new();
+        },
+    )?;
+    let _watched_paths: std::collections::HashMap<usize, PathBuf> =
+        std::collections::HashMap::new();
 
     // 1. Input Loop (Thread)
     {
@@ -158,7 +162,12 @@ async fn run_tty() -> color_eyre::Result<()> {
                 }
                 AppEvent::Raw(raw) => {
                     let mut app_guard = app.lock().unwrap();
-                    if handle_event(raw, &mut app_guard, event_tx.clone(), &mut panes_needing_refresh) {
+                    if handle_event(
+                        raw,
+                        &mut app_guard,
+                        event_tx.clone(),
+                        &mut panes_needing_refresh,
+                    ) {
                         needs_draw = true;
                     }
                 }
@@ -181,13 +190,19 @@ async fn run_tty() -> color_eyre::Result<()> {
                         )));
 
                         tokio::spawn(async move {
-                            match std::net::TcpStream::connect(format!("{}:{}", remote.host, remote.port)) {
+                            match std::net::TcpStream::connect(format!(
+                                "{}:{}",
+                                remote.host, remote.port
+                            )) {
                                 Ok(tcp) => {
                                     let mut sess = ssh2::Session::new().unwrap();
                                     sess.set_tcp_stream(tcp);
                                     sess.set_blocking(true);
                                     if let Err(e) = sess.handshake() {
-                                        let _ = tx.try_send(AppEvent::StatusMsg(format!("Handshake failed: {}", e)));
+                                        let _ = tx.try_send(AppEvent::StatusMsg(format!(
+                                            "Handshake failed: {}",
+                                            e
+                                        )));
                                         return;
                                     }
                                     let mut auth_ok = false;
@@ -195,7 +210,10 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         if agent.connect().is_ok() {
                                             if let Ok(_identities) = agent.list_identities() {
                                                 for identity in agent.identities().unwrap() {
-                                                    if agent.userauth(&remote.user, &identity).is_ok() {
+                                                    if agent
+                                                        .userauth(&remote.user, &identity)
+                                                        .is_ok()
+                                                    {
                                                         auth_ok = true;
                                                         break;
                                                     }
@@ -205,7 +223,15 @@ async fn run_tty() -> color_eyre::Result<()> {
                                     }
                                     if !auth_ok {
                                         if let Some(key_path) = &remote.key_path {
-                                            if sess.userauth_pubkey_file(&remote.user, None, key_path, None).is_ok() {
+                                            if sess
+                                                .userauth_pubkey_file(
+                                                    &remote.user,
+                                                    None,
+                                                    key_path,
+                                                    None,
+                                                )
+                                                .is_ok()
+                                            {
                                                 auth_ok = true;
                                             }
                                         }
@@ -217,13 +243,20 @@ async fn run_tty() -> color_eyre::Result<()> {
                                             name: remote.name.clone(),
                                             session: Some(Arc::new(Mutex::new(sess))),
                                         };
-                                        let _ = tx.send(AppEvent::RemoteConnected(p_idx, session)).await;
+                                        let _ = tx
+                                            .send(AppEvent::RemoteConnected(p_idx, session))
+                                            .await;
                                     } else {
-                                        let _ = tx.try_send(AppEvent::StatusMsg("Authentication failed".to_string()));
+                                        let _ = tx.try_send(AppEvent::StatusMsg(
+                                            "Authentication failed".to_string(),
+                                        ));
                                     }
                                 }
                                 Err(e) => {
-                                    let _ = tx.try_send(AppEvent::StatusMsg(format!("Connection failed: {}", e)));
+                                    let _ = tx.try_send(AppEvent::StatusMsg(format!(
+                                        "Connection failed: {}",
+                                        e
+                                    )));
                                 }
                             }
                         });
@@ -257,13 +290,15 @@ async fn run_tty() -> color_eyre::Result<()> {
                     let tx = event_tx.clone();
                     let app_clone = app.clone();
                     tokio::spawn(async move {
-                        let (is_binary, is_too_large, size_mb) = terma::utils::check_file_suitability(&path, 5 * 1024 * 1024);
+                        let (is_binary, is_too_large, size_mb) =
+                            terma::utils::check_file_suitability(&path, 5 * 1024 * 1024);
                         let content = if is_binary {
                             format!("<Binary file: {} MB>", size_mb)
                         } else if is_too_large {
                             format!("<File too large: {} MB>", size_mb)
                         } else {
-                            std::fs::read_to_string(&path).unwrap_or_else(|e| format!("Error reading file: {}", e))
+                            std::fs::read_to_string(&path)
+                                .unwrap_or_else(|e| format!("Error reading file: {}", e))
                         };
 
                         let mut editor = terma::widgets::TextEditor::new();
@@ -310,20 +345,31 @@ async fn run_tty() -> color_eyre::Result<()> {
                 }
                 AppEvent::CreateFile(path) => {
                     let _ = std::fs::File::create(&path);
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.lock().unwrap().focused_pane_index));
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(
+                        app.lock().unwrap().focused_pane_index,
+                    ));
                 }
                 AppEvent::CreateFolder(path) => {
                     let _ = std::fs::create_dir_all(&path);
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.lock().unwrap().focused_pane_index));
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(
+                        app.lock().unwrap().focused_pane_index,
+                    ));
                 }
                 AppEvent::Rename(old, new) => {
                     let _ = std::fs::rename(&old, &new);
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.lock().unwrap().focused_pane_index));
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(
+                        app.lock().unwrap().focused_pane_index,
+                    ));
                 }
                 AppEvent::Delete(path) => {
-                    if path.is_dir() { let _ = std::fs::remove_dir_all(&path); }
-                    else { let _ = std::fs::remove_file(&path); }
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.lock().unwrap().focused_pane_index));
+                    if path.is_dir() {
+                        let _ = std::fs::remove_dir_all(&path);
+                    } else {
+                        let _ = std::fs::remove_file(&path);
+                    }
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(
+                        app.lock().unwrap().focused_pane_index,
+                    ));
                 }
                 AppEvent::Copy(src, dest) => {
                     let tx = event_tx.clone();
@@ -332,7 +378,12 @@ async fn run_tty() -> color_eyre::Result<()> {
                         let _ = tx.send(AppEvent::RefreshFiles(0)).await;
                     });
                 }
-                AppEvent::SpawnTerminal { path, new_tab, remote: _, command } => {
+                AppEvent::SpawnTerminal {
+                    path,
+                    new_tab,
+                    remote: _,
+                    command,
+                } => {
                     let cmd_str = command.as_deref();
                     terma::utils::spawn_terminal_at(&path, new_tab, cmd_str);
                 }
@@ -340,7 +391,10 @@ async fn run_tty() -> color_eyre::Result<()> {
                     terma::utils::spawn_detached(&cmd, args);
                 }
                 AppEvent::KillProcess(pid) => {
-                    let _ = std::process::Command::new("kill").arg("-9").arg(pid.to_string()).spawn();
+                    let _ = std::process::Command::new("kill")
+                        .arg("-9")
+                        .arg(pid.to_string())
+                        .spawn();
                 }
                 AppEvent::GitHistoryUpdated(p_idx, _t_idx, history, pending) => {
                     let mut app_guard = app.lock().unwrap();
@@ -358,7 +412,12 @@ async fn run_tty() -> color_eyre::Result<()> {
                         task.progress = progress;
                         task.status = status;
                     } else {
-                        app_guard.background_tasks.push(crate::app::BackgroundTask { id, name: "Task".to_string(), status, progress });
+                        app_guard.background_tasks.push(crate::app::BackgroundTask {
+                            id,
+                            name: "Task".to_string(),
+                            status,
+                            progress,
+                        });
                     }
                     needs_draw = true;
                 }
@@ -376,6 +435,30 @@ async fn run_tty() -> color_eyre::Result<()> {
                     }
                     needs_draw = true;
                 }
+                AppEvent::SystemMonitor => {
+                    let mut app_guard = app.lock().unwrap();
+                    app_guard.save_current_view_prefs();
+                    app_guard.current_view = CurrentView::Processes;
+                    needs_draw = true;
+                }
+                AppEvent::GitHistory => {
+                    let mut app_guard = app.lock().unwrap();
+                    app_guard.save_current_view_prefs();
+                    app_guard.current_view = CurrentView::Git;
+                    needs_draw = true;
+                }
+                AppEvent::Editor => {
+                    let mut app_guard = app.lock().unwrap();
+                    app_guard.save_current_view_prefs();
+                    app_guard.current_view = CurrentView::Editor;
+                    app_guard.load_view_prefs(CurrentView::Editor);
+                    needs_draw = true;
+                }
+                AppEvent::StatusMsg(msg) => {
+                    let mut app_guard = app.lock().unwrap();
+                    app_guard.last_action_msg = Some((msg, std::time::Instant::now()));
+                    needs_draw = true;
+                }
                 _ => {}
             }
         }
@@ -387,8 +470,12 @@ async fn run_tty() -> color_eyre::Result<()> {
                 if let Some(pane) = app_guard.panes.get(pane_idx) {
                     if let Some(fs) = pane.current_state() {
                         (fs.current_path.clone(), fs.remote_session.clone())
-                    } else { continue; }
-                } else { continue; }
+                    } else {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
             };
 
             let tx = event_tx.clone();
@@ -417,7 +504,9 @@ async fn run_tty() -> color_eyre::Result<()> {
 
         if needs_draw {
             let mut app_guard = app.lock().unwrap();
-            if !app_guard.running { break; }
+            if !app_guard.running {
+                break;
+            }
             terminal.draw(|f| ui::draw(f, &mut app_guard))?;
         }
 
@@ -436,7 +525,7 @@ fn setup_app(
 ) {
     let (tx, rx) = mpsc::channel(1000);
     let mut app = App::new(tile_queue);
-    
+
     if let Some(state) = crate::config::load_state() {
         app.panes = state.panes;
         app.focused_pane_index = state.focused_pane_index;
@@ -445,7 +534,9 @@ fn setup_app(
         app.current_view = state.current_view;
         app.path_colors = state.path_colors;
         app.external_tools = state.external_tools;
-        if let Some(mode) = state.icon_mode { app.icon_mode = mode; }
+        if let Some(mode) = state.icon_mode {
+            app.icon_mode = mode;
+        }
         app.is_split_mode = state.is_split_mode;
         app.semantic_coloring = state.semantic_coloring;
         app.show_sidebar = state.show_sidebar;
