@@ -210,8 +210,6 @@ pub struct FileMetadata {
     pub created: std::time::SystemTime,
     pub permissions: u32,
     pub is_dir: bool,
-    #[serde(default)]
-    pub extension: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -256,14 +254,6 @@ pub struct FileState {
     pub history_index: usize,
     pub sort_column: FileColumn,
     pub sort_ascending: bool,
-    #[serde(default)]
-    pub git_branch: Option<String>,
-    #[serde(default)]
-    pub git_ahead: usize,
-    #[serde(default)]
-    pub git_behind: usize,
-    #[serde(default)]
-    pub git_pending: Vec<GitStatus>,
     #[serde(skip)]
     pub metadata: HashMap<PathBuf, FileMetadata>,
     #[serde(skip)]
@@ -286,6 +276,14 @@ pub struct FileState {
     pub git_history: Vec<CommitInfo>,
     #[serde(skip)]
     pub git_history_state: ratatui::widgets::TableState,
+    #[serde(skip)]
+    pub git_branch: Option<String>,
+    #[serde(skip)]
+    pub git_ahead: usize,
+    #[serde(skip)]
+    pub git_behind: usize,
+    #[serde(skip)]
+    pub git_pending: Vec<GitStatus>,
 }
 
 impl FileState {
@@ -302,10 +300,6 @@ impl FileState {
             history_index: 0,
             sort_column: sort_col,
             sort_ascending: sort_asc,
-            git_branch: None,
-            git_ahead: 0,
-            git_behind: 0,
-            git_pending: Vec::new(),
             metadata: HashMap::new(),
             path_colors: HashMap::new(),
             preview: None,
@@ -317,6 +311,10 @@ impl FileState {
             pending_select_path: None,
             git_history: Vec::new(),
             git_history_state: ratatui::widgets::TableState::default(),
+            git_branch: None,
+            git_ahead: 0,
+            git_behind: 0,
+            git_pending: Vec::new(),
         }
     }
 }
