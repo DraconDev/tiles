@@ -6,14 +6,12 @@ use terma::widgets::TextInput;
 use ratatui::widgets::TableState;
 
 pub use crate::state::{
-    AppEvent, AppMode, ClipboardOp, CommandAction, ContextMenuTarget, CurrentView,
-    DropTarget, FileMetadata, FileState, GitStatus, LicenseStatus,
+    AppEvent, AppMode, ClipboardOp, CommandAction, ContextMenuAction, ContextMenuTarget, CurrentView,
+    DropTarget, FileCategory, FileColumn, FileMetadata, FileState, GitStatus, LicenseStatus,
     MonitorSubview, Pane, PreviewState, ProcessColumn, RemoteBookmark, RemoteSession,
     SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget, SystemState,
-    UndoAction, ViewPreferences, ViewStatePersistence, CommitInfo,
+    UndoAction, ViewPreferences, ViewStatePersistence, CommitInfo, SelectionState, CommandItem,
 };
-
-pub use crate::event_helpers::CommandItem;
 
 pub struct BackgroundTask {
     pub id: uuid::Uuid,
@@ -58,8 +56,8 @@ pub struct App {
     pub semantic_coloring: bool,
     pub auto_save: bool,
     pub default_show_hidden: bool,
-    pub single_columns: Vec<crate::state::FileColumn>,
-    pub split_columns: Vec<crate::state::FileColumn>,
+    pub single_columns: Vec<FileColumn>,
+    pub split_columns: Vec<FileColumn>,
     pub monitor_subview: MonitorSubview,
     pub monitor_subview_bounds: Vec<(ratatui::layout::Rect, MonitorSubview)>,
     pub process_sort_col: ProcessColumn,
@@ -86,7 +84,7 @@ pub struct App {
     pub prevent_mouse_up_selection_cleanup: bool,
     pub input_shield_until: Option<std::time::Instant>,
     pub command_index: usize,
-    pub filtered_commands: Vec<crate::app::CommandItem>,
+    pub filtered_commands: Vec<CommandItem>,
     pub view_prefs: ViewStatePersistence,
     pub settings_index: usize,
     pub settings_section: SettingsSection,
@@ -106,12 +104,12 @@ impl App {
             None,
             false,
             vec![
-                crate::state::FileColumn::Name,
-                crate::state::FileColumn::Size,
-                crate::state::FileColumn::Modified,
-                crate::state::FileColumn::Permissions,
+                FileColumn::Name,
+                FileColumn::Size,
+                FileColumn::Modified,
+                FileColumn::Permissions,
             ],
-            crate::state::FileColumn::Name,
+            FileColumn::Name,
             true,
         );
 
@@ -185,8 +183,8 @@ impl App {
             semantic_coloring: true,
             auto_save: false,
             default_show_hidden: false,
-            single_columns: vec![crate::state::FileColumn::Name, crate::state::FileColumn::Size, crate::state::FileColumn::Modified, crate::state::FileColumn::Permissions],
-            split_columns: vec![crate::state::FileColumn::Name, crate::state::FileColumn::Size],
+            single_columns: vec![FileColumn::Name, FileColumn::Size, FileColumn::Modified, FileColumn::Permissions],
+            split_columns: vec![FileColumn::Name, FileColumn::Size],
             monitor_subview: MonitorSubview::Overview,
             monitor_subview_bounds: Vec::new(),
             process_sort_col: ProcessColumn::Cpu,
@@ -309,7 +307,6 @@ impl App {
 
     pub fn move_up(&mut self, shift: bool) {
         if let Some(fs) = self.current_file_state_mut() {
-            let capacity = fs.view_height.saturating_sub(3);
             if let Some(sel) = fs.selection.selected {
                 if sel > 0 {
                     let next = sel - 1;

@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 use crate::app::{
-    App, CurrentView, GitStatus, CommitInfo,
+    App, GitStatus, CommitInfo,
 };
 use crate::ui::theme::THEME;
 
@@ -21,7 +21,7 @@ pub fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         .border_style(Style::default().fg(THEME.accent_primary));
     
     let (history, pending, current_path, branch) = if let Some(fs) = app.current_file_state() {
-        (&fs.git_history, &fs.git_pending, fs.current_path.clone(), fs.git_branch.clone())
+        (fs.git_history.clone(), fs.git_pending.clone(), fs.current_path.clone(), fs.git_branch.clone())
     } else {
         return;
     };
@@ -61,7 +61,7 @@ pub fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                 GitStatus::Conflict => ("!", Color::Red),
             };
             Line::from(vec![Span::styled(format!(" {} ", sym), Style::default().bg(col).fg(Color::Black)), Span::raw(" Change")])
-        }).collect();
+        }).collect::<Vec<_>>();
         f.render_widget(Paragraph::new(items).block(Block::default().title(" Pending Changes ").borders(Borders::BOTTOM).border_style(Style::default().fg(Color::DarkGray))), chunks[1]);
     }
 
@@ -71,7 +71,7 @@ pub fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     } else {
         let rows = history.iter().map(|c| {
             Row::new(vec![
-                Cell::from(Span::styled(&c.hash[..7], Style::default().fg(Color::DarkGray))),
+                Cell::from(Span::styled(&c.hash[..std::cmp::min(7, c.hash.len())], Style::default().fg(Color::DarkGray))),
                 Cell::from(c.date.clone()),
                 Cell::from(c.author.clone()),
                 Cell::from(c.message.clone()),
