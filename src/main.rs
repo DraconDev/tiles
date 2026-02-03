@@ -321,6 +321,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                             }
                             if app_guard.current_view == CurrentView::Editor {
                                 app_guard.editor_state = Some(preview);
+                                app_guard.sidebar_focus = false;
                             }
                         }
                         let _ = tx.send(AppEvent::Tick).await;
