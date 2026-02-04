@@ -241,7 +241,8 @@ fn load_column(path: &Path) -> TreeColumn {
     TreeColumn {
         path: path.to_path_buf(),
         items,
-        selected: 0,
+        selections: std::collections::HashMap::new(),
+        focus_index: 0,
         offset: 0,
     }
 }
