@@ -62,6 +62,7 @@ pub fn handle_tree_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
 }
 
 // Mouse handling for Recursive Tree
+// Mouse handling for Recursive Tree
 pub fn handle_tree_mouse(
     me: &MouseEvent,
     app: &mut App,
@@ -75,30 +76,35 @@ pub fn handle_tree_mouse(
             let tree_area_y = 0; // Assuming full screen minus specific offsets handled in render
             let row = me.row.saturating_sub(tree_area_y) as usize;
 
-            // Map row to tree item
-            // We need the flattened list of visible items
-            let visible_items = flatten_tree_for_hit_testing(app);
             let scroll_offset = app.tree_state.scroll_offset;
+            let click_row = row + scroll_offset;
+            let col_width = app.tree_state.column_width as usize;
+            let click_col = me.column as usize;
 
-            let clicked_row_index = row + scroll_offset;
+            // Use layout engine for accurate hit testing
+            let layout = crate::ui::tree::calculate_layout(&app.tree_state.root_items);
 
-            if clicked_row_index < visible_items.len() {
-                let clicked_item_path = visible_items[clicked_row_index].path.clone();
-                let is_dir = visible_items[clicked_row_index].is_dir;
+            // Find item at (row, col)
+            // Logic: Item is at `item.row` and range `[item.col * width, (item.col+1)*width)`
+            // Last item on row might extend? Layout engine just gives coords. Renderer caps width.
+            // We'll stick to strict column widths for hit testing to ensure accuracy.
+
+            let clicked_item = layout.iter().find(|item| {
+                if item.row != click_row {
+                    return false;
+                }
+                let start_x = item.col * col_width;
+                let end_x = start_x + col_width;
+                click_col >= start_x && click_col < end_x
+            });
+
+            if let Some(layout_item) = clicked_item {
+                let clicked_item_path = layout_item.item.path.clone();
+                let is_dir = layout_item.item.is_dir;
 
                 // Select
                 app.tree_state.selected_path = Some(clicked_item_path.clone());
 
-                // Toggle expansion if it's a dir?
-                // Or just select behavior?
-                // Usually click selects. Double click opens.
-                // But for TUI, maybe click also toggles if it's the arrow?
-                // Let's implement Click -> Select.
-                // If already selected and Dir -> Toggle?
-
-                // Simple version: Just Select.
-                // Wait, user asked for opening.
-                // "Mosue Open Click"
                 if is_dir {
                     toggle_expansion_by_path(app, &clicked_item_path);
                 } else {
@@ -108,7 +114,10 @@ pub fn handle_tree_mouse(
             }
         }
         MouseEventKind::ScrollDown => {
-            if me.modifiers.contains(KeyModifiers::CONTROL) {
+            if me.modifiers.contains(KeyModifiers::SHIFT) {
+                // Shift+Scroll = Zoom (Same as Ctrl for now, or maybe coarser?)
+                app.tree_state.column_width = app.tree_state.column_width.saturating_sub(1).max(10);
+            } else if me.modifiers.contains(KeyModifiers::CONTROL) {
                 app.tree_state.column_width = app.tree_state.column_width.saturating_sub(1).max(10);
             } else {
                 app.tree_state.scroll_offset = app.tree_state.scroll_offset.saturating_add(3);
@@ -116,7 +125,9 @@ pub fn handle_tree_mouse(
             return true;
         }
         MouseEventKind::ScrollUp => {
-            if me.modifiers.contains(KeyModifiers::CONTROL) {
+            if me.modifiers.contains(KeyModifiers::SHIFT) {
+                app.tree_state.column_width = app.tree_state.column_width.saturating_add(1).min(60);
+            } else if me.modifiers.contains(KeyModifiers::CONTROL) {
                 app.tree_state.column_width = app.tree_state.column_width.saturating_add(1).min(60);
             } else {
                 app.tree_state.scroll_offset = app.tree_state.scroll_offset.saturating_sub(3);
@@ -129,24 +140,32 @@ pub fn handle_tree_mouse(
     false
 }
 
-// Flattens the tree visible state just for hit testing / counting
-// Returns Vec<TreeItem> (clones, expensive but needed if we don't have separate view model)
-fn flatten_tree_for_hit_testing(app: &App) -> Vec<TreeItem> {
-    let mut result = Vec::new();
-    for item in &app.tree_state.root_items {
-        flatten_item(item, &mut result);
+// Helpers
+fn move_msg(app: &mut App, delta: i32) {
+    // DFS traversal provided by calculate_layout is the correct logical order
+    let layout = crate::ui::tree::calculate_layout(&app.tree_state.root_items);
+    if layout.is_empty() {
+        return;
     }
-    result
-}
 
-fn flatten_item(item: &TreeItem, result: &mut Vec<TreeItem>) {
-    result.push(item.clone());
-    if item.expanded {
-        if let Some(children) = &item.children {
-            for child in children {
-                flatten_item(child, result);
-            }
-        }
+    let current_idx = if let Some(p) = &app.tree_state.selected_path {
+        layout.iter().position(|it| &it.item.path == p).unwrap_or(0)
+    } else {
+        0
+    };
+
+    let new_idx = (current_idx as i32 + delta).clamp(0, layout.len() as i32 - 1) as usize;
+    app.tree_state.selected_path = Some(layout[new_idx].item.path.clone());
+
+    // Auto-scroll logic needs to use ROW, not Index
+    let target_row = layout[new_idx].row;
+    let (_, h) = app.terminal_size;
+    let view_h = h as usize;
+
+    if target_row >= app.tree_state.scroll_offset + view_h {
+        app.tree_state.scroll_offset = target_row + 1 - view_h;
+    } else if target_row < app.tree_state.scroll_offset {
+        app.tree_state.scroll_offset = target_row;
     }
 }
 
