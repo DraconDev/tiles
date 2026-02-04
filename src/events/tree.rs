@@ -227,8 +227,13 @@ fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
     for (idx, _) in selections.iter() {
         let idx = *idx;
         if idx < app.tree_state.active_columns[last_idx].items.len() {
-            let item = &app.tree_state.active_columns[last_idx].items[idx];
-            if item.is_dir {
+            // Clone item properties to avoid holding borrow on active_columns
+            let (is_dir, name, path) = {
+                let item = &app.tree_state.active_columns[last_idx].items[idx];
+                (item.is_dir, item.name.clone(), item.path.clone())
+            };
+
+            if is_dir {
                 let section_color = section_colors[color_idx % section_colors.len()];
 
                 // SYNC COLOR: Update the parent's selection color to match the section color
