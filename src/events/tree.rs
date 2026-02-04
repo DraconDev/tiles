@@ -254,13 +254,38 @@ fn load_children(path: &Path, show_hidden: bool) -> Vec<TreeItem> {
                 false
             };
 
+            // Semantic Coloring
+            let color = if is_dir {
+                Color::Blue
+            } else {
+                if let Some(ext) = p.extension() {
+                    match ext.to_string_lossy().to_lowercase().as_str() {
+                        "rs" => Color::Red,
+                        "toml" | "json" | "yaml" | "yml" => Color::Yellow,
+                        "md" | "txt" => Color::Green,
+                        "png" | "jpg" | "jpeg" | "gif" | "webp" => Color::Magenta,
+                        "js" | "ts" | "jsx" | "tsx" | "py" => Color::Cyan,
+                        "css" | "html" => Color::LightBlue,
+                        "sh" | "bash" => Color::LightGreen,
+                        _ => Color::White,
+                    }
+                } else {
+                    // Check for specific filenames
+                    match name.to_lowercase().as_str() {
+                        "makefile" | "dockerfile" => Color::Yellow,
+                        "license" | "readme" => Color::Green,
+                        _ => Color::White,
+                    }
+                }
+            };
+
             items.push(TreeItem {
                 path: p,
-                name,
+                name, // Removed redundant space here
                 is_dir,
                 expanded: false,
                 has_children,
-                color: if is_dir { Color::Blue } else { Color::White },
+                color,
                 children: None,
             });
         }
