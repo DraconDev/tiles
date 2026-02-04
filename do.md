@@ -10,6 +10,8 @@ but also on click i want to highlight and open it on the right, and when i click
 
 make sure hiding toggle works for the tree view, ad i think by default we hide hidden files
 
+on the main 
+
 ## Maybe
 
 ## Done
