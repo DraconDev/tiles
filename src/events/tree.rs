@@ -198,11 +198,14 @@ fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
     let last_idx = app.tree_state.active_columns.len() - 1;
 
     // Clone necessary data to avoid borrow checker issues
-    let selections: Vec<(usize, Color)> = app.tree_state.active_columns[last_idx]
+    let mut selections: Vec<(usize, Color)> = app.tree_state.active_columns[last_idx]
         .selections
         .iter()
         .map(|(&k, &v)| (k, v))
         .collect();
+
+    // Sort by index to ensure sections appear in the same order as in the file list
+    selections.sort_by_key(|k| k.0);
 
     if selections.is_empty() {
         return;
