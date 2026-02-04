@@ -90,9 +90,9 @@ pub fn handle_event(
                         let _ = event_tx.try_send(AppEvent::GitHistory);
                         return true;
                     }
-                    KeyCode::Char('t') | KeyCode::Char('T') => {
+                    KeyCode::Char('d') | KeyCode::Char('D') => {
                         app.current_view = CurrentView::Tree;
-                        tree::refresh_tree(app);
+                        crate::events::tree::refresh_tree(app);
                         return true;
                     }
                     _ => {}
@@ -268,6 +268,10 @@ fn handle_general_mouse(
                     }
                     "project" => {
                         let _ = event_tx.try_send(AppEvent::Editor);
+                    }
+                    "tree" => {
+                        app.current_view = CurrentView::Tree;
+                        crate::events::tree::refresh_tree(app);
                     }
                     _ => {}
                 }
