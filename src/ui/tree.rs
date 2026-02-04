@@ -186,23 +186,7 @@ fn render_sectioned_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focus
     use ratatui::layout::{Constraint, Direction, Layout};
 
     // Calculate heights for each section (proportional to item count, but also leave room for headers)
-    let total_items: usize = col
-        .sections
-        .iter()
-        .map(|s| s.end_index - s.start_index)
-        .sum();
-    let available_height = area.height.saturating_sub(col.sections.len() as u16 * 2); // 2 lines per section for border
-
-    let section_heights: Vec<u16> = col
-        .sections
-        .iter()
-        .map(|s| {
-            let item_count = s.end_index - s.start_index;
-            let proportion = item_count as f32 / total_items.max(1) as f32;
-            let height = (proportion * available_height as f32).round() as u16;
-            height.max(3) // Minimum height of 3 (border + 1 item + border)
-        })
-        .collect();
+    let section_heights = col.calculate_section_heights(area.height);
 
     let constraints: Vec<Constraint> = section_heights
         .iter()
