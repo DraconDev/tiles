@@ -313,7 +313,7 @@ fn handle_text_editor_mouse(
             }
         }
         MouseEventKind::ScrollDown => {
-            if me.modifiers.contains(KeyModifiers::SHIFT) {
+            if me.modifiers.contains(KeyModifiers::CONTROL) {
                 if editor.lines.len() > 0 {
                     editor.scroll_row =
                         (editor.scroll_row + 5).min(editor.lines.len().saturating_sub(1));
@@ -323,7 +323,7 @@ fn handle_text_editor_mouse(
             }
         }
         MouseEventKind::ScrollUp => {
-            if me.modifiers.contains(KeyModifiers::SHIFT) {
+            if me.modifiers.contains(KeyModifiers::CONTROL) {
                 editor.scroll_row = editor.scroll_row.saturating_sub(5);
             } else {
                 editor.handle_mouse_event(*me, area);
