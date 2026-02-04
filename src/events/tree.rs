@@ -115,10 +115,11 @@ pub fn handle_tree_mouse(
         }
         MouseEventKind::ScrollDown => {
             if me.modifiers.contains(KeyModifiers::SHIFT) {
-                // Shift+Scroll = Zoom (Same as Ctrl for now, or maybe coarser?)
+                // Shift+Scroll = Column Width Adjustment
                 app.tree_state.column_width = app.tree_state.column_width.saturating_sub(1).max(10);
             } else if me.modifiers.contains(KeyModifiers::CONTROL) {
-                app.tree_state.column_width = app.tree_state.column_width.saturating_sub(1).max(10);
+                // Ctrl+Scroll = Fast Scroll
+                app.tree_state.scroll_offset = app.tree_state.scroll_offset.saturating_add(10);
             } else {
                 app.tree_state.scroll_offset = app.tree_state.scroll_offset.saturating_add(3);
             }
@@ -126,9 +127,11 @@ pub fn handle_tree_mouse(
         }
         MouseEventKind::ScrollUp => {
             if me.modifiers.contains(KeyModifiers::SHIFT) {
+                // Shift+Scroll = Column Width Adjustment
                 app.tree_state.column_width = app.tree_state.column_width.saturating_add(1).min(60);
             } else if me.modifiers.contains(KeyModifiers::CONTROL) {
-                app.tree_state.column_width = app.tree_state.column_width.saturating_add(1).min(60);
+                // Ctrl+Scroll = Fast Scroll
+                app.tree_state.scroll_offset = app.tree_state.scroll_offset.saturating_sub(10);
             } else {
                 app.tree_state.scroll_offset = app.tree_state.scroll_offset.saturating_sub(3);
             }
