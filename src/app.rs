@@ -249,6 +249,7 @@ impl App {
             background_tasks: Vec::new(),
             tile_queue,
             tree_state: TreeState::default(),
+            galaxy_state: crate::state::GalaxyState::default(),
             saved_pane: None,
         }
     }
