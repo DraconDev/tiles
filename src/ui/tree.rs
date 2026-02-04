@@ -121,7 +121,7 @@ pub struct LayoutItem<'a> {
     pub row: usize,
 }
 
-pub fn calculate_layout(roots: &[TreeItem]) -> Vec<LayoutItem> {
+pub fn calculate_layout(roots: &[TreeItem]) -> Vec<LayoutItem<'_>> {
     let mut result = Vec::new();
     let mut current_row = 0;
     for root in roots {
