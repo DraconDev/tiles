@@ -90,6 +90,11 @@ pub fn handle_event(
                         let _ = event_tx.try_send(AppEvent::GitHistory);
                         return true;
                     }
+                    KeyCode::Char('t') | KeyCode::Char('T') => {
+                        app.current_view = CurrentView::Tree;
+                        tree::refresh_tree(app);
+                        return true;
+                    }
                     _ => {}
                 }
             }
