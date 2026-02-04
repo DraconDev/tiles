@@ -78,7 +78,8 @@ pub struct TreeItem {
 pub struct TreeColumn {
     pub path: PathBuf,
     pub items: Vec<TreeItem>,
-    pub selected: usize,
+    pub selections: std::collections::HashMap<usize, ratatui::style::Color>,
+    pub focus_index: usize,
     pub offset: usize,
 }
 
