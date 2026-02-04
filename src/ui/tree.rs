@@ -44,8 +44,7 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
         }
 
         // Calculate X position
-        // Simple approach: Fixed column width of 25?
-        let col_width = 25;
+        let col_width = app.tree_state.column_width;
         let row_x = area.x + (r_item.depth as u16 * col_width);
 
         let available_width = area.width.saturating_sub(r_item.depth as u16 * col_width);
@@ -62,6 +61,12 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
         };
 
         let mut style = Style::default().fg(r_item.item.color);
+
+        // Expanded Highlight (Dark Blue-Gray) for open folders
+        if r_item.item.expanded {
+            style = style.bg(Color::Rgb(30, 30, 45));
+        }
+
         if is_selected {
             style = style
                 .bg(Color::Rgb(60, 60, 60))
