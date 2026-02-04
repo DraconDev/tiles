@@ -1,6 +1,6 @@
 ## Do
 
-alt up and down does
+alt up and down does nto work on the favorite bar, mouse does not work 
 
 ## Maybe
 
