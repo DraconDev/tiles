@@ -1,7 +1,5 @@
 ## Do
 
-
-
 ## Maybe
 
 full screen folder mode
