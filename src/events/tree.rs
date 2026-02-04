@@ -16,6 +16,10 @@ pub fn handle_tree_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
             KeyCode::Esc => {
                 app.current_view = crate::app::CurrentView::Files;
                 app.mode = crate::app::AppMode::Normal;
+                // Clear any previews that might have been triggered
+                for pane in &mut app.panes {
+                    pane.preview = None;
+                }
                 return true;
             }
             KeyCode::Down | KeyCode::Char('j') => {
