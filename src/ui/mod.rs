@@ -119,7 +119,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             }
 
             // Render Starred Folders (Favorites - NO markers as requested)
-            for path in &app.starred {
+            for (fav_idx, path) in app.starred.iter().enumerate() {
                 let name = path
                     .file_name()
                     .map(|n| n.to_string_lossy().to_string())
@@ -128,6 +128,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let is_selected = app.sidebar_index == current_idx;
                 let is_hovered =
                     matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
+                let is_reorder_target = matches!(&app.hovered_drop_target, Some(DropTarget::ReorderFavorite(idx)) if *idx == current_idx);
 
                 // Active highlighting for favorites
                 let mut style = Style::default().fg(THEME.fg);
@@ -136,12 +137,16 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .bg(THEME.accent_primary)
                         .fg(Color::Black)
                         .add_modifier(Modifier::BOLD);
+                } else if is_reorder_target && app.is_dragging {
+                    // Visual feedback for drag reordering - cyan underline effect
+                    style = style.bg(Color::Rgb(0, 80, 80)).fg(Color::White);
                 } else if is_hovered && app.is_dragging {
                     style = style.bg(THEME.accent_secondary).fg(Color::Black);
                 }
 
+                // Check if mouse is hovering over this row during drag (use screen coordinates properly)
                 if app.is_dragging && app.mouse_pos.1 == current_y && app.mouse_pos.0 < area.width {
-                    app.hovered_drop_target = Some(DropTarget::ReorderFavorite(current_idx));
+                    app.hovered_drop_target = Some(DropTarget::ReorderFavorite(fav_idx));
                 }
 
                 let cat = crate::modules::files::get_file_category(path);
