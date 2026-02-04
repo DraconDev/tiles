@@ -61,7 +61,41 @@ pub enum CurrentView {
     Editor,
     Git,
     Processes,
+    Git,
+    Processes,
     Tree,
+    Galaxy,
+}
+
+#[derive(Clone, Debug)]
+pub struct GalaxyNode {
+    pub path: PathBuf,
+    pub name: String,
+    pub is_dir: bool,
+    pub color: ratatui::style::Color,
+    pub x: f32,
+    pub y: f32,
+    pub size: f32,
+    pub children: Vec<GalaxyNode>,
+}
+
+#[derive(Clone, Debug)]
+pub struct GalaxyState {
+    pub root: Option<GalaxyNode>,
+    pub current_path: PathBuf,
+    pub zoom: f32,
+    pub pan: (f32, f32),
+}
+
+impl Default for GalaxyState {
+    fn default() -> Self {
+        Self {
+            root: None,
+            current_path: dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")),
+            zoom: 1.0,
+            pan: (0.0, 0.0),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
