@@ -15,6 +15,7 @@ pub fn handle_tree_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
         match key.code {
             KeyCode::Esc => {
                 app.current_view = crate::app::CurrentView::Files;
+                app.mode = crate::app::AppMode::Normal;
                 return true;
             }
             KeyCode::Down | KeyCode::Char('j') => {
