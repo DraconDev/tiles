@@ -656,7 +656,15 @@ fn setup_app(
     if let Some(state) = crate::config::load_state() {
         app.panes = state.panes;
         app.focused_pane_index = state.focused_pane_index;
-        app.starred = state.starred;
+        // Merge favorites (Defaults + Loaded)
+        let mut loaded_starred = state.starred;
+        for def in app.starred {
+            if !loaded_starred.contains(&def) {
+                loaded_starred.push(def);
+            }
+        }
+        app.starred = loaded_starred;
+
         app.remote_bookmarks = state.remote_bookmarks;
         app.current_view = state.current_view;
         app.path_colors = state.path_colors;
