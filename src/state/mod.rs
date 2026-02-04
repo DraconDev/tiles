@@ -81,6 +81,16 @@ pub struct TreeColumn {
     pub selections: std::collections::HashMap<usize, ratatui::style::Color>,
     pub focus_index: usize,
     pub offset: usize,
+    /// Sections for multi-select display: each section has a color, title, and item range
+    pub sections: Vec<ColumnSection>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ColumnSection {
+    pub title: String,
+    pub color: ratatui::style::Color,
+    pub start_index: usize,
+    pub end_index: usize,
 }
 
 #[derive(Clone, Debug)]
