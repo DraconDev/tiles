@@ -55,7 +55,7 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
             continue;
         }
 
-        // Fix "Missing First Letter": Offset text rect by 1 to make room for border
+        // Fix "Missing First Letter": Offset text rect by 1 to make room for border/icon
         let text_rect = Rect::new(
             row_x + 1,
             row_y,
@@ -100,10 +100,10 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
 
         let span = Span::styled(format!("{}{}", icon, item.item.name), style);
 
-        // Render Background
+        // Render Background (Full Width)
         f.render_widget(Block::default().style(style), bg_rect);
 
-        // Render Text (Offset)
+        // Render Text (Offset by 1)
         f.render_widget(span, text_rect);
 
         // Draw border (Separate widget)
@@ -112,7 +112,7 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
                 Block::default()
                     .borders(Borders::LEFT)
                     .border_style(Style::default().fg(THEME.accent_primary)),
-                border_rect, // Only draw border on first char
+                border_rect,
             );
         } else {
             f.render_widget(
