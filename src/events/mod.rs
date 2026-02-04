@@ -7,6 +7,7 @@ use tokio::sync::mpsc;
 
 pub mod editor;
 pub mod file_manager;
+pub mod galaxy;
 pub mod git;
 pub mod input;
 pub mod modals;
