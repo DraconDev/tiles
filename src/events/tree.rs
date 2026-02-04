@@ -70,53 +70,43 @@ pub fn handle_tree_mouse(
     // We need to calculate EXACT widths to know which column was clicked.
     // This logic must match 'draw_tree_view' exactly.
     // We assume 'scroll_offset_col' is correct from the last draw.
-    
+
     let start_col = app.tree_state.scroll_offset_col;
     let mut current_x = 0; // Relative to tree area X (which we assume is 0 or we subtract area.x if we knew it)
-    // The Event 'me.column' is global screen coordinates.
-    // If our Tree View starts at x=0 (which it does in full screen), then me.column is correct.
-    // If there is sidebar/padding, we might need adjustments.
-    // Assuming effective full screen or main pane. 
-    
+                           // The Event 'me.column' is global screen coordinates.
+                           // If our Tree View starts at x=0 (which it does in full screen), then me.column is correct.
+                           // If there is sidebar/padding, we might need adjustments.
+                           // Assuming effective full screen or main pane.
+
     // We iterate visible columns starting from scroll offset
     let mut target_col_idx = None;
-    
+
     for i in start_col..app.tree_state.active_columns.len() {
         let col = &app.tree_state.active_columns[i];
         let width = col.width() as u16;
-        
+
         // Determine if click is within this column [current_x, current_x + width)
         let end_x = current_x + width;
-        
+
         if me.column >= current_x && me.column < end_x {
             target_col_idx = Some(i);
             break;
         }
-        
+
         current_x += width;
-        
+
         if current_x >= w {
             break; // Clicked beyond screen width?
         }
     }
 
     if let Some(col_idx) = target_col_idx {
-
-
-    match me.kind {
-        MouseEventKind::Down(MouseButton::Left) => {
-            let col_idx = (me.column as usize) / col_width.max(1);
-            if col_idx < app.tree_state.active_columns.len() {
-                // Focus this column?
-                // Miller columns usually strictly focus the right-most,
-                // but clicking a previous column usually truncates the stack to that point + selection.
-                // Let's truncate stack to col_idx + 1 if clicked.
-
+        match me.kind {
+            MouseEventKind::Down(MouseButton::Left) => {
+                // Determine Row
                 // Calculate row index relative to list
-                // y=0 is top? No, y starts at content.
-                // assuming full screen, No Header.
-                // y=0.
-                let row = me.row.saturating_sub(1) as usize;
+                // y=0 is top content line (assuming no header or header handled by rect.y)
+                let row = me.row.saturating_sub(1) as usize; // Adjust if header exists
 
                 let column = &app.tree_state.active_columns[col_idx];
                 let clicked_idx = column.offset + row;
@@ -125,11 +115,7 @@ pub fn handle_tree_mouse(
                     // Update focus index
                     app.tree_state.active_columns[col_idx].focus_index = clicked_idx;
 
-                    // Handle Selection (Ctrl for multi, else single)
-                    let is_ctrl = me
-                        .modifiers
-                        .contains(terma::input::event::KeyModifiers::CONTROL);
-
+                    // Handle Selection (Ctrl for multi, else Additive/Toggle as per recent change)
                     let color = if app.tree_state.active_columns[col_idx].items[clicked_idx].is_dir
                     {
                         Color::Blue
@@ -137,20 +123,16 @@ pub fn handle_tree_mouse(
                         Color::Green
                     };
 
-                    // User Request: "click on another we open that one also".
-                    // This implies Additive Selection is the default desire for this view.
-                    // We treat normal Click as Toggle (same as Ctrl+Click).
-
                     if app.tree_state.active_columns[col_idx]
                         .selections
                         .contains_key(&clicked_idx)
                     {
-                        // Deselect if already selected (Toggle Off)
+                        // Deselect
                         app.tree_state.active_columns[col_idx]
                             .selections
                             .remove(&clicked_idx);
                     } else {
-                        // Select (Toggle On)
+                        // Select
                         app.tree_state.active_columns[col_idx]
                             .selections
                             .insert(clicked_idx, color);
@@ -165,16 +147,34 @@ pub fn handle_tree_mouse(
                     return true;
                 }
             }
+            MouseEventKind::ScrollDown => {
+                // Focus the column under mouse for scrolling?
+                // Currently move_msg scrolls the ACTIVE (last) column.
+                // It might be nice to scroll the hovered column, but let's stick to simple behavior for now or verify logic.
+                // Existing logic called move_msg(app, 1).
+                move_msg(app, 1);
+                return true;
+            }
+            MouseEventKind::ScrollUp => {
+                move_msg(app, -1);
+                return true;
+            }
+            _ => {}
         }
-        MouseEventKind::ScrollDown => {
-            move_msg(app, 1); // Scroll active column?
-            return true;
+    } else {
+        // Clicked outside columns or on empty space?
+        // Maybe handle scroll if general?
+        match me.kind {
+            MouseEventKind::ScrollDown => {
+                move_msg(app, 1);
+                return true;
+            }
+            MouseEventKind::ScrollUp => {
+                move_msg(app, -1);
+                return true;
+            }
+            _ => {}
         }
-        MouseEventKind::ScrollUp => {
-            move_msg(app, -1);
-            return true;
-        }
-        _ => {}
     }
 
     false
