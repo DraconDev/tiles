@@ -312,6 +312,23 @@ fn handle_text_editor_mouse(
                 editor.modified = true;
             }
         }
+        MouseEventKind::ScrollDown => {
+            if me.modifiers.contains(KeyModifiers::SHIFT) {
+                if editor.lines.len() > 0 {
+                    editor.scroll_row =
+                        (editor.scroll_row + 5).min(editor.lines.len().saturating_sub(1));
+                }
+            } else {
+                editor.handle_mouse_event(*me, area);
+            }
+        }
+        MouseEventKind::ScrollUp => {
+            if me.modifiers.contains(KeyModifiers::SHIFT) {
+                editor.scroll_row = editor.scroll_row.saturating_sub(5);
+            } else {
+                editor.handle_mouse_event(*me, area);
+            }
+        }
         _ => {
             editor.handle_mouse_event(*me, area);
         }
