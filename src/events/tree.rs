@@ -359,10 +359,16 @@ pub fn refresh_tree(app: &mut App) {
     }
 }
 
-fn load_column(path: &Path) -> TreeColumn {
+// Update signature of load_column to accept show_hidden
+fn load_column(path: &Path, show_hidden: bool) -> TreeColumn {
     let mut items = Vec::new();
     if let Ok(entries) = std::fs::read_dir(path) {
         let mut entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
+        // Filter hidden files
+        if !show_hidden {
+            entries.retain(|e| !e.file_name().to_string_lossy().starts_with('.'));
+        }
+
         entries.sort_by(|a, b| {
             let ad = a.path().is_dir();
             let bd = b.path().is_dir();
