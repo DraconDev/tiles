@@ -103,98 +103,71 @@ pub fn handle_tree_mouse(
     if let Some(col_idx) = target_col_idx {
         match me.kind {
             MouseEventKind::Down(MouseButton::Left) => {
-                // Determine Row
-                // Calculate row index relative to list
-                // y=0 is top content line (assuming no header or header handled by rect.y)
-                let row = me.row.saturating_sub(1) as usize; // Adjust if header exists
+                // Calculate the Y offset for this column based on cascade layout
+                // Each column starts at Y = sum of focus indices of all previous columns
+                let mut col_y_offset: i32 = 0;
+                for i in 0..col_idx {
+                    col_y_offset += app.tree_state.active_columns[i].focus_index as i32;
+                }
+
+                // Account for global scroll and tree area starting at y=1 (header)
+                let tree_area_y = 1;
+                let global_scroll = app.tree_state.cascade_scroll as i32;
+                let col_top_y = tree_area_y + col_y_offset - global_scroll;
+
+                // Calculate local row within this column
+                let local_row = me.row as i32 - col_top_y;
+
+                if local_row < 0 {
+                    return false; // Clicked above this column's content
+                }
 
                 let column = &app.tree_state.active_columns[col_idx];
 
-                let clicked_idx;
-
-                if column.sections.is_empty() {
-                    clicked_idx = column.offset + row;
+                // Check if we clicked in the "spacer" area (gap for child column)
+                let child_h = if col_idx + 1 < app.tree_state.active_columns.len() {
+                    // Calculate child's expanded height
+                    let heights = app
+                        .tree_state
+                        .calculate_expanded_heights(app.terminal_size.1);
+                    heights.get(col_idx + 1).copied().unwrap_or(0)
                 } else {
-                    // Stacked Column Logic
-                    // We need to replicate the layout to verify which section was clicked.
-                    // Assume area height is terminal_height - 2 (Header + Footer)?
-                    // Better to rely on what UI uses. ui/mod.rs calls draw_tree_view(f, f.area(), app) IF CurrentView::Tree.
-                    // If CurrentView::Tree, typically f.area() is full screen (minus nothing?).
-                    // But main.rs usually renders Header/Footer and THEN the view.
-                    // Let's assume view starts at y=1 and height is h-2.
-                    let (_, h) = app.terminal_size;
-                    let area_height = h.saturating_sub(2);
+                    0
+                };
+                let spacer_size = child_h.saturating_sub(1);
+                let focus_idx = column.focus_index;
 
-                    let heights = column.calculate_section_heights(area_height);
-                    let mut current_y = 0;
-                    let mut found_idx = None;
+                let clicked_idx: usize;
+                let local_row_usize = local_row as usize;
 
-                    for (sec_idx, &h) in heights.iter().enumerate() {
-                        // Section visual height is h + 2 (borders)
-                        let total_h = (h + 2) as usize;
-
-                        if row >= current_y && row < current_y + total_h {
-                            // Clicked in this section!
-                            // Check if on border (first or last line of section)
-                            let local_y = row - current_y;
-                            if local_y == 0 || local_y == total_h - 1 {
-                                // Border click - ignore or select section header?
-                                // Ignore for now.
-                            } else {
-                                // Content click
-                                // 1-indexed inside section (due to top border)
-                                let content_y = local_y - 1;
-                                let start_idx = column.sections[sec_idx].start_index;
-                                let section_item_idx = start_idx + content_y;
-                                if section_item_idx < column.sections[sec_idx].end_index {
-                                    found_idx = Some(section_item_idx);
-                                }
-                            }
-                            break;
-                        }
-                        current_y += total_h;
-                    }
-
-                    if let Some(idx) = found_idx {
-                        clicked_idx = idx;
+                if spacer_size > 0 && col_idx + 1 < app.tree_state.active_columns.len() {
+                    // This column has a child, so it has spacers after focus_index
+                    if local_row_usize <= focus_idx {
+                        clicked_idx = local_row_usize;
+                    } else if local_row_usize <= focus_idx + spacer_size {
+                        // Clicked in the spacer gap - ignore
+                        return false;
                     } else {
-                        return false; // Clicked on border or gap
+                        clicked_idx = local_row_usize - spacer_size;
                     }
+                } else {
+                    clicked_idx = local_row_usize;
                 }
 
                 if clicked_idx < column.items.len() {
                     // Update focus index
                     app.tree_state.active_columns[col_idx].focus_index = clicked_idx;
-
-                    // Handle Selection (Ctrl for multi, else Additive/Toggle as per recent change)
-                    let color = if app.tree_state.active_columns[col_idx].items[clicked_idx].is_dir
-                    {
-                        Color::Blue
-                    } else {
-                        Color::Green
-                    };
-
-                    if app.tree_state.active_columns[col_idx]
-                        .selections
-                        .contains_key(&clicked_idx)
-                    {
-                        // Deselect
-                        app.tree_state.active_columns[col_idx]
-                            .selections
-                            .remove(&clicked_idx);
-                    } else {
-                        // Select
-                        app.tree_state.active_columns[col_idx]
-                            .selections
-                            .insert(clicked_idx, color);
-                    }
-
-                    // Truncate columns beyond this one
-                    app.tree_state.active_columns.truncate(col_idx + 1);
                     app.tree_state.focus_col_idx = col_idx;
 
-                    // Expand selections
-                    enter_directory(app, event_tx);
+                    // If this is on or before the last column with a child, truncate from here
+                    // Otherwise, just update focus and expand
+                    app.tree_state.active_columns.truncate(col_idx + 1);
+
+                    // Check if clicked item is a directory and expand it
+                    let is_dir = app.tree_state.active_columns[col_idx].items[clicked_idx].is_dir;
+                    if is_dir {
+                        enter_directory(app, event_tx);
+                    }
                     return true;
                 }
             }
