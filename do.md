@@ -1,6 +1,6 @@
 ## Do
 
-alt up and down and mouse 
+alt up and down does
 
 ## Maybe
 
