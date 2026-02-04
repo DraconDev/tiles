@@ -151,17 +151,12 @@ impl Default for TreeState {
 }
 
 impl TreeState {
-    pub fn calculate_expanded_heights(&self, area_height: u16) -> Vec<usize> {
+    pub fn calculate_expanded_heights(&self, _area_height: u16) -> Vec<usize> {
         let mut expanded_heights = vec![0; self.active_columns.len()];
         // Iterate backwards
         for i in (0..self.active_columns.len()).rev() {
             let col = &self.active_columns[i];
-            let mut base_height = col.items.len();
-            if !col.sections.is_empty() {
-                // Stacked column height assumption
-                let section_heights = col.calculate_section_heights(area_height);
-                base_height = section_heights.iter().map(|&x| x as usize + 2).sum();
-            }
+            let base_height = col.items.len();
 
             if i == self.active_columns.len() - 1 {
                 expanded_heights[i] = base_height;
