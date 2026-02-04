@@ -109,7 +109,58 @@ pub fn handle_tree_mouse(
                 let row = me.row.saturating_sub(1) as usize; // Adjust if header exists
 
                 let column = &app.tree_state.active_columns[col_idx];
-                let clicked_idx = column.offset + row;
+
+                let clicked_idx;
+
+                if column.sections.is_empty() {
+                    clicked_idx = column.offset + row;
+                } else {
+                    // Stacked Column Logic
+                    // We need to replicate the layout to verify which section was clicked.
+                    // Assume area height is terminal_height - 2 (Header + Footer)?
+                    // Better to rely on what UI uses. ui/mod.rs calls draw_tree_view(f, f.area(), app) IF CurrentView::Tree.
+                    // If CurrentView::Tree, typically f.area() is full screen (minus nothing?).
+                    // But main.rs usually renders Header/Footer and THEN the view.
+                    // Let's assume view starts at y=1 and height is h-2.
+                    let (_, h) = app.terminal_size;
+                    let area_height = h.saturating_sub(2);
+
+                    let heights = column.calculate_section_heights(area_height);
+                    let mut current_y = 0;
+                    let mut found_idx = None;
+
+                    for (sec_idx, &h) in heights.iter().enumerate() {
+                        // Section visual height is h + 2 (borders)
+                        let total_h = (h + 2) as usize;
+
+                        if row >= current_y && row < current_y + total_h {
+                            // Clicked in this section!
+                            // Check if on border (first or last line of section)
+                            let local_y = row - current_y;
+                            if local_y == 0 || local_y == total_h - 1 {
+                                // Border click - ignore or select section header?
+                                // Ignore for now.
+                            } else {
+                                // Content click
+                                // 1-indexed inside section (due to top border)
+                                let content_y = local_y - 1;
+                                let start_idx = column.sections[sec_idx].start_index;
+                                let section_item_idx = start_idx + content_y;
+                                if section_item_idx < column.sections[sec_idx].end_index {
+                                    found_idx = Some(section_item_idx);
+                                }
+                            }
+                            break;
+                        }
+                        current_y += total_h;
+                    }
+
+                    if let Some(idx) = found_idx {
+                        clicked_idx = idx;
+                    } else {
+                        return false; // Clicked on border or gap
+                    }
+                }
 
                 if clicked_idx < column.items.len() {
                     // Update focus index
