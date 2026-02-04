@@ -274,6 +274,7 @@ pub struct RemoteSession {
     pub user: String,
     pub name: String,
     #[serde(skip)]
+    #[allow(dead_code)]
     pub session: Option<Arc<Mutex<ssh2::Session>>>,
 }
 
