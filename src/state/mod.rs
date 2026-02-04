@@ -71,6 +71,7 @@ pub struct TreeItem {
     pub depth: usize,
     pub is_dir: bool,
     pub expanded: bool,
+    pub has_children: bool, // For empty folder indication
     pub color: ratatui::style::Color,
 }
 
