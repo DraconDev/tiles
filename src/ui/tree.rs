@@ -82,33 +82,8 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
         // BUT `render_sectioned_column` is complex.
         // Assumption: Stacked columns calculate their own layout. If we must insert spacers, we must do it visually.
 
-        if !col.sections.is_empty() {
-            // For stacked columns, pass the rect.
-            // But wait, if stacked column is not the last one, it pushes content down?
-            // Yes. The focused item expands.
-            // We need to pass `spacer_height` and `spacer_index` to render logic?
-            // Let's modify `render_sectioned_column` or handle it here?
-            // Since `render_sectioned_column` calculates layout based on heights, passing a "gap" is hard without modifying it.
-            // Let's assume standard column logic for now for simplicity, or just render normally.
-            // If user uses Stacks + Cascade, the expansion visual might be tricky.
-            // We'll stick to rendering it normally for now, respecting Y pos.
-
-            let rect = Rect {
-                x: current_x,
-                y: abs_y.max(area.y as i32) as u16,
-                width: render_width,
-                height: if abs_y < area.y as i32 {
-                    col_height.saturating_sub((area.y as i32 - abs_y) as usize) as u16
-                } else {
-                    col_height as u16
-                }
-                .min(area.height),
-            };
-            // Clip rect
-            if rect.height > 0 {
-                render_sectioned_column(f, rect, col, i == app.tree_state.focus_col_idx);
-            }
-        } else {
+        // Always render as flat column (no sections/containers)
+        {
             // Standard Column
             // Construct display items
             for (idx, item) in col.items.iter().enumerate() {
