@@ -243,7 +243,7 @@ fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
 
                 let section_start = all_items.len();
 
-                if let Ok(entries) = std::fs::read_dir(&item.path) {
+                if let Ok(entries) = std::fs::read_dir(&path) {
                     let mut folder_items: Vec<_> = entries.filter_map(|e| e.ok()).collect();
                     folder_items.sort_by(|a, b| {
                         let ad = a.path().is_dir();
