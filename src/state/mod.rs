@@ -98,6 +98,7 @@ pub struct TreeState {
     pub active_columns: Vec<TreeColumn>,
     pub focus_col_idx: usize,
     pub scroll_offset_col: usize,
+    pub show_hidden: bool,
 }
 
 impl Default for TreeState {
@@ -106,6 +107,7 @@ impl Default for TreeState {
             active_columns: Vec::new(),
             focus_col_idx: 0,
             scroll_offset_col: 0,
+            show_hidden: false,
         }
     }
 }
