@@ -4,14 +4,6 @@ alt up and down does nto work on the favorite bar, mouse does not show visually 
 
 also adding to favorites does not work, and crashes the app
 
-we want to be able to on the tree view open folder to the right in a box, and the border marches the hightlight of the folder being opened,
-
-but also on click i want to highlight and open it on the right, and when i click on another we open that one also under the first one, and they are both highlighted and the boxes we open have their respective highlighitng
-
-make sure hiding toggle works for the tree view, ad i think by default we hide hidden files
-
-on the first tree list less see the name of the folder we opened preferably with its path
-
 ## Maybe
 
 ## Done
