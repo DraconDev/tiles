@@ -150,6 +150,36 @@ impl Default for TreeState {
     }
 }
 
+impl TreeState {
+    pub fn calculate_expanded_heights(&self, area_height: u16) -> Vec<usize> {
+        let mut expanded_heights = vec![0; self.active_columns.len()];
+        // Iterate backwards
+        for i in (0..self.active_columns.len()).rev() {
+            let col = &self.active_columns[i];
+            let mut base_height = col.items.len();
+            if !col.sections.is_empty() {
+                // Stacked column height assumption
+                let section_heights = col.calculate_section_heights(area_height);
+                base_height = section_heights.iter().map(|&x| x as usize + 2).sum();
+            }
+
+            if i == self.active_columns.len() - 1 {
+                expanded_heights[i] = base_height;
+            } else {
+                let child_h = expanded_heights[i + 1];
+                // Parent height = (items - 1) + child_h
+                // Guard against empty items
+                if base_height == 0 {
+                    expanded_heights[i] = 0;
+                } else {
+                    expanded_heights[i] = (base_height.saturating_sub(1)) + child_h;
+                }
+            }
+        }
+        expanded_heights
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ContextMenuTarget {
     File(usize),
