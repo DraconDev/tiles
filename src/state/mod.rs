@@ -100,6 +100,25 @@ impl TreeColumn {
         // Clamp
         width.clamp(15, 50)
     }
+
+    pub fn calculate_section_heights(&self, area_height: u16) -> Vec<u16> {
+        let total_items: usize = self
+            .sections
+            .iter()
+            .map(|s| s.end_index - s.start_index)
+            .sum();
+        let available_height = area_height.saturating_sub(self.sections.len() as u16 * 2);
+
+        self.sections
+            .iter()
+            .map(|s| {
+                let item_count = s.end_index - s.start_index;
+                let proportion = item_count as f32 / total_items.max(1) as f32;
+                let height = (proportion * available_height as f32).round() as u16;
+                height.max(3) // Minimum height of 3 (border + 1 item + border)
+            })
+            .collect()
+    }
 }
 
 #[derive(Clone, Debug)]
