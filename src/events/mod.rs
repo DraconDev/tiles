@@ -114,6 +114,11 @@ pub fn handle_event(
                         return true;
                     }
                 }
+                CurrentView::Tree => {
+                    if tree::handle_tree_events(&evt, app, &event_tx) {
+                        return true;
+                    }
+                }
             }
         }
         Event::Mouse(me) => {
