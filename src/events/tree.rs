@@ -316,6 +316,13 @@ pub fn refresh_tree(app: &mut App) {
     // Re-load each column
     // We must preserve selection if possible.
     for col in &mut app.tree_state.active_columns {
+        // Skip virtual columns (Multi-selection stacks)
+        // Refreshing them using 'load_column' would try to read "Multi" path and return empty items,
+        // causing a panic in renderer because 'sections' would still point to non-existent items.
+        if col.path.to_string_lossy() == "Multi" || !col.sections.is_empty() {
+            continue;
+        }
+
         let new_col = load_column(&col.path);
         // Restore selection
         if new_col.items.len() > col.focus_index {
