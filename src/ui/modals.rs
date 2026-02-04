@@ -1,25 +1,20 @@
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect, Alignment},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{
-        Block, BorderType, Borders, Cell, Clear, ListItem, Paragraph, Row, Table, List,
-    },
+    widgets::{Block, BorderType, Borders, Cell, Clear, List, ListItem, Paragraph, Row, Table},
     Frame,
 };
 
-use crate::app::{
-    App, AppMode,
-};
+use crate::app::{App, AppMode};
+use crate::event_helpers::get_open_with_suggestions;
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
-use crate::event_helpers::get_open_with_suggestions;
 use terma::layout::centered_rect;
+use terma::utils::{format_permissions, format_size, format_time, truncate_to_width};
 use terma::widgets::HotkeyHint;
-use terma::utils::{
-    format_permissions, format_size, format_time, truncate_to_width,
-};
 
+#[allow(dead_code)]
 pub fn draw_drag_drop_modal(
     f: &mut Frame,
     app: &App,
@@ -137,6 +132,7 @@ pub fn draw_drag_drop_modal(
     f.render_widget(Paragraph::new(text), inner);
 }
 
+#[allow(dead_code)]
 pub fn draw_hotkeys_modal(f: &mut Frame, area: Rect) {
     f.render_widget(Clear, area);
     let block = Block::default()
@@ -248,6 +244,7 @@ pub fn draw_hotkeys_modal(f: &mut Frame, area: Rect) {
     f.render_widget(table, chunks[1]);
 }
 
+#[allow(dead_code)]
 pub fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
     let area = centered_rect(60, 60, f.area());
     f.render_widget(Clear, area);
@@ -332,6 +329,7 @@ pub fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
     f.render_widget(list, chunks[2]);
 }
 
+#[allow(dead_code)]
 pub fn draw_import_servers_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 20, f.area());
     f.render_widget(Clear, area);
@@ -392,6 +390,7 @@ port = 22"#;
     f.render_widget(Paragraph::new(Line::from(footer_text)), chunks[3]);
 }
 
+#[allow(dead_code)]
 pub fn draw_command_palette(f: &mut Frame, app: &mut App) {
     let area = centered_rect(60, 40, f.area());
     f.render_widget(Clear, area);
@@ -438,6 +437,7 @@ pub fn draw_command_palette(f: &mut Frame, app: &mut App) {
     );
 }
 
+#[allow(dead_code)]
 pub fn draw_rename_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
@@ -479,6 +479,7 @@ pub fn draw_rename_modal(f: &mut Frame, app: &App) {
     }
 }
 
+#[allow(dead_code)]
 pub fn draw_new_folder_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
@@ -492,6 +493,7 @@ pub fn draw_new_folder_modal(f: &mut Frame, app: &App) {
     f.render_widget(&app.input, inner);
 }
 
+#[allow(dead_code)]
 pub fn draw_new_file_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
@@ -505,10 +507,11 @@ pub fn draw_new_file_modal(f: &mut Frame, app: &App) {
     f.render_widget(&app.input, inner);
 }
 
+#[allow(dead_code)]
 pub fn draw_delete_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
-    
+
     let title = " Delete items? ".to_string();
 
     f.render_widget(
@@ -523,10 +526,14 @@ pub fn draw_delete_modal(f: &mut Frame, app: &App) {
     );
 }
 
+#[allow(dead_code)]
 pub fn draw_delete_file_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
-    let title = format!(" Delete {}? ", path.file_name().unwrap_or_default().to_string_lossy());
+    let title = format!(
+        " Delete {}? ",
+        path.file_name().unwrap_or_default().to_string_lossy()
+    );
     f.render_widget(
         Paragraph::new(format!("Confirm deletion? [Y/n]: {}", app.input.value)).block(
             Block::default()
@@ -539,6 +546,7 @@ pub fn draw_delete_file_modal(f: &mut Frame, app: &App, path: &std::path::Path) 
     );
 }
 
+#[allow(dead_code)]
 pub fn draw_properties_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(50, 50, f.area());
     f.render_widget(Clear, area);
@@ -547,7 +555,8 @@ pub fn draw_properties_modal(f: &mut Frame, app: &App) {
 
     if let Some(fs) = app.current_file_state() {
         let target_path = fs
-            .selection.selected
+            .selection
+            .selected
             .and_then(|idx| fs.files.get(idx))
             .unwrap_or(&fs.current_path);
 
@@ -603,6 +612,7 @@ pub fn draw_properties_modal(f: &mut Frame, app: &App) {
     f.render_widget(Paragraph::new(text).block(block), area);
 }
 
+#[allow(dead_code)]
 pub fn draw_add_remote_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(60, 50, f.area());
     f.render_widget(Clear, area);
@@ -690,6 +700,7 @@ pub fn draw_add_remote_modal(f: &mut Frame, app: &App) {
     f.render_widget(Paragraph::new(help_text), chunks[5]);
 }
 
+#[allow(dead_code)]
 pub fn draw_highlight_modal(f: &mut Frame, _app: &App) {
     let area = Rect::new(
         (f.area().width.saturating_sub(34)) / 2,
@@ -742,6 +753,7 @@ pub fn draw_highlight_modal(f: &mut Frame, _app: &App) {
     );
 }
 
+#[allow(dead_code)]
 pub fn draw_confirm_reset_modal(f: &mut Frame, _area: Rect) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
@@ -750,9 +762,13 @@ pub fn draw_confirm_reset_modal(f: &mut Frame, _area: Rect) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::Red));
-    f.render_widget(Paragraph::new("Reset all columns to defaults? (y/Enter/n)").block(block), area);
+    f.render_widget(
+        Paragraph::new("Reset all columns to defaults? (y/Enter/n)").block(block),
+        area,
+    );
 }
 
+#[allow(dead_code)]
 pub fn draw_context_menu(
     f: &mut Frame,
     x: u16,
