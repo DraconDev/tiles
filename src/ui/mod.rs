@@ -1629,7 +1629,6 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let git_icon = Icon::Git.get(app.icon_mode);
     let project_icon = Icon::Folder.get(app.icon_mode); // Use Folder icon for IDE/Project
     let tree_icon = "󰙅 ";
-    let galaxy_icon = "󰇩 ";
 
     app.header_icon_bounds.clear();
     let mut cur_icon_x = area.x + 2;
