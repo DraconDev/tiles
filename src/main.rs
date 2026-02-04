@@ -21,7 +21,6 @@ mod event;
 mod event_helpers;
 mod events;
 mod icons;
-mod license;
 mod modules;
 mod state;
 mod ui;
