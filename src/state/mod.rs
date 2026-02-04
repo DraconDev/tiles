@@ -65,25 +65,6 @@ pub enum CurrentView {
 }
 
 #[derive(Clone, Debug)]
-pub struct GalaxyState {
-    pub root: Option<GalaxyNode>,
-    pub current_path: PathBuf,
-    pub zoom: f32,
-    pub pan: (f32, f32),
-}
-
-impl Default for GalaxyState {
-    fn default() -> Self {
-        Self {
-            root: None,
-            current_path: dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")),
-            zoom: 1.0,
-            pan: (0.0, 0.0),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct TreeItem {
     pub path: PathBuf,
     pub name: String,
