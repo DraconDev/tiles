@@ -296,7 +296,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                 .unwrap_or_else(|e| format!("Error reading file: {}", e))
                         };
 
-                        let mut editor = terma::widgets::TextEditor::with_content(&content);
+                        let editor = terma::widgets::TextEditor::with_content(&content);
                         // editor.read_only = true; // Allow editing
 
                         {
