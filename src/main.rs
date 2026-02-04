@@ -590,12 +590,6 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         let pb = meta_b.map(|m| m.permissions).unwrap_or(0);
                                         pa.cmp(&pb)
                                     }
-
-                                            .and_then(|s| s.to_str())
-                                            .unwrap_or("")
-                                            .to_lowercase();
-                                        na.cmp(&nb)
-                                    }
                                 };
 
                                 if fs.sort_ascending {
