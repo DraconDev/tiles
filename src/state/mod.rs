@@ -377,6 +377,7 @@ impl FileState {
 
 #[derive(Clone, Debug)]
 pub struct SystemState {
+    #[allow(dead_code)]
     pub last_update: std::time::Instant,
     pub disks: Vec<DiskInfo>,
     pub processes: Vec<ProcessInfo>,
