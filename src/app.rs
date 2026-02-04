@@ -8,9 +8,9 @@ use terma::widgets::TextInput;
 pub use crate::state::{
     AppEvent, AppMode, ClipboardOp, CommandAction, CommandItem, CommitInfo, ContextMenuAction,
     ContextMenuTarget, CurrentView, DropTarget, FileCategory, FileColumn, FileMetadata, FileState,
-    GitPendingChange, GitStatus, LicenseStatus, MonitorSubview, Pane, PreviewState, ProcessColumn,
-    RemoteBookmark, RemoteSession, SelectionState, SettingsSection, SettingsTarget, SidebarBounds,
-    SidebarTarget, SystemState, TreeState, UndoAction, ViewPreferences, ViewStatePersistence,
+    GitPendingChange, LicenseStatus, MonitorSubview, Pane, PreviewState, ProcessColumn,
+    RemoteBookmark, RemoteSession, SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget,
+    SystemState, TreeState, UndoAction, ViewPreferences, ViewStatePersistence,
 };
 
 pub struct BackgroundTask {
