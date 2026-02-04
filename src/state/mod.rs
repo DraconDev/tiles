@@ -83,6 +83,7 @@ pub struct TreeState {
     pub selected_path: Option<PathBuf>,
     pub scroll_offset: usize, // Vertical scroll line
     pub show_hidden: bool,
+    pub column_width: u16,
 }
 
 impl Default for TreeState {
@@ -92,6 +93,7 @@ impl Default for TreeState {
             selected_path: None,
             scroll_offset: 0,
             show_hidden: false,
+            column_width: 25,
         }
     }
 }
