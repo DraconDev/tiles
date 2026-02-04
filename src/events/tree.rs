@@ -1,8 +1,6 @@
 use crate::app::{App, AppEvent};
 use crate::state::{TreeColumn, TreeItem};
-use ratatui::style::Color;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::path::Path;
 use terma::input::event::{Event, KeyCode, KeyEventKind, MouseButton, MouseEvent, MouseEventKind};
 use tokio::sync::mpsc;
 
