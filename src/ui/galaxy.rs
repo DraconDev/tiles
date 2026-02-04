@@ -98,8 +98,10 @@ fn collect_points_recursive(
     // Base radius starts large and shrinks? Or grows?
     // Orbit 1: Radius 15. Orbit 2: Radius 8 (relative).
     // Let's degrade radius by 0.7 per level.
-    // Initial Radius = 20.0 logical units.
-    let radius = 20.0 * zoom * (0.7f32).powi(depth as i32);
+    // Layout Ring
+    // Radius depends on depth. Inner = tighter.
+    // Base radius = 8.0 logical units (fits better in height).
+    let radius = 8.0 * zoom * (0.8f32).powi(depth as i32);
 
     // Distribute children evenly around circle
     let angle_step = 2.0 * std::f64::consts::PI as f32 / count as f32;
