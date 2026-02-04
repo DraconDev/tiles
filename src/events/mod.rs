@@ -62,7 +62,7 @@ pub fn handle_event(
 
             // Global Escape (Ctrl+[)
             if has_control && key.code == KeyCode::Char('[') {
-                return handle_global_escape(app);
+                return handle_global_escape(app, &event_tx);
             }
 
             // --- GLOBAL OVERRIDES (High Priority) ---
@@ -142,7 +142,7 @@ pub fn handle_event(
     false
 }
 
-fn handle_global_escape(app: &mut App) -> bool {
+fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     if matches!(app.mode, AppMode::Normal) {
         match app.current_view {
             CurrentView::Git | CurrentView::Processes => {
