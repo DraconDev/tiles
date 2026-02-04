@@ -1,4 +1,4 @@
-use crate::app::{App, ProcessColumn};
+use crate::app::App;
 use terma::system::{SystemData, SystemMonitor};
 
 pub struct SystemModule {
