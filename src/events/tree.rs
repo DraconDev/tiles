@@ -67,11 +67,41 @@ pub fn handle_tree_mouse(
         return false;
     }
 
-    // Simple equal width assumption for now (must match UI)
-    // In UI we might do: if col_count == 1 { 100% }, else { 50% last, others shared? }
-    // Let's assume standardized width logic.
-    // Use `get_column_rects` helper if we shared it, but for now approximate:
-    let col_width = w as usize / col_count.max(1);
+    // We need to calculate EXACT widths to know which column was clicked.
+    // This logic must match 'draw_tree_view' exactly.
+    // We assume 'scroll_offset_col' is correct from the last draw.
+    
+    let start_col = app.tree_state.scroll_offset_col;
+    let mut current_x = 0; // Relative to tree area X (which we assume is 0 or we subtract area.x if we knew it)
+    // The Event 'me.column' is global screen coordinates.
+    // If our Tree View starts at x=0 (which it does in full screen), then me.column is correct.
+    // If there is sidebar/padding, we might need adjustments.
+    // Assuming effective full screen or main pane. 
+    
+    // We iterate visible columns starting from scroll offset
+    let mut target_col_idx = None;
+    
+    for i in start_col..app.tree_state.active_columns.len() {
+        let col = &app.tree_state.active_columns[i];
+        let width = col.width() as u16;
+        
+        // Determine if click is within this column [current_x, current_x + width)
+        let end_x = current_x + width;
+        
+        if me.column >= current_x && me.column < end_x {
+            target_col_idx = Some(i);
+            break;
+        }
+        
+        current_x += width;
+        
+        if current_x >= w {
+            break; // Clicked beyond screen width?
+        }
+    }
+
+    if let Some(col_idx) = target_col_idx {
+
 
     match me.kind {
         MouseEventKind::Down(MouseButton::Left) => {
