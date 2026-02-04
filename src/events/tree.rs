@@ -276,135 +276,30 @@ fn move_msg(app: &mut App, delta: i32) {
 }
 
 fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
-    use crate::state::ColumnSection;
-
     if app.tree_state.active_columns.is_empty() {
         return;
     }
     let last_idx = app.tree_state.active_columns.len() - 1;
+    let focus_idx = app.tree_state.active_columns[last_idx].focus_index;
 
-    // Clone necessary data to avoid borrow checker issues
-    let mut selections: Vec<(usize, Color)> = app.tree_state.active_columns[last_idx]
-        .selections
-        .iter()
-        .map(|(&k, &v)| (k, v))
-        .collect();
-
-    // Sort by index to ensure sections appear in the same order as in the file list
-    selections.sort_by_key(|k| k.0);
-
-    if selections.is_empty() {
+    if focus_idx >= app.tree_state.active_columns[last_idx].items.len() {
         return;
     }
 
-    // Color palette for sections (distinct, readable colors)
-    let section_colors = [
-        Color::Rgb(100, 150, 250), // Blue
-        Color::Rgb(250, 150, 100), // Orange
-        Color::Rgb(150, 250, 150), // Green
-        Color::Rgb(250, 200, 100), // Yellow
-        Color::Rgb(200, 150, 250), // Purple
-        Color::Rgb(100, 250, 200), // Cyan
-    ];
+    // Get the focused item
+    let (is_dir, path) = {
+        let item = &app.tree_state.active_columns[last_idx].items[focus_idx];
+        (item.is_dir, item.path.clone())
+    };
 
-    let mut all_items = Vec::new();
-    let mut sections = Vec::new();
-    let mut color_idx = 0;
-
-    // Gather items from all selected folders, creating sections
-    for (idx, _) in selections.iter() {
-        let idx = *idx;
-        if idx < app.tree_state.active_columns[last_idx].items.len() {
-            // Clone item properties to avoid holding borrow on active_columns
-            let (is_dir, name, path) = {
-                let item = &app.tree_state.active_columns[last_idx].items[idx];
-                (item.is_dir, item.name.clone(), item.path.clone())
-            };
-
-            if is_dir {
-                let section_color = section_colors[color_idx % section_colors.len()];
-
-                // SYNC COLOR: Update the parent's selection color to match the section color
-                app.tree_state.active_columns[last_idx]
-                    .selections
-                    .insert(idx, section_color);
-
-                let section_start = all_items.len();
-
-                if let Ok(entries) = std::fs::read_dir(&path) {
-                    let mut folder_items: Vec<_> = entries.filter_map(|e| e.ok()).collect();
-
-                    if !app.tree_state.show_hidden {
-                        folder_items.retain(|e| !e.file_name().to_string_lossy().starts_with('.'));
-                    }
-
-                    folder_items.sort_by(|a, b| {
-                        let ad = a.path().is_dir();
-                        let bd = b.path().is_dir();
-                        if ad != bd {
-                            bd.cmp(&ad)
-                        } else {
-                            a.file_name().cmp(&b.file_name())
-                        }
-                    });
-
-                    for entry in folder_items {
-                        let p = entry.path();
-                        let is_dir = p.is_dir();
-                        let name = p
-                            .file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                            .to_string();
-                        // Recursive "Keep Going Right":
-                        // The items we push here have correct absolute paths (p).
-                        // So next time we call enter_directory on THIS column, it will work fine.
-                        all_items.push(TreeItem {
-                            path: p,
-                            name,
-                            depth: 0,
-                            is_dir,
-                            expanded: false,
-                            color: if is_dir { section_color } else { Color::White }, // Use section color for sub-items? Or keep them white? User said "highlighting on the left to match highlighting of the box".
-                                                                                      // Usually file managers keep files neutral (White) and folders Blue,
-                                                                                      // but here "color-coded by section" implies items share the session color.
-                                                                                      // Let's stick with section_color for dirs, but maybe simpler for files.
-                                                                                      // User said "dont need to highlight files that doesnt matter".
-                        });
-                    }
-                }
-
-                let section_end = all_items.len();
-                // Create section *even if empty* to show it exists? Or only if has items?
-                // Logic below requires section_end > section_start.
-                // If empty folder, we won't see a box. That might be confusing.
-                // Let's allow empty sections to show "Empty Folder".
-
-                sections.push(ColumnSection {
-                    title: name,
-                    color: section_color,
-                    start_index: section_start,
-                    end_index: section_end,
-                });
-
-                color_idx += 1;
-            } else {
-                let _ = event_tx.try_send(AppEvent::PreviewRequested(0, path));
-            }
-        }
-    }
-
-    if !all_items.is_empty() {
-        let new_col = TreeColumn {
-            path: PathBuf::from("Multi"),
-            items: all_items,
-            selections: std::collections::HashMap::new(),
-            focus_index: 0,
-            offset: 0,
-            sections,
-        };
+    if is_dir {
+        // Load the directory contents as a simple flat column
+        let new_col = load_column(&path, app.tree_state.show_hidden);
         app.tree_state.active_columns.push(new_col);
         app.tree_state.focus_col_idx = app.tree_state.active_columns.len() - 1;
+    } else {
+        // File - request preview
+        let _ = event_tx.try_send(AppEvent::PreviewRequested(0, path));
     }
 }
 
