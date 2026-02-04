@@ -25,8 +25,6 @@ use terma::utils::{
 use terma::widgets::HotkeyHint;
 use unicode_width::UnicodeWidthStr;
 
-pub mod galaxy;
-pub mod layout;
 pub mod modals;
 pub mod theme;
 pub mod tree;
