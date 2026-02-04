@@ -271,11 +271,33 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     }
                     KeyCode::Up => {
                         let shift = key.modifiers.contains(KeyModifiers::SHIFT);
+                        if has_alt && app.sidebar_focus {
+                            // Reorder Favorites
+                            // Assuming Favorites are at indices 0..starred.len()
+                            if app.sidebar_index > 0 && app.sidebar_index < app.starred.len() {
+                                app.starred.swap(app.sidebar_index, app.sidebar_index - 1);
+                                app.sidebar_index -= 1;
+                                let _ = crate::config::save_state(app);
+                                let _ = event_tx
+                                    .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                            }
+                            return true;
+                        }
                         app.move_up(shift);
                         return true;
                     }
                     KeyCode::Down => {
                         let shift = key.modifiers.contains(KeyModifiers::SHIFT);
+                        if has_alt && app.sidebar_focus {
+                            if app.sidebar_index < app.starred.len().saturating_sub(1) {
+                                app.starred.swap(app.sidebar_index, app.sidebar_index + 1);
+                                app.sidebar_index += 1;
+                                let _ = crate::config::save_state(app);
+                                let _ = event_tx
+                                    .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                            }
+                            return true;
+                        }
                         app.move_down(shift);
                         return true;
                     }
