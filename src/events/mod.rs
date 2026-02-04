@@ -1,4 +1,4 @@
-use crate::app::{App, AppEvent, AppMode, CurrentView, SidebarTarget};
+use crate::app::{App, AppEvent, AppMode, CurrentView, DropTarget, SidebarTarget};
 use std::collections::HashSet;
 use terma::input::event::{
     Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind,
