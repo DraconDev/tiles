@@ -94,6 +94,7 @@ pub struct App {
     pub open_with_index: usize,
     pub replace_buffer: String,
     pub background_tasks: Vec<BackgroundTask>,
+    #[allow(dead_code)]
     pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
     pub tree_state: TreeState,
     pub saved_pane: Option<Pane>,
