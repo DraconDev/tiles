@@ -1,15 +1,31 @@
 use crate::app::App;
 use crate::state::GalaxyNode;
-use ratatui::{layout::Rect, style::Style, Frame};
+use ratatui::{
+    layout::Rect,
+    style::{Color, Style},
+    Frame,
+};
 
 // Render Items
 struct RenderPoint {
     x: f32,
     y: f32,
     char: char,
-    color: ratatui::style::Color,
+    color: Color,
     label: Option<String>,
 }
+
+// A palette of distinct colors for top-level sectors
+const SECTOR_COLORS: [Color; 8] = [
+    Color::Rgb(255, 100, 100), // Red
+    Color::Rgb(100, 255, 100), // Green
+    Color::Rgb(100, 180, 255), // Blue
+    Color::Rgb(255, 200, 100), // Orange
+    Color::Rgb(200, 100, 255), // Purple
+    Color::Rgb(100, 255, 200), // Cyan
+    Color::Rgb(255, 100, 200), // Pink
+    Color::Rgb(200, 200, 100), // Yellow-ish
+];
 
 pub fn draw_galaxy_view(f: &mut Frame, area: Rect, app: &mut App) {
     if app.galaxy_state.root.is_none() {
@@ -20,9 +36,14 @@ pub fn draw_galaxy_view(f: &mut Frame, area: Rect, app: &mut App) {
         let center_x = area.x as f32 + (area.width as f32 / 2.0);
         let center_y = area.y as f32 + (area.height as f32 / 2.0);
 
-        // Flatten the tree into layers (by depth)
-        let mut layers: Vec<Vec<&GalaxyNode>> = Vec::new();
-        collect_by_depth(root, 0, &mut layers);
+        // Flatten the tree into layers, tracking parent sector color
+        let mut layers: Vec<Vec<(&GalaxyNode, Color)>> = Vec::new();
+
+        // Assign colors to top-level (orbit 1) items
+        for (i, child) in root.children.iter().enumerate() {
+            let sector_color = SECTOR_COLORS[i % SECTOR_COLORS.len()];
+            collect_with_color(child, 1, sector_color, &mut layers);
+        }
 
         let mut points = Vec::new();
 
@@ -31,19 +52,16 @@ pub fn draw_galaxy_view(f: &mut Frame, area: Rect, app: &mut App) {
             x: 0.0,
             y: 0.0,
             char: '◉',
-            color: ratatui::style::Color::Yellow,
+            color: Color::Yellow,
             label: Some(root.name.clone()),
         });
 
         // Draw Concentric Orbits
         for (depth, layer) in layers.iter().enumerate() {
-            if depth == 0 {
-                continue; // Skip root, already drawn
-            }
+            let real_depth = depth + 1; // layers[0] = depth 1
 
             // Each depth level gets its own fixed orbit radius
-            // Orbit 1 = 8 units, Orbit 2 = 16, Orbit 3 = 24, etc.
-            let orbit_radius = (depth as f32) * 10.0 * app.galaxy_state.zoom;
+            let orbit_radius = (real_depth as f32) * 10.0 * app.galaxy_state.zoom;
 
             let count = layer.len();
             if count == 0 {
@@ -53,7 +71,7 @@ pub fn draw_galaxy_view(f: &mut Frame, area: Rect, app: &mut App) {
             // Distribute nodes evenly around this orbit
             let angle_step = 2.0 * std::f32::consts::PI / count as f32;
 
-            for (i, node) in layer.iter().enumerate() {
+            for (i, (node, color)) in layer.iter().enumerate() {
                 let angle = i as f32 * angle_step;
                 let nx = orbit_radius * angle.cos();
                 let ny = orbit_radius * angle.sin();
@@ -63,7 +81,7 @@ pub fn draw_galaxy_view(f: &mut Frame, area: Rect, app: &mut App) {
                     x: nx,
                     y: ny,
                     char: if node.is_dir { 'O' } else { '•' },
-                    color: node.color,
+                    color: *color,
                     label: Some(node.name.clone()),
                 });
             }
@@ -77,7 +95,7 @@ pub fn draw_galaxy_view(f: &mut Frame, area: Rect, app: &mut App) {
                     x: orbit_radius * ring_angle.cos(),
                     y: orbit_radius * ring_angle.sin(),
                     char: '·',
-                    color: ratatui::style::Color::Rgb(40, 40, 50),
+                    color: Color::Rgb(40, 40, 50),
                     label: None,
                 });
             }
@@ -117,15 +135,21 @@ pub fn draw_galaxy_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
-/// Collect all nodes by their depth level into a flat layer list.
-fn collect_by_depth<'a>(node: &'a GalaxyNode, depth: usize, layers: &mut Vec<Vec<&'a GalaxyNode>>) {
-    // Ensure we have enough layers
-    while layers.len() <= depth {
+/// Collect nodes by depth, propagating the sector color from parent.
+fn collect_with_color<'a>(
+    node: &'a GalaxyNode,
+    depth: usize,
+    color: Color,
+    layers: &mut Vec<Vec<(&'a GalaxyNode, Color)>>,
+) {
+    // Ensure we have enough layers (depth 1 = index 0)
+    while layers.len() < depth {
         layers.push(Vec::new());
     }
-    layers[depth].push(node);
+    layers[depth - 1].push((node, color));
 
+    // Children inherit the same sector color
     for child in &node.children {
-        collect_by_depth(child, depth + 1, layers);
+        collect_with_color(child, depth + 1, color, layers);
     }
 }
