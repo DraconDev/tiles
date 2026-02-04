@@ -11,10 +11,7 @@ use terma::integration::ratatui::TermaBackend;
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{
-    App, AppEvent, AppMode, CommitInfo, CurrentView, FileCategory, FileMetadata, GitStatus,
-    MonitorSubview, PreviewState, RemoteSession, UndoAction,
-};
+use crate::app::{App, AppEvent, CurrentView, PreviewState, RemoteSession};
 mod app;
 mod config;
 mod event;
