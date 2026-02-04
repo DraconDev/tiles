@@ -2,7 +2,7 @@ use crate::app::{App, AppEvent};
 use crate::state::{TreeItem, TreeState};
 use ratatui::style::Color;
 use std::path::{Path, PathBuf};
-use terma::input::event::{Event, KeyCode, KeyEventKind};
+use terma::input::event::{Event, KeyCode, KeyEventKind, MouseButton, MouseEvent, MouseEventKind};
 use tokio::sync::mpsc;
 
 pub fn handle_tree_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
@@ -42,6 +42,75 @@ pub fn handle_tree_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
     false
 }
 
+pub fn handle_tree_mouse(
+    me: &MouseEvent,
+    app: &mut App,
+    event_tx: &mpsc::Sender<AppEvent>,
+) -> bool {
+    // Assumption: Tree View is full screen in main area.
+    // Calculate area boundaries.
+    // Since we don't have exact Rect here without recalculating, let's assume standard main stage.
+    // However, user said "no header/footer". So it's FULL SCREEN.
+    // Area is likely (0, 0) to (w, h) in "No Header/Footer" mode?
+    // Wait, draw_tree_view takes `f.area()`.
+    // So y bounds are 0 to h.
+    // Border = 1. Header = 1.
+    // Content starts at y = 2.
+
+    let content_start_y = 2;
+    let (w, h) = app.terminal_size;
+    let content_height = h.saturating_sub(2); // approximate bottom border
+
+    match me.kind {
+        MouseEventKind::ScrollDown => {
+            move_selection(app, 1);
+            return true;
+        }
+        MouseEventKind::ScrollUp => {
+            move_selection(app, -1);
+            return true;
+        }
+        MouseEventKind::Down(MouseButton::Left) => {
+            let row = me.row;
+            if row < content_start_y || row >= h.saturating_sub(1) {
+                return false;
+            }
+            let visual_index = (row - content_start_y) as usize;
+            let actual_index = app.tree_state.offset + visual_index;
+
+            if actual_index < app.tree_state.flat_items.len() {
+                if app.tree_state.selected == actual_index {
+                    // Double click simulation? Or just open for now?
+                    // If already selected, maybe toggle expand/open?
+                    // Let's toggle expand if dir, nothing if file (wait for Enter?)
+                    // Standard behavior: Single click select, Double click open.
+                    // We don't track double clicks yet.
+                    // Let's just make Click on Dir -> Toggle Expand?
+                    let item = &app.tree_state.flat_items[actual_index];
+                    if item.is_dir {
+                        if item.expanded {
+                            collapse_current(app);
+                        } else {
+                            expand_current(app);
+                        }
+                    } else {
+                        // File: maybe open?
+                        // Let's stick to Selection only for single click.
+                        // But user asked for mouse *support*, which likely implies interaction.
+                        // Let's open on click for files? Might be annoying.
+                    }
+                } else {
+                    app.tree_state.selected = actual_index;
+                }
+                return true;
+            }
+        }
+        _ => {}
+    }
+
+    false
+}
+
 fn move_selection(app: &mut App, delta: i32) {
     let len = app.tree_state.flat_items.len();
     if len == 0 {
@@ -56,7 +125,10 @@ fn move_selection(app: &mut App, delta: i32) {
     app.tree_state.selected = new_idx as usize;
 
     // Scroll Logic
-    let height = app.tree_state.view_height.saturating_sub(2); // Reduced padding
+    // Height is dynamic... assume full screen minus borders?
+    let (_, h) = app.terminal_size;
+    let height = h.saturating_sub(4) as usize; // Reduced padding (Title + Header + Borders)
+
     if app.tree_state.selected >= app.tree_state.offset + height {
         app.tree_state.offset = app.tree_state.selected + 1 - height;
     } else if app.tree_state.selected < app.tree_state.offset {
