@@ -486,7 +486,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
             f.area(),
         );
         draw_settings_modal(f, app);
-    } else if matches!(app.current_view, CurrentView::Processes | CurrentView::Git) {
+    } else if matches!(
+        app.current_view,
+        CurrentView::Processes | CurrentView::Git | CurrentView::Tree
+    ) {
         f.render_widget(
             Block::default().style(Style::default().bg(Color::Black)),
             f.area(),
