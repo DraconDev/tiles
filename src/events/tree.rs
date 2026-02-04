@@ -288,7 +288,7 @@ fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
                 // Let's allow empty sections to show "Empty Folder".
 
                 sections.push(ColumnSection {
-                    title: item.name.clone(),
+                    title: name,
                     color: section_color,
                     start_index: section_start,
                     end_index: section_end,
@@ -296,7 +296,7 @@ fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
 
                 color_idx += 1;
             } else {
-                let _ = event_tx.try_send(AppEvent::PreviewRequested(0, item.path.clone()));
+                let _ = event_tx.try_send(AppEvent::PreviewRequested(0, path));
             }
         }
     }
