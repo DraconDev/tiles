@@ -185,38 +185,59 @@ fn move_msg(app: &mut App, delta: i32) {
 }
 
 fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
+    use crate::state::ColumnSection;
+
     if app.tree_state.active_columns.is_empty() {
         return;
     }
     let last_idx = app.tree_state.active_columns.len() - 1;
 
     // Clone necessary data to avoid borrow checker issues
-    let selections: Vec<usize> = app.tree_state.active_columns[last_idx]
+    let selections: Vec<(usize, Color)> = app.tree_state.active_columns[last_idx]
         .selections
-        .keys()
-        .cloned()
+        .iter()
+        .map(|(&k, &v)| (k, v))
         .collect();
 
     if selections.is_empty() {
         return;
     }
 
-    let mut next_col_items = Vec::new();
-    // Gather items from all selected folders
-    for &idx in &selections {
-        if idx < app.tree_state.active_columns[last_idx].items.len() {
-            let item = &app.tree_state.active_columns[last_idx].items[idx];
+    // Color palette for sections (distinct, readable colors)
+    let section_colors = [
+        Color::Rgb(100, 150, 250), // Blue
+        Color::Rgb(250, 150, 100), // Orange
+        Color::Rgb(150, 250, 150), // Green
+        Color::Rgb(250, 200, 100), // Yellow
+        Color::Rgb(200, 150, 250), // Purple
+        Color::Rgb(100, 250, 200), // Cyan
+    ];
+
+    let mut all_items = Vec::new();
+    let mut sections = Vec::new();
+    let mut color_idx = 0;
+
+    // Gather items from all selected folders, creating sections
+    for (idx, _sel_color) in &selections {
+        if *idx < app.tree_state.active_columns[last_idx].items.len() {
+            let item = &app.tree_state.active_columns[last_idx].items[*idx];
             if item.is_dir {
-                // Load contents
-                // We need to "stack" them. The `load_column` helper just loads one path.
-                // We need `load_multi_column(vec![paths])`.
-                // For now, let's just support the FIRST selection or simple merge.
-                // User asked for "box color matches".
-                // This implies we need a structure that supports sections.
-                // `TreeColumn` items are just items.
-                // Hack: We can insert "Header" items? Or just merge.
+                let section_color = section_colors[color_idx % section_colors.len()];
+                let section_start = all_items.len();
+
                 if let Ok(entries) = std::fs::read_dir(&item.path) {
-                    for entry in entries.filter_map(|e| e.ok()) {
+                    let mut folder_items: Vec<_> = entries.filter_map(|e| e.ok()).collect();
+                    folder_items.sort_by(|a, b| {
+                        let ad = a.path().is_dir();
+                        let bd = b.path().is_dir();
+                        if ad != bd {
+                            bd.cmp(&ad)
+                        } else {
+                            a.file_name().cmp(&b.file_name())
+                        }
+                    });
+
+                    for entry in folder_items {
                         let p = entry.path();
                         let is_dir = p.is_dir();
                         let name = p
@@ -224,40 +245,41 @@ fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
                             .unwrap_or_default()
                             .to_string_lossy()
                             .to_string();
-                        // Color from parent selection?
-                        // Let's use the item color.
-                        next_col_items.push(TreeItem {
+                        all_items.push(TreeItem {
                             path: p,
                             name,
                             depth: 0,
                             is_dir,
                             expanded: false,
-                            color: if is_dir { Color::Blue } else { Color::White },
+                            color: section_color, // Use section color for items
                         });
                     }
                 }
+
+                let section_end = all_items.len();
+                if section_end > section_start {
+                    sections.push(ColumnSection {
+                        title: item.name.clone(),
+                        color: section_color,
+                        start_index: section_start,
+                        end_index: section_end,
+                    });
+                }
+                color_idx += 1;
             } else {
                 let _ = event_tx.try_send(AppEvent::PreviewRequested(0, item.path.clone()));
             }
         }
     }
 
-    if !next_col_items.is_empty() {
-        // Sort
-        next_col_items.sort_by(|a, b| {
-            if a.is_dir != b.is_dir {
-                b.is_dir.cmp(&a.is_dir)
-            } else {
-                a.name.cmp(&b.name)
-            }
-        });
-
+    if !all_items.is_empty() {
         let new_col = TreeColumn {
-            path: PathBuf::from("Multi"), // Placeholder properties
-            items: next_col_items,
+            path: PathBuf::from("Multi"),
+            items: all_items,
             selections: std::collections::HashMap::new(),
             focus_index: 0,
             offset: 0,
+            sections,
         };
         app.tree_state.active_columns.push(new_col);
         app.tree_state.focus_col_idx = app.tree_state.active_columns.len() - 1;
