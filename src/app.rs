@@ -33,6 +33,7 @@ pub struct App {
     pub terminal_size: (u16, u16),
     pub mouse_pos: (u16, u16),
     pub system_state: SystemState,
+    #[allow(dead_code)]
     pub license: LicenseStatus,
     pub sidebar_focus: bool,
     pub sidebar_index: usize,
