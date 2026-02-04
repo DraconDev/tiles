@@ -129,6 +129,13 @@ fn ensure_focus_visible(app: &mut App, available_width: u16, widths: &[u16]) {
 }
 
 fn render_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focused: bool) {
+    // If column has sections, render as separate stacked boxes
+    if !col.sections.is_empty() {
+        render_sectioned_column(f, area, col, is_focused);
+        return;
+    }
+
+    // Normal single-section column
     let items: Vec<ListItem> = col
         .items
         .iter()
@@ -140,26 +147,20 @@ fn render_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focused: bool) 
 
             if is_selected {
                 if let Some(sel_color) = col.selections.get(&i) {
-                    // Use the selection color for background and ensure text is readable
                     style = style.bg(*sel_color).fg(Color::Black);
                 } else {
                     style = style.bg(Color::Rgb(60, 60, 60));
                 }
             }
-            // Focus cursor (underline or just bold if selected)
             if is_focused_item && is_focused {
                 style = style.add_modifier(Modifier::UNDERLINED);
             }
-
             if item.is_dir {
                 style = style.add_modifier(Modifier::BOLD);
             }
 
-            let icon = if item.is_dir { "" } else { "" };
-            // If stacked item in "Multi" path column, maybe show parent?
-            // For now simple.
+            let icon = if item.is_dir { "" } else { "" };
             let content = format!("{} {}", icon, item.name);
-
             ListItem::new(Span::styled(content, style))
         })
         .collect();
@@ -171,8 +172,7 @@ fn render_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focused: bool) 
     };
 
     let block = Block::default()
-        .borders(Borders::ALL) // Or Borders::RIGHT for cleaner "stacked" look?
-        // Borders::ALL gives clear separation cell-like.
+        .borders(Borders::ALL)
         .border_style(border_style);
 
     let highlight_style = if is_focused {
@@ -194,4 +194,98 @@ fn render_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focused: bool) 
         area,
         &mut state,
     );
+}
+
+/// Render a column divided into multiple colored section boxes
+fn render_sectioned_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focused: bool) {
+    use ratatui::layout::{Constraint, Direction, Layout};
+
+    // Calculate heights for each section (proportional to item count, but also leave room for headers)
+    let total_items: usize = col
+        .sections
+        .iter()
+        .map(|s| s.end_index - s.start_index)
+        .sum();
+    let available_height = area.height.saturating_sub(col.sections.len() as u16 * 2); // 2 lines per section for border
+
+    let section_heights: Vec<u16> = col
+        .sections
+        .iter()
+        .map(|s| {
+            let item_count = s.end_index - s.start_index;
+            let proportion = item_count as f32 / total_items.max(1) as f32;
+            let height = (proportion * available_height as f32).round() as u16;
+            height.max(3) // Minimum height of 3 (border + 1 item + border)
+        })
+        .collect();
+
+    let constraints: Vec<Constraint> = section_heights
+        .iter()
+        .map(|&h| Constraint::Length(h + 2))
+        .collect();
+
+    let section_rects = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(constraints)
+        .split(area);
+
+    for (sec_idx, section) in col.sections.iter().enumerate() {
+        if sec_idx >= section_rects.len() {
+            break;
+        }
+        let sec_area = section_rects[sec_idx];
+
+        // Build items for this section
+        let items: Vec<ListItem> = col.items[section.start_index..section.end_index]
+            .iter()
+            .enumerate()
+            .map(|(i, item)| {
+                let global_idx = section.start_index + i;
+                let is_focused_item = global_idx == col.focus_index;
+                let mut style = Style::default().fg(item.color);
+
+                if is_focused_item && is_focused {
+                    style = style.add_modifier(Modifier::UNDERLINED);
+                }
+                if item.is_dir {
+                    style = style.add_modifier(Modifier::BOLD);
+                }
+
+                let icon = if item.is_dir { "" } else { "" };
+                let content = format!("{} {}", icon, item.name);
+                ListItem::new(Span::styled(content, style))
+            })
+            .collect();
+
+        // Block with section color and title
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(section.color))
+            .title(Span::styled(
+                format!(" {} ", section.title),
+                Style::default()
+                    .fg(section.color)
+                    .add_modifier(Modifier::BOLD),
+            ));
+
+        // Highlight style for focus within section
+        let highlight_style = Style::default()
+            .bg(section.color)
+            .fg(Color::Black)
+            .add_modifier(Modifier::BOLD);
+
+        // State: select the item within the section if focus is in this section
+        let mut state = ListState::default();
+        if col.focus_index >= section.start_index && col.focus_index < section.end_index {
+            state.select(Some(col.focus_index - section.start_index));
+        }
+
+        f.render_stateful_widget(
+            List::new(items)
+                .block(block)
+                .highlight_style(highlight_style),
+            sec_area,
+            &mut state,
+        );
+    }
 }
