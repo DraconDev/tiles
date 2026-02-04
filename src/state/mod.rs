@@ -408,9 +408,11 @@ pub struct SystemState {
 pub struct PreviewState {
     pub path: PathBuf,
     pub content: String,
+    #[allow(dead_code)]
     pub scroll: usize,
     pub editor: Option<TextEditor>,
     pub last_saved: Option<std::time::Instant>,
+    #[allow(dead_code)]
     pub image_data: Option<(Vec<u8>, u32, u32)>,
     pub highlighted_lines: Option<Vec<ratatui::text::Line<'static>>>,
 }
