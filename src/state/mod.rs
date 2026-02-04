@@ -7,6 +7,7 @@ use terma::widgets::TextEditor;
 pub use terma::system::{DiskInfo, ProcessInfo, SystemData};
 pub use terma::utils::{FileCategory, FileColumn, IconMode, SelectionState};
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum AppEvent {
     Tick,
@@ -203,6 +204,7 @@ pub enum AppMode {
     },
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum DropTarget {
     Favorites,
@@ -452,6 +454,7 @@ impl Pane {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct BackgroundTask {
     pub id: uuid::Uuid,
@@ -460,6 +463,7 @@ pub struct BackgroundTask {
     pub progress: f32,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum UndoAction {
     Rename(PathBuf, PathBuf),
@@ -468,6 +472,7 @@ pub enum UndoAction {
     Delete(PathBuf),
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub enum LicenseStatus {
     Valid,
@@ -488,6 +493,7 @@ pub struct CommitInfo {
     pub deletions: usize,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum GitStatus {
     Modified,
