@@ -1,6 +1,6 @@
 use crate::app::{
-    App, AppEvent, AppMode, CommandAction, CommandItem, CommitInfo, ContextMenuAction,
-    ContextMenuTarget, CurrentView, FileColumn, FileState, GitStatus, SelectionState,
+    App, AppEvent, AppMode, CommandAction, CommandItem, ContextMenuAction, ContextMenuTarget,
+    CurrentView, FileState,
 };
 use crate::config::save_state;
 use std::path::PathBuf;
