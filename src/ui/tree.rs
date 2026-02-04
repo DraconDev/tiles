@@ -31,6 +31,44 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
     // 2. Adjust scrolling to ensure `focus_col_idx` is visible
     ensure_focus_visible(app, area.width, &col_widths);
 
+    // 3. Determine visible columns
+    let mut visible_cols = Vec::new();
+    let mut current_x = area.x;
+    let mut x_offset = 0;
+
+    // Skip columns before scroll_offset
+    for _ in 0..app.tree_state.scroll_offset_col {
+        // Just skip their widths logic?
+        // Actually we render from scroll_offset
+    }
+
+    for i in app.tree_state.scroll_offset_col..app.tree_state.active_columns.len() {
+        let width = col_widths[i];
+
+        // If this column fits (mostly), render it
+        // We limit to area width.
+        if x_offset >= area.width {
+            break;
+        }
+
+        // Last visible column might be truncated, that's fine for Miller Columns often.
+        // But we try to show full.
+        let render_width = std::cmp::min(width, area.width - x_offset);
+
+        if render_width > 0 {
+            visible_cols.push((i, Rect::new(current_x, area.y, render_width, area.height)));
+            current_x += render_width;
+            x_offset += render_width;
+        }
+    }
+
+    // 4. Render visible columns
+    for (i, rect) in visible_cols {
+        let col = &app.tree_state.active_columns[i];
+        render_column(f, rect, col, i == app.tree_state.focus_col_idx);
+    }
+}
+
 fn ensure_focus_visible(app: &mut App, available_width: u16, widths: &[u16]) {
     let focus = app.tree_state.focus_col_idx;
     let mut start = app.tree_state.scroll_offset_col;
