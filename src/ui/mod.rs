@@ -445,16 +445,20 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 }
             }
             AppMode::Editor | AppMode::Viewer => {
-                header_left.extend(HotkeyHint::new("^F", "Find", THEME.accent_secondary));
-                header_left.extend(HotkeyHint::new("^R/F2", "Replace", THEME.accent_secondary));
-                header_left.extend(HotkeyHint::new("^G", "Line", THEME.accent_secondary));
+                header_left.extend(HotkeyHint::render("^F", "Find", THEME.accent_secondary));
+                header_left.extend(HotkeyHint::render(
+                    "^R/F2",
+                    "Replace",
+                    THEME.accent_secondary,
+                ));
+                header_left.extend(HotkeyHint::render("^G", "Line", THEME.accent_secondary));
             }
             _ => {}
         }
 
         let mut header_right = Vec::new();
-        header_right.extend(HotkeyHint::new("Esc", "Back", Color::Red));
-        header_right.extend(HotkeyHint::new("^Q", "Quit", Color::Red));
+        header_right.extend(HotkeyHint::render("Esc", "Back", Color::Red));
+        header_right.extend(HotkeyHint::render("^Q", "Quit", Color::Red));
 
         let block = Block::default()
             .borders(Borders::ALL)
@@ -3059,7 +3063,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     if !showing_log {
-        left_spans.extend(HotkeyHint::new("^Q", "Quit", Color::Red));
+        left_spans.extend(HotkeyHint::render("^Q", "Quit", Color::Red));
 
         let hidden_on = if let Some(fs) = app.current_file_state() {
             fs.show_hidden
@@ -3069,24 +3073,24 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
 
         let mut shortcuts = Vec::new();
         if app.current_view == CurrentView::Editor {
-            shortcuts.extend(HotkeyHint::new("Esc", "Back", THEME.accent_primary));
-            shortcuts.extend(HotkeyHint::new("^B", "Sidebar", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::new("^P", "Split", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::new("^F", "Find", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::new("^R", "Replace", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::new("^G", "GoTo", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render("Esc", "Back", THEME.accent_primary));
+            shortcuts.extend(HotkeyHint::render("^B", "Sidebar", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render("^P", "Split", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render("^F", "Find", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render("^R", "Replace", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render("^G", "GoTo", THEME.accent_secondary));
         } else {
-            shortcuts.extend(HotkeyHint::new("^P", "Split", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::new("^T", "Tab", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::new("^N", "TermTab", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::new("^K", "TermWin", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::new(
+            shortcuts.extend(HotkeyHint::render("^P", "Split", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render("^T", "Tab", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render("^N", "TermTab", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render("^K", "TermWin", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render(
                 "^H",
                 "Hidden",
                 if hidden_on { Color::Green } else { Color::Red },
             ));
             // Hide ^L History as requested
-            shortcuts.extend(HotkeyHint::new(
+            shortcuts.extend(HotkeyHint::render(
                 "Space",
                 "Preview/Edit",
                 Color::Rgb(88, 166, 255),
@@ -3453,8 +3457,8 @@ port = 22"#;
     );
 
     let mut footer_text = Vec::new();
-    footer_text.extend(HotkeyHint::new("Enter", "Import", Color::Green));
-    footer_text.extend(HotkeyHint::new("Esc", "Cancel", Color::Red));
+    footer_text.extend(HotkeyHint::render("Enter", "Import", Color::Green));
+    footer_text.extend(HotkeyHint::render("Esc", "Cancel", Color::Red));
 
     f.render_widget(Paragraph::new(Line::from(footer_text)), chunks[3]);
 }
