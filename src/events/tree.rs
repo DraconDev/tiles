@@ -1,7 +1,8 @@
 use crate::app::{App, AppEvent};
-use crate::state::{TreeItem, TreeState};
+use crate::state::{TreeColumn, TreeItem};
 use ratatui::style::Color;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use terma::input::event::{Event, KeyCode, KeyEventKind, MouseButton, MouseEvent, MouseEventKind};
 use tokio::sync::mpsc;
 
@@ -17,23 +18,19 @@ pub fn handle_tree_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                 return true;
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                move_selection(app, 1);
+                move_msg(app, 1);
                 return true;
             }
             KeyCode::Up | KeyCode::Char('k') => {
-                move_selection(app, -1);
+                move_msg(app, -1);
                 return true;
             }
-            KeyCode::Right | KeyCode::Char('l') => {
-                expand_current(app);
+            KeyCode::Right | KeyCode::Char('l') | KeyCode::Enter => {
+                enter_directory(app, event_tx);
                 return true;
             }
             KeyCode::Left | KeyCode::Char('h') => {
-                collapse_current(app);
-                return true;
-            }
-            KeyCode::Enter => {
-                open_current(app, event_tx);
+                leave_directory(app);
                 return true;
             }
             _ => {}
@@ -42,68 +39,64 @@ pub fn handle_tree_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
     false
 }
 
+// Mouse handling for Miller Columns
+// Requires calculating column widths to know which column was clicked.
 pub fn handle_tree_mouse(
     me: &MouseEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
-    // Assumption: Tree View is full screen in main area.
-    // Calculate area boundaries.
-    // Since we don't have exact Rect here without recalculating, let's assume standard main stage.
-    // However, user said "no header/footer". So it's FULL SCREEN.
-    // Area is likely (0, 0) to (w, h) in "No Header/Footer" mode?
-    // Wait, draw_tree_view takes `f.area()`.
-    // So y bounds are 0 to h.
-    // Border = 1. Header = 1.
-    // Content starts at y = 2.
+    let (w, _h) = app.terminal_size;
+    let col_count = app.tree_state.active_columns.len();
+    if col_count == 0 {
+        return false;
+    }
 
-    let content_start_y = 2;
-    let (w, h) = app.terminal_size;
-    let content_height = h.saturating_sub(2); // approximate bottom border
+    // Simple equal width assumption for now (must match UI)
+    // In UI we might do: if col_count == 1 { 100% }, else { 50% last, others shared? }
+    // Let's assume standardized width logic.
+    // Use `get_column_rects` helper if we shared it, but for now approximate:
+    let col_width = w as usize / col_count.max(1);
 
     match me.kind {
+        MouseEventKind::Down(MouseButton::Left) => {
+            let col_idx = (me.column as usize) / col_width.max(1);
+            if col_idx < app.tree_state.active_columns.len() {
+                // Focus this column?
+                // Miller columns usually strictly focus the right-most,
+                // but clicking a previous column usually truncates the stack to that point + selection.
+                // Let's truncate stack to col_idx + 1 if clicked.
+
+                // Calculate row index relative to list
+                // y=0 is top? No, y starts at content.
+                // assuming full screen, No Header.
+                // y=0.
+                let row = me.row as usize;
+
+                let column = &app.tree_state.active_columns[col_idx];
+                let clicked_idx = column.offset + row;
+
+                if clicked_idx < column.items.len() {
+                    // Select this item
+                    app.tree_state.active_columns[col_idx].selected = clicked_idx;
+
+                    // Truncate columns beyond this one
+                    app.tree_state.active_columns.truncate(col_idx + 1);
+                    app.tree_state.focus_col_idx = col_idx;
+
+                    // If it's a dir, expand it (push next col)
+                    enter_directory(app, event_tx);
+                    return true;
+                }
+            }
+        }
         MouseEventKind::ScrollDown => {
-            move_selection(app, 1);
+            move_msg(app, 1); // Scroll active column?
             return true;
         }
         MouseEventKind::ScrollUp => {
-            move_selection(app, -1);
+            move_msg(app, -1);
             return true;
-        }
-        MouseEventKind::Down(MouseButton::Left) => {
-            let row = me.row;
-            if row < content_start_y || row >= h.saturating_sub(1) {
-                return false;
-            }
-            let visual_index = (row - content_start_y) as usize;
-            let actual_index = app.tree_state.offset + visual_index;
-
-            if actual_index < app.tree_state.flat_items.len() {
-                if app.tree_state.selected == actual_index {
-                    // Double click simulation? Or just open for now?
-                    // If already selected, maybe toggle expand/open?
-                    // Let's toggle expand if dir, nothing if file (wait for Enter?)
-                    // Standard behavior: Single click select, Double click open.
-                    // We don't track double clicks yet.
-                    // Let's just make Click on Dir -> Toggle Expand?
-                    let item = &app.tree_state.flat_items[actual_index];
-                    if item.is_dir {
-                        if item.expanded {
-                            collapse_current(app);
-                        } else {
-                            expand_current(app);
-                        }
-                    } else {
-                        // File: maybe open?
-                        // Let's stick to Selection only for single click.
-                        // But user asked for mouse *support*, which likely implies interaction.
-                        // Let's open on click for files? Might be annoying.
-                    }
-                } else {
-                    app.tree_state.selected = actual_index;
-                }
-                return true;
-            }
         }
         _ => {}
     }
@@ -111,150 +104,144 @@ pub fn handle_tree_mouse(
     false
 }
 
-fn move_selection(app: &mut App, delta: i32) {
-    let len = app.tree_state.flat_items.len();
+fn move_msg(app: &mut App, delta: i32) {
+    if app.tree_state.active_columns.is_empty() {
+        return;
+    }
+    let idx = app.tree_state.active_columns.len() - 1;
+    let col = &mut app.tree_state.active_columns[idx];
+
+    let len = col.items.len();
     if len == 0 {
         return;
     }
-    let mut new_idx = app.tree_state.selected as i32 + delta;
-    if new_idx < 0 {
-        new_idx = 0;
-    } else if new_idx >= len as i32 {
-        new_idx = len as i32 - 1;
-    }
-    app.tree_state.selected = new_idx as usize;
 
-    // Scroll Logic
-    // Height is dynamic... assume full screen minus borders?
+    let mut new_sel = col.selected as i32 + delta;
+    if new_sel < 0 {
+        new_sel = 0;
+    }
+    if new_sel >= len as i32 {
+        new_sel = len as i32 - 1;
+    }
+
+    col.selected = new_sel as usize;
+
+    // Scroll
+    // height approximate
     let (_, h) = app.terminal_size;
-    let height = h.saturating_sub(4) as usize; // Reduced padding (Title + Header + Borders)
+    let view_h = h as usize;
 
-    if app.tree_state.selected >= app.tree_state.offset + height {
-        app.tree_state.offset = app.tree_state.selected + 1 - height;
-    } else if app.tree_state.selected < app.tree_state.offset {
-        app.tree_state.offset = app.tree_state.selected;
+    if col.selected >= col.offset + view_h {
+        col.offset = col.selected + 1 - view_h;
+    } else if col.selected < col.offset {
+        col.offset = col.selected;
     }
 }
 
-fn expand_current(app: &mut App) {
-    if app.tree_state.flat_items.is_empty() {
+fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
+    if app.tree_state.active_columns.is_empty() {
         return;
     }
-    let item = &app.tree_state.flat_items[app.tree_state.selected];
+    let last_idx = app.tree_state.active_columns.len() - 1;
+    let col = &app.tree_state.active_columns[last_idx];
+
+    if col.items.is_empty() {
+        return;
+    }
+    let item = &col.items[col.selected];
+
     if item.is_dir {
-        if !item.expanded {
-            app.tree_state.expanded_paths.insert(item.path.clone());
-            refresh_tree(app);
-        }
-    }
-}
+        let path = item.path.clone();
 
-fn collapse_current(app: &mut App) {
-    if app.tree_state.flat_items.is_empty() {
-        return;
-    }
-    let item = app.tree_state.flat_items[app.tree_state.selected].clone();
-    if item.is_dir && item.expanded {
-        app.tree_state.expanded_paths.remove(&item.path);
-        refresh_tree(app);
+        // Check if next column is already this path (avoid dupes if user spams right)
+        // Actually we typically replace any existing next columns when navigating.
+        // But if we are already "previewing" it?
+        // Miller Columns: Right => Push new column.
+
+        // Push new column
+        let new_col = load_column(&path);
+        app.tree_state.active_columns.push(new_col);
+        app.tree_state.focus_col_idx = app.tree_state.active_columns.len() - 1;
     } else {
-        // Jump to parent logic would go here (search backwards for depth - 1)
-        if item.depth > 0 {
-            for i in (0..app.tree_state.selected).rev() {
-                if app.tree_state.flat_items[i].depth == item.depth - 1 {
-                    app.tree_state.selected = i;
-                    // Ensure collapsed
-                    if app.tree_state.flat_items[i].expanded {
-                        app.tree_state
-                            .expanded_paths
-                            .remove(&app.tree_state.flat_items[i].path.clone());
-                        refresh_tree(app);
-                    }
-                    return;
-                }
-            }
-        }
-    }
-}
-
-fn open_current(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
-    if app.tree_state.flat_items.is_empty() {
-        return;
-    }
-    let item = &app.tree_state.flat_items[app.tree_state.selected];
-    if !item.is_dir {
-        let _ = event_tx.try_send(AppEvent::CreateFile(item.path.clone())); // Reuse create file? No, OPEN.
-                                                                            // Trigger file open logic. For now, maybe just preview?
-                                                                            // We can use AppEvent::PreviewRequested or similar.
-                                                                            // Or switch to Editor.
+        // File Open
         let _ = event_tx.try_send(AppEvent::PreviewRequested(0, item.path.clone()));
-    } else {
-        expand_current(app);
     }
 }
 
-// Ensure this function is public or accessible to refresh logic
+fn leave_directory(app: &mut App) {
+    if app.tree_state.active_columns.len() > 1 {
+        app.tree_state.active_columns.pop();
+        app.tree_state.focus_col_idx = app.tree_state.active_columns.len() - 1;
+    }
+}
+
 pub fn refresh_tree(app: &mut App) {
-    // Rebuild flattened list starting from root (e.g. focused pane path or Home)
-    // For now, let's assume root is `app.current_file_state().current_path`
-    // OR we should maintain a persistent root for tree view.
-    // Let's use focused pane current path as ROOT.
-    if let Some(fs) = app.current_file_state() {
-        let root = fs.current_path.clone(); // Clone to avoid borrow issues
-        let mut new_items = Vec::new();
-        build_tree_recursive(&root, 0, &app.tree_state.expanded_paths, &mut new_items);
-        app.tree_state.flat_items = new_items;
+    // Reload all columns in the stack to ensure they are consistent with disk.
+    // If stack is empty, load root.
+
+    if app.tree_state.active_columns.is_empty() {
+        // Load Root
+        if let Some(fs) = app.current_file_state() {
+            app.tree_state
+                .active_columns
+                .push(load_column(&fs.current_path));
+        }
+        return;
+    }
+
+    // Re-load each column
+    // We must preserve selection if possible.
+    for col in &mut app.tree_state.active_columns {
+        let new_col = load_column(&col.path);
+        // Restore selection
+        if new_col.items.len() > col.selected {
+            // Maybe verify name match?
+            // For now simple index preservation logic or 0
+            col.items = new_col.items;
+        } else {
+            col.items = new_col.items;
+            col.selected = 0;
+        }
     }
 }
 
-fn build_tree_recursive(
-    path: &Path,
-    depth: usize,
-    expanded: &std::collections::HashSet<PathBuf>,
-    acc: &mut Vec<TreeItem>,
-) {
-    // Add self? Actually tree usually lists CHILDREN of root.
-    // If this is called for root, we might want to list root content.
-    // Let's assume this function adds content OF path.
-
-    // Read dir
+fn load_column(path: &Path) -> TreeColumn {
+    let mut items = Vec::new();
     if let Ok(entries) = std::fs::read_dir(path) {
         let mut entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
-        // Sort: Folders first
         entries.sort_by(|a, b| {
             let ad = a.path().is_dir();
             let bd = b.path().is_dir();
             if ad != bd {
-                bd.cmp(&ad) // True (dir) < False (file) in sorting? No, True is Greater. We want Dir First (Less?)
-                            // bool ord: false < true.
-                            // We want true first. So b.cmp(a).
+                bd.cmp(&ad)
             } else {
                 a.file_name().cmp(&b.file_name())
             }
         });
 
-        for entry in entries {
-            let p = entry.path();
+        for e in entries {
+            let p = e.path();
             let is_dir = p.is_dir();
-            let is_expanded = expanded.contains(&p);
             let name = p
                 .file_name()
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string();
-
-            acc.push(TreeItem {
-                path: p.clone(),
+            items.push(TreeItem {
+                path: p,
                 name,
-                depth,
+                depth: 0,
                 is_dir,
-                expanded: is_expanded,
-                color: if is_dir { Color::Blue } else { Color::White }, // basic
+                expanded: false,
+                color: if is_dir { Color::Blue } else { Color::White },
             });
-
-            if is_dir && is_expanded {
-                build_tree_recursive(&p, depth + 1, expanded, acc);
-            }
         }
+    }
+
+    TreeColumn {
+        path: path.to_path_buf(),
+        items,
+        selected: 0,
+        offset: 0,
     }
 }
