@@ -99,15 +99,13 @@ fn load_galaxy_recursive(path: &Path, depth: usize) -> GalaxyNode {
 
     let mut children = Vec::new();
 
-    // Depth Limit
-    if is_dir && depth < 3 {
+    // No depth limit - load full tree (up to 10 for performance safety)
+    if is_dir && depth < 10 {
         if let Ok(entries) = std::fs::read_dir(path) {
-            let mut entries: Vec<_> = entries
+            let entries: Vec<_> = entries
                 .filter_map(|e| e.ok())
                 .filter(|e| !e.file_name().to_string_lossy().starts_with('.'))
                 .collect();
-
-            entries.truncate(20);
 
             for e in entries {
                 children.push(load_galaxy_recursive(&e.path(), depth + 1));
