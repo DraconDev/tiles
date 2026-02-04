@@ -77,14 +77,47 @@ pub fn handle_tree_mouse(
                 let clicked_idx = column.offset + row;
 
                 if clicked_idx < column.items.len() {
-                    // Select this item
-                    app.tree_state.active_columns[col_idx].selected = clicked_idx;
+                    // Update focus index
+                    app.tree_state.active_columns[col_idx].focus_index = clicked_idx;
+
+                    // Handle Selection (Ctrl for multi, else single)
+                    let is_ctrl = me
+                        .modifiers
+                        .contains(terma::input::event::KeyModifiers::CONTROL);
+                    let color = if app.tree_state.active_columns[col_idx].items[clicked_idx].is_dir
+                    {
+                        Color::Blue
+                    } else {
+                        Color::Green
+                    };
+
+                    if is_ctrl {
+                        // Toggle
+                        if app.tree_state.active_columns[col_idx]
+                            .selections
+                            .contains_key(&clicked_idx)
+                        {
+                            app.tree_state.active_columns[col_idx]
+                                .selections
+                                .remove(&clicked_idx);
+                        } else {
+                            app.tree_state.active_columns[col_idx]
+                                .selections
+                                .insert(clicked_idx, color);
+                        }
+                    } else {
+                        // Single Select
+                        app.tree_state.active_columns[col_idx].selections.clear();
+                        app.tree_state.active_columns[col_idx]
+                            .selections
+                            .insert(clicked_idx, color);
+                    }
 
                     // Truncate columns beyond this one
                     app.tree_state.active_columns.truncate(col_idx + 1);
                     app.tree_state.focus_col_idx = col_idx;
 
-                    // If it's a dir, expand it (push next col)
+                    // Expand selections
                     enter_directory(app, event_tx);
                     return true;
                 }
@@ -116,7 +149,7 @@ fn move_msg(app: &mut App, delta: i32) {
         return;
     }
 
-    let mut new_sel = col.selected as i32 + delta;
+    let mut new_sel = col.focus_index as i32 + delta;
     if new_sel < 0 {
         new_sel = 0;
     }
@@ -124,18 +157,31 @@ fn move_msg(app: &mut App, delta: i32) {
         new_sel = len as i32 - 1;
     }
 
-    col.selected = new_sel as usize;
+    col.focus_index = new_sel as usize;
+
+    // Auto-select for keyboard nav (Single Selection behavior)
+    col.selections.clear();
+    let color = if col.items[col.focus_index].is_dir {
+        Color::Blue
+    } else {
+        Color::Green
+    };
+    col.selections.insert(col.focus_index, color);
 
     // Scroll
     // height approximate
     let (_, h) = app.terminal_size;
     let view_h = h as usize;
 
-    if col.selected >= col.offset + view_h {
-        col.offset = col.selected + 1 - view_h;
-    } else if col.selected < col.offset {
-        col.offset = col.selected;
+    if col.focus_index >= col.offset + view_h {
+        col.offset = col.focus_index + 1 - view_h;
+    } else if col.focus_index < col.offset {
+        col.offset = col.focus_index;
     }
+
+    // Auto-expand on move? Or wait for enter?
+    // Mac Finder auto-expands on move.
+    // We need to call enter_directory logic but careful about lifetimes.
 }
 
 fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
@@ -143,28 +189,78 @@ fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
         return;
     }
     let last_idx = app.tree_state.active_columns.len() - 1;
-    let col = &app.tree_state.active_columns[last_idx];
 
-    if col.items.is_empty() {
+    // Clone necessary data to avoid borrow checker issues
+    let selections: Vec<usize> = app.tree_state.active_columns[last_idx]
+        .selections
+        .keys()
+        .cloned()
+        .collect();
+
+    if selections.is_empty() {
         return;
     }
-    let item = &col.items[col.selected];
 
-    if item.is_dir {
-        let path = item.path.clone();
+    let mut next_col_items = Vec::new();
+    // Gather items from all selected folders
+    for &idx in &selections {
+        if idx < app.tree_state.active_columns[last_idx].items.len() {
+            let item = &app.tree_state.active_columns[last_idx].items[idx];
+            if item.is_dir {
+                // Load contents
+                // We need to "stack" them. The `load_column` helper just loads one path.
+                // We need `load_multi_column(vec![paths])`.
+                // For now, let's just support the FIRST selection or simple merge.
+                // User asked for "box color matches".
+                // This implies we need a structure that supports sections.
+                // `TreeColumn` items are just items.
+                // Hack: We can insert "Header" items? Or just merge.
+                if let Ok(entries) = std::fs::read_dir(&item.path) {
+                    for entry in entries.filter_map(|e| e.ok()) {
+                        let p = entry.path();
+                        let is_dir = p.is_dir();
+                        let name = p
+                            .file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .to_string();
+                        // Color from parent selection?
+                        // Let's use the item color.
+                        next_col_items.push(TreeItem {
+                            path: p,
+                            name,
+                            depth: 0,
+                            is_dir,
+                            expanded: false,
+                            color: if is_dir { Color::Blue } else { Color::White },
+                        });
+                    }
+                }
+            } else {
+                let _ = event_tx.try_send(AppEvent::PreviewRequested(0, item.path.clone()));
+            }
+        }
+    }
 
-        // Check if next column is already this path (avoid dupes if user spams right)
-        // Actually we typically replace any existing next columns when navigating.
-        // But if we are already "previewing" it?
-        // Miller Columns: Right => Push new column.
+    if !next_col_items.is_empty() {
+        // Sort
+        next_col_items.sort_by(|a, b| {
+            if a.is_dir != b.is_dir {
+                b.is_dir.cmp(&a.is_dir)
+            } else {
+                a.name.cmp(&b.name)
+            }
+        });
 
-        // Push new column
-        let new_col = load_column(&path);
+        let new_col = TreeColumn {
+            path: PathBuf::from("Multi"), // Placeholder properties
+            items: next_col_items,
+            selections: std::collections::HashMap::new(),
+            focus_index: 0,
+            offset: 0,
+        };
         app.tree_state.active_columns.push(new_col);
         app.tree_state.focus_col_idx = app.tree_state.active_columns.len() - 1;
-    } else {
-        // File Open
-        let _ = event_tx.try_send(AppEvent::PreviewRequested(0, item.path.clone()));
     }
 }
 
@@ -194,13 +290,13 @@ pub fn refresh_tree(app: &mut App) {
     for col in &mut app.tree_state.active_columns {
         let new_col = load_column(&col.path);
         // Restore selection
-        if new_col.items.len() > col.selected {
-            // Maybe verify name match?
-            // For now simple index preservation logic or 0
+        if new_col.items.len() > col.focus_index {
+            // Keep focus
             col.items = new_col.items;
         } else {
             col.items = new_col.items;
-            col.selected = 0;
+            col.focus_index = 0;
+            col.selections.clear();
         }
     }
 }
