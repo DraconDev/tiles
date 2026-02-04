@@ -126,6 +126,11 @@ pub fn handle_event(
                         return true;
                     }
                 }
+                CurrentView::Galaxy => {
+                    if galaxy::handle_galaxy_events(&evt, app, &event_tx) {
+                        return true;
+                    }
+                }
             }
         }
         Event::Mouse(me) => {
