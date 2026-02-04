@@ -99,8 +99,8 @@ pub fn handle_tree_mouse(
                     col_y_offset += app.tree_state.active_columns[i].focus_index as i32;
                 }
 
-                // Account for global scroll and tree area starting at y=1 (header)
-                let tree_area_y = 1;
+                // Tree area starts at y=0 (no header offset needed)
+                let tree_area_y = 0;
                 let global_scroll = app.tree_state.cascade_scroll as i32;
                 let col_top_y = tree_area_y + col_y_offset - global_scroll;
 
@@ -124,16 +124,16 @@ pub fn handle_tree_mouse(
                     0
                 };
                 let spacer_size = child_h.saturating_sub(1);
-                let focus_idx = column.focus_index;
+                let old_focus_idx = column.focus_index;
 
                 let clicked_idx: usize;
                 let local_row_usize = local_row as usize;
 
                 if spacer_size > 0 && col_idx + 1 < app.tree_state.active_columns.len() {
                     // This column has a child, so it has spacers after focus_index
-                    if local_row_usize <= focus_idx {
+                    if local_row_usize <= old_focus_idx {
                         clicked_idx = local_row_usize;
-                    } else if local_row_usize <= focus_idx + spacer_size {
+                    } else if local_row_usize <= old_focus_idx + spacer_size {
                         // Clicked in the spacer gap - ignore
                         return false;
                     } else {
@@ -144,17 +144,24 @@ pub fn handle_tree_mouse(
                 }
 
                 if clicked_idx < column.items.len() {
+                    // Check if we're clicking on a DIFFERENT item than the current focus
+                    // If so, truncate subsequent columns. If same item, do nothing special.
+                    let is_different_item = clicked_idx != old_focus_idx;
+
                     // Update focus index
                     app.tree_state.active_columns[col_idx].focus_index = clicked_idx;
                     app.tree_state.focus_col_idx = col_idx;
 
-                    // If this is on or before the last column with a child, truncate from here
-                    // Otherwise, just update focus and expand
-                    app.tree_state.active_columns.truncate(col_idx + 1);
+                    // Only truncate if clicking on a different item (changing the path)
+                    if is_different_item {
+                        app.tree_state.active_columns.truncate(col_idx + 1);
+                    }
 
                     // Check if clicked item is a directory and expand it
                     let is_dir = app.tree_state.active_columns[col_idx].items[clicked_idx].is_dir;
-                    if is_dir {
+                    if is_dir
+                        && (is_different_item || col_idx + 1 >= app.tree_state.active_columns.len())
+                    {
                         enter_directory(app, event_tx);
                     }
                     return true;
