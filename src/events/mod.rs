@@ -393,7 +393,38 @@ fn handle_sidebar_mouse(
             true
         }
         MouseEventKind::Up(_) => {
+            if let Some(target) = app.hovered_drop_target.take() {
+                if let Some(source_path) = app.drag_source.take() {
+                    match target {
+                        SidebarTarget::ReorderFavorite(target_idx) => {
+                            // Find source index
+                            if let Some(source_idx) =
+                                app.starred.iter().position(|p| p == &source_path)
+                            {
+                                if source_idx != target_idx {
+                                    let item = app.starred.remove(source_idx);
+                                    // Adjust target index if shifting
+                                    let insert_idx = if source_idx < target_idx {
+                                        target_idx
+                                    } else {
+                                        target_idx
+                                    };
+                                    if insert_idx <= app.starred.len() {
+                                        app.starred.insert(insert_idx, item);
+                                    }
+                                    let _ = crate::config::save_state(app);
+                                    let _ = event_tx
+                                        .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
             app.is_dragging = false;
+            app.drag_source = None;
+            app.hovered_drop_target = None;
             true
         }
         MouseEventKind::Drag(_) => {
