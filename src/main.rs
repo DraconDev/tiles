@@ -1,4 +1,4 @@
-use notify::RecursiveMode;
+
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
