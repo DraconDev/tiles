@@ -9,370 +9,140 @@ use ratatui::{
     Frame,
 };
 
+use crate::app::App;
+use crate::state::TreeItem;
+use crate::ui::theme::THEME;
+use ratatui::{
+    layout::Rect,
+    style::{Color, Modifier, Style},
+    text::Span,
+    widgets::{Block, Borders, List, ListItem, ListState, StatefulWidget, Widget},
+    Frame,
+};
+
 pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
-    if app.tree_state.active_columns.is_empty() {
+    if app.tree_state.root_items.is_empty() {
         crate::events::tree::refresh_tree(app);
     }
 
-    if app.tree_state.active_columns.is_empty() {
+    if app.tree_state.root_items.is_empty() {
         return;
     }
 
-    // 1. Calculate Expanded Heights (Bottom-Up)
-    // Use area.height as approximation for stacked columns if needed
-    let expanded_heights = app.tree_state.calculate_expanded_heights(area.height);
+    // Flatten the tree for rendering
+    let mut visible_items = Vec::new();
+    for item in &app.tree_state.root_items {
+        flatten_item_recursive(item, 0, &mut visible_items);
+    }
 
-    // 2. Calculate Widths
-    let col_widths: Vec<u16> = app
-        .tree_state
-        .active_columns
-        .iter()
-        .map(|col| col.width())
+    // Apply scrolling
+    let scroll_offset = app.tree_state.scroll_offset;
+    if scroll_offset >= visible_items.len() && !visible_items.is_empty() {
+        app.tree_state.scroll_offset = visible_items.len() - 1;
+    }
+
+    let render_items: Vec<RenderItem> = visible_items
+        .into_iter()
+        .skip(app.tree_state.scroll_offset)
+        .take(area.height as usize)
         .collect();
 
-    // 3. Render Columns (Recursive Position)
-    let mut current_x = area.x;
-    let mut parent_focus_offset_y = 0;
+    // Draw directly to buffer to allow custom positioning
+    // We can't use standard list easily for cascade layout where X changes per row
+    // Actually, we can just iterate and draw separate widgets per line?
+    // Or render a List where each Line has padding?
+    // Cascade means children are to the RIGHT, not just indented.
+    // X = Depth * Width.
+    // Let's draw manually row by row.
 
-    for i in 0..app.tree_state.active_columns.len() {
-        let col = &app.tree_state.active_columns[i];
-        let width = col_widths[i];
-
-        // Check X visibility
-        if current_x >= area.x + area.width {
-            break;
-        }
-        let render_width = std::cmp::min(width, (area.x + area.width).saturating_sub(current_x));
-        if render_width == 0 {
+    for (i, r_item) in render_items.iter().enumerate() {
+        let row_y = area.y + i as u16;
+        if row_y >= area.y + area.height {
             break;
         }
 
-        let col_height = expanded_heights[i];
-        // Calculate child height (spacer size)
-        let child_h = if i + 1 < expanded_heights.len() {
-            expanded_heights[i + 1]
+        // Calculate X position
+        // Depth 0 = 0
+        // Depth 1 = Width(Depth 0)
+        // We need consistent column widths?
+        // Or dynamic based on parents?
+        // Simple approach: Fixed column width of 25?
+        let col_width = 25;
+        let row_x = area.x + (r_item.depth as u16 * col_width);
+
+        let available_width = area.width.saturating_sub(r_item.depth as u16 * col_width);
+        if available_width == 0 {
+            continue;
+        }
+
+        let item_rect = Rect::new(row_x, row_y, available_width.min(col_width), 1);
+
+        let is_selected = if let Some(sel) = &app.tree_state.selected_path {
+            sel == &r_item.item.path
         } else {
-            0
-        };
-        let spacer_size = child_h.saturating_sub(1);
-
-        // Calculate Y Position relative to Area Top
-        // Y = area.y + parent_focus_offset_y - global_scroll
-        let abs_y =
-            area.y as i32 + parent_focus_offset_y as i32 - app.tree_state.cascade_scroll as i32;
-
-        // Prepare Items with Spacers
-        // We only insert spacer if this column HAS a child (is not last) AND has a focus.
-        let mut items_vec = Vec::new();
-        let spacer_idx_in_parent = if i < app.tree_state.active_columns.len() - 1 {
-            col.focus_index
-        } else {
-            usize::MAX
+            false
         };
 
-        // If stacked, we can't easily insert spacers inside sections?
-        // User request implied simple folders. Stacked view + Cascade usually means only the last column is stacked?
-        // If an intermediate column is stacked, which "item" is the parent of the next column?
-        // The one clicked. `focus_index` is global to the column.
-        // So we insert spacers after `focus_index` item.
+        let mut style = Style::default().fg(r_item.item.color);
+        if is_selected {
+            style = style
+                .bg(Color::Rgb(60, 60, 60))
+                .add_modifier(Modifier::BOLD);
+        }
+        // Dim empty folders
+        if r_item.item.is_dir && !r_item.item.has_children && !is_selected {
+            style = style.fg(Color::Rgb(100, 100, 100));
+        }
 
-        // Note: For stacked columns, `items` are raw. `render_sectioned_column` handles display.
-        // Inserting spacers into `items` for `render_sectioned_column` breaks its logic (indices shift).
-        // Since we are rewriting rendering, we can handle it.
-        // BUT `render_sectioned_column` is complex.
-        // Assumption: Stacked columns calculate their own layout. If we must insert spacers, we must do it visually.
-
-        // Always render as flat column (no sections/containers)
-        {
-            // Standard Column
-            // Construct display items
-            for (idx, item) in col.items.iter().enumerate() {
-                // Create normal item
-                let is_selected = col.selections.contains_key(&idx);
-                let is_focused_item = idx == col.focus_index;
-                let mut style = Style::default().fg(item.color);
-
-                if is_selected {
-                    if let Some(sel_color) = col.selections.get(&idx) {
-                        style = style.bg(*sel_color).fg(Color::Black);
-                    } else {
-                        style = style.bg(Color::Rgb(60, 60, 60));
-                    }
-                }
-                if is_focused_item && i == app.tree_state.focus_col_idx {
-                    style = style.add_modifier(Modifier::UNDERLINED);
-                }
-                if item.is_dir {
-                    style = style.add_modifier(Modifier::BOLD);
-                    // Dim empty folders
-                    if !item.has_children && !is_selected {
-                        style = style.fg(Color::Rgb(100, 100, 100));
-                    }
-                }
-
-                // Show arrow indicator for folders with children
-                let icon = if item.is_dir {
-                    if item.has_children {
-                        " "
-                    } else {
-                        " ∅"
-                    }
-                } else {
-                    ""
-                };
-                let content = format!("{} {}", icon, item.name);
-                items_vec.push(ListItem::new(content).style(style));
-
-                // Insert spacers
-                if idx == spacer_idx_in_parent && spacer_size > 0 {
-                    for _ in 0..spacer_size {
-                        items_vec.push(ListItem::new(""));
-                    }
-                }
-            }
-
-            // Render List
-            let effective_y = abs_y;
-            let mut start_idx = 0;
-            let mut render_y = area.y;
-            let mut render_h = area.height;
-
-            if effective_y < area.y as i32 {
-                // Top is cut off
-                start_idx = (area.y as i32 - effective_y) as usize;
-                render_y = area.y;
-                // How much height remains?
-                // Total visual items = items_vec.len()
-                let remaining = items_vec.len().saturating_sub(start_idx);
-                render_h = (remaining as u16).min(area.height);
+        let icon = if r_item.item.is_dir {
+            if r_item.item.has_children {
+                " "
             } else {
-                render_y = effective_y as u16;
-                // Limit height
-                let space_below = (area.y + area.height).saturating_sub(render_y);
-                render_h = (items_vec.len() as u16).min(space_below);
+                " ∅"
             }
+        } else {
+            ""
+        };
 
-            if render_h > 0 && start_idx < items_vec.len() {
-                let visible_items = items_vec.drain(start_idx..).collect::<Vec<_>>();
-                let rect = Rect::new(current_x, render_y, render_width, render_h);
+        let span = Span::styled(format!("{}{}", icon, r_item.item.name), style);
 
-                let border_style = if i == app.tree_state.focus_col_idx {
-                    Style::default().fg(THEME.accent_primary)
-                } else {
-                    Style::default().fg(Color::DarkGray)
-                };
-                let block = Block::default()
+        // Render
+        f.render_widget(Block::default().style(style), item_rect); // Background
+        f.render_widget(span, item_rect);
+
+        // Draw vertical connector from parent?
+        // Cascade style implies boxes/columns.
+        // Let's draw a border on the left?
+        if is_selected {
+            f.render_widget(
+                Block::default()
                     .borders(Borders::LEFT)
-                    .border_style(border_style);
-
-                f.render_widget(List::new(visible_items).block(block), rect);
-            }
+                    .border_style(Style::default().fg(THEME.accent_primary)),
+                item_rect,
+            );
+        } else {
+            f.render_widget(
+                Block::default()
+                    .borders(Borders::LEFT)
+                    .border_style(Style::default().fg(Color::DarkGray)),
+                item_rect,
+            );
         }
-
-        // Update offsets for next iteration
-        current_x += width;
-        // The next column starts aligned with the FOCUSED item of this column.
-        // The focused item's Y position relative to THIS column's top is `focus_index`.
-        // Wait, if spacers were inserted BEFORE? No, simple logic:
-        // Items 0..focus take `focus` lines.
-        // Focused item is at index `focus`.
-        // So next column Y relative to THIS column Y is `focus`.
-        // But what if `focus_index` accounts for sections/stacks?
-        // For flat list, yes.
-        parent_focus_offset_y += col.focus_index;
-
-        // Correction: If this column was stacked, the `focus_index` determines Y too properly (since logic handles it?)
-        // Yes, if `focus_index` is row index.
-        // We accumulate offsets.
     }
 }
 
-fn ensure_focus_visible(app: &mut App, available_width: u16, widths: &[u16]) {
-    let focus = app.tree_state.focus_col_idx;
-    let mut start = app.tree_state.scroll_offset_col;
-
-    // Ensure 1: Focus >= Start
-    if focus < start {
-        start = focus;
-    }
-
-    // Ensure 2: Focus is fully visible from Start?
-    // Calculate total width from Start to Focus
-    // If > available_width, increment Start until it fits (or Start == Focus)
-
-    loop {
-        let mut total_w = 0;
-        let mut focus_visible = false;
-
-        for i in start..widths.len() {
-            total_w += widths[i];
-            if i == focus {
-                if total_w <= available_width {
-                    focus_visible = true;
-                }
-                break;
-            }
-        }
-
-        // If we reached focus and it fits, good.
-        // Or if Start == Focus, we can't scroll further right (one column always shows, truncated if needed)
-        if focus_visible || start == focus {
-            break;
-        }
-
-        // Increment start (scroll right)
-        start += 1;
-        if start >= app.tree_state.active_columns.len() {
-            start = app.tree_state.active_columns.len().saturating_sub(1);
-            break;
-        }
-    }
-
-    app.tree_state.scroll_offset_col = start;
+struct RenderItem<'a> {
+    item: &'a TreeItem,
+    depth: usize,
 }
 
-fn render_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focused: bool) {
-    // If column has sections, render as separate stacked boxes
-    if !col.sections.is_empty() {
-        render_sectioned_column(f, area, col, is_focused);
-        return;
-    }
-
-    // Normal single-section column
-    let items: Vec<ListItem> = col
-        .items
-        .iter()
-        .enumerate()
-        .map(|(i, item)| {
-            let is_selected = col.selections.contains_key(&i);
-            let is_focused_item = i == col.focus_index;
-            let mut style = Style::default().fg(item.color);
-
-            if is_selected {
-                if let Some(sel_color) = col.selections.get(&i) {
-                    style = style.bg(*sel_color).fg(Color::Black);
-                } else {
-                    style = style.bg(Color::Rgb(60, 60, 60));
-                }
+fn flatten_item_recursive<'a>(item: &'a TreeItem, depth: usize, result: &mut Vec<RenderItem<'a>>) {
+    result.push(RenderItem { item, depth });
+    if item.expanded {
+        if let Some(children) = &item.children {
+            for child in children {
+                flatten_item_recursive(child, depth + 1, result);
             }
-            if is_focused_item && is_focused {
-                style = style.add_modifier(Modifier::UNDERLINED);
-            }
-            if item.is_dir {
-                style = style.add_modifier(Modifier::BOLD);
-            }
-
-            let icon = if item.is_dir { "" } else { "" };
-            let content = format!("{} {}", icon, item.name);
-            ListItem::new(content).style(style)
-        })
-        .collect();
-
-    let border_style = if is_focused {
-        Style::default().fg(THEME.accent_primary)
-    } else {
-        Style::default().fg(Color::DarkGray)
-    };
-
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_style(border_style);
-
-    let highlight_style = if is_focused {
-        Style::default()
-            .bg(THEME.accent_primary)
-            .fg(Color::Black)
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().bg(Color::Rgb(60, 60, 60)).fg(Color::White)
-    };
-
-    let mut state = ListState::default();
-    state.select(Some(col.focus_index));
-
-    f.render_stateful_widget(
-        List::new(items)
-            .block(block)
-            .highlight_style(highlight_style),
-        area,
-        &mut state,
-    );
-}
-
-/// Render a column divided into multiple colored section boxes
-fn render_sectioned_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focused: bool) {
-    use ratatui::layout::{Constraint, Direction, Layout};
-
-    // Calculate heights for each section (proportional to item count, but also leave room for headers)
-    let section_heights = col.calculate_section_heights(area.height);
-
-    let constraints: Vec<Constraint> = section_heights
-        .iter()
-        .map(|&h| Constraint::Length(h + 2))
-        .collect();
-
-    let section_rects = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(constraints)
-        .split(area);
-
-    for (sec_idx, section) in col.sections.iter().enumerate() {
-        if sec_idx >= section_rects.len() {
-            break;
         }
-        let sec_area = section_rects[sec_idx];
-
-        // Build items for this section
-        let items: Vec<ListItem> = col.items[section.start_index..section.end_index]
-            .iter()
-            .enumerate()
-            .map(|(i, item)| {
-                let global_idx = section.start_index + i;
-                let is_focused_item = global_idx == col.focus_index;
-                let mut style = Style::default().fg(item.color);
-
-                if is_focused_item && is_focused {
-                    style = style.add_modifier(Modifier::UNDERLINED);
-                }
-                if item.is_dir {
-                    style = style.add_modifier(Modifier::BOLD);
-                }
-
-                let icon = if item.is_dir { "" } else { "" };
-                let content = format!("{} {}", icon, item.name);
-                ListItem::new(content).style(style)
-            })
-            .collect();
-
-        // Block with section color and title
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(section.color))
-            .title(Span::styled(
-                format!(" {} ", section.title),
-                Style::default()
-                    .fg(section.color)
-                    .add_modifier(Modifier::BOLD),
-            ));
-
-        // Highlight style for focus within section
-        let highlight_style = Style::default()
-            .bg(section.color)
-            .fg(Color::Black)
-            .add_modifier(Modifier::BOLD);
-
-        // State: select the item within the section if focus is in this section
-        let mut state = ListState::default();
-        if col.focus_index >= section.start_index && col.focus_index < section.end_index {
-            state.select(Some(col.focus_index - section.start_index));
-        }
-
-        f.render_stateful_widget(
-            List::new(items)
-                .block(block)
-                .highlight_style(highlight_style),
-            sec_area,
-            &mut state,
-        );
     }
 }
