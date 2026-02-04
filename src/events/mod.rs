@@ -8,9 +8,11 @@ use tokio::sync::mpsc;
 pub mod editor;
 pub mod file_manager;
 pub mod git;
-pub mod input;
+pub mod layout;
 pub mod modals;
-pub mod monitor;
+pub mod theme;
+pub mod tree;onitor;
+pub mod tree;
 
 pub fn handle_event(
     evt: Event,

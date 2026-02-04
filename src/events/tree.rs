@@ -114,9 +114,7 @@ fn open_current(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
         let _ = event_tx.try_send(AppEvent::CreateFile(item.path.clone())); // Reuse create file? No, OPEN.
                                                                             // Trigger file open logic. For now, maybe just preview?
                                                                             // We can use AppEvent::PreviewRequested or similar.
-                                                                            //pub mod modals;
-        pub mod monitor;
-        pub mod tree;
+                                                                            // Or switch to Editor.
         let _ = event_tx.try_send(AppEvent::PreviewRequested(0, item.path.clone()));
     } else {
         expand_current(app);
