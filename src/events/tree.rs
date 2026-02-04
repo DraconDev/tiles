@@ -89,6 +89,7 @@ pub fn handle_tree_mouse(
                     let is_ctrl = me
                         .modifiers
                         .contains(terma::input::event::KeyModifiers::CONTROL);
+
                     let color = if app.tree_state.active_columns[col_idx].items[clicked_idx].is_dir
                     {
                         Color::Blue
@@ -96,23 +97,20 @@ pub fn handle_tree_mouse(
                         Color::Green
                     };
 
-                    if is_ctrl {
-                        // Toggle
-                        if app.tree_state.active_columns[col_idx]
+                    // User Request: "click on another we open that one also".
+                    // This implies Additive Selection is the default desire for this view.
+                    // We treat normal Click as Toggle (same as Ctrl+Click).
+
+                    if app.tree_state.active_columns[col_idx]
+                        .selections
+                        .contains_key(&clicked_idx)
+                    {
+                        // Deselect if already selected (Toggle Off)
+                        app.tree_state.active_columns[col_idx]
                             .selections
-                            .contains_key(&clicked_idx)
-                        {
-                            app.tree_state.active_columns[col_idx]
-                                .selections
-                                .remove(&clicked_idx);
-                        } else {
-                            app.tree_state.active_columns[col_idx]
-                                .selections
-                                .insert(clicked_idx, color);
-                        }
+                            .remove(&clicked_idx);
                     } else {
-                        // Single Select
-                        app.tree_state.active_columns[col_idx].selections.clear();
+                        // Select (Toggle On)
                         app.tree_state.active_columns[col_idx]
                             .selections
                             .insert(clicked_idx, color);
