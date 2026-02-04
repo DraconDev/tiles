@@ -234,9 +234,6 @@ fn handle_general_mouse(
     if app.current_view == CurrentView::Tree {
         return tree::handle_tree_mouse(me, app, event_tx);
     }
-    if app.current_view == CurrentView::Galaxy {
-        return galaxy::handle_galaxy_mouse(me, app, event_tx);
-    }
 
     // 3. Header Icons (Row 0)
     if row == 0 {
