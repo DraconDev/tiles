@@ -268,33 +268,6 @@ fn load_children(path: &Path, show_hidden: bool) -> Vec<TreeItem> {
     items
 }
 
-fn move_msg(app: &mut App, delta: i32) {
-    // We need to flatten the visible tree to find current index and move
-    let visible = flatten_tree_for_hit_testing(app);
-    if visible.is_empty() {
-        return;
-    }
-
-    let current_idx = if let Some(p) = &app.tree_state.selected_path {
-        visible.iter().position(|it| &it.path == p).unwrap_or(0)
-    } else {
-        0
-    };
-
-    let new_idx = (current_idx as i32 + delta).clamp(0, visible.len() as i32 - 1) as usize;
-    app.tree_state.selected_path = Some(visible[new_idx].path.clone());
-
-    // Auto-scroll
-    let (_, h) = app.terminal_size;
-    let view_h = h as usize; // simplified
-
-    if new_idx >= app.tree_state.scroll_offset + view_h {
-        app.tree_state.scroll_offset = new_idx + 1 - view_h;
-    } else if new_idx < app.tree_state.scroll_offset {
-        app.tree_state.scroll_offset = new_idx;
-    }
-}
-
 fn expand_current(app: &mut App) {
     if let Some(p) = app.tree_state.selected_path.clone() {
         set_expansion(app, &p, true);
