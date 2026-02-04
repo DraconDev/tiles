@@ -1,108 +1,104 @@
 use crate::app::App;
 use crate::ui::theme::THEME;
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::Span,
-    widgets::{Block, Borders, Cell, Row, Table, TableState},
+    widgets::{Block, Borders, List, ListItem, ListState},
     Frame,
 };
 
 pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
-    if app.tree_state.flat_items.is_empty() {
+    if app.tree_state.active_columns.is_empty() {
         crate::events::tree::refresh_tree(app);
     }
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(" Tree View ")
-        .style(
-            Style::default()
-                .fg(THEME.border_inactive)
-                .bg(Color::Rgb(0, 0, 0)),
-        ); // Full black bg
 
-    let inner_area = block.inner(area);
-    f.render_widget(block, area);
+    // Safety check again
+    if app.tree_state.active_columns.is_empty() {
+        return;
+    }
 
-    // Columns: Name, Permission, Modified (Maybe just Name for now to keep it simple, or mimicking Files)
-    // User requested "columns".
-    let header_cells = ["Name", "Size", "Date"]
-        .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(THEME.accent_secondary)));
-    let header = Row::new(header_cells)
-        .style(Style::default().bg(Color::Rgb(20, 20, 20)))
-        .height(1);
+    let col_count = app.tree_state.active_columns.len();
 
-    let rows = app
-        .tree_state
-        .flat_items
-        .iter()
-        .enumerate()
-        .map(|(i, item)| {
-            let is_selected = i == app.tree_state.selected;
+    // Equal width columns for now
+    let constraints = vec![Constraint::Ratio(1, col_count as u32); col_count];
 
-            // Name Indentation
-            let indent = "  ".repeat(item.depth);
-            let prefix = if item.is_dir {
-                if item.expanded {
-                    "▼ "
-                } else {
-                    "▶ "
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(constraints)
+        .split(area);
+
+    for (i, col) in app.tree_state.active_columns.iter().enumerate() {
+        // Prepare items
+        let items: Vec<ListItem> = col
+            .items
+            .iter()
+            .map(|item| {
+                let mut style = Style::default().fg(item.color);
+                if item.is_dir {
+                    // Directories maybe distinct?
+                    style = style.add_modifier(Modifier::BOLD);
                 }
-            } else {
-                "  " // File alignment
-            };
-            let icon = if item.is_dir { " " } else { " " }; // Basic icons for now
+                // Selection happens via ListState, but we need to style manually or rely on highlight_style
+                ListItem::new(Span::raw(format!(
+                    "{} {}",
+                    if item.is_dir { "" } else { "" },
+                    item.name
+                )))
+                .style(style)
+            })
+            .collect();
 
-            let name_span = format!("{}{}{}{}", indent, prefix, icon, item.name);
+        // Block styling
+        let is_focused_col = i == app.tree_state.focus_col_idx;
+        let border_style = if is_focused_col {
+            Style::default().fg(Color::Yellow) // Highlight active column
+        } else {
+            Style::default().fg(Color::DarkGray)
+        };
 
-            let mut style = Style::default().fg(item.color);
-            if is_selected {
-                style = style
-                    .bg(THEME.accent_primary)
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD);
-            }
+        let block = Block::default()
+            .borders(Borders::ALL) // Excel-like cells
+            .border_style(border_style);
+        // Title? Maybe path name?
+        // .title(col.path.file_name()...)
 
-            Row::new(vec![
-                Cell::from(name_span),
-                Cell::from(""), // Placeholder Size
-                Cell::from(""), // Placeholder Date
-            ])
-            .style(style)
-        });
+        // We need a ListState to render selection
+        let mut state = ListState::default();
+        state.select(Some(col.selected));
+        // Handle offset manually? List handles it if state is persistent usually,
+        // but here we regenerate state.
+        // Actually List handles scrolling if we pass offset?
+        // state.select works. List widget handles view.
+        // But we need to sync state.offset back if we want persistent scrolling?
+        // App's TreeState stores offset. `state` should use it?
+        // Ratatui ListState has `offset` field but it's private or read-only in some versions?
+        // Actually `state.select()` just highlights.
+        // To force scroll, we rely on `state`.
+        // Wait, if we recreate `ListState` every frame with select(Some(x)), it might jump?
+        // No, `render_stateful_widget` updates the state mutable ref.
+        // We aren't passing `&mut app.tree_state` into a widget state directly because `TreeColumn` is custom.
+        // We can construct a transient ListState and set its offset if possible?
+        // Or better: `state.select(Some(col.selected))` usually ensures visibility (scroll to show).
 
-    let widths = [
-        ratatui::layout::Constraint::Percentage(60),
-        ratatui::layout::Constraint::Length(10),
-        ratatui::layout::Constraint::Length(20),
-    ];
+        // Highlight style
+        let highlight_style = Style::default()
+            .bg(Color::Blue)
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD);
 
-    let mut state = TableState::default();
-    state.select(Some(app.tree_state.selected));
-    // Apply scrolling offset manually if needed, but TableState handles select scrolling if we pass it correctly?
-    // Ratatui TableState tracks offset.
-    // However, app.tree_state has `offset`. We might need to sync them or just rely on TableState?
-    // If we rely on TableState, we need to persist it in app.tree_state.table_state?
-    // app.tree_state.offset is used in navigation logic.
-    // Let's use `*state.offset_mut() = app.tree_state.offset;` if accessible, or just rely on Table widget with manually sliced iter?
-    // Standard approach: TableState manages offset if we don't slice.
+        f.render_stateful_widget(
+            List::new(items)
+                .block(block)
+                .highlight_style(highlight_style),
+            chunks[i],
+            &mut state,
+        );
 
-    // We already calculated offset in `move_selection`.
-    // Let's manually slice the rows? No, let Table handle it if we pass full rows.
-    // But we need to sync offset back to app state if Table changes it?
-    // Actually, `handle_tree_events` sets `offset`. Let's just use `offset` to slice rows?
-    // Or simpler: Just render `Table` with `state` having `selected`.
-    // We didn't add `TableState` to `TreeState`. We added `offset`.
-    // I will add `offset` handling to the Table widget rendering by skipping items?
-    // Ratatui Table calculates visible area based on `state.selected`.
-
-    f.render_stateful_widget(
-        Table::new(rows, widths)
-            .header(header)
-            .block(Block::default())
-            .highlight_style(Style::default().add_modifier(Modifier::REVERSED)),
-        inner_area,
-        &mut state,
-    );
+        // Sync offset back?
+        // `state.offset()` exists in recent ratatui.
+        // app.tree_state.active_columns[i].offset = state.offset();
+        // Since we iterate immutably `iter()`, we can't mutate app.
+        // We need `iter_mut()` or index loop.
+    }
 }
