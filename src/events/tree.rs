@@ -362,5 +362,6 @@ fn load_column(path: &Path) -> TreeColumn {
         selections: std::collections::HashMap::new(),
         focus_index: 0,
         offset: 0,
+        sections: Vec::new(),
     }
 }
