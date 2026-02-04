@@ -108,11 +108,19 @@ pub fn handle_tree_mouse(
             }
         }
         MouseEventKind::ScrollDown => {
-            app.tree_state.scroll_offset = app.tree_state.scroll_offset.saturating_add(3);
+            if me.modifiers.contains(KeyModifiers::CONTROL) {
+                app.tree_state.column_width = app.tree_state.column_width.saturating_sub(1).max(10);
+            } else {
+                app.tree_state.scroll_offset = app.tree_state.scroll_offset.saturating_add(3);
+            }
             return true;
         }
         MouseEventKind::ScrollUp => {
-            app.tree_state.scroll_offset = app.tree_state.scroll_offset.saturating_sub(3);
+            if me.modifiers.contains(KeyModifiers::CONTROL) {
+                app.tree_state.column_width = app.tree_state.column_width.saturating_add(1).min(60);
+            } else {
+                app.tree_state.scroll_offset = app.tree_state.scroll_offset.saturating_sub(3);
+            }
             return true;
         }
         _ => {}
