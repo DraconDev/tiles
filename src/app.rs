@@ -10,7 +10,7 @@ pub use crate::state::{
     ContextMenuTarget, CurrentView, DropTarget, FileCategory, FileColumn, FileMetadata, FileState,
     GitPendingChange, GitStatus, LicenseStatus, MonitorSubview, Pane, PreviewState, ProcessColumn,
     RemoteBookmark, RemoteSession, SelectionState, SettingsSection, SettingsTarget, SidebarBounds,
-    SidebarTarget, SystemState, UndoAction, ViewPreferences, ViewStatePersistence,
+    SidebarTarget, SystemState, TreeState, UndoAction, ViewPreferences, ViewStatePersistence,
 };
 
 pub struct BackgroundTask {
@@ -94,6 +94,7 @@ pub struct App {
     pub replace_buffer: String,
     pub background_tasks: Vec<BackgroundTask>,
     pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
+    pub tree_state: TreeState,
 }
 
 impl App {
@@ -245,6 +246,7 @@ impl App {
             replace_buffer: String::new(),
             background_tasks: Vec::new(),
             tile_queue,
+            tree_state: TreeState::default(),
         }
     }
 
