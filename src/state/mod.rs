@@ -74,22 +74,24 @@ pub struct TreeItem {
 }
 
 #[derive(Clone, Debug)]
-pub struct TreeState {
-    pub flat_items: Vec<TreeItem>,
-    pub expanded_paths: HashSet<PathBuf>,
+pub struct TreeColumn {
+    pub path: PathBuf,
+    pub items: Vec<TreeItem>,
     pub selected: usize,
     pub offset: usize,
-    pub view_height: usize,
+}
+
+#[derive(Clone, Debug)]
+pub struct TreeState {
+    pub active_columns: Vec<TreeColumn>,
+    pub focus_col_idx: usize,
 }
 
 impl Default for TreeState {
     fn default() -> Self {
         Self {
-            flat_items: Vec::new(),
-            expanded_paths: HashSet::new(),
-            selected: 0,
-            offset: 0,
-            view_height: 20,
+            active_columns: Vec::new(),
+            focus_col_idx: 0,
         }
     }
 }
