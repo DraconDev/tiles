@@ -1,13 +1,16 @@
 use crate::app::App;
 use crate::state::GalaxyNode;
-use ratatui::{
-    layout::Rect,
-    style::{Color, Style},
-    text::Span,
-    widgets::{Block, Borders, Widget},
-    Frame,
-};
-use std::f64::consts::PI;
+use ratatui::{layout::Rect, style::Style, widgets::Widget, Frame};
+
+// Render Items
+struct RenderPoint {
+    x: f32,
+    y: f32,
+    char: char,
+    color: ratatui::style::Color,
+    is_node: bool,
+    label: Option<String>,
+}
 
 pub fn draw_galaxy_view(f: &mut Frame, area: Rect, app: &mut App) {
     if app.galaxy_state.root.is_none() {
@@ -15,90 +18,113 @@ pub fn draw_galaxy_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     if let Some(root) = &app.galaxy_state.root {
-        // Use Canvas for vector graphics feel? Or char grid?
-        // Char grid gives us text easily.
-        // Let's iterate and draw manual points.
+        let center_x = area.x as f32 + (area.width as f32 / 2.0);
+        let center_y = area.y as f32 + (area.height as f32 / 2.0);
 
-        let center_x = area.width as f32 / 2.0 + app.galaxy_state.pan.0;
-        let center_y = area.height as f32 / 2.0 + app.galaxy_state.pan.1;
+        let mut points = Vec::new();
 
-        // Recursively draw
-        draw_node_recursive(f, root, center_x, center_y, 0.0, 0, app.galaxy_state.zoom);
+        // Root is at logical (0,0)
+        collect_points_recursive(root, 0.0, 0.0, 0, app.galaxy_state.zoom, &mut points);
+
+        // Render to Buffer
+        let buf = f.buffer_mut();
+
+        for p in points {
+            // Apply Camera Transform
+            // Logical position (p.x, p.y) -> Screen Position
+            // Pan is Logical offset.
+
+            let logical_x = p.x + app.galaxy_state.pan.0;
+            let logical_y = p.y + app.galaxy_state.pan.1;
+
+            // Project to Screen (Aspect Ratio: x * 2.0)
+            let screen_x = center_x + (logical_x * 2.0);
+            let screen_y = center_y + logical_y;
+
+            // Bounds Check
+            if screen_x >= area.left() as f32
+                && screen_x < area.right() as f32
+                && screen_y >= area.top() as f32
+                && screen_y < area.bottom() as f32
+            {
+                let sx = screen_x as u16;
+                let sy = screen_y as u16;
+
+                // Draw Symbol
+                buf.get_mut(sx, sy).set_char(p.char).set_fg(p.color);
+
+                // Draw Label (if node and zoomed enough)
+                if let Some(label) = p.label {
+                    if app.galaxy_state.zoom > 0.5 {
+                        let label_x = sx + 2;
+                        if (label_x as f32 + label.len() as f32) < area.right() as f32 {
+                            let cell = buf.get_mut(label_x, sy); // Check first char pos
+                                                                 // Simply setting string:
+                            buf.set_string(label_x, sy, label, Style::default().fg(p.color));
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
-fn draw_node_recursive(
-    f: &mut Frame,
+fn collect_points_recursive(
     node: &GalaxyNode,
-    cx: f32,
-    cy: f32,
-    parent_angle: f32,
+    cx: f32, // Logical X
+    cy: f32, // Logical Y
     depth: usize,
     zoom: f32,
+    points: &mut Vec<RenderPoint>,
 ) {
-    // Determine screen coordinates
-    // Base radius of orbit
-    let base_radius = if depth == 0 {
-        0.0
-    } else {
-        12.0 * zoom * (0.8f32).powi(depth as i32)
-    };
-    // Wait, radius is distance FROM PARENT.
-    // So (cx, cy) is PARENT's position. We need to find THIS node's position.
+    // Add Self
+    points.push(RenderPoint {
+        x: cx,
+        y: cy,
+        char: if node.is_dir { 'O' } else { '•' },
+        color: node.color,
+        is_node: true,
+        label: Some(node.name.clone()),
+    });
 
-    // Actually, we should propagate Absolute Position, but layout is relative.
-    // Let's compute position:
-    // This function receives the node's computed center (passed by parent).
+    // Children
+    let count = node.children.len();
+    if count == 0 {
+        return;
+    }
 
-    let x = cx as u16;
-    let y = cy as u16;
+    // Layout Ring
+    // Radius depends on depth. Inner = tighter.
+    // Base radius starts large and shrinks? Or grows?
+    // Orbit 1: Radius 15. Orbit 2: Radius 8 (relative).
+    // Let's degrade radius by 0.7 per level.
+    // Initial Radius = 20.0 logical units.
+    let radius = 20.0 * zoom * (0.7f32).powi(depth as i32);
 
-    let (w, h) = f.area().as_ref().into(); // Correction: Frame area? No, need dimension.
-                                           // Basic bounds check
-                                           // if x < area.right... etc.
+    // Distribute children evenly around circle
+    let angle_step = 2.0 * std::f64::consts::PI as f32 / count as f32;
 
-    // Draw Node
-    let symbol = if node.is_dir { "O" } else { "•" };
-    let color = node.color;
-    // Draw label if zoomed enough or nearby?
-    let label = &node.name;
+    for (i, child) in node.children.iter().enumerate() {
+        let angle = i as f32 * angle_step + (depth as f32 * 0.5); // Offset per depth to avoid straight lines overlap
+        let nx = cx + radius * angle.cos();
+        let ny = cy + radius * angle.sin();
 
-    // Simple drawing: directly set buffer cell?
-    // Ratatui doesn't expose buffer easily in draw function without a widget.
-    // We can use a Widget impl or iterate.
-    // Or render many small Paragraphs? (Expensive).
-    // Canvas is best for dots/lines.
+        // Draw Line (Spoke) - interpolation
+        let steps = (radius * 1.0) as usize;
+        for s in 1..steps {
+            let t = s as f32 / steps as f32;
+            let lx = cx + (nx - cx) * t;
+            let ly = cy + (ny - cy) * t;
+            points.push(RenderPoint {
+                x: lx,
+                y: ly,
+                char: '·',
+                color: ratatui::style::Color::DarkGray,
+                is_node: false,
+                label: None,
+            });
+        }
 
-    // Let's use Canvas widget approach in the main draw function instead of recursion here?
-    // No, Canvas doesn't draw Text well.
-    // Let's use a custom Buffer-writing widget or just many small Widgets.
-    // Optimization: Collect all "DrawCalls" into a list, then render.
-}
-
-// Better Approach: Calculate all absolute positions first, then render using one loop.
-// Layout Engine separate from Render.
-
-pub fn calculate_galaxy_layout(
-    root: &GalaxyNode,
-    zoom: f32,
-    pan: (f32, f32),
-    screen_center: (f32, f32),
-) -> Vec<RenderItem> {
-    let mut items = Vec::new();
-    // Root at center
-    // Let's just traverse and push items with calculated screen X/Y
-
-    // Queue: (Node, parent_x, parent_y, start_angle, available_sector)
-    // This is complex.
-    // Simpler: Just Orbit 1 for now?
-
-    items
-}
-
-pub struct RenderItem {
-    pub x: u16,
-    pub y: u16,
-    pub symbol: String,
-    pub color: Color,
-    pub label: String,
+        collect_points_recursive(child, nx, ny, depth + 1, zoom, points);
+    }
 }
