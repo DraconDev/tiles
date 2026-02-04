@@ -396,7 +396,7 @@ fn handle_sidebar_mouse(
             if let Some(target) = app.hovered_drop_target.take() {
                 if let Some(source_path) = app.drag_source.take() {
                     match target {
-                        SidebarTarget::ReorderFavorite(target_idx) => {
+                        DropTarget::ReorderFavorite(target_idx) => {
                             // Find source index
                             if let Some(source_idx) =
                                 app.starred.iter().position(|p| p == &source_path)
