@@ -207,7 +207,7 @@ pub fn handle_tree_mouse(
                 return true;
             }
             MouseEventKind::ScrollUp => {
-                move_msg(app, -1);
+                app.tree_state.cascade_scroll = app.tree_state.cascade_scroll.saturating_sub(3);
                 return true;
             }
             _ => {}
@@ -217,11 +217,11 @@ pub fn handle_tree_mouse(
         // Maybe handle scroll if general?
         match me.kind {
             MouseEventKind::ScrollDown => {
-                move_msg(app, 1);
+                app.tree_state.cascade_scroll = app.tree_state.cascade_scroll.saturating_add(3);
                 return true;
             }
             MouseEventKind::ScrollUp => {
-                move_msg(app, -1);
+                app.tree_state.cascade_scroll = app.tree_state.cascade_scroll.saturating_sub(3);
                 return true;
             }
             _ => {}
