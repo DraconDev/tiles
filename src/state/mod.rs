@@ -57,10 +57,7 @@ pub enum AppEvent {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CurrentView {
-    Files,
     Editor,
-    Git,
-    Processes,
     Git,
     Processes,
     Tree,
