@@ -68,75 +68,21 @@ pub enum CurrentView {
 pub struct TreeItem {
     pub path: PathBuf,
     pub name: String,
-    pub depth: usize,
     pub is_dir: bool,
     pub expanded: bool,
-    pub has_children: bool, // For empty folder indication
+    pub has_children: bool,
     pub color: ratatui::style::Color,
-}
-
-#[derive(Clone, Debug)]
-pub struct TreeColumn {
-    pub path: PathBuf,
-    pub items: Vec<TreeItem>,
-    pub selections: std::collections::HashMap<usize, ratatui::style::Color>,
-    pub focus_index: usize,
-    pub offset: usize,
-    /// Sections for multi-select display: each section has a color, title, and item range
-    pub sections: Vec<ColumnSection>,
-}
-
-impl TreeColumn {
-    pub fn width(&self) -> u16 {
-        let max_len = self
-            .items
-            .iter()
-            .map(|it| it.name.chars().count())
-            .max()
-            .unwrap_or(0);
-
-        // Padding: Border (2) + Icon (2) + Text + Padding (2)
-        let width = (max_len + 6) as u16;
-
-        // Clamp
-        width.clamp(15, 50)
-    }
-
-    pub fn calculate_section_heights(&self, area_height: u16) -> Vec<u16> {
-        let total_items: usize = self
-            .sections
-            .iter()
-            .map(|s| s.end_index - s.start_index)
-            .sum();
-        let available_height = area_height.saturating_sub(self.sections.len() as u16 * 2);
-
-        self.sections
-            .iter()
-            .map(|s| {
-                let item_count = s.end_index - s.start_index;
-                let proportion = item_count as f32 / total_items.max(1) as f32;
-                let height = (proportion * available_height as f32).round() as u16;
-                height.max(3) // Minimum height of 3 (border + 1 item + border)
-            })
-            .collect()
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ColumnSection {
-    pub title: String,
-    pub color: ratatui::style::Color,
-    pub start_index: usize,
-    pub end_index: usize,
+    pub children: Option<Vec<TreeItem>>,
 }
 
 #[derive(Clone, Debug)]
 pub struct TreeState {
-    pub active_columns: Vec<TreeColumn>,
-    pub focus_col_idx: usize,
-    pub scroll_offset_col: usize,
+    pub root_items: Vec<TreeItem>,
+    // Path of the "current selection/focus" in the flattened tree.
+    // If easier, we can track indices, but Path is stable across re-renders.
+    pub selected_path: Option<PathBuf>,
+    pub scroll_offset: usize, // Vertical scroll line
     pub show_hidden: bool,
-    pub cascade_scroll: usize,
 }
 
 impl Default for TreeState {
