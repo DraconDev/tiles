@@ -493,6 +493,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         match app.current_view {
             CurrentView::Processes => draw_monitor_page(f, f.area(), app),
             CurrentView::Git => draw_git_page(f, f.area(), app),
+            CurrentView::Tree => tree::draw_tree_view(f, f.area(), app),
             _ => {}
         }
     } else {
