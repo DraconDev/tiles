@@ -160,6 +160,8 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
                                    // Increase shield to catch escape sequences
                 app.input_shield_until =
                     Some(std::time::Instant::now() + std::time::Duration::from_millis(150));
+                // Force a refresh to prevent "path display" glitches or empty lists
+                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                 return true;
             }
             _ => {}
