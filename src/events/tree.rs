@@ -68,7 +68,7 @@ pub fn handle_tree_mouse(
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
-    let (_, h) = app.terminal_size;
+    let (_, _h) = app.terminal_size;
 
     match me.kind {
         MouseEventKind::Down(MouseButton::Left) => {
