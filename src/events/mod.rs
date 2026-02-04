@@ -277,10 +277,6 @@ fn handle_general_mouse(
                         app.current_view = CurrentView::Tree;
                         crate::events::tree::refresh_tree(app);
                     }
-                    "galaxy" => {
-                        app.current_view = CurrentView::Galaxy;
-                        crate::events::galaxy::refresh_galaxy(app);
-                    }
                     _ => {}
                 }
                 app.sidebar_focus = false;
