@@ -1,4 +1,4 @@
-
+use notify::RecursiveMode;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -590,14 +590,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         let pb = meta_b.map(|m| m.permissions).unwrap_or(0);
                                         pa.cmp(&pb)
                                     }
-                                    _ => {
-                                        let na = a
-                                            .file_name()
-                                            .and_then(|s| s.to_str())
-                                            .unwrap_or("")
-                                            .to_lowercase();
-                                        let nb = b
-                                            .file_name()
+
                                             .and_then(|s| s.to_str())
                                             .unwrap_or("")
                                             .to_lowercase();
