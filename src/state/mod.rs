@@ -23,6 +23,7 @@ pub enum AppEvent {
     SaveFile(PathBuf, String),
     GitHistory,
     SystemMonitor,
+    AddToFavorites(PathBuf),
     ConnectToRemote(usize, usize),
     RemoteConnected(usize, RemoteSession),
     SystemUpdated(SystemData),
