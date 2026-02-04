@@ -1,6 +1,6 @@
-use terma::input::event::{Event, KeyCode, MouseEventKind, MouseButton};
-use tokio::sync::mpsc;
 use crate::app::{App, AppEvent, AppMode, CurrentView};
+use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind};
+use tokio::sync::mpsc;
 
 pub fn handle_git_events(evt: &Event, app: &mut App, _event_tx: &mpsc::Sender<AppEvent>) -> bool {
     if let CurrentView::Git = app.current_view {
@@ -14,7 +14,11 @@ pub fn handle_git_events(evt: &Event, app: &mut App, _event_tx: &mpsc::Sender<Ap
     false
 }
 
-pub fn handle_git_mouse(me: &terma::input::event::MouseEvent, app: &mut App, _event_tx: &mpsc::Sender<AppEvent>) -> bool {
+pub fn handle_git_mouse(
+    me: &terma::input::event::MouseEvent,
+    app: &mut App,
+    _event_tx: &mpsc::Sender<AppEvent>,
+) -> bool {
     let row = me.row;
     if let MouseEventKind::Down(MouseButton::Left) = me.kind {
         if row >= 2 {
