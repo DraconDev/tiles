@@ -161,7 +161,7 @@ fn render_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focused: bool) 
 
             let icon = if item.is_dir { "" } else { "" };
             let content = format!("{} {}", icon, item.name);
-            ListItem::new(Span::styled(content, style))
+            ListItem::new(content).style(style)
         })
         .collect();
 
@@ -253,7 +253,7 @@ fn render_sectioned_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focus
 
                 let icon = if item.is_dir { "" } else { "" };
                 let content = format!("{} {}", icon, item.name);
-                ListItem::new(Span::styled(content, style))
+                ListItem::new(content).style(style)
             })
             .collect();
 
