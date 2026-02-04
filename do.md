@@ -4,7 +4,7 @@ alt up and down does nto work on the favorite bar, mouse does not show visually 
 
 also adding to favorites does not work, and crashes the app
 
-we want to be able to on the tree view open folder to the right in a box, and the border marches the
+we want to be able to on the tree view open folder to the right in a box, and the border marches the hightlight of the folder being opened, 
 
 ## Maybe
 
