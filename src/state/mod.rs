@@ -60,6 +60,38 @@ pub enum CurrentView {
     Editor,
     Git,
     Processes,
+    Tree,
+}
+
+#[derive(Clone, Debug)]
+pub struct TreeItem {
+    pub path: PathBuf,
+    pub name: String,
+    pub depth: usize,
+    pub is_dir: bool,
+    pub expanded: bool,
+    pub color: ratatui::style::Color,
+}
+
+#[derive(Clone, Debug)]
+pub struct TreeState {
+    pub flat_items: Vec<TreeItem>,
+    pub expanded_paths: HashSet<PathBuf>,
+    pub selected: usize,
+    pub offset: usize,
+    pub view_height: usize,
+}
+
+impl Default for TreeState {
+    fn default() -> Self {
+        Self {
+            flat_items: Vec::new(),
+            expanded_paths: HashSet::new(),
+            selected: 0,
+            offset: 0,
+            view_height: 20,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
