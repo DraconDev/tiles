@@ -55,7 +55,15 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
             continue;
         }
 
-        let item_rect = Rect::new(row_x, row_y, available_width.min(col_width), 1);
+        // Fix "Missing First Letter": Offset text rect by 1 to make room for border
+        let text_rect = Rect::new(
+            row_x + 1,
+            row_y,
+            available_width.saturating_sub(1).min(col_width),
+            1,
+        );
+        let border_rect = Rect::new(row_x, row_y, 1, 1);
+        let bg_rect = Rect::new(row_x, row_y, available_width.min(col_width), 1);
 
         let is_selected = if let Some(sel) = &app.tree_state.selected_path {
             sel == &item.item.path
@@ -92,24 +100,37 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
 
         let span = Span::styled(format!("{}{}", icon, item.item.name), style);
 
-        // Render
-        f.render_widget(Block::default().style(style), item_rect); // Background
-        f.render_widget(span, item_rect);
+        // Render Background
+        f.render_widget(Block::default().style(style), bg_rect);
 
-        // Draw border
+        // Render Text (Offset)
+        f.render_widget(span, text_rect);
+
+        // Draw border (Separate widget)
         if is_selected {
             f.render_widget(
                 Block::default()
                     .borders(Borders::LEFT)
                     .border_style(Style::default().fg(THEME.accent_primary)),
-                item_rect,
+                border_rect, // Only draw border on first char
             );
         } else {
             f.render_widget(
                 Block::default()
                     .borders(Borders::LEFT)
                     .border_style(Style::default().fg(Color::DarkGray)),
-                item_rect,
+                border_rect,
+            );
+        }
+
+        // Draw Indentation Guides
+        for d in 0..item.col {
+            let guide_x = area.x + (d as u16 * col_width);
+            f.render_widget(
+                Block::default()
+                    .borders(Borders::LEFT)
+                    .border_style(Style::default().fg(Color::Rgb(40, 40, 40))), // Very dim guide
+                Rect::new(guide_x, row_y, 1, 1),
             );
         }
     }
