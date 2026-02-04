@@ -255,6 +255,11 @@ fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
 
                 if let Ok(entries) = std::fs::read_dir(&path) {
                     let mut folder_items: Vec<_> = entries.filter_map(|e| e.ok()).collect();
+
+                    if !app.tree_state.show_hidden {
+                        folder_items.retain(|e| !e.file_name().to_string_lossy().starts_with('.'));
+                    }
+
                     folder_items.sort_by(|a, b| {
                         let ad = a.path().is_dir();
                         let bd = b.path().is_dir();
