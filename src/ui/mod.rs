@@ -499,7 +499,6 @@ pub fn draw(f: &mut Frame, app: &mut App) {
             CurrentView::Processes => draw_monitor_page(f, f.area(), app),
             CurrentView::Git => draw_git_page(f, f.area(), app),
             CurrentView::Tree => tree::draw_tree_view(f, f.area(), app),
-            CurrentView::Galaxy => galaxy::draw_galaxy_view(f, f.area(), app),
             _ => {}
         }
     } else {
