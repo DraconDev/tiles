@@ -481,6 +481,12 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 f.render_widget(editor, inner_area);
             }
         }
+    } else if app.current_view == CurrentView::Galaxy {
+        f.render_widget(
+            Block::default().style(Style::default().bg(Color::Black)),
+            f.area(),
+        );
+        galaxy::draw_galaxy_view(f, f.area(), app);
     } else if matches!(app.mode, AppMode::Settings) {
         f.render_widget(
             Block::default().style(Style::default().bg(Color::Black)),
