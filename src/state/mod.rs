@@ -88,36 +88,15 @@ pub struct TreeState {
 impl Default for TreeState {
     fn default() -> Self {
         Self {
-            active_columns: Vec::new(),
-            focus_col_idx: 0,
-            scroll_offset_col: 0,
+            root_items: Vec::new(),
+            selected_path: None,
+            scroll_offset: 0,
             show_hidden: false,
-            cascade_scroll: 0,
         }
     }
 }
 
 impl TreeState {
-    pub fn calculate_expanded_heights(&self, _area_height: u16) -> Vec<usize> {
-        let mut expanded_heights = vec![0; self.active_columns.len()];
-        // Iterate backwards
-        for i in (0..self.active_columns.len()).rev() {
-            let col = &self.active_columns[i];
-            let base_height = col.items.len();
-
-            if i == self.active_columns.len() - 1 {
-                expanded_heights[i] = base_height;
-            } else {
-                let child_h = expanded_heights[i + 1];
-                // Parent height = (items - 1) + child_h
-                // Guard against empty items
-                if base_height == 0 {
-                    expanded_heights[i] = 0;
-                } else {
-                    expanded_heights[i] = (base_height.saturating_sub(1)) + child_h;
-                }
-            }
-        }
         expanded_heights
     }
 }
