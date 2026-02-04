@@ -467,12 +467,20 @@ async fn run_tty() -> color_eyre::Result<()> {
                 }
                 AppEvent::AddToFavorites(path) => {
                     let mut app_guard = app.lock().unwrap();
-                    if !app_guard.starred.contains(&path) {
+                    // Only add if path exists and not already in favorites
+                    if path.exists() && !app_guard.starred.contains(&path) {
                         app_guard.starred.push(path.clone());
-                        let _ = crate::config::save_state(&app_guard); // Ensure persistence
+                        // Wrap save_state to prevent crash if serialization fails
+                        if let Err(e) = crate::config::save_state(&app_guard) {
+                            crate::app::log_debug(&format!("Failed to save state: {}", e));
+                        }
+                        let display_name = path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().to_string())
+                            .unwrap_or_else(|| path.display().to_string());
                         let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                            "Added to favorites: {:?}",
-                            path.file_name().unwrap_or_default()
+                            "Added to favorites: {}",
+                            display_name
                         )));
                     }
                     needs_draw = true;
