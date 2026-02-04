@@ -304,8 +304,10 @@ pub struct FileState {
     #[serde(skip)]
     pub metadata: HashMap<PathBuf, FileMetadata>,
     #[serde(skip)]
+    #[allow(dead_code)]
     pub path_colors: HashMap<PathBuf, u8>,
     #[serde(skip)]
+    #[allow(dead_code)]
     pub preview: Option<String>,
     #[serde(skip)]
     pub view_height: usize,
