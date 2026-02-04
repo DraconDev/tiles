@@ -248,6 +248,7 @@ impl App {
             background_tasks: Vec::new(),
             tile_queue,
             tree_state: TreeState::default(),
+            saved_pane: None,
         }
     }
 
