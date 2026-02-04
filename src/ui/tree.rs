@@ -185,7 +185,7 @@ fn render_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focused: bool) 
     };
 
     let mut state = ListState::default();
-    state.select(Some(col.selected));
+    state.select(Some(col.focus_index));
 
     f.render_stateful_widget(
         List::new(items)
