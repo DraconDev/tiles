@@ -135,6 +135,7 @@ pub struct TreeState {
     pub focus_col_idx: usize,
     pub scroll_offset_col: usize,
     pub show_hidden: bool,
+    pub cascade_scroll: usize,
 }
 
 impl Default for TreeState {
@@ -144,6 +145,7 @@ impl Default for TreeState {
             focus_col_idx: 0,
             scroll_offset_col: 0,
             show_hidden: false,
+            cascade_scroll: 0,
         }
     }
 }
