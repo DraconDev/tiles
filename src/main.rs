@@ -471,6 +471,18 @@ async fn run_tty() -> color_eyre::Result<()> {
                     app_guard.last_action_msg = Some((msg, std::time::Instant::now()));
                     needs_draw = true;
                 }
+                AppEvent::AddToFavorites(path) => {
+                    let mut app_guard = app.lock().unwrap();
+                    if !app_guard.starred.contains(&path) {
+                        app_guard.starred.push(path.clone());
+                        app_guard.save_state(); // Ensure persistence
+                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                            "Added to favorites: {:?}",
+                            path.file_name().unwrap_or_default()
+                        )));
+                    }
+                    needs_draw = true;
+                }
                 _ => {}
             }
         }
