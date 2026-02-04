@@ -66,21 +66,11 @@ pub fn handle_tree_mouse(
         return false;
     }
 
-    // We need to calculate EXACT widths to know which column was clicked.
-    // This logic must match 'draw_tree_view' exactly.
-    // We assume 'scroll_offset_col' is correct from the last draw.
-
-    let start_col = app.tree_state.scroll_offset_col;
-    let mut current_x = 0; // Relative to tree area X (which we assume is 0 or we subtract area.x if we knew it)
-                           // The Event 'me.column' is global screen coordinates.
-                           // If our Tree View starts at x=0 (which it does in full screen), then me.column is correct.
-                           // If there is sidebar/padding, we might need adjustments.
-                           // Assuming effective full screen or main pane.
-
-    // We iterate visible columns starting from scroll offset
+    // Calculate widths to find which column was clicked
+    let mut current_x: u16 = 0;
     let mut target_col_idx = None;
 
-    for i in start_col..app.tree_state.active_columns.len() {
+    for i in 0..app.tree_state.active_columns.len() {
         let col = &app.tree_state.active_columns[i];
         let width = col.width() as u16;
 
