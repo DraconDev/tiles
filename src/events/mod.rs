@@ -194,7 +194,7 @@ fn handle_general_mouse(
 ) -> bool {
     let column = me.column;
     let row = me.row;
-    let (w, h) = app.terminal_size;
+    let (w, _) = app.terminal_size;
     app.mouse_pos = (column, row);
 
     crate::app::log_debug(&format!(
