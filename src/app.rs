@@ -156,7 +156,17 @@ impl App {
             license: LicenseStatus::FreeMode,
             sidebar_focus: false,
             sidebar_index: 0,
-            starred: Vec::new(),
+            starred: vec![
+                dirs::home_dir(),
+                dirs::desktop_dir(),
+                dirs::document_dir(),
+                dirs::download_dir(),
+                dirs::picture_dir(),
+                dirs::video_dir(),
+            ]
+            .into_iter()
+            .flatten()
+            .collect(),
             remote_bookmarks: Vec::new(),
             pending_remote: RemoteBookmark {
                 name: String::new(),
