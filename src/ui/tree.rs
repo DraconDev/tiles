@@ -90,9 +90,9 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
 
         let icon = if item.item.is_dir {
             if item.item.has_children {
-                " "
+                ""
             } else {
-                " ∅"
+                "∅"
             }
         } else {
             ""
