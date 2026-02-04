@@ -62,19 +62,6 @@ pub enum CurrentView {
     Git,
     Processes,
     Tree,
-    Galaxy,
-}
-
-#[derive(Clone, Debug)]
-pub struct GalaxyNode {
-    pub path: PathBuf,
-    pub name: String,
-    pub is_dir: bool,
-    pub color: ratatui::style::Color,
-    pub x: f32,
-    pub y: f32,
-    pub size: f32,
-    pub children: Vec<GalaxyNode>,
 }
 
 #[derive(Clone, Debug)]
