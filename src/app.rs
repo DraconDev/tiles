@@ -95,6 +95,7 @@ pub struct App {
     pub background_tasks: Vec<BackgroundTask>,
     pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
     pub tree_state: TreeState,
+    pub galaxy_state: crate::state::GalaxyState,
     pub saved_pane: Option<Pane>,
 }
 
