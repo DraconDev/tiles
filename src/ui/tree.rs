@@ -133,7 +133,7 @@ fn render_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focused: bool) 
         .items
         .iter()
         .enumerate()
-        .map(|(i, item)| {
+        .map(|(_, item)| {
             let is_selected = i == col.selected;
             let mut style = Style::default().fg(item.color);
 
