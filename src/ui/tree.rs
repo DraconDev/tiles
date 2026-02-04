@@ -19,36 +19,8 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     // 1. Calculate Expanded Heights (Bottom-Up)
-    let mut expanded_heights = vec![0; app.tree_state.active_columns.len()];
-    // Iterate backwards
-    for i in (0..app.tree_state.active_columns.len()).rev() {
-        let col = &app.tree_state.active_columns[i];
-        let mut base_height = col.items.len();
-        if !col.sections.is_empty() {
-            // Stacked column height = sum of section heights (calculated based on area height assumption?)
-            // Actually, stacked cols in this mode probably behave like flat lists for height?
-            // "new column on the right has 5 length".
-            // If stacked, it's just total items + headers?
-            // Let's assume calculated visual height.
-            let (_, h) = app.terminal_size;
-            let area_h = h.saturating_sub(2);
-            let section_heights = col.calculate_section_heights(area_h);
-            base_height = section_heights.iter().map(|&x| x as usize + 2).sum();
-        }
-
-        if i == app.tree_state.active_columns.len() - 1 {
-            expanded_heights[i] = base_height;
-        } else {
-            let child_h = expanded_heights[i + 1];
-            // Parent height = (items - 1) + child_h
-            // Guard against empty items
-            if base_height == 0 {
-                expanded_heights[i] = 0; // Or child_h? No parent item to anchor.
-            } else {
-                expanded_heights[i] = (base_height - 1) + child_h;
-            }
-        }
-    }
+    // Use area.height as approximation for stacked columns if needed
+    let expanded_heights = app.tree_state.calculate_expanded_heights(area.height);
 
     // 2. Calculate Widths
     let col_widths: Vec<u16> = app
