@@ -199,11 +199,8 @@ pub fn handle_tree_mouse(
                 }
             }
             MouseEventKind::ScrollDown => {
-                // Focus the column under mouse for scrolling?
-                // Currently move_msg scrolls the ACTIVE (last) column.
-                // It might be nice to scroll the hovered column, but let's stick to simple behavior for now or verify logic.
-                // Existing logic called move_msg(app, 1).
-                move_msg(app, 1);
+                // Global Cascade Scroll
+                app.tree_state.cascade_scroll = app.tree_state.cascade_scroll.saturating_add(3);
                 return true;
             }
             MouseEventKind::ScrollUp => {
