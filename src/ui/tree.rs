@@ -102,6 +102,7 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
                 Block::default()
                     .borders(Borders::LEFT)
                     .border_style(Style::default().fg(THEME.accent_primary)),
+                item_rect,
             );
         } else {
             f.render_widget(
