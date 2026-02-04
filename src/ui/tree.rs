@@ -1,22 +1,11 @@
 use crate::app::App;
-use crate::state::TreeColumn;
-use crate::ui::theme::THEME;
-use ratatui::{
-    layout::Rect,
-    style::{Color, Modifier, Style},
-    text::Span,
-    widgets::{Block, Borders, List, ListItem, ListState, StatefulWidget, Widget},
-    Frame,
-};
-
-use crate::app::App;
 use crate::state::TreeItem;
 use crate::ui::theme::THEME;
 use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
     text::Span,
-    widgets::{Block, Borders, List, ListItem, ListState, StatefulWidget, Widget},
+    widgets::{Block, Borders, Widget},
     Frame,
 };
 
@@ -48,13 +37,6 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
         .collect();
 
     // Draw directly to buffer to allow custom positioning
-    // We can't use standard list easily for cascade layout where X changes per row
-    // Actually, we can just iterate and draw separate widgets per line?
-    // Or render a List where each Line has padding?
-    // Cascade means children are to the RIGHT, not just indented.
-    // X = Depth * Width.
-    // Let's draw manually row by row.
-
     for (i, r_item) in render_items.iter().enumerate() {
         let row_y = area.y + i as u16;
         if row_y >= area.y + area.height {
@@ -62,10 +44,6 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
         }
 
         // Calculate X position
-        // Depth 0 = 0
-        // Depth 1 = Width(Depth 0)
-        // We need consistent column widths?
-        // Or dynamic based on parents?
         // Simple approach: Fixed column width of 25?
         let col_width = 25;
         let row_x = area.x + (r_item.depth as u16 * col_width);
