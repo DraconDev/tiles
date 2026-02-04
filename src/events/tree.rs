@@ -34,6 +34,16 @@ pub fn handle_tree_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                 enter_directory(app, event_tx);
                 return true;
             }
+            // Update key handler to support toggle hidden
+            KeyCode::Char('h')
+                if key
+                    .modifiers
+                    .contains(terma::input::event::KeyModifiers::CONTROL) =>
+            {
+                app.tree_state.show_hidden = !app.tree_state.show_hidden;
+                refresh_tree(app);
+                return true;
+            }
             KeyCode::Left | KeyCode::Char('h') => {
                 leave_directory(app);
                 return true;
@@ -331,7 +341,7 @@ pub fn refresh_tree(app: &mut App) {
         if let Some(fs) = app.current_file_state() {
             app.tree_state
                 .active_columns
-                .push(load_column(&fs.current_path));
+                .push(load_column(&fs.current_path, app.tree_state.show_hidden));
         }
         return;
     }
@@ -346,7 +356,7 @@ pub fn refresh_tree(app: &mut App) {
             continue;
         }
 
-        let new_col = load_column(&col.path);
+        let new_col = load_column(&col.path, app.tree_state.show_hidden);
         // Restore selection
         if new_col.items.len() > col.focus_index {
             // Keep focus
