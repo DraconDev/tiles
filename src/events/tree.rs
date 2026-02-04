@@ -224,11 +224,18 @@ fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
     let mut color_idx = 0;
 
     // Gather items from all selected folders, creating sections
-    for (idx, _sel_color) in &selections {
-        if *idx < app.tree_state.active_columns[last_idx].items.len() {
-            let item = &app.tree_state.active_columns[last_idx].items[*idx];
+    for (idx, _) in selections.iter() {
+        let idx = *idx;
+        if idx < app.tree_state.active_columns[last_idx].items.len() {
+            let item = &app.tree_state.active_columns[last_idx].items[idx];
             if item.is_dir {
                 let section_color = section_colors[color_idx % section_colors.len()];
+
+                // SYNC COLOR: Update the parent's selection color to match the section color
+                app.tree_state.active_columns[last_idx]
+                    .selections
+                    .insert(idx, section_color);
+
                 let section_start = all_items.len();
 
                 if let Ok(entries) = std::fs::read_dir(&item.path) {
@@ -251,26 +258,37 @@ fn enter_directory(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
                             .unwrap_or_default()
                             .to_string_lossy()
                             .to_string();
+                        // Recursive "Keep Going Right":
+                        // The items we push here have correct absolute paths (p).
+                        // So next time we call enter_directory on THIS column, it will work fine.
                         all_items.push(TreeItem {
                             path: p,
                             name,
                             depth: 0,
                             is_dir,
                             expanded: false,
-                            color: section_color, // Use section color for items
+                            color: if is_dir { section_color } else { Color::White }, // Use section color for sub-items? Or keep them white? User said "highlighting on the left to match highlighting of the box".
+                                                                                      // Usually file managers keep files neutral (White) and folders Blue,
+                                                                                      // but here "color-coded by section" implies items share the session color.
+                                                                                      // Let's stick with section_color for dirs, but maybe simpler for files.
+                                                                                      // User said "dont need to highlight files that doesnt matter".
                         });
                     }
                 }
 
                 let section_end = all_items.len();
-                if section_end > section_start {
-                    sections.push(ColumnSection {
-                        title: item.name.clone(),
-                        color: section_color,
-                        start_index: section_start,
-                        end_index: section_end,
-                    });
-                }
+                // Create section *even if empty* to show it exists? Or only if has items?
+                // Logic below requires section_end > section_start.
+                // If empty folder, we won't see a box. That might be confusing.
+                // Let's allow empty sections to show "Empty Folder".
+
+                sections.push(ColumnSection {
+                    title: item.name.clone(),
+                    color: section_color,
+                    start_index: section_start,
+                    end_index: section_end,
+                });
+
                 color_idx += 1;
             } else {
                 let _ = event_tx.try_send(AppEvent::PreviewRequested(0, item.path.clone()));
