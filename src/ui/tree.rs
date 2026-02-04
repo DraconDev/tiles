@@ -134,17 +134,30 @@ fn render_column(f: &mut Frame, area: Rect, col: &TreeColumn, is_focused: bool) 
         .iter()
         .enumerate()
         .map(|(i, item)| {
-            let is_selected = i == col.selected;
+            let is_selected = col.selections.contains_key(&i);
+            let is_focused_item = i == col.focus_index;
             let mut style = Style::default().fg(item.color);
 
-            if is_selected && !is_focused {
-                style = style.bg(Color::Rgb(40, 40, 40)); // Dim selection for inactive col
+            if is_selected {
+                if let Some(sel_color) = col.selections.get(&i) {
+                    // Use the selection color for background and ensure text is readable
+                    style = style.bg(*sel_color).fg(Color::Black);
+                } else {
+                    style = style.bg(Color::Rgb(60, 60, 60));
+                }
             }
+            // Focus cursor (underline or just bold if selected)
+            if is_focused_item && is_focused {
+                style = style.add_modifier(Modifier::UNDERLINED);
+            }
+
             if item.is_dir {
                 style = style.add_modifier(Modifier::BOLD);
             }
 
             let icon = if item.is_dir { "" } else { "" };
+            // If stacked item in "Multi" path column, maybe show parent?
+            // For now simple.
             let content = format!("{} {}", icon, item.name);
 
             ListItem::new(Span::styled(content, style))
