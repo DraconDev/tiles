@@ -18,36 +18,39 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
         return;
     }
 
-    // Flatten the tree for rendering
-    let mut visible_items = Vec::new();
-    for item in &app.tree_state.root_items {
-        flatten_item_recursive(item, 0, &mut visible_items);
-    }
+    // Draw directly to buffer using calculated layout
+    // First, generate the full layout to determine heights and positions
+    let layout = calculate_layout(&app.tree_state.root_items);
 
     // Apply scrolling
-    let scroll_offset = app.tree_state.scroll_offset;
-    if scroll_offset >= visible_items.len() && !visible_items.is_empty() {
-        app.tree_state.scroll_offset = visible_items.len() - 1;
-    }
+    // If scroll_offset is too large, clamp it
+    let total_rows = if let Some(last) = layout.last() {
+        last.row + 1 // Approximation, or we can calculate max row
+    } else {
+        0
+    };
 
-    let render_items: Vec<RenderItem> = visible_items
-        .into_iter()
-        .skip(app.tree_state.scroll_offset)
-        .take(area.height as usize)
+    if app.tree_state.scroll_offset >= total_rows && total_rows > 0 {
+        app.tree_state.scroll_offset = total_rows - 1;
+    }
+    let scroll_offset = app.tree_state.scroll_offset;
+
+    // Filter visible items based on scroll area
+    let area_height = area.height as usize;
+    let visible_items: Vec<&LayoutItem> = layout
+        .iter()
+        .filter(|item| item.row >= scroll_offset && item.row < scroll_offset + area_height)
         .collect();
 
-    // Draw directly to buffer to allow custom positioning
-    for (i, r_item) in render_items.iter().enumerate() {
-        let row_y = area.y + i as u16;
-        if row_y >= area.y + area.height {
-            break;
-        }
+    for item in visible_items {
+        // Map logical row to visual row
+        let visual_row = (item.row - scroll_offset) as u16;
+        let row_y = area.y + visual_row;
 
-        // Calculate X position
         let col_width = app.tree_state.column_width;
-        let row_x = area.x + (r_item.depth as u16 * col_width);
+        let row_x = area.x + (item.col as u16 * col_width);
 
-        let available_width = area.width.saturating_sub(r_item.depth as u16 * col_width);
+        let available_width = area.width.saturating_sub(item.col as u16 * col_width);
         if available_width == 0 {
             continue;
         }
@@ -55,15 +58,15 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
         let item_rect = Rect::new(row_x, row_y, available_width.min(col_width), 1);
 
         let is_selected = if let Some(sel) = &app.tree_state.selected_path {
-            sel == &r_item.item.path
+            sel == &item.item.path
         } else {
             false
         };
 
-        let mut style = Style::default().fg(r_item.item.color);
+        let mut style = Style::default().fg(item.item.color);
 
         // Expanded Highlight (Dark Blue-Gray) for open folders
-        if r_item.item.expanded {
+        if item.item.expanded {
             style = style.bg(Color::Rgb(30, 30, 45));
         }
 
@@ -73,12 +76,12 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
                 .add_modifier(Modifier::BOLD);
         }
         // Dim empty folders
-        if r_item.item.is_dir && !r_item.item.has_children && !is_selected {
+        if item.item.is_dir && !item.item.has_children && !is_selected {
             style = style.fg(Color::Rgb(100, 100, 100));
         }
 
-        let icon = if r_item.item.is_dir {
-            if r_item.item.has_children {
+        let icon = if item.item.is_dir {
+            if item.item.has_children {
                 " "
             } else {
                 " ∅"
@@ -87,21 +90,18 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
             ""
         };
 
-        let span = Span::styled(format!("{}{}", icon, r_item.item.name), style);
+        let span = Span::styled(format!("{}{}", icon, item.item.name), style);
 
         // Render
         f.render_widget(Block::default().style(style), item_rect); // Background
         f.render_widget(span, item_rect);
 
-        // Draw vertical connector from parent?
-        // Cascade style implies boxes/columns.
-        // Let's draw a border on the left?
+        // Draw border
         if is_selected {
             f.render_widget(
                 Block::default()
                     .borders(Borders::LEFT)
                     .border_style(Style::default().fg(THEME.accent_primary)),
-                item_rect,
             );
         } else {
             f.render_widget(
@@ -114,18 +114,58 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
-struct RenderItem<'a> {
-    item: &'a TreeItem,
-    depth: usize,
+pub struct LayoutItem<'a> {
+    pub item: &'a TreeItem,
+    pub col: usize,
+    pub row: usize,
 }
 
-fn flatten_item_recursive<'a>(item: &'a TreeItem, depth: usize, result: &mut Vec<RenderItem<'a>>) {
-    result.push(RenderItem { item, depth });
-    if item.expanded {
-        if let Some(children) = &item.children {
-            for child in children {
-                flatten_item_recursive(child, depth + 1, result);
-            }
-        }
+pub fn calculate_layout(roots: &[TreeItem]) -> Vec<LayoutItem> {
+    let mut result = Vec::new();
+    let mut current_row = 0;
+    for root in roots {
+        let height = layout_recursive(root, 0, current_row, &mut result);
+        current_row += height;
     }
+    result
+}
+
+fn layout_recursive<'a>(
+    item: &'a TreeItem,
+    col: usize,
+    start_row: usize,
+    result: &mut Vec<LayoutItem<'a>>,
+) -> usize {
+    // Parent is at (col, start_row)
+    result.push(LayoutItem {
+        item,
+        col,
+        row: start_row,
+    });
+
+    if !item.expanded {
+        return 1;
+    }
+
+    if let Some(children) = &item.children {
+        if children.is_empty() {
+            return 1;
+        }
+
+        let mut child_y = start_row;
+        // Optimization: Child 0 on same row?
+        // Logic: All children drawn recursively.
+        // We pass 'start_row' to the first child.
+        // BUT, we passed (col + 1).
+
+        for child in children {
+            let height = layout_recursive(child, col + 1, child_y, result);
+            child_y += height;
+        }
+
+        let children_height = child_y - start_row;
+        return children_height.max(1);
+    }
+
+    1
 }
