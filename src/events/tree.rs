@@ -269,8 +269,8 @@ fn move_msg(app: &mut App, delta: i32) {
 }
 
 fn expand_current(app: &mut App) {
-    if let Some(p) = &app.tree_state.selected_path {
-        set_expansion(app, p, true);
+    if let Some(p) = app.tree_state.selected_path.clone() {
+        set_expansion(app, &p, true);
     }
 }
 
