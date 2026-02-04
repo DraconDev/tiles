@@ -104,9 +104,22 @@ pub fn draw_tree_view(f: &mut Frame, area: Rect, app: &mut App) {
                 }
                 if item.is_dir {
                     style = style.add_modifier(Modifier::BOLD);
+                    // Dim empty folders
+                    if !item.has_children && !is_selected {
+                        style = style.fg(Color::Rgb(100, 100, 100));
+                    }
                 }
 
-                let icon = if item.is_dir { "" } else { "" };
+                // Show arrow indicator for folders with children
+                let icon = if item.is_dir {
+                    if item.has_children {
+                        " "
+                    } else {
+                        " ∅"
+                    }
+                } else {
+                    ""
+                };
                 let content = format!("{} {}", icon, item.name);
                 items_vec.push(ListItem::new(content).style(style));
 
