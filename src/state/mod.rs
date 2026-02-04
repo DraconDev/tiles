@@ -96,11 +96,6 @@ impl Default for TreeState {
     }
 }
 
-impl TreeState {
-        expanded_heights
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ContextMenuTarget {
     File(usize),
