@@ -308,10 +308,16 @@ impl App {
 
     pub fn apply_split_mode(&mut self, split: bool) {
         if split && self.panes.len() == 1 {
-            let initial_fs = self.panes[0].tabs[0].clone();
-            self.panes.push(Pane::new(initial_fs));
+            // Restore saved pane if available, otherwise clone the current one
+            if let Some(saved) = self.saved_pane.take() {
+                self.panes.push(saved);
+            } else {
+                let initial_fs = self.panes[0].tabs[0].clone();
+                self.panes.push(Pane::new(initial_fs));
+            }
         } else if !split && self.panes.len() > 1 {
-            self.panes.truncate(1);
+            // Save the second pane before removing it
+            self.saved_pane = self.panes.pop();
             self.focused_pane_index = 0;
         }
         self.is_split_mode = split;
