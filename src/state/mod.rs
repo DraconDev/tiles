@@ -85,6 +85,23 @@ pub struct TreeColumn {
     pub sections: Vec<ColumnSection>,
 }
 
+impl TreeColumn {
+    pub fn width(&self) -> u16 {
+        let max_len = self
+            .items
+            .iter()
+            .map(|it| it.name.chars().count())
+            .max()
+            .unwrap_or(0);
+
+        // Padding: Border (2) + Icon (2) + Text + Padding (2)
+        let width = (max_len + 6) as u16;
+
+        // Clamp
+        width.clamp(15, 50)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ColumnSection {
     pub title: String,
