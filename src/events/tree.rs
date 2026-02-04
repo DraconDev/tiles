@@ -71,7 +71,7 @@ pub fn handle_tree_mouse(
                 // y=0 is top? No, y starts at content.
                 // assuming full screen, No Header.
                 // y=0.
-                let row = me.row as usize;
+                let row = me.row.saturating_sub(1) as usize;
 
                 let column = &app.tree_state.active_columns[col_idx];
                 let clicked_idx = column.offset + row;
