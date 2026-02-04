@@ -344,12 +344,31 @@ fn load_column(path: &Path, show_hidden: bool) -> TreeColumn {
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string();
+
+            // Check if directory has children
+            let has_children = if is_dir {
+                // Quick check: try to read first entry
+                std::fs::read_dir(&p)
+                    .map(|mut rd| {
+                        if show_hidden {
+                            rd.next().is_some()
+                        } else {
+                            rd.filter_map(|e| e.ok())
+                                .any(|e| !e.file_name().to_string_lossy().starts_with('.'))
+                        }
+                    })
+                    .unwrap_or(false)
+            } else {
+                false
+            };
+
             items.push(TreeItem {
                 path: p,
                 name,
                 depth: 0,
                 is_dir,
                 expanded: false,
+                has_children,
                 color: if is_dir { Color::Blue } else { Color::White },
             });
         }
