@@ -8,6 +8,7 @@ use crate::app::{
     App, AppEvent, AppMode, ContextMenuTarget, CurrentView, SidebarTarget, UndoAction,
 };
 use crate::events::input::delete_word_backwards;
+use crate::state::DropTarget;
 
 pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     if let Event::Key(key) = evt {
