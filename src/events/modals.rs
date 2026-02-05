@@ -1022,11 +1022,13 @@ pub fn handle_modal_mouse(
             ref target,
         } => {
             if let MouseEventKind::Down(MouseButton::Left) = me.kind {
-                let area_w = 60;
-                let area_h = 20;
+                // centered_rect(60, 20, ...) uses percentages
+                let area_w = w * 60 / 100;
+                let area_h = h * 20 / 100;
                 let area_x = (w.saturating_sub(area_w)) / 2;
                 let area_y = (h.saturating_sub(area_h)) / 2;
 
+                // Block borders take 1 cell each side
                 let inner_x = area_x + 1;
                 let inner_y = area_y + 1;
 
@@ -1049,6 +1051,7 @@ pub fn handle_modal_mouse(
                 let sources = sources.clone();
                 let target = target.to_path_buf();
 
+                // Button layout: " [C] Copy " (10) + "  " (2) + " [M] Move " (10) + "  " (2) + " [L] Link " (10) + "  " (2) + " [Esc] Cancel " (14)
                 if is_hit(0, 10) {
                     for src in &sources {
                         let dest = target.join(src.file_name().unwrap_or_default());
