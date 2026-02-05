@@ -606,7 +606,23 @@ fn handle_input_modals_keys(
                         }
                     }
                     AppMode::Delete => {
-                        if input.trim().to_lowercase() == "y" || !app.confirm_delete { /* delete logic */
+                        if input.trim().to_lowercase() == "y" || input.is_empty() {
+                            // Collect paths to delete
+                            let mut paths = Vec::new();
+                            if !fs.selection.is_empty() {
+                                for &idx in fs.selection.multi_selected_indices() {
+                                    if let Some(p) = fs.files.get(idx) {
+                                        paths.push(p.clone());
+                                    }
+                                }
+                            } else if let Some(idx) = fs.selection.selected {
+                                if let Some(p) = fs.files.get(idx) {
+                                    paths.push(p.clone());
+                                }
+                            }
+                            for p in paths {
+                                let _ = event_tx.try_send(AppEvent::Delete(p));
+                            }
                         }
                     }
                     _ => {}
