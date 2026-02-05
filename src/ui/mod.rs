@@ -138,8 +138,11 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .fg(Color::Black)
                         .add_modifier(Modifier::BOLD);
                 } else if is_reorder_target && app.is_dragging {
-                    // Visual feedback for drag reordering - cyan underline effect
-                    style = style.bg(Color::Rgb(0, 80, 80)).fg(Color::White);
+                    // Visual feedback for drag reordering - match selection style
+                    style = style
+                        .bg(THEME.accent_primary)
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD);
                 } else if is_hovered && app.is_dragging {
                     style = style.bg(THEME.accent_secondary).fg(Color::Black);
                 }
