@@ -4380,3 +4380,40 @@ fn format_modified_time(time: SystemTime) -> String {
         dt.format("%Y-%m-%d").to_string()
     }
 }
+
+fn draw_drag_ghost(f: &mut Frame, app: &App) {
+    if let Some(path) = &app.drag_source {
+        let (col, row) = app.mouse_pos;
+        let name = path.file_name().unwrap_or_default().to_string_lossy();
+        // Truncate name if too long
+        let max_len = 20;
+        let display_name = if name.len() > max_len {
+            format!("{}...", &name[..max_len])
+        } else {
+            name.to_string()
+        };
+
+        let text = format!(" {} ", display_name);
+        let width = text.len() as u16;
+
+        // Draw slightly offset from cursor
+        let x = col
+            .saturating_add(2)
+            .min(f.area().width.saturating_sub(width));
+        let y = row.saturating_add(1).min(f.area().height.saturating_sub(1));
+
+        let area = Rect::new(x, y, width, 1);
+
+        f.render_widget(Clear, area);
+        f.render_widget(
+            Paragraph::new(Span::styled(
+                text,
+                Style::default()
+                    .bg(THEME.accent_primary)
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD),
+            )),
+            area,
+        );
+    }
+}
