@@ -476,18 +476,25 @@ fn handle_sidebar_mouse(
                 // Find what sidebar item we're hovering over
                 for bound in &app.sidebar_bounds {
                     if bound.y == row {
-                        if let SidebarTarget::Favorite(ref _path) = bound.target {
-                            // Find the favorite index from its position in starred
-                            if let Some(fav_idx) = app.starred.iter().position(|p| {
-                                if let SidebarTarget::Favorite(ref bp) = bound.target {
-                                    p == bp
-                                } else {
-                                    false
+                        match &bound.target {
+                            SidebarTarget::Favorite(ref _path) => {
+                                // Find the favorite index from its position in starred
+                                if let Some(fav_idx) = app.starred.iter().position(|p| {
+                                    if let SidebarTarget::Favorite(ref bp) = bound.target {
+                                        p == bp
+                                    } else {
+                                        false
+                                    }
+                                }) {
+                                    app.hovered_drop_target =
+                                        Some(DropTarget::ReorderFavorite(fav_idx));
                                 }
-                            }) {
-                                app.hovered_drop_target =
-                                    Some(DropTarget::ReorderFavorite(fav_idx));
                             }
+                            SidebarTarget::Header(name) if name == "FAVORITES" => {
+                                // Dragging over FAVORITES header - allow adding to favorites
+                                app.hovered_drop_target = Some(DropTarget::Favorites);
+                            }
+                            _ => {}
                         }
                         break;
                     }
