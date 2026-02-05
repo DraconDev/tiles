@@ -970,6 +970,88 @@ pub fn handle_modal_mouse(
                 return true;
             }
         }
+        AppMode::Delete | AppMode::DeleteFile(_) => {
+            if let MouseEventKind::Down(MouseButton::Left) = me.kind {
+                let area_w = 40;
+                let area_h = 10;
+                let area_x = (w.saturating_sub(area_w)) / 2;
+                let area_y = (h.saturating_sub(area_h)) / 2;
+
+                let inner_x = area_x + 1;
+                let inner_y = area_y + 1;
+                let inner_h = area_h - 2;
+                let button_y = inner_y + inner_h.saturating_sub(2);
+
+                let is_hit = |bx: u16, len: u16| {
+                    column >= inner_x + bx && column < inner_x + bx + len && row == button_y
+                };
+
+                if is_hit(5, 9) {
+                    let _ = event_tx.try_send(AppEvent::ConfirmDelete);
+                    return true;
+                }
+
+                if is_hit(25, 8) {
+                    app.mode = AppMode::Normal;
+                    app.input.clear();
+                    return true;
+                }
+            }
+        }
+        AppMode::DragDropMenu {
+            ref sources,
+            ref target,
+        } => {
+            if let MouseEventKind::Down(MouseButton::Left) = me.kind {
+                let area_w = 60;
+                let area_h = 20;
+                let area_x = (w.saturating_sub(area_w)) / 2;
+                let area_y = (h.saturating_sub(area_h)) / 2;
+
+                let inner_x = area_x + 1;
+                let inner_y = area_y + 1;
+
+                let button_y_offset = if sources.len() == 1 {
+                    3
+                } else {
+                    let display_count = std::cmp::min(sources.len(), 3);
+                    let mut offset = 1 + display_count;
+                    if sources.len() > 3 {
+                        offset += 1;
+                    }
+                    offset + 2
+                };
+                let button_y = inner_y + button_y_offset as u16;
+
+                let is_hit = |bx: u16, len: u16| {
+                    column >= inner_x + bx && column < inner_x + bx + len && row == button_y
+                };
+
+                let sources = sources.clone();
+                let target = target.to_path_buf();
+
+                if is_hit(0, 10) {
+                    for src in &sources {
+                        let dest = target.join(src.file_name().unwrap_or_default());
+                        let _ = event_tx.try_send(AppEvent::Copy(src.clone(), dest));
+                    }
+                    app.mode = AppMode::Normal;
+                    return true;
+                }
+                if is_hit(12, 10) {
+                    for src in &sources {
+                        let dest = target.join(src.file_name().unwrap_or_default());
+                        let _ = event_tx.try_send(AppEvent::Rename(src.clone(), dest));
+                    }
+                    app.mode = AppMode::Normal;
+                    return true;
+                }
+                if is_hit(36, 14) {
+                    app.mode = AppMode::Normal;
+                    return true;
+                }
+            }
+        }
         _ => {}
     }
     false
