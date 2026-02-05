@@ -455,7 +455,7 @@ pub fn navigate_up(app: &mut App) {
             let old_folder = fs.current_path.clone();
             let parent = parent.to_path_buf();
             fs.current_path = parent.clone();
-            fs.pending_select = Some(old_folder);
+            fs.pending_select_path = Some(old_folder);
             push_history(fs, parent);
         }
     }
