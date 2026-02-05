@@ -683,7 +683,7 @@ pub fn handle_file_mouse(
                         return true;
                     }
                     app.drag_source = Some(path.clone());
-                    app.drag_start_pos = Some((column, row));
+                    app.drag_start_pos = Some(column, row));
 
                     // Double Click
                     if button == MouseButton::Left
@@ -749,7 +749,7 @@ pub fn handle_file_mouse(
         MouseEventKind::Moved | MouseEventKind::Drag(_) => {
             if let Some((sx, sy)) = app.drag_start_pos {
                 let dist_sq =
-                    ((column as f32 - sx as f32).powi(2) + (row as f32 - sy as f32).powi(2));
+                    (column as f32 - sx as f32).powi(2) + (row as f32 - sy as f32).powi(2);
                 if dist_sq >= 1.0 {
                     if !me.modifiers.contains(KeyModifiers::SHIFT) && !app.selection_mode {
                         app.is_dragging = true;
