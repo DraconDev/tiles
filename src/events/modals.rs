@@ -763,7 +763,6 @@ pub fn handle_modal_mouse(
             AppMode::Rename
                 | AppMode::NewFile
                 | AppMode::NewFolder
-                | AppMode::Delete
                 | AppMode::AddRemote(_)
                 | AppMode::EditorSearch
                 | AppMode::EditorReplace
