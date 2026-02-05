@@ -598,6 +598,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     {
         draw_drag_drop_modal(f, app, sources, target);
     }
+
+    if app.is_dragging {
+        draw_drag_ghost(f, app);
+    }
 }
 
 fn draw_drag_drop_modal(
