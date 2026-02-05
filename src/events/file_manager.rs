@@ -722,7 +722,19 @@ pub fn handle_file_mouse(
         }
         MouseEventKind::Up(_) => {
             if app.is_dragging {
-                // Drop Logic (simplified for brevity, should match original)
+                // Drop Logic
+                if let Some(target) = app.hovered_drop_target.take() {
+                    if let DropTarget::Folder(target_path) = target {
+                        if let Some(source_path) = app.drag_source.take() {
+                            if source_path != target_path {
+                                app.mode = AppMode::DragDropMenu {
+                                    sources: vec![source_path],
+                                    target: target_path,
+                                };
+                            }
+                        }
+                    }
+                }
                 app.is_dragging = false;
             }
             let sel_mode = app.selection_mode;
@@ -740,13 +752,13 @@ pub fn handle_file_mouse(
                     }
                 }
             }
-            app.is_dragging = false;
             app.drag_start_pos = None;
             app.drag_source = None;
             app.hovered_drop_target = None;
             true
         }
         MouseEventKind::Moved | MouseEventKind::Drag(_) => {
+            if let Some((sx, sy)) = app.drag_start_pos {
                 let dist_sq =
                     (column as f32 - sx as f32).powi(2) + (row as f32 - sy as f32).powi(2);
                 if dist_sq >= 1.0 {
@@ -767,7 +779,8 @@ pub fn handle_file_mouse(
                                 // Prevent dropping into itself check?
                                 if let Some(src) = &app.drag_source {
                                     if src != path {
-                                        app.hovered_drop_target = Some(DropTarget::Folder(path.clone()));
+                                        app.hovered_drop_target =
+                                            Some(DropTarget::Folder(path.clone()));
                                     }
                                 }
                             }
