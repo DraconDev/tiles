@@ -98,9 +98,6 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
                 ContextMenuAction::CopyPath,
                 ContextMenuAction::CopyName,
                 ContextMenuAction::Separator,
-                ContextMenuAction::Rename,
-                ContextMenuAction::Delete,
-                ContextMenuAction::Separator,
             ];
 
             if let Some(fs) = app.current_file_state() {
@@ -115,34 +112,64 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
                     } else {
                         actions.push(ContextMenuAction::Compress);
                     }
+
+                    // Toggle Add/Remove Favorites
+                    if app.starred.contains(path) {
+                        actions.push(ContextMenuAction::RemoveFromFavorites);
+                    } else {
+                        actions.push(ContextMenuAction::AddToFavorites);
+                    }
                 }
             }
 
             actions.extend(vec![
-                ContextMenuAction::AddToFavorites,
                 ContextMenuAction::SetColor(None),
                 ContextMenuAction::Separator,
                 ContextMenuAction::Properties,
             ]);
             actions
         }
-        ContextMenuTarget::Folder(_) => vec![
+        ContextMenuTarget::Folder(idx) => {
+            let mut actions = vec![
+                ContextMenuAction::Open,
+                ContextMenuAction::OpenNewTab,
+                ContextMenuAction::TerminalTab,
+                ContextMenuAction::TerminalWindow,
+                ContextMenuAction::Separator,
+                ContextMenuAction::Cut,
+                ContextMenuAction::Copy,
+                ContextMenuAction::CopyPath,
+                ContextMenuAction::CopyName,
+                ContextMenuAction::Separator,
+                ContextMenuAction::Rename,
+                ContextMenuAction::Delete,
+                ContextMenuAction::Separator,
+            ];
+
+            if let Some(fs) = app.current_file_state() {
+                if let Some(path) = fs.files.get(*idx) {
+                    // Toggle Add/Remove Favorites
+                    if app.starred.contains(path) {
+                        actions.push(ContextMenuAction::RemoveFromFavorites);
+                    } else {
+                        actions.push(ContextMenuAction::AddToFavorites);
+                    }
+                }
+            }
+
+            actions.extend(vec![
+                ContextMenuAction::Compress,
+                ContextMenuAction::SetColor(None),
+                ContextMenuAction::Separator,
+                ContextMenuAction::Properties,
+            ]);
+            actions
+        }
+        ContextMenuTarget::SidebarFavorite(_) => vec![
             ContextMenuAction::Open,
             ContextMenuAction::OpenNewTab,
-            ContextMenuAction::TerminalTab,
-            ContextMenuAction::TerminalWindow,
             ContextMenuAction::Separator,
-            ContextMenuAction::Cut,
-            ContextMenuAction::Copy,
-            ContextMenuAction::CopyPath,
-            ContextMenuAction::CopyName,
-            ContextMenuAction::Separator,
-            ContextMenuAction::Rename,
-            ContextMenuAction::Delete,
-            ContextMenuAction::Separator,
-            ContextMenuAction::AddToFavorites,
-            ContextMenuAction::Compress,
-            ContextMenuAction::SetColor(None),
+            ContextMenuAction::RemoveFromFavorites,
             ContextMenuAction::Separator,
             ContextMenuAction::Properties,
         ],
