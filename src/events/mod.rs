@@ -368,11 +368,13 @@ fn handle_sidebar_mouse(
     match me.kind {
         MouseEventKind::Down(button) => {
             app.sidebar_focus = true;
-            app.drag_start_pos = Some((column, row));
+            if button == MouseButton::Left {
+                app.drag_start_pos = Some((column, row));
+            }
             if let Some(b) = app.sidebar_bounds.iter().find(|b| b.y == row).cloned() {
                 app.sidebar_index = b.index;
-                if button == MouseButton::Left {
-                    match &b.target {
+                match button {
+                    MouseButton::Left => match &b.target {
                         SidebarTarget::Favorite(path) => {
                             if let Some(fs) = app.current_file_state_mut() {
                                 fs.current_path = path.clone();
@@ -402,10 +404,27 @@ fn handle_sidebar_mouse(
                             }
                         }
                         _ => {}
+                    },
+                    MouseButton::Right => {
+                        if let SidebarTarget::Favorite(path) = &b.target {
+                            let target = ContextMenuTarget::SidebarFavorite(path.clone());
+                            let actions =
+                                crate::event_helpers::get_context_menu_actions(&target, app);
+                            app.mode = AppMode::ContextMenu {
+                                x: column,
+                                y: row,
+                                target,
+                                actions,
+                                selected_index: None,
+                            };
+                        }
                     }
+                    _ => {}
                 }
                 if let SidebarTarget::Favorite(ref p) = b.target {
-                    app.drag_source = Some(p.clone());
+                    if button == MouseButton::Left {
+                        app.drag_source = Some(p.clone());
+                    }
                 }
             }
             true
@@ -423,11 +442,12 @@ fn handle_sidebar_mouse(
                                 if target_idx < app.starred.len() && source_idx != target_idx {
                                     let item = app.starred.remove(source_idx);
                                     // After removal, if source was before target, indices shift down
-                                    let insert_idx = if source_idx < target_idx {
-                                        target_idx - 1 // Adjust because we removed an item before it
-                                    } else {
-                                        target_idx
-                                    };
+                                    // Fix: When dragging DOWN (source < target), we want to insert at target_idx
+                                    // because items shifted. That places it AFTER the original target item (which moved up).
+                                    // When dragging UP (source > target), we want to insert at target_idx
+                                    // which places it BEFORE the target item.
+                                    let insert_idx = target_idx;
+
                                     // Ensure we don't exceed bounds
                                     let insert_idx = insert_idx.min(app.starred.len());
                                     app.starred.insert(insert_idx, item);
