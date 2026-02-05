@@ -260,6 +260,8 @@ pub fn handle_context_menu_action(
                                 "DEBUG: State saved successfully after adding favorite",
                             );
                         }
+                        // Refresh to update sidebar
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     } else {
                         crate::app::log_debug("DEBUG: Path already in favorites");
                     }
