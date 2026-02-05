@@ -419,17 +419,18 @@ fn handle_sidebar_mouse(
                             if let Some(source_idx) =
                                 app.starred.iter().position(|p| p == &source_path)
                             {
-                                if source_idx != target_idx {
+                                // Bounds check to prevent crash
+                                if target_idx < app.starred.len() && source_idx != target_idx {
                                     let item = app.starred.remove(source_idx);
-                                    // Adjust target index if shifting
+                                    // After removal, if source was before target, indices shift down
                                     let insert_idx = if source_idx < target_idx {
-                                        target_idx
+                                        target_idx - 1 // Adjust because we removed an item before it
                                     } else {
                                         target_idx
                                     };
-                                    if insert_idx <= app.starred.len() {
-                                        app.starred.insert(insert_idx, item);
-                                    }
+                                    // Ensure we don't exceed bounds
+                                    let insert_idx = insert_idx.min(app.starred.len());
+                                    app.starred.insert(insert_idx, item);
                                     let _ = crate::config::save_state(app);
                                     let _ = event_tx
                                         .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
