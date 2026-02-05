@@ -464,9 +464,9 @@ fn handle_sidebar_mouse(
         }
         MouseEventKind::Drag(_) | MouseEventKind::Moved => {
             if let Some((sx, sy)) = app.drag_start_pos {
-                if ((column as i16 - sx as i16).pow(2) + (row as i16 - sy as i16).pow(2)) as f32
-                    >= 1.0
-                {
+                let dist_sq =
+                    ((column as f32 - sx as f32).powi(2) + (row as f32 - sy as f32).powi(2));
+                if dist_sq >= 1.0 {
                     app.is_dragging = true;
                 }
             }
