@@ -296,10 +296,29 @@ pub fn handle_context_menu_action(
             }
         }
         ContextMenuAction::RemoveFromFavorites => {
-            if let ContextMenuTarget::SidebarFavorite(path) = target {
-                let path_clone = path.clone();
-                app.starred.retain(|p| p != &path_clone);
+            let mut removed = false;
+            match target {
+                ContextMenuTarget::SidebarFavorite(path) => {
+                    let path_clone = path.clone();
+                    app.starred.retain(|p| p != &path_clone);
+                    removed = true;
+                }
+                ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => {
+                    if let Some(fs) = app.current_file_state() {
+                        if let Some(path) = fs.files.get(*idx) {
+                            let path_clone = path.clone();
+                            if app.starred.contains(&path_clone) {
+                                app.starred.retain(|p| p != &path_clone);
+                                removed = true;
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+            if removed {
                 let _ = save_state(app);
+                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
             }
         }
         ContextMenuAction::Rename => {
