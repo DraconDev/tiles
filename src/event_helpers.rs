@@ -189,12 +189,7 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
             ]);
             actions
         }
-        ContextMenuTarget::SidebarFavorite(_) => vec![
-            ContextMenuAction::Open,
-            ContextMenuAction::RemoveFromFavorites,
-            ContextMenuAction::Separator,
-            ContextMenuAction::Properties,
-        ],
+
         ContextMenuTarget::SidebarRemote(_) => vec![
             ContextMenuAction::ConnectRemote,
             ContextMenuAction::DeleteRemote,
