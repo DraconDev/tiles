@@ -303,10 +303,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         app.move_down(shift);
                         return true;
                     }
-                        }
-                        app.move_down(shift);
-                        return true;
-                    }
+
                     KeyCode::Left => {
                         if key.modifiers.contains(KeyModifiers::SHIFT) && !app.sidebar_focus {
                             handle_quick_copy(app, event_tx, true);
