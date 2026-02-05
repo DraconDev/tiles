@@ -437,7 +437,22 @@ fn handle_sidebar_mouse(
                                 }
                             }
                         }
-                        _ => {}
+                        DropTarget::Favorites => {
+                            // Add folder to favorites when dropped on FAVORITES header
+                            if source_path.is_dir() && !app.starred.contains(&source_path) {
+                                app.starred.push(source_path.clone());
+                                let _ = crate::config::save_state(app);
+                                let _ = event_tx
+                                    .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                    "Added to favorites: {}",
+                                    source_path
+                                        .file_name()
+                                        .unwrap_or_default()
+                                        .to_string_lossy()
+                                )));
+                            }
+                        }
                     }
                 }
             }
