@@ -453,6 +453,7 @@ fn handle_sidebar_mouse(
                                 )));
                             }
                         }
+                        _ => {} // Handle other DropTarget variants
                     }
                 }
             }
