@@ -272,15 +272,29 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     KeyCode::Up => {
                         let shift = key.modifiers.contains(KeyModifiers::SHIFT);
                         if has_alt && app.sidebar_focus {
+                            // Debug logging
+                            crate::app::log_debug(&format!(
+                                "Alt+Up: sidebar_index={}, starred.len()={}, sidebar_focus={}",
+                                app.sidebar_index,
+                                app.starred.len(),
+                                app.sidebar_focus
+                            ));
                             // Reorder Favorites: Favorites start at sidebar_index=1 (after header)
                             // So starred_idx = sidebar_index - 1
                             let starred_idx = app.sidebar_index.saturating_sub(1);
+                            crate::app::log_debug(&format!(
+                                "Alt+Up: starred_idx={}, condition: {} && {}",
+                                starred_idx,
+                                starred_idx > 0,
+                                starred_idx < app.starred.len()
+                            ));
                             if starred_idx > 0 && starred_idx < app.starred.len() {
                                 app.starred.swap(starred_idx, starred_idx - 1);
                                 app.sidebar_index = app.sidebar_index.saturating_sub(1);
                                 let _ = crate::config::save_state(app);
                                 let _ = event_tx
                                     .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                crate::app::log_debug("Alt+Up: Swap performed!");
                             }
                             return true;
                         }
@@ -290,15 +304,28 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     KeyCode::Down => {
                         let shift = key.modifiers.contains(KeyModifiers::SHIFT);
                         if has_alt && app.sidebar_focus {
+                            // Debug logging
+                            crate::app::log_debug(&format!(
+                                "Alt+Down: sidebar_index={}, starred.len()={}, sidebar_focus={}",
+                                app.sidebar_index,
+                                app.starred.len(),
+                                app.sidebar_focus
+                            ));
                             // Reorder Favorites: Favorites start at sidebar_index=1 (after header)
                             // So starred_idx = sidebar_index - 1
                             let starred_idx = app.sidebar_index.saturating_sub(1);
+                            crate::app::log_debug(&format!(
+                                "Alt+Down: starred_idx={}, condition: {}",
+                                starred_idx,
+                                starred_idx < app.starred.len().saturating_sub(1)
+                            ));
                             if starred_idx < app.starred.len().saturating_sub(1) {
                                 app.starred.swap(starred_idx, starred_idx + 1);
                                 app.sidebar_index += 1;
                                 let _ = crate::config::save_state(app);
                                 let _ = event_tx
                                     .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                crate::app::log_debug("Alt+Down: Swap performed!");
                             }
                             return true;
                         }
