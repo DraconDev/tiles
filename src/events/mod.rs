@@ -446,12 +446,35 @@ fn handle_sidebar_mouse(
             app.hovered_drop_target = None;
             true
         }
-        MouseEventKind::Drag(_) => {
+        MouseEventKind::Drag(_) | MouseEventKind::Moved => {
             if let Some((sx, sy)) = app.drag_start_pos {
                 if ((column as i16 - sx as i16).pow(2) + (row as i16 - sy as i16).pow(2)) as f32
                     >= 1.0
                 {
                     app.is_dragging = true;
+                }
+            }
+            // Update hovered drop target during drag for visual feedback
+            if app.is_dragging {
+                app.hovered_drop_target = None;
+                // Find what sidebar item we're hovering over
+                for bound in &app.sidebar_bounds {
+                    if bound.y == row {
+                        if let SidebarTarget::Favorite(ref _path) = bound.target {
+                            // Find the favorite index from its position in starred
+                            if let Some(fav_idx) = app.starred.iter().position(|p| {
+                                if let SidebarTarget::Favorite(ref bp) = bound.target {
+                                    p == bp
+                                } else {
+                                    false
+                                }
+                            }) {
+                                app.hovered_drop_target =
+                                    Some(DropTarget::ReorderFavorite(fav_idx));
+                            }
+                        }
+                        break;
+                    }
                 }
             }
             true
