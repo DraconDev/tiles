@@ -609,6 +609,15 @@ async fn run_tty() -> color_eyre::Result<()> {
                             fs.files = filtered_files;
                             fs.local_count = fs.files.len();
                             fs.metadata = metadata;
+
+                            // Apply pending selection (e.g., after navigate_up)
+                            if let Some(pending_path) = fs.pending_select_path.take() {
+                                if let Some(idx) = fs.files.iter().position(|p| p == &pending_path)
+                                {
+                                    fs.selection.selected = Some(idx);
+                                    fs.table_state.select(Some(idx));
+                                }
+                            }
                             // Sort and filter here if needed
                         }
                     }
