@@ -683,7 +683,7 @@ pub fn handle_file_mouse(
                         return true;
                     }
                     app.drag_source = Some(path.clone());
-                    app.drag_start_pos = Some(column, row));
+                    app.drag_start_pos = Some((column, row));
 
                     // Double Click
                     if button == MouseButton::Left
