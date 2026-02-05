@@ -128,7 +128,7 @@ fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let is_selected = app.sidebar_index == current_idx;
                 let is_hovered =
                     matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
-                let is_reorder_target = matches!(&app.hovered_drop_target, Some(DropTarget::ReorderFavorite(idx)) if *idx == current_idx);
+                let is_reorder_target = matches!(&app.hovered_drop_target, Some(DropTarget::ReorderFavorite(idx)) if *idx == fav_idx);
 
                 // Active highlighting for favorites
                 let mut style = Style::default().fg(THEME.fg);
