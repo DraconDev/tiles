@@ -451,8 +451,11 @@ pub fn get_open_with_suggestions(_app: &App, ext: &str) -> Vec<String> {
 pub fn navigate_up(app: &mut App) {
     if let Some(fs) = app.current_file_state_mut() {
         if let Some(parent) = fs.current_path.parent() {
+            // Store the folder we're leaving so we can select it after refresh
+            let old_folder = fs.current_path.clone();
             let parent = parent.to_path_buf();
             fs.current_path = parent.clone();
+            fs.pending_select = Some(old_folder);
             push_history(fs, parent);
         }
     }
