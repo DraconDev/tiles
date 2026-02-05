@@ -747,12 +747,31 @@ pub fn handle_file_mouse(
             true
         }
         MouseEventKind::Moved | MouseEventKind::Drag(_) => {
-            if let Some((sx, sy)) = app.drag_start_pos {
                 let dist_sq =
                     (column as f32 - sx as f32).powi(2) + (row as f32 - sy as f32).powi(2);
                 if dist_sq >= 1.0 {
                     if !me.modifiers.contains(KeyModifiers::SHIFT) && !app.selection_mode {
                         app.is_dragging = true;
+                    }
+                }
+            }
+
+            // Update drop target if dragging
+            if app.is_dragging {
+                app.hovered_drop_target = None;
+                if row >= 3 && column >= sw {
+                    let idx = crate::event_helpers::fs_mouse_index(row, app);
+                    if let Some(fs) = app.current_file_state() {
+                        if let Some(path) = fs.files.get(idx) {
+                            if path.is_dir() {
+                                // Prevent dropping into itself check?
+                                if let Some(src) = &app.drag_source {
+                                    if src != path {
+                                        app.hovered_drop_target = Some(DropTarget::Folder(path.clone()));
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
