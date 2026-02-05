@@ -368,7 +368,7 @@ fn handle_sidebar_mouse(
     match me.kind {
         MouseEventKind::Down(button) => {
             app.sidebar_focus = true;
-            app.drag_start_pos = Some(column, row));
+            app.drag_start_pos = Some((column, row));
             if let Some(b) = app.sidebar_bounds.iter().find(|b| b.y == row).cloned() {
                 app.sidebar_index = b.index;
                 if button == MouseButton::Left {
