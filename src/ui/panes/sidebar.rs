@@ -219,6 +219,10 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             });
             current_y += 1;
             for (i, bookmark) in app.remote_bookmarks.iter().enumerate() {
+                if !matches_filter(&bookmark.name) {
+                    continue;
+                }
+
                 let current_bookmark_idx = sidebar_items.len();
                 let is_selected = app.sidebar_index == current_bookmark_idx;
 
