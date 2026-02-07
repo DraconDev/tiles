@@ -158,12 +158,35 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
                 return true;
             }
             CurrentView::Editor => {
+                // Save before closing if modified
+                if let Some(preview) = &app.editor_state {
+                    if let Some(editor) = &preview.editor {
+                        if editor.modified {
+                            let _ = event_tx.try_send(AppEvent::SaveFile(
+                                preview.path.clone(),
+                                editor.get_content(),
+                            ));
+                        }
+                    }
+                }
+                for pane in &mut app.panes {
+                    if let Some(preview) = &pane.preview {
+                        if let Some(editor) = &preview.editor {
+                            if editor.modified {
+                                let _ = event_tx.try_send(AppEvent::SaveFile(
+                                    preview.path.clone(),
+                                    editor.get_content(),
+                                ));
+                            }
+                        }
+                    }
+                    pane.preview = None;
+                }
+
                 app.save_current_view_prefs();
                 app.current_view = CurrentView::Files;
                 app.load_view_prefs(CurrentView::Files);
-                for pane in &mut app.panes {
-                    pane.preview = None;
-                }
+                app.editor_state = None;
                 app.input.clear(); // Ensure no stray inputs remain
                                    // Increase shield to catch escape sequences
                 app.input_shield_until =
