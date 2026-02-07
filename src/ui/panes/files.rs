@@ -322,43 +322,36 @@ pub fn draw_file_view(
 
                     let content = match col_type {
                         FileColumn::Name => {
-                            if path.to_string_lossy() == "__DIVIDER__" {
-                                cell_style = Style::default()
-                                    .fg(Color::Yellow)
-                                    .add_modifier(Modifier::BOLD);
-                                "> Global results".to_string()
-                            } else {
-                                let name =
-                                    path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
-                                let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
-                                let cat = crate::modules::files::get_file_category(path);
-                                let icon_str = Icon::get_for_path(path, cat, is_dir, app.icon_mode);
+                            let name =
+                                path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
+                            let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
+                            let cat = crate::modules::files::get_file_category(path);
+                            let icon_str = Icon::get_for_path(path, cat, is_dir, app.icon_mode);
 
-                                let mut suffix = String::new();
-                                if app.starred.contains(path) {
-                                    suffix.push_str(" [*]");
-                                }
-                                if !is_selected && !is_multi_selected && !app.path_colors.contains_key(path) && !is_hovered_drop {
-                                    if app.semantic_coloring {
-                                        if is_dir {
-                                            cell_style = cell_style.fg(THEME.accent_secondary);
-                                        } else {
-                                            let semantic_color = match cat {
-                                                crate::app::FileCategory::Script => THEME.file_code,
-                                                crate::app::FileCategory::Text => THEME.file_config,
-                                                crate::app::FileCategory::Image | crate::app::FileCategory::Video | crate::app::FileCategory::Audio => THEME.file_media,
-                                                crate::app::FileCategory::Archive => THEME.file_archive,
-                                                crate::app::FileCategory::Document => THEME.fg,
-                                                _ => THEME.fg,
-                                            };
-                                            cell_style = cell_style.fg(semantic_color);
-                                        }
-                                    } else if is_dir {
-                                        cell_style = cell_style.fg(THEME.accent_secondary);
-                                    }
-                                }
-                                format!("{}{}{}", icon_str, name, suffix)
+                            let mut suffix = String::new();
+                            if app.starred.contains(path) {
+                                suffix.push_str(" [*]");
                             }
+                            if !is_selected && !is_multi_selected && !app.path_colors.contains_key(path) && !is_hovered_drop {
+                                if app.semantic_coloring {
+                                    if is_dir {
+                                        cell_style = cell_style.fg(THEME.accent_secondary);
+                                    } else {
+                                        let semantic_color = match cat {
+                                            crate::app::FileCategory::Script => THEME.file_code,
+                                            crate::app::FileCategory::Text => THEME.file_config,
+                                            crate::app::FileCategory::Image | crate::app::FileCategory::Video | crate::app::FileCategory::Audio => THEME.file_media,
+                                            crate::app::FileCategory::Archive => THEME.file_archive,
+                                            crate::app::FileCategory::Document => THEME.fg,
+                                            _ => THEME.fg,
+                                        };
+                                        cell_style = cell_style.fg(semantic_color);
+                                    }
+                                } else if is_dir {
+                                    cell_style = cell_style.fg(THEME.accent_secondary);
+                                }
+                            }
+                            format!("{}{}{}", icon_str, name, suffix)
                         }
                         FileColumn::Size => {
                             let size = metadata.map(|m| m.size).unwrap_or(0);
