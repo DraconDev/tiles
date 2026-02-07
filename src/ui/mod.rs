@@ -2428,11 +2428,12 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             } else {
                 (pending.len() as u16 + 1).min(inner.height / 3)
             }),
+            Constraint::Length(1), // Spacer
             Constraint::Min(0),
         ])
         .split(inner);
 
-    // 1. Pending Changes
+    // 1. Active Changes
     if !pending.is_empty() {
         let pending_rows: Vec<_> = pending
             .iter()
@@ -2459,14 +2460,14 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         let pending_table = Table::new(pending_rows, [Constraint::Length(6), Constraint::Fill(1)])
             .block(
                 Block::default()
-                    .borders(Borders::BOTTOM)
-                    .title(" PENDING ")
+                    .title(" ACTIVE ")
                     .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
             );
         f.render_widget(pending_table, chunks[0]);
     }
 
     // 2. History
+    let history_area = chunks[2];
     if history.is_empty() {
         f.render_widget(
             Paragraph::new("\n\n No git history found for this path or not a git repository.")
