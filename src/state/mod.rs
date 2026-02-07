@@ -39,6 +39,8 @@ pub enum AppEvent {
         usize,
         usize,
         Option<String>,
+        Vec<String>, // Remotes
+        Vec<String>, // Stashes
     ),
     TaskProgress(uuid::Uuid, f32, String),
     TaskFinished(uuid::Uuid),
