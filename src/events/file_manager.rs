@@ -376,6 +376,22 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         handle_delete_key(app, event_tx);
                         return true;
                     }
+                    KeyCode::Char('~') => {
+                        if let Some(fs) = app.current_file_state_mut() {
+                            if let Some(home) = dirs::home_dir() {
+                                fs.current_path = home.clone();
+                                fs.selection.selected = Some(0);
+                                fs.selection.anchor = Some(0);
+                                fs.selection.clear_multi();
+                                *fs.table_state.offset_mut() = 0;
+                                crate::event_helpers::push_history(fs, home);
+                                let _ = event_tx
+                                    .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
                     KeyCode::Char(c)
                         if !key.modifiers.intersects(
                             KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER,
