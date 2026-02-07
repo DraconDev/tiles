@@ -196,7 +196,7 @@ impl App {
             confirm_delete: true,
             smart_date: true,
             semantic_coloring: true,
-            auto_save: false,
+            auto_save: true,
             default_show_hidden: false,
             single_columns: vec![
                 FileColumn::Name,
