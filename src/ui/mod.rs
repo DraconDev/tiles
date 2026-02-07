@@ -2405,6 +2405,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(THEME.accent_primary))
+        .style(Style::default().bg(Color::Rgb(0, 0, 0)))
         .title_top(Line::from(vec![
             Span::styled(
                 " GIT HUB ",
