@@ -54,18 +54,19 @@ pub fn handle_git_mouse(
             let remotes = &fs.git_remotes;
             let stashes = &fs.git_stashes;
             let inner_h = app.terminal_size.1.saturating_sub(2);
-            let pending_h = if pending.is_empty() { 
-                0 
-            } else { 
-                (pending.len() as u16 + 2).min(inner_h / 4) 
+            let top_h = if pending.is_empty() && remotes.is_empty() && stashes.is_empty() {
+                0
+            } else {
+                let p_len = if pending.is_empty() { 0 } else { pending.len() as u16 + 2 };
+                let i_len = if remotes.is_empty() && stashes.is_empty() { 0 } else { 6 };
+                p_len.max(i_len).min(inner_h / 3)
             };
-            let info_h = if remotes.is_empty() && stashes.is_empty() { 0 } else { 4 };
             
             let inner_y = 1; // Top border
             let active_data_start_y = inner_y + 1;
             
             // 1. Check if click is in ACTIVE section
-            if !pending.is_empty() && row >= active_data_start_y && row < active_data_start_y + pending_h.saturating_sub(1) {
+            if !pending.is_empty() && row >= active_data_start_y && row < active_data_start_y + top_h.saturating_sub(1) {
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                     if let Some(tab) = pane.tabs.get_mut(pane.active_tab_index) {
                         let rel_row = (row - active_data_start_y) as usize;
@@ -79,7 +80,7 @@ pub fn handle_git_mouse(
             }
 
             // 2. Check if click is in HISTORY section
-            let history_area_y = inner_y + pending_h + info_h;
+            let history_area_y = inner_y + top_h;
             let table_data_start_y = history_area_y + 3;
 
             if row >= table_data_start_y {
