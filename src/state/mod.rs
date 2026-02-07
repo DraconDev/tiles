@@ -38,6 +38,7 @@ pub enum AppEvent {
         Option<String>,
         usize,
         usize,
+        Option<String>,
     ),
     TaskProgress(uuid::Uuid, f32, String),
     TaskFinished(uuid::Uuid),
