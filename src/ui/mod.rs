@@ -2309,6 +2309,18 @@ fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, i
             if let Some(last_saved) = preview.last_saved {
                 if last_saved.elapsed().as_secs() < 2 {
                     border_color = Color::Green;
+                } else if let Some(editor) = &preview.editor {
+                    if editor.modified {
+                        border_color = Color::Yellow;
+                    } else if !is_focused {
+                        border_color = Color::White;
+                    }
+                }
+            } else if let Some(editor) = &preview.editor {
+                if editor.modified {
+                    border_color = Color::Yellow;
+                } else if !is_focused {
+                    border_color = Color::White;
                 }
             }
         }
