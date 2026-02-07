@@ -2395,6 +2395,11 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                     .bg(THEME.accent_primary)
                     .add_modifier(Modifier::BOLD),
             ),
+            Span::raw(" "),
+            Span::styled(
+                format!(" {} ", _current_path.to_string_lossy()),
+                Style::default().fg(THEME.accent_secondary),
+            ),
         ]))
         .title_top(
             Line::from(vec![
