@@ -373,7 +373,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                         };
 
                         let mut editor = terma::widgets::TextEditor::with_content(&content);
-                        if path_str.starts_with("git://") {
+                        if path_str.starts_with("git://") || path_str.starts_with("git-diff://") {
                             editor.language = "diff".to_string();
                             editor.read_only = true;
                         } else if path.is_dir() {
