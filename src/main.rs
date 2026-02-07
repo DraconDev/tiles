@@ -339,6 +339,23 @@ async fn run_tty() -> color_eyre::Result<()> {
                                 Ok(out) => String::from_utf8_lossy(&out.stdout).to_string(),
                                 Err(e) => format!("Error fetching commit data: {}", e),
                             }
+                        } else if path_str.starts_with("git-diff://") {
+                            let file_path = &path_str[11..];
+                            let output = std::process::Command::new("git")
+                                .args(&["diff", file_path])
+                                .current_dir(&current_dir)
+                                .output();
+                            match output {
+                                Ok(out) => {
+                                    let content = String::from_utf8_lossy(&out.stdout).to_string();
+                                    if content.is_empty() {
+                                        "(No changes or file only in index)".to_string()
+                                    } else {
+                                        content
+                                    }
+                                }
+                                Err(e) => format!("Error fetching diff data: {}", e),
+                            }
                         } else if path.is_dir() {
                             format!("\n\n   << PROJECT VIEW: {} >>\n\n   Select a file from the sidebar to begin editing.", 
                                 path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string()))
