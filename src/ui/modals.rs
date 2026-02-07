@@ -165,6 +165,7 @@ pub fn draw_hotkeys_modal(f: &mut Frame, area: Rect) {
                 ("F1", "Show this Help"),
                 ("Ctrl + Q", "Quit Application"),
                 ("Ctrl + B", "Toggle Sidebar"),
+                ("Ctrl + M", "Toggle Main Stage"),
                 ("Ctrl + P", "Toggle Split View"),
                 ("Ctrl + G", "Open Settings"),
                 ("Ctrl + L", "Git History"),
@@ -190,7 +191,8 @@ pub fn draw_hotkeys_modal(f: &mut Frame, area: Rect) {
             vec![
                 ("Arrows", "Navigate"),
                 ("Enter", "Open Folder / Launch"),
-                ("Space", "Preview File / Folder Props"),
+                ("Space", "Editor"),
+                ("Ctrl + I", "Information"),
                 ("Backspace", "Go Up Directory"),
                 ("Home / ~", "Go Home"),
                 ("Alt + Left/Right", "Resize Sidebar"),

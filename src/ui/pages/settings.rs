@@ -95,7 +95,8 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
                 ("Ctrl + g", "Open Settings"),
                 ("Ctrl + Space", "Open Command Palette"),
                 ("Ctrl + b", "Toggle Sidebar"),
-                ("Ctrl + i", "AI Introspect (State Dump)"),
+                ("Ctrl + m", "Toggle Main Stage"),
+                ("Ctrl + i", "Information"),
             ],
         ),
         (
@@ -108,7 +109,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
                 ("Backspace", "Go to Parent Directory"),
                 ("Alt + Left / Right", "Back / Forward in History"),
                 ("~", "Go to Home Directory"),
-                ("Middle Click / Space", "Preview File in Other Pane"),
+                ("Middle Click / Space", "Editor"),
             ],
         ),
         (

@@ -13,7 +13,6 @@ pub mod git;
 pub mod input;
 pub mod modals;
 pub mod monitor;
-pub mod tree;
 
 pub fn handle_event(
     evt: Event,
@@ -71,6 +70,12 @@ pub fn handle_event(
             // --- GLOBAL OVERRIDES (High Priority) ---
             if has_control {
                 match key.code {
+                    KeyCode::Char('m') | KeyCode::Char('M') => {
+                        if app.current_view == CurrentView::Editor {
+                            app.show_main_stage = !app.show_main_stage;
+                            return true;
+                        }
+                    }
                     KeyCode::Char('p') | KeyCode::Char('P') => {
                         app.toggle_split();
                         app.save_current_view_prefs();
@@ -90,11 +95,6 @@ pub fn handle_event(
                     }
                     KeyCode::Char('l') | KeyCode::Char('L') => {
                         let _ = event_tx.try_send(AppEvent::GitHistory);
-                        return true;
-                    }
-                    KeyCode::Char('d') | KeyCode::Char('D') => {
-                        app.current_view = CurrentView::Tree;
-                        crate::events::tree::refresh_tree(app);
                         return true;
                     }
                     _ => {}
@@ -119,11 +119,6 @@ pub fn handle_event(
                 }
                 CurrentView::Files => {
                     if file_manager::handle_file_events(&evt, app, &event_tx) {
-                        return true;
-                    }
-                }
-                CurrentView::Tree => {
-                    if tree::handle_tree_events(&evt, app, &event_tx) {
                         return true;
                     }
                 }
@@ -232,9 +227,6 @@ fn handle_general_mouse(
     if app.current_view == CurrentView::Git {
         return git::handle_git_mouse(me, app, event_tx);
     }
-    if app.current_view == CurrentView::Tree {
-        return tree::handle_tree_mouse(me, app, event_tx);
-    }
 
     // 3. Header Icons (Row 0)
     if row == 0 {
@@ -273,10 +265,6 @@ fn handle_general_mouse(
                     }
                     "project" => {
                         let _ = event_tx.try_send(AppEvent::Editor);
-                    }
-                    "tree" => {
-                        app.current_view = CurrentView::Tree;
-                        crate::events::tree::refresh_tree(app);
                     }
                     _ => {}
                 }

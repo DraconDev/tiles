@@ -328,7 +328,7 @@ pub fn draw_file_view(
 
                     match col_type {
                         FileColumn::Name => {
-                            let is_global = file_idx > file_state.local_count;
+                            let is_global = file_state.local_count > 0 && file_idx > file_state.local_count && file_state.search_filter.len() > 3;
                             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
                             let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                             let cat = crate::modules::files::get_file_category(path);

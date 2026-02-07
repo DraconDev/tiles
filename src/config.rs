@@ -51,6 +51,7 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
                 for t in &p.tabs {
                     let mut tab_clone = t.clone();
                     tab_clone.search_filter.clear();
+                    tab_clone.files.clear();
                     tab_clone.local_count = 0;
                     tabs.push(tab_clone);
                 }

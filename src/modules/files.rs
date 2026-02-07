@@ -145,7 +145,10 @@ pub fn global_search(
 ) -> (Vec<PathBuf>, HashMap<PathBuf, FileMetadata>) {
     let mut results = Vec::new();
     let mut metadata = HashMap::new();
-    let query_lower = query.to_lowercase();
+    let query_lower = query.trim().to_lowercase();
+    if query_lower.is_empty() {
+        return (results, metadata);
+    }
 
     let mut stack = vec![root.to_path_buf()];
     let max_results = 100;

@@ -62,41 +62,6 @@ pub enum CurrentView {
     Editor,
     Git,
     Processes,
-    Tree,
-}
-
-#[derive(Clone, Debug)]
-pub struct TreeItem {
-    pub path: PathBuf,
-    pub name: String,
-    pub is_dir: bool,
-    pub expanded: bool,
-    pub has_children: bool,
-    pub color: ratatui::style::Color,
-    pub children: Option<Vec<TreeItem>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct TreeState {
-    pub root_items: Vec<TreeItem>,
-    // Path of the "current selection/focus" in the flattened tree.
-    // If easier, we can track indices, but Path is stable across re-renders.
-    pub selected_path: Option<PathBuf>,
-    pub scroll_offset: usize, // Vertical scroll line
-    pub show_hidden: bool,
-    pub column_width: u16,
-}
-
-impl Default for TreeState {
-    fn default() -> Self {
-        Self {
-            root_items: Vec::new(),
-            selected_path: None,
-            scroll_offset: 0,
-            show_hidden: false,
-            column_width: 25,
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

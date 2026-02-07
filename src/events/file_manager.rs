@@ -20,14 +20,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                 // Global Shortcuts
                 match key.code {
                     KeyCode::Char('i') | KeyCode::Char('I') if has_control => {
-                        let state = crate::modules::introspection::WorldState::capture(app);
-                        if let Ok(json) = serde_json::to_string_pretty(&state) {
-                            let _ = std::fs::write("introspection.json", json);
-                            app.last_action_msg = Some((
-                                "World state dumped to introspection.json".to_string(),
-                                std::time::Instant::now(),
-                            ));
-                        }
+                        app.mode = AppMode::Properties;
                         return true;
                     }
                     KeyCode::Enter if has_alt => {
@@ -836,44 +829,40 @@ fn handle_space_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
 
         if let Some(idx) = fs.selection.selected {
             if let Some(path) = fs.files.get(idx).cloned() {
-                let is_dir = path.is_dir();
-                if is_dir {
-                    app.mode = AppMode::Properties;
-                } else {
-                    let mut target_pane = app.focused_pane_index;
-                    let will_go_single = !app.view_prefs.editor.is_split_mode
-                        || (app.is_split_mode && {
-                            let other_idx = if app.focused_pane_index == 0 { 1 } else { 0 };
-                            app.panes
-                                .get(other_idx)
-                                .map(|p| p.preview.is_none())
-                                .unwrap_or(true)
-                        });
-
-                    if will_go_single {
-                        target_pane = 0;
-                    }
-
-                    let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path));
-                    app.save_current_view_prefs();
-                    app.current_view = CurrentView::Editor;
-                    app.load_view_prefs(CurrentView::Editor);
-
-                    if app.is_split_mode {
+                let mut target_pane = app.focused_pane_index;
+                let will_go_single = !app.view_prefs.editor.is_split_mode
+                    || (app.is_split_mode && {
                         let other_idx = if app.focused_pane_index == 0 { 1 } else { 0 };
-                        if let Some(other_pane) = app.panes.get(other_idx) {
-                            if other_pane.preview.is_none() {
-                                app.apply_split_mode(false);
-                                app.save_current_view_prefs();
-                            }
+                        app.panes
+                            .get(other_idx)
+                            .map(|p| p.preview.is_none())
+                            .unwrap_or(true)
+                    });
+
+                if will_go_single {
+                    target_pane = 0;
+                }
+
+                let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path));
+                app.save_current_view_prefs();
+                app.current_view = CurrentView::Editor;
+                app.load_view_prefs(CurrentView::Editor);
+                app.show_sidebar = true; // Ensure sidebar is visible for "file view on left"
+
+                if app.is_split_mode {
+                    let other_idx = if app.focused_pane_index == 0 { 1 } else { 0 };
+                    if let Some(other_pane) = app.panes.get(other_idx) {
+                        if other_pane.preview.is_none() {
+                            app.apply_split_mode(false);
+                            app.save_current_view_prefs();
                         }
                     }
-
-                    if app.panes.len() == 1 {
-                        app.focused_pane_index = 0;
-                    }
-                    app.sidebar_focus = false;
                 }
+
+                if app.panes.len() == 1 {
+                    app.focused_pane_index = 0;
+                }
+                app.sidebar_focus = false;
             }
         }
     }

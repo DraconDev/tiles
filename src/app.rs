@@ -10,7 +10,7 @@ pub use crate::state::{
     ContextMenuTarget, CurrentView, DropTarget, FileCategory, FileColumn, FileMetadata, FileState,
     GitPendingChange, LicenseStatus, MonitorSubview, Pane, PreviewState, ProcessColumn,
     RemoteBookmark, RemoteSession, SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget,
-    SystemState, TreeState, UndoAction, ViewPreferences, ViewStatePersistence,
+    SystemState, UndoAction, ViewPreferences, ViewStatePersistence,
 };
 
 pub struct BackgroundTask {
@@ -43,6 +43,7 @@ pub struct App {
     pub external_tools: HashMap<String, Vec<crate::config::ExternalTool>>,
     pub show_sidebar: bool,
     pub show_side_panel: bool,
+    pub show_main_stage: bool,
     pub sidebar_width_percent: u16,
     pub sidebar_bounds: Vec<SidebarBounds>,
     pub drag_start_pos: Option<(u16, u16)>,
@@ -96,7 +97,6 @@ pub struct App {
     pub background_tasks: Vec<BackgroundTask>,
     #[allow(dead_code)]
     pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
-    pub tree_state: TreeState,
     pub saved_pane: Option<Pane>,
 }
 
@@ -183,6 +183,7 @@ impl App {
             external_tools: HashMap::new(),
             show_sidebar: true,
             show_side_panel: true,
+            show_main_stage: true,
             sidebar_width_percent: 15,
             sidebar_bounds: Vec::new(),
             drag_start_pos: None,
@@ -249,7 +250,6 @@ impl App {
             replace_buffer: String::new(),
             background_tasks: Vec::new(),
             tile_queue,
-            tree_state: TreeState::default(),
             saved_pane: None,
         }
     }

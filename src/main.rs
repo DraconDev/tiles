@@ -283,20 +283,43 @@ async fn run_tty() -> color_eyre::Result<()> {
                 AppEvent::PreviewRequested(pane_idx, path) => {
                     let tx = event_tx.clone();
                     let app_clone = app.clone();
+                    let current_dir = {
+                        let app_guard = app.lock().unwrap();
+                        app_guard.current_file_state().map(|fs| fs.current_path.clone()).unwrap_or_else(|| PathBuf::from("."))
+                    };
+
                     tokio::spawn(async move {
-                        let (is_binary, is_too_large, size_mb) =
-                            terma::utils::check_file_suitability(&path, 5 * 1024 * 1024);
-                        let content = if is_binary {
-                            format!("<Binary file: {} MB>", size_mb)
-                        } else if is_too_large {
-                            format!("<File too large: {} MB>", size_mb)
+                        let path_str = path.to_string_lossy();
+                        let content = if path_str.starts_with("git://") {
+                            let hash = &path_str[6..];
+                            let output = std::process::Command::new("git")
+                                .args(&["show", "--stat", hash])
+                                .current_dir(&current_dir)
+                                .output();
+                            match output {
+                                Ok(out) => String::from_utf8_lossy(&out.stdout).to_string(),
+                                Err(e) => format!("Error fetching commit data: {}", e),
+                            }
+                        } else if path.is_dir() {
+                            format!("\n\n   << PROJECT VIEW: {} >>\n\n   Select a file from the sidebar to begin editing.", 
+                                path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string()))
                         } else {
-                            std::fs::read_to_string(&path)
-                                .unwrap_or_else(|e| format!("Error reading file: {}", e))
+                            let (is_binary, is_too_large, size_mb) =
+                                terma::utils::check_file_suitability(&path, 5 * 1024 * 1024);
+                            if is_binary {
+                                format!("<Binary file: {} MB>", size_mb)
+                            } else if is_too_large {
+                                format!("<File too large: {} MB>", size_mb)
+                            } else {
+                                std::fs::read_to_string(&path)
+                                    .unwrap_or_else(|e| format!("Error reading file: {}", e))
+                            }
                         };
 
-                        let editor = terma::widgets::TextEditor::with_content(&content);
-                        // editor.read_only = true; // Allow editing
+                        let mut editor = terma::widgets::TextEditor::with_content(&content);
+                        if path.is_dir() || path_str.starts_with("git://") {
+                            editor.read_only = true;
+                        }
 
                         {
                             let mut app_guard = app_clone.lock().unwrap();
@@ -491,11 +514,11 @@ async fn run_tty() -> color_eyre::Result<()> {
 
         // Handle Refreshes
         for pane_idx in panes_needing_refresh.drain() {
-            let (path, remote) = {
+            let (path, remote, current_filter) = {
                 let app_guard = app.lock().unwrap();
                 if let Some(pane) = app_guard.panes.get(pane_idx) {
                     if let Some(fs) = pane.current_state() {
-                        (fs.current_path.clone(), fs.remote_session.clone())
+                        (fs.current_path.clone(), fs.remote_session.clone(), fs.search_filter.clone())
                     } else {
                         continue;
                     }
@@ -520,17 +543,10 @@ async fn run_tty() -> color_eyre::Result<()> {
                     None
                 };
 
-                let mut search_filter = String::new();
-                {
-                    let app_guard = app_clone.lock().unwrap();
-                    if let Some(fs) = app_guard.panes.get(pane_idx).and_then(|p| p.current_state()) {
-                        search_filter = fs.search_filter.clone();
-                    }
-                }
-
-                let (g_files, g_meta) = if search_filter.len() > 3 && remote.is_none() {
+                let trimmed_filter = current_filter.trim();
+                let (g_files, g_meta) = if trimmed_filter.len() > 3 && remote.is_none() {
                     let search_root = dirs::home_dir().unwrap_or_else(|| path.clone());
-                    crate::modules::files::global_search(&search_root, &search_filter)
+                    crate::modules::files::global_search(&search_root, trimmed_filter)
                 } else {
                     (Vec::new(), std::collections::HashMap::new())
                 };
@@ -539,6 +555,12 @@ async fn run_tty() -> color_eyre::Result<()> {
                     let mut app_guard = app_clone.lock().unwrap();
                     if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
                         if let Some(fs) = pane.current_state_mut() {
+                            // RACE CONDITION CHECK:
+                            // Only apply if the filter hasn't changed since we started
+                            if fs.search_filter != current_filter {
+                                return;
+                            }
+
                             // Filter hidden files if needed
                             let filtered_files: Vec<_> = files
                                 .into_iter()
@@ -708,6 +730,11 @@ fn setup_app(
 
     if let Some(state) = crate::config::load_state() {
         app.panes = state.panes;
+        for pane in &mut app.panes {
+            for tab in &mut pane.tabs {
+                tab.local_count = tab.files.len();
+            }
+        }
         app.focused_pane_index = state.focused_pane_index;
         // Merge favorites (Defaults + Loaded)
         let mut loaded_starred = state.starred;

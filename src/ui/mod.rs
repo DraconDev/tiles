@@ -27,7 +27,6 @@ use unicode_width::UnicodeWidthStr;
 
 pub mod modals;
 pub mod theme;
-pub mod tree;
 
 fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = area.inner(ratatui::layout::Margin {
@@ -499,7 +498,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         draw_settings_modal(f, app);
     } else if matches!(
         app.current_view,
-        CurrentView::Processes | CurrentView::Git | CurrentView::Tree
+        CurrentView::Processes | CurrentView::Git
     ) {
         f.render_widget(
             Block::default().style(Style::default().bg(Color::Black)),
@@ -508,7 +507,6 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         match app.current_view {
             CurrentView::Processes => draw_monitor_page(f, f.area(), app),
             CurrentView::Git => draw_git_page(f, f.area(), app),
-            CurrentView::Tree => tree::draw_tree_view(f, f.area(), app),
             _ => {}
         }
     } else {
@@ -527,10 +525,14 @@ pub fn draw(f: &mut Frame, app: &mut App) {
             ])
             .split(f.area());
 
-        let workspace_constraints = if app.show_sidebar {
-            [Constraint::Length(app.sidebar_width()), Constraint::Fill(1)]
+        let workspace_constraints = if app.show_main_stage {
+            if app.show_sidebar {
+                [Constraint::Length(app.sidebar_width()), Constraint::Fill(1)]
+            } else {
+                [Constraint::Length(0), Constraint::Fill(1)]
+            }
         } else {
-            [Constraint::Length(0), Constraint::Fill(1)]
+            [Constraint::Fill(1), Constraint::Length(0)]
         };
 
         let workspace = Layout::default()
@@ -540,11 +542,13 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
         draw_global_header(f, chunks[0], workspace[0].width, app);
 
-        if app.show_sidebar {
+        if app.show_sidebar || !app.show_main_stage {
             draw_sidebar(f, workspace[0], app);
         }
 
-        draw_main_stage(f, workspace[1], app);
+        if app.show_main_stage {
+            draw_main_stage(f, workspace[1], app);
+        }
 
         draw_footer(f, chunks[2], app);
     }
@@ -754,6 +758,7 @@ fn draw_hotkeys_modal(f: &mut Frame, _area: Rect) {
                 ("F1", "Show this Help"),
                 ("Ctrl + Q", "Quit Application"),
                 ("Ctrl + B", "Toggle Sidebar"),
+                ("Ctrl + M", "Toggle Main Stage"),
                 ("Ctrl + P", "Toggle Split View"),
                 ("Ctrl + G", "Open Settings"),
                 ("Ctrl + L", "Git History"),
@@ -779,7 +784,8 @@ fn draw_hotkeys_modal(f: &mut Frame, _area: Rect) {
             vec![
                 ("Arrows", "Navigate"),
                 ("Enter", "Open Folder / Launch"),
-                ("Space", "Preview File / Folder Props"),
+                ("Space", "Editor"),
+                ("Ctrl + I", "Information"),
                 ("Backspace", "Go Up Directory"),
                 ("Home / ~", "Go Home"),
                 ("Alt + Left/Right", "Resize Sidebar"),
@@ -1635,8 +1641,6 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 
     let monitor_icon = Icon::Monitor.get(app.icon_mode);
     let git_icon = Icon::Git.get(app.icon_mode);
-    let project_icon = Icon::Folder.get(app.icon_mode); // Use Folder icon for IDE/Project
-    let tree_icon = "󰙅 ";
 
     app.header_icon_bounds.clear();
     let mut cur_icon_x = area.x + 2;
@@ -1651,8 +1655,6 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
             (split_icon, "split"),
             (monitor_icon, "monitor"),
             (git_icon, "git"),
-            (tree_icon, "tree"),
-            (project_icon, "project"),
         ];
 
         for (i, (icon, id)) in icons.into_iter().enumerate() {
@@ -1694,7 +1696,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         ));
 
     app.tab_bounds.clear();
-    let mut global_tab_idx = if show_icons { 7 } else { 0 };
+    let mut global_tab_idx = if show_icons { 6 } else { 0 };
     for (p_i, pane) in app.panes.iter().enumerate() {
         let chunk = pane_chunks[p_i];
         let mut current_x = chunk.x;
@@ -1945,9 +1947,22 @@ fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    // Get the base path for the tree
-    let base_path = if let Some(pane) = app.panes.get(app.focused_pane_index) {
-        if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
+    // Get the base path for the tree: Use the currently previewed path if available.
+    // If it's a directory, use it as base. If it's a file, use its parent.
+    let base_path = if let Some(preview) = &app.editor_state {
+        if preview.path.is_dir() {
+            preview.path.clone()
+        } else {
+            preview.path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("/"))
+        }
+    } else if let Some(pane) = app.panes.get(app.focused_pane_index) {
+        if let Some(preview) = &pane.preview {
+            if preview.path.is_dir() {
+                preview.path.clone()
+            } else {
+                preview.path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("/"))
+            }
+        } else if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
             tab.current_path.clone()
         } else {
             return;
@@ -2411,7 +2426,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             Constraint::Length(if pending.is_empty() {
                 0
             } else {
-                (pending.len() as u16 + 2).min(inner.height / 3)
+                (pending.len() as u16 + 1).min(inner.height / 3)
             }),
             Constraint::Min(0),
         ])
@@ -2430,9 +2445,10 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                     _ => Color::White,
                 };
                 Row::new(vec![
-                    Cell::from(p.status.clone()).style(
+                    Cell::from(format!(" {} ", p.status)).style(
                         Style::default()
-                            .fg(status_color)
+                            .bg(status_color)
+                            .fg(Color::Black)
                             .add_modifier(Modifier::BOLD),
                     ),
                     Cell::from(p.path.clone()).style(Style::default().fg(THEME.fg)),
@@ -2441,17 +2457,10 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             .collect();
 
         let pending_table = Table::new(pending_rows, [Constraint::Length(6), Constraint::Fill(1)])
-            .header(
-                Row::new(vec!["STATUS", "PATH"]).style(
-                    Style::default()
-                        .fg(THEME.accent_secondary)
-                        .add_modifier(Modifier::BOLD),
-                ),
-            )
             .block(
                 Block::default()
                     .borders(Borders::BOTTOM)
-                    .title(" PENDING CHANGES ")
+                    .title(" PENDING ")
                     .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
             );
         f.render_widget(pending_table, chunks[0]);
@@ -2519,8 +2528,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             .bg(Color::Rgb(40, 40, 50))
             .fg(THEME.accent_secondary)
             .add_modifier(Modifier::BOLD),
-    )
-    .highlight_symbol(" 󰁅 ");
+    );
 
     if let Some(pane) = app.panes.get_mut(pane_idx) {
         if let Some(tab) = pane.tabs.get_mut(tab_idx) {
@@ -3101,10 +3109,9 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                 "Hidden",
                 if hidden_on { Color::Green } else { Color::Red },
             ));
-            // Hide ^L History as requested
             shortcuts.extend(HotkeyHint::render(
                 "Space",
-                "Preview/Edit",
+                "Editor",
                 Color::Rgb(88, 166, 255),
             )); // GitHub Blue
         }
@@ -3134,7 +3141,10 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         }
     }
 
-    f.render_widget(Paragraph::new(Line::from(left_spans)), top_chunks[0]);
+    f.render_widget(
+        Paragraph::new(Line::from(left_spans)).wrap(ratatui::widgets::Wrap { trim: false }),
+        top_chunks[0],
+    );
 
     // 2. Center Section: Selection Summary (Only in Files view)
     if app.current_view != CurrentView::Editor {
@@ -3848,7 +3858,8 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
                 ("Ctrl + g", "Open Settings"),
                 ("Ctrl + Space", "Open Command Palette"),
                 ("Ctrl + b", "Toggle Sidebar"),
-                ("Ctrl + i", "AI Introspect (State Dump)"),
+                ("Ctrl + m", "Toggle Main Stage"),
+                ("Ctrl + i", "Information"),
             ],
         ),
         (
@@ -3861,7 +3872,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
                 ("Backspace", "Go to Parent Directory"),
                 ("Alt + Left / Right", "Back / Forward in History"),
                 ("~", "Go to Home Directory"),
-                ("Middle Click / Space", "Preview File in Other Pane"),
+                ("Middle Click / Space", "Editor"),
             ],
         ),
         (

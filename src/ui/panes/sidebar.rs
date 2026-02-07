@@ -313,9 +313,22 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    // Get the base path for the tree
-    let base_path = if let Some(pane) = app.panes.get(app.focused_pane_index) {
-        if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
+    // Get the base path for the tree: Use the currently previewed path if available.
+    // If it's a directory, use it as base. If it's a file, use its parent.
+    let base_path = if let Some(preview) = &app.editor_state {
+        if preview.path.is_dir() {
+            preview.path.clone()
+        } else {
+            preview.path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("/"))
+        }
+    } else if let Some(pane) = app.panes.get(app.focused_pane_index) {
+        if let Some(preview) = &pane.preview {
+            if preview.path.is_dir() {
+                preview.path.clone()
+            } else {
+                preview.path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("/"))
+            }
+        } else if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
             tab.current_path.clone()
         } else {
             return;
