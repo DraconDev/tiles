@@ -528,12 +528,11 @@ async fn run_tty() -> color_eyre::Result<()> {
                     }
                 }
 
-                let global_results = if search_filter.len() > 3 && remote.is_none() {
+                let (g_files, g_meta) = if search_filter.len() > 3 && remote.is_none() {
                     let search_root = dirs::home_dir().unwrap_or_else(|| path.clone());
-                    let (g_files, g_meta) = crate::modules::files::global_search(&search_root, &search_filter);
-                    Some((g_files, g_meta))
+                    crate::modules::files::global_search(&search_root, &search_filter)
                 } else {
-                    None
+                    (Vec::new(), std::collections::HashMap::new())
                 };
 
                 {
@@ -608,7 +607,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         let sb = meta_b.map(|m| m.size).unwrap_or(0);
                                         sa.cmp(&sb)
                                     }
-                                    crate::app::FileColumn::Modified => {
+                                    crate::app::FileCategory::Audio | crate::app::FileColumn::Modified => {
                                         let da = meta_a
                                             .map(|m| m.modified)
                                             .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
@@ -631,6 +630,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         let pb = meta_b.map(|m| m.permissions).unwrap_or(0);
                                         pa.cmp(&pb)
                                     }
+                                    _ => std::cmp::Ordering::Equal,
                                 };
 
                                 if fs.sort_ascending {
@@ -642,16 +642,14 @@ async fn run_tty() -> color_eyre::Result<()> {
 
                             fs.local_count = filtered_files.len();
 
-                            if let Some((g_files, g_meta)) = global_results {
-                                if !g_files.is_empty() {
-                                    filtered_files.push(PathBuf::from("__DIVIDER__"));
-                                    for gf in g_files {
-                                        if !filtered_files.contains(&gf) {
-                                            filtered_files.push(gf);
-                                        }
+                            if !g_files.is_empty() {
+                                filtered_files.push(PathBuf::from("__DIVIDER__"));
+                                for gf in g_files {
+                                    if !filtered_files.contains(&gf) {
+                                        filtered_files.push(gf);
                                     }
-                                    metadata.extend(g_meta);
                                 }
+                                metadata.extend(g_meta);
                             }
 
                             fs.files = filtered_files;
