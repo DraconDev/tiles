@@ -299,6 +299,8 @@ pub struct FileState {
     pub git_behind: usize,
     #[serde(skip)]
     pub git_pending: Vec<GitPendingChange>,
+    #[serde(skip)]
+    pub git_summary: Option<String>,
 }
 
 impl FileState {
@@ -337,6 +339,7 @@ impl FileState {
             git_ahead: 0,
             git_behind: 0,
             git_pending: Vec::new(),
+            git_summary: None,
         }
     }
 }
