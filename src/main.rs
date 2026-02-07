@@ -507,7 +507,7 @@ async fn run_tty() -> color_eyre::Result<()> {
             let tx = event_tx.clone();
             let app_clone = app.clone();
             tokio::spawn(async move {
-                let (files, metadata) = if let Some(_session) = &remote {
+                let (files, mut metadata) = if let Some(_session) = &remote {
                     // Remote refresh logic (mocked for now)
                     (Vec::new(), std::collections::HashMap::new())
                 } else {
@@ -516,6 +516,21 @@ async fn run_tty() -> color_eyre::Result<()> {
 
                 let git_data = if remote.is_none() {
                     crate::modules::files::fetch_git_data(&path)
+                } else {
+                    None
+                };
+
+                let mut search_filter = String::new();
+                {
+                    let app_guard = app_clone.lock().unwrap();
+                    if let Some(fs) = app_guard.panes.get(pane_idx).and_then(|p| p.current_state()) {
+                        search_filter = fs.search_filter.clone();
+                    }
+                }
+
+                let global_results = if search_filter.len() > 3 && remote.is_none() {
+                    let (g_files, g_meta) = crate::modules::files::global_search(&path, &search_filter);
+                    Some((g_files, g_meta))
                 } else {
                     None
                 };
@@ -624,8 +639,21 @@ async fn run_tty() -> color_eyre::Result<()> {
                                 }
                             });
 
+                            fs.local_count = filtered_files.len();
+
+                            if let Some((g_files, g_meta)) = global_results {
+                                if !g_files.is_empty() {
+                                    filtered_files.push(PathBuf::from("__DIVIDER__"));
+                                    for gf in g_files {
+                                        if !filtered_files.contains(&gf) {
+                                            filtered_files.push(gf);
+                                        }
+                                    }
+                                    metadata.extend(g_meta);
+                                }
+                            }
+
                             fs.files = filtered_files;
-                            fs.local_count = fs.files.len();
                             fs.metadata = metadata;
 
                             // Apply pending selection (e.g., after navigate_up)
@@ -636,7 +664,6 @@ async fn run_tty() -> color_eyre::Result<()> {
                                     fs.table_state.select(Some(idx));
                                 }
                             }
-                            // Sort and filter here if needed
                         }
                     }
                 }
