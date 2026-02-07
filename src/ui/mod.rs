@@ -1651,6 +1651,9 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         return;
     };
 
+    let branch_name = branch.as_ref().map(|s| s.as_str()).unwrap_or("HEAD");
+    let summary_text = summary.clone().unwrap_or_default();
+
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -1664,12 +1667,13 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                     .bg(THEME.accent_primary)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(" "),
+            Span::styled(format!(" [{}] ", branch_name), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!(" {} ", _current_path.to_string_lossy()),
                 Style::default().fg(THEME.accent_secondary),
             ),
         ]))
+        .title_bottom(Line::from(format!(" {} ", summary_text)).alignment(Alignment::Right))
         .title_top(
             Line::from(vec![
                 Span::styled(
@@ -1687,140 +1691,213 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    let chunks = Layout::default()
+    // Main vertical split: [ Top Row (Active & Info) | Bottom Row (History) ]
+    let top_h = if pending.is_empty() && remotes.is_empty() && stashes.is_empty() {
+        0
+    } else {
+        let p_len = if pending.is_empty() { 0 } else { pending.len() as u16 + 2 };
+        let i_len = if remotes.is_empty() && stashes.is_empty() { 0 } else { 6 };
+        p_len.max(i_len).min(inner.height / 3)
+    };
+
+    let main_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(if pending.is_empty() {
-                0
-            } else {
-                (pending.len() as u16 + 2).min(inner.height / 4)
-            }),
-            Constraint::Length(if remotes.is_empty() && stashes.is_empty() {
-                0
-            } else {
-                4
-            }),
+            Constraint::Length(top_h),
             Constraint::Min(0),
         ])
         .split(inner);
 
-    // 1. Active Changes
-    if !pending.is_empty() {
-        let branch_name = branch.as_ref().map(|s| s.as_str()).unwrap_or("HEAD");
-        let active_title = format!(" ACTIVE ({}) ", branch_name);
-        
-        let pending_rows: Vec<_> = pending
-            .iter()
-            .map(|p| {
-                let status_color = match p.status.as_str() {
-                    "M" => Color::Yellow,
-                    "A" | "??" => Color::Green,
-                    "D" => Color::Red,
-                    "R" => Color::Cyan,
-                    _ => Color::White,
-                };
-                
-                let mut stats_spans = Vec::new();
-                if p.insertions > 0 {
-                    stats_spans.push(Span::styled(format!(" +{}", p.insertions), Style::default().fg(Color::Green)));
-                }
-                if p.deletions > 0 {
-                    stats_spans.push(Span::styled(format!(" -{}", p.deletions), Style::default().fg(Color::Red)));
-                }
+    let top_area = main_chunks[0];
+    let history_area = main_chunks[1];
 
-                let mut row_spans = vec![
-                    Cell::from(format!(" {} ", p.status)).style(
-                        Style::default()
-                            .bg(status_color)
-                            .fg(Color::Black)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                    Cell::from(p.path.clone()).style(Style::default().fg(THEME.fg)),
-                ];
-                row_spans.push(Cell::from(Line::from(stats_spans)));
-
-                Row::new(row_spans)
-            })
-            .collect();
-
-        let summary_text = summary.unwrap_or_default();
-        let pending_table = Table::new(pending_rows, [Constraint::Length(6), Constraint::Fill(1), Constraint::Length(15)])
-            .block(
-                Block::default()
-                    .title(active_title)
-                    .title_bottom(Line::from(format!(" {} ", summary_text)).alignment(Alignment::Right))
-                    .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
-            )
-            .row_highlight_style(
-                Style::default()
-                    .bg(Color::Rgb(40, 40, 50))
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            );
-
-        if let Some(pane) = app.panes.get_mut(pane_idx) {
-            if let Some(tab) = pane.tabs.get_mut(tab_idx) {
-                f.render_stateful_widget(pending_table, chunks[0], &mut tab.git_pending_state);
-            }
-        }
-    }
-
-    // 2. Info Row (Remotes & Stashes)
-    if !remotes.is_empty() || !stashes.is_empty() {
-        let info_chunks = Layout::default()
+    if top_h > 0 {
+        let top_chunks = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(chunks[1]);
+            .constraints([Constraint::Fill(6), Constraint::Fill(4)])
+            .split(top_area);
 
-        // Remotes
-        let mut remote_lines = vec![];
-        if remotes.is_empty() {
-            remote_lines.push(Line::from(Span::styled("  (No remotes)", Style::default().fg(Color::DarkGray))));
-        } else {
-            for r in remotes.iter().take(3) {
-                remote_lines.push(Line::from(Span::styled(format!("  {}", r), Style::default().fg(THEME.fg))));
+        let active_area = top_chunks[0];
+        let info_area = top_chunks[1];
+
+        // 1. ACTIVE Changes
+        if !pending.is_empty() {
+            let active_title = format!(" ACTIVE ({} Affected) ", pending.len());
+            
+            let pending_rows: Vec<_> = pending
+                .iter()
+                .map(|p| {
+                    let status_color = match p.status.as_str() {
+                        "M" => Color::Yellow,
+                        "A" | "??" => Color::Green,
+                        "D" => Color::Red,
+                        "R" => Color::Cyan,
+                        _ => Color::White,
+                    };
+                    
+                    let mut stats_spans = Vec::new();
+                    if p.insertions > 0 {
+                        stats_spans.push(Span::styled(format!(" +{}", p.insertions), Style::default().fg(Color::Green)));
+                    }
+                    if p.deletions > 0 {
+                        stats_spans.push(Span::styled(format!(" -{}", p.deletions), Style::default().fg(Color::Red)));
+                    }
+
+                    Row::new(vec![
+                        Cell::from(format!(" {} ", p.status)).style(
+                            Style::default()
+                                .bg(status_color)
+                                .fg(Color::Black)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                        Cell::from(p.path.clone()).style(Style::default().fg(THEME.fg)),
+                        Cell::from(Line::from(stats_spans)),
+                    ])
+                })
+                .collect();
+
+            let pending_table = Table::new(pending_rows, [Constraint::Length(6), Constraint::Fill(1), Constraint::Length(15)])
+                .block(
+                    Block::default()
+                        .title(active_title)
+                        .border_style(Style::default().fg(Color::Rgb(40, 45, 55)))
+                        .borders(Borders::RIGHT),
+                )
+                .row_highlight_style(
+                    Style::default()
+                        .bg(Color::Rgb(40, 40, 50))
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                );
+
+            if let Some(pane) = app.panes.get_mut(pane_idx) {
+                if let Some(tab) = pane.tabs.get_mut(tab_idx) {
+                    f.render_stateful_widget(pending_table, active_area, &mut tab.git_pending_state);
+                }
             }
         }
-        f.render_widget(
-            Paragraph::new(remote_lines).block(
-                Block::default()
-                    .title(" REMOTES ")
-                    .border_style(Style::default().fg(Color::Rgb(40, 45, 55)))
-                    .borders(Borders::BOTTOM),
-            ),
-            info_chunks[0],
-        );
 
-        // Stashes
-        let mut stash_lines = vec![];
-        if stashes.is_empty() {
-            stash_lines.push(Line::from(Span::styled("  (No stashes)", Style::default().fg(Color::DarkGray))));
-        } else {
-            for s in stashes.iter().take(3) {
-                stash_lines.push(Line::from(Span::styled(format!("  {}", s), Style::default().fg(THEME.fg))));
+        // 2. Info Panel (Remotes & Stashes)
+        let mut info_items = Vec::new();
+        
+        if !remotes.is_empty() {
+            info_items.push(ListItem::new(Line::from(vec![
+                Span::styled(" REMOTES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
+            ])));
+            for r in remotes.iter().take(5) {
+                info_items.push(ListItem::new(Span::styled(format!("  {}", r), Style::default().fg(THEME.fg))));
+            }
+            info_items.push(ListItem::new(""));
+        }
+
+        if !stashes.is_empty() {
+            info_items.push(ListItem::new(Line::from(vec![
+                Span::styled(" STASHES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
+            ])));
+            for s in stashes.iter().take(5) {
+                info_items.push(ListItem::new(Span::styled(format!("  {}", s), Style::default().fg(THEME.fg))));
             }
         }
+
+        if info_items.is_empty() {
+            info_items.push(ListItem::new(Span::styled("  (No remotes or stashes)", Style::default().fg(Color::DarkGray))));
+        }
+
         f.render_widget(
-            Paragraph::new(stash_lines).block(
+            List::new(info_items).block(
                 Block::default()
-                    .title(" STASHES ")
+                    .title(" INFO ")
                     .border_style(Style::default().fg(Color::Rgb(40, 45, 55)))
-                    .borders(Borders::BOTTOM | Borders::LEFT),
+                    .borders(Borders::NONE),
             ),
-            info_chunks[1],
+            info_area,
         );
     }
 
-    // 3. History
-    let history_area = chunks[2];
+    // 3. HISTORY
     if history.is_empty() {
         f.render_widget(
             Paragraph::new("\n\n No git history found for this path or not a git repository.")
                 .alignment(Alignment::Center),
             history_area,
         );
-        return;
+    } else {
+        let rows: Vec<_> = history
+            .iter()
+            .map(|act| {
+                let h_short = act.hash.chars().take(7).collect::<String>();
+                let branch_info = act.decorations.trim().trim_matches(|c| c == '(' || c == ')');
+                
+                let mut stats_cells = Vec::new();
+                if act.files_changed > 0 {
+                    stats_cells.push(Cell::from(format!("{}", act.files_changed)).style(Style::default().fg(Color::Cyan)));
+                    stats_cells.push(Cell::from(format!("+{}", act.insertions)).style(Style::default().fg(Color::Green)));
+                    stats_cells.push(Cell::from(format!("-{}", act.deletions)).style(Style::default().fg(Color::Red)));
+                } else {
+                    stats_cells.push(Cell::from(""));
+                    stats_cells.push(Cell::from(""));
+                    stats_cells.push(Cell::from(""));
+                }
+
+                let mut row_cells = vec![
+                    Cell::from(act.date.clone()).style(Style::default().fg(Color::DarkGray)),
+                    Cell::from(h_short).style(
+                        Style::default()
+                            .fg(THEME.accent_secondary)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Cell::from(truncate_to_width(branch_info, 15, "..")).style(Style::default().fg(Color::Yellow)),
+                    Cell::from(act.author.clone()).style(Style::default().fg(Color::Cyan)),
+                    Cell::from(act.message.clone()).style(Style::default().fg(THEME.fg)),
+                ];
+                row_cells.extend(stats_cells);
+
+                Row::new(row_cells)
+            })
+            .collect();
+
+        let table = Table::new(
+            rows,
+            [
+                Constraint::Length(15), // DATE
+                Constraint::Length(8),  // HASH
+                Constraint::Length(15), // BRANCH
+                Constraint::Length(15), // AUTHOR
+                Constraint::Fill(1),    // MESSAGE
+                Constraint::Length(6),  // FILES
+                Constraint::Length(6),  // ADD
+                Constraint::Length(6),  // DEL
+            ],
+        )
+        .header(
+            Row::new(vec!["DATE", "HASH", "BRANCH", "AUTHOR", "MESSAGE", "FILES", "ADD", "DEL"])
+                .style(
+                    Style::default()
+                        .fg(THEME.accent_secondary)
+                        .add_modifier(Modifier::BOLD),
+                )
+                .bottom_margin(1),
+        )
+        .block(
+            Block::default()
+                .title(" HISTORY ")
+                .borders(Borders::TOP)
+                .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
+        )
+        .row_highlight_style(
+            Style::default()
+                .bg(Color::Rgb(40, 40, 50))
+                .fg(THEME.accent_secondary)
+                .add_modifier(Modifier::BOLD),
+        );
+
+        if let Some(pane) = app.panes.get_mut(pane_idx) {
+            if let Some(tab) = pane.tabs.get_mut(tab_idx) {
+                f.render_stateful_widget(table, history_area, &mut tab.git_history_state);
+            }
+        }
     }
+}
 
     let rows: Vec<_> = history
         .iter()
