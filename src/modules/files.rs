@@ -165,8 +165,9 @@ pub fn global_search(
                             permissions: 0,
                             is_dir: m.is_dir(),
                         };
-                        results.push(p.clone());
-                        metadata.insert(p, meta);
+                        let abs_p = p.canonicalize().unwrap_or(p.clone());
+                        results.push(abs_p.clone());
+                        metadata.insert(abs_p, meta);
 
                         if results.len() >= max_results {
                             return (results, metadata);
