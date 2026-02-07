@@ -471,6 +471,7 @@ pub struct CommitInfo {
     pub author: String,
     pub date: String,
     pub message: String,
+    pub decorations: String,
     pub files_changed: usize,
     pub insertions: usize,
     pub deletions: usize,
