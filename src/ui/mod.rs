@@ -2376,6 +2376,7 @@ fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, i
 }
 
 fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
+    f.render_widget(Clear, area);
     let pane_idx = app.focused_pane_index;
     let tab_idx = if let Some(pane) = app.panes.get(pane_idx) {
         pane.active_tab_index
