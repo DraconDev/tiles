@@ -2533,7 +2533,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
 
     if let Some(pane) = app.panes.get_mut(pane_idx) {
         if let Some(tab) = pane.tabs.get_mut(tab_idx) {
-            f.render_stateful_widget(table, chunks[1], &mut tab.git_history_state);
+            f.render_stateful_widget(table, history_area, &mut tab.git_history_state);
         }
     }
 }
