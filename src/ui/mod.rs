@@ -2386,13 +2386,13 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     let (history, pending, _current_path, branch, summary, remotes, stashes) = if let Some(pane) = app.panes.get(pane_idx) {
         if let Some(tab) = pane.tabs.get(tab_idx) {
             (
-                &tab.git_history,
-                &tab.git_pending,
+                tab.git_history.clone(),
+                tab.git_pending.clone(),
                 tab.current_path.clone(),
                 tab.git_branch.clone(),
                 tab.git_summary.clone(),
-                &tab.git_remotes,
-                &tab.git_stashes,
+                tab.git_remotes.clone(),
+                tab.git_stashes.clone(),
             )
         } else {
             return;
