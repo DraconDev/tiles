@@ -272,6 +272,17 @@ async fn run_tty() -> color_eyre::Result<()> {
                     panes_needing_refresh.insert(pane_idx);
                 }
                 AppEvent::FilesChangedOnDisk(path) => {
+                    // Check if this was a self-save
+                    if let Some(saved_content) = last_self_save.get(&path) {
+                        if let Ok(current_content) = std::fs::read_to_string(&path) {
+                            if &current_content == saved_content {
+                                last_self_save.remove(&path);
+                                return; // Skip refreshing/reloading for our own saves
+                            }
+                        }
+                        last_self_save.remove(&path);
+                    }
+
                     let app_guard = app.lock().unwrap();
                     let mut needs_reload = Vec::new();
 
