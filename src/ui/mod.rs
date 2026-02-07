@@ -2540,12 +2540,11 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(List::new(info_items).block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(30, 30, 35)))), info_area);
 
     // 2. History
-    let history_area = chunks[2];
     if history.is_empty() {
         f.render_widget(
             Paragraph::new("\n\n No git history found for this path or not a git repository.")
                 .alignment(Alignment::Center),
-            chunks[1],
+            history_area,
         );
         return;
     }
