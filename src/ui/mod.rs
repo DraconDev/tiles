@@ -2442,9 +2442,13 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             Constraint::Length(if pending.is_empty() {
                 0
             } else {
-                (pending.len() as u16 + 2).min(inner.height / 2)
+                (pending.len() as u16 + 2).min(inner.height / 4)
             }),
-            Constraint::Length(1), // Spacer
+            Constraint::Length(if remotes.is_empty() && stashes.is_empty() {
+                0
+            } else {
+                4
+            }),
             Constraint::Min(0),
         ])
         .split(inner);
@@ -2510,47 +2514,55 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         }
     }
 
-    // 2. Bottom Section: History & Info
-    let bottom_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Fill(7), Constraint::Fill(3)])
-        .split(chunks[2]);
+    // 2. Info Row (Remotes & Stashes)
+    if !remotes.is_empty() || !stashes.is_empty() {
+        let info_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(chunks[1]);
 
-    let history_area = bottom_chunks[0];
-    let info_area = bottom_chunks[1];
-
-    // Info Panel (Remotes & Stashes)
-    let mut info_items = Vec::new();
-    
-    // Remotes
-    info_items.push(ListItem::new(Line::from(vec![
-        Span::styled(" REMOTES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
-    ])));
-    if remotes.is_empty() {
-        info_items.push(ListItem::new(Span::styled("  (None)", Style::default().fg(Color::DarkGray))));
-    } else {
-        for r in remotes {
-            info_items.push(ListItem::new(Span::styled(format!("  {}", r), Style::default().fg(THEME.fg))));
+        // Remotes
+        let mut remote_lines = vec![];
+        if remotes.is_empty() {
+            remote_lines.push(Line::from(Span::styled("  (No remotes)", Style::default().fg(Color::DarkGray))));
+        } else {
+            for r in remotes.iter().take(3) {
+                remote_lines.push(Line::from(Span::styled(format!("  {}", r), Style::default().fg(THEME.fg))));
+            }
         }
-    }
-    
-    info_items.push(ListItem::new("")); // Spacer
+        f.render_widget(
+            Paragraph::new(remote_lines).block(
+                Block::default()
+                    .title(" REMOTES ")
+                    .border_style(Style::default().fg(Color::Rgb(40, 45, 55)))
+                    .borders(Borders::BOTTOM),
+            ),
+            info_chunks[0],
+        );
 
-    // Stashes
-    info_items.push(ListItem::new(Line::from(vec![
-        Span::styled(" STASHES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
-    ])));
-    if stashes.is_empty() {
-        info_items.push(ListItem::new(Span::styled("  (None)", Style::default().fg(Color::DarkGray))));
-    } else {
-        for s in stashes {
-            info_items.push(ListItem::new(Span::styled(format!("  {}", s), Style::default().fg(THEME.fg))));
+        // Stashes
+        let mut stash_lines = vec![];
+        if stashes.is_empty() {
+            stash_lines.push(Line::from(Span::styled("  (No stashes)", Style::default().fg(Color::DarkGray))));
+        } else {
+            for s in stashes.iter().take(3) {
+                stash_lines.push(Line::from(Span::styled(format!("  {}", s), Style::default().fg(THEME.fg))));
+            }
         }
+        f.render_widget(
+            Paragraph::new(stash_lines).block(
+                Block::default()
+                    .title(" STASHES ")
+                    .border_style(Style::default().fg(Color::Rgb(40, 45, 55)))
+                    .borders(Borders::BOTTOM | Borders::LEFT),
+            ),
+            info_chunks[1],
+        );
     }
 
-    f.render_widget(List::new(info_items).block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(30, 30, 35)))), info_area);
-
-    // 2. History
+    // 3. History
+    let history_area = chunks[2];
+    if history.is_empty() {
     if history.is_empty() {
         f.render_widget(
             Paragraph::new("\n\n No git history found for this path or not a git repository.")
