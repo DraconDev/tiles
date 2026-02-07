@@ -50,9 +50,8 @@ pub fn handle_git_mouse(
                 (pending.len() as u16 + 2).min(inner_h / 2) 
             };
             
-            // history_area.y = inner_y + header_h + pending_h + 1 (spacer)
-            // header_h is 0 if we removed the top header line and moved it to block title
-            // In draw_git_page, chunks[0] is pending, chunks[1] is spacer, chunks[2] is history
+            // history_area.y = inner_y + pending_h + 1 (spacer)
+            // In draw_git_page, chunks[0] is pending, chunks[1] is spacer, chunks[2] is bottom_chunks
             let history_area_y = inner_y + pending_h + 1;
             
             // Data rows start after:
