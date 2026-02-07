@@ -294,6 +294,8 @@ pub struct FileState {
     #[serde(skip)]
     pub git_history_state: ratatui::widgets::TableState,
     #[serde(skip)]
+    pub git_pending_state: ratatui::widgets::TableState,
+    #[serde(skip)]
     pub git_branch: Option<String>,
     #[serde(skip)]
     pub git_ahead: usize,
