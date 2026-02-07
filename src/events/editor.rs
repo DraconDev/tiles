@@ -369,7 +369,6 @@ fn handle_generic_editor_shortcuts(
 
     if has_control && (key.code == KeyCode::Char('s') || key.code == KeyCode::Char('S')) {
         let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
-        editor.modified = false;
         return true;
     }
 
