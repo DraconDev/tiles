@@ -244,6 +244,26 @@ pub fn draw_file_view(
             }
             let row_y = content_y + i as u16;
             let path = &file_state.files[file_idx];
+            
+            if path.to_string_lossy() == "__DIVIDER__" {
+                let divider_style = Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD);
+                let line_char = "─";
+                let label = " GLOBAL SEARCH RESULTS ";
+                let line_len = (inner_area.width as usize).saturating_sub(label.len() + 4);
+                let left_line = line_char.repeat(2);
+                let right_line = line_char.repeat(line_len);
+                
+                f.render_widget(
+                    Paragraph::new(Line::from(vec![
+                        Span::styled(left_line, divider_style),
+                        Span::styled(label, divider_style),
+                        Span::styled(right_line, divider_style),
+                    ])),
+                    Rect::new(inner_area.x, row_y, inner_area.width, 1),
+                );
+                continue;
+            }
+
             let is_selected = file_state.selection.selected == Some(file_idx);
             let is_multi_selected = file_state.selection.multi.contains(&file_idx);
 
