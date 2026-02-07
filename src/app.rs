@@ -348,7 +348,16 @@ impl App {
         if let Some(fs) = self.current_file_state_mut() {
             if let Some(sel) = fs.selection.selected {
                 if sel > 0 {
-                    let next = sel - 1;
+                    let mut next = sel - 1;
+                    // Skip divider
+                    while next > 0 && fs.files.get(next).map(|p| p.to_string_lossy() == "__DIVIDER__").unwrap_or(false) {
+                        next -= 1;
+                    }
+                    // Final check if the skipped-to item is still a divider (shouldn't be at index 0, but safety first)
+                    if fs.files.get(next).map(|p| p.to_string_lossy() == "__DIVIDER__").unwrap_or(false) {
+                        return;
+                    }
+
                     fs.selection.handle_move(next, shift);
                     fs.table_state.select(fs.selection.selected);
                     if next < fs.table_state.offset() {
@@ -364,7 +373,16 @@ impl App {
             let capacity = fs.view_height.saturating_sub(3);
             if let Some(sel) = fs.selection.selected {
                 if sel + 1 < fs.files.len() {
-                    let next = sel + 1;
+                    let mut next = sel + 1;
+                    // Skip divider
+                    while next < fs.files.len() - 1 && fs.files.get(next).map(|p| p.to_string_lossy() == "__DIVIDER__").unwrap_or(false) {
+                        next += 1;
+                    }
+                    // Final check
+                    if fs.files.get(next).map(|p| p.to_string_lossy() == "__DIVIDER__").unwrap_or(false) {
+                        return;
+                    }
+
                     fs.selection.handle_move(next, shift);
                     fs.table_state.select(fs.selection.selected);
                     if next >= fs.table_state.offset() + capacity {
