@@ -136,23 +136,6 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             current_y += 1;
 
             for (i, disk) in app.system_state.disks.iter().enumerate() {
-                let current_disk_idx = sidebar_items.len();
-                let is_selected = app.sidebar_index == current_disk_idx;
-
-                let markers = active_storage_markers.get(&disk.name);
-
-                let mut name_style = if !disk.is_mounted {
-                    Style::default().fg(Color::DarkGray)
-                } else {
-                    Style::default().fg(Color::Green)
-                };
-                if is_selected {
-                    name_style = name_style
-                        .bg(THEME.accent_primary)
-                        .fg(Color::Black)
-                        .add_modifier(Modifier::BOLD);
-                }
-
                 let mut display_name = if disk.name == "/" {
                     "Root (/)".to_string()
                 } else {
@@ -161,6 +144,13 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .map(|n| n.to_string_lossy().to_string())
                         .unwrap_or(disk.name.clone())
                 };
+
+                if !matches_filter(&display_name) {
+                    continue;
+                }
+
+                let current_disk_idx = sidebar_items.len();
+                let is_selected = app.sidebar_index == current_disk_idx;
 
                 // If the name looks like a long hash (e.g. UUID), fallback to size
                 if display_name.width() > 20 && display_name.contains('-') {
