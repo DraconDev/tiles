@@ -413,7 +413,6 @@ fn handle_generic_editor_shortcuts(
         let _ = event_tx.try_send(AppEvent::StatusMsg("Cut to clipboard".to_string()));
         if auto_save {
             let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
-            editor.modified = false;
         }
         return true;
     }
