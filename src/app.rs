@@ -102,9 +102,9 @@ pub struct App {
 
 impl App {
     pub fn new(tile_queue: Arc<Mutex<Vec<TilePlacement>>>) -> Self {
-        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        let start_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let initial_fs = FileState::new(
-            home,
+            start_path,
             None,
             false,
             vec![
