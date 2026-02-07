@@ -152,6 +152,20 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let current_disk_idx = sidebar_items.len();
                 let is_selected = app.sidebar_index == current_disk_idx;
 
+                let markers = active_storage_markers.get(&disk.name);
+
+                let mut name_style = if !disk.is_mounted {
+                    Style::default().fg(Color::DarkGray)
+                } else {
+                    Style::default().fg(Color::Green)
+                };
+                if is_selected {
+                    name_style = name_style
+                        .bg(THEME.accent_primary)
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD);
+                }
+
                 // If the name looks like a long hash (e.g. UUID), fallback to size
                 if display_name.width() > 20 && display_name.contains('-') {
                     let total_gb = (disk.total_space / 1_073_741_824.0).round() as u64;
