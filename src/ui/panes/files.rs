@@ -246,18 +246,19 @@ pub fn draw_file_view(
             let path = &file_state.files[file_idx];
             
             if path.to_string_lossy() == "__DIVIDER__" {
-                let divider_style = Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD);
+                let divider_style = Style::default().fg(Color::Rgb(60, 60, 70));
+                let label_style = Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD);
                 let line_char = "─";
-                let label = " GLOBAL SEARCH RESULTS ";
-                let line_len = (inner_area.width as usize).saturating_sub(label.len() + 4);
-                let left_line = line_char.repeat(2);
-                let right_line = line_char.repeat(line_len);
+                let label = " GLOBAL SEARCH ";
+                let total_w = inner_area.width as usize;
+                let left_w = 4;
+                let right_w = total_w.saturating_sub(left_w + label.len() + 2);
                 
                 f.render_widget(
                     Paragraph::new(Line::from(vec![
-                        Span::styled(left_line, divider_style),
-                        Span::styled(label, divider_style),
-                        Span::styled(right_line, divider_style),
+                        Span::styled(line_char.repeat(left_w), divider_style),
+                        Span::styled(label, label_style),
+                        Span::styled(line_char.repeat(right_w), divider_style),
                     ])),
                     Rect::new(inner_area.x, row_y, inner_area.width, 1),
                 );
@@ -320,21 +321,19 @@ pub fn draw_file_view(
                         Style::default().fg(THEME.fg)
                     };
 
-                    let content = match col_type {
+                    let alignment = match col_type {
+                        FileColumn::Name => ratatui::layout::Alignment::Left,
+                        _ => ratatui::layout::Alignment::Right,
+                    };
+
+                    match col_type {
                         FileColumn::Name => {
-                            let name = if file_idx > file_state.local_count {
-                                path.to_string_lossy().to_string()
-                            } else {
-                                path.file_name().and_then(|n| n.to_str()).unwrap_or("..").to_string()
-                            };
+                            let is_global = file_idx > file_state.local_count;
+                            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
                             let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                             let cat = crate::modules::files::get_file_category(path);
                             let icon_str = Icon::get_for_path(path, cat, is_dir, app.icon_mode);
 
-                            let mut suffix = String::new();
-                            if app.starred.contains(path) {
-                                suffix.push_str(" [*]");
-                            }
                             if !is_selected && !is_multi_selected && !app.path_colors.contains_key(path) && !is_hovered_drop {
                                 if app.semantic_coloring {
                                     if is_dir {
@@ -354,42 +353,74 @@ pub fn draw_file_view(
                                     cell_style = cell_style.fg(THEME.accent_secondary);
                                 }
                             }
-                            format!("{}{}{}", icon_str, name, suffix)
+
+                            let mut spans = vec![
+                                Span::styled(icon_str, cell_style),
+                                Span::styled(name, cell_style),
+                            ];
+
+                            if is_global {
+                                if let Some(parent) = path.parent() {
+                                    let mut p_str = parent.to_string_lossy().to_string();
+                                    if let Some(home) = dirs::home_dir() {
+                                        if let Ok(rel) = parent.strip_prefix(&home) {
+                                            p_str = format!("~/{}", rel.display());
+                                        }
+                                    }
+                                    let path_style = if is_selected || is_multi_selected {
+                                        Style::default().fg(Color::Rgb(40, 40, 40))
+                                    } else {
+                                        Style::default().fg(Color::Rgb(80, 80, 90))
+                                    };
+                                    spans.push(Span::styled(format!("  ({})", p_str), path_style));
+                                }
+                            }
+
+                            if app.starred.contains(path) {
+                                spans.push(Span::styled(" [*]", Style::default().fg(Color::Yellow)));
+                            }
+
+                            f.render_widget(
+                                Paragraph::new(Line::from(spans)),
+                                cell_rect,
+                            );
                         }
                         FileColumn::Size => {
                             let size = metadata.map(|m| m.size).unwrap_or(0);
                             let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
-                            if is_dir && size == 0 {
+                            let content = if is_dir && size == 0 {
                                 "<DIR>".to_string()
                             } else {
                                 format_size(size)
-                            }
+                            };
+                            f.render_widget(
+                                Paragraph::new(Span::styled(content, cell_style)).alignment(alignment),
+                                cell_rect,
+                            );
                         }
                         FileColumn::Modified => {
-                            format_modified_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH))
+                            let content = format_modified_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH));
+                            f.render_widget(
+                                Paragraph::new(Span::styled(content, cell_style)).alignment(alignment),
+                                cell_rect,
+                            );
                         }
                         FileColumn::Created => {
-                            format_modified_time(metadata.map(|m| m.created).unwrap_or(SystemTime::UNIX_EPOCH))
+                            let content = format_modified_time(metadata.map(|m| m.created).unwrap_or(SystemTime::UNIX_EPOCH));
+                            f.render_widget(
+                                Paragraph::new(Span::styled(content, cell_style)).alignment(alignment),
+                                cell_rect,
+                            );
                         }
                         FileColumn::Permissions => {
-                            format_permissions(metadata.map(|m| m.permissions).unwrap_or(0))
+                            let content = format_permissions(metadata.map(|m| m.permissions).unwrap_or(0));
+                            f.render_widget(
+                                Paragraph::new(Span::styled(content, cell_style)).alignment(alignment),
+                                cell_rect,
+                            );
                         }
-                        _ => String::new(),
-                    };
-
-                    let alignment = match col_type {
-                        FileColumn::Name => ratatui::layout::Alignment::Left,
-                        _ => ratatui::layout::Alignment::Right,
-                    };
-
-                    f.render_widget(
-                        Paragraph::new(Span::styled(
-                            truncate_to_width(&content, cell_rect.width as usize, "..."),
-                            cell_style,
-                        ))
-                        .alignment(alignment),
-                        cell_rect,
-                    );
+                        _ => {}
+                    }
                 }
             }
         }
