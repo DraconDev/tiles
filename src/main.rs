@@ -384,39 +384,47 @@ async fn run_tty() -> color_eyre::Result<()> {
                     });
                 }
                 AppEvent::SaveFile(path, content) => {
-                    let _ = std::fs::write(&path, &content);
-                    last_self_save.insert(path.clone(), content);
-                    let mut app_guard = app.lock().unwrap();
-                    if let Some(ref mut preview) = app_guard.editor_state {
-                        if preview.path == path {
-                            preview.last_saved = Some(std::time::Instant::now());
-                            if let Some(ref mut editor) = preview.editor {
-                                editor.modified = false;
+                    match std::fs::write(&path, &content) {
+                        Ok(_) => {
+                            last_self_save.insert(path.clone(), content);
+                            let mut app_guard = app.lock().unwrap();
+                            if let Some(ref mut preview) = app_guard.editor_state {
+                                if preview.path == path {
+                                    preview.last_saved = Some(std::time::Instant::now());
+                                    if let Some(ref mut editor) = preview.editor {
+                                        editor.modified = false;
+                                    }
+                                }
                             }
-                        }
-                    }
-                    for pane in &mut app_guard.panes {
-                        if let Some(ref mut preview) = pane.preview {
-                            if preview.path == path {
-                                preview.last_saved = Some(std::time::Instant::now());
-                                if let Some(ref mut editor) = preview.editor {
-                                    editor.modified = false;
+                            for pane in &mut app_guard.panes {
+                                if let Some(ref mut preview) = pane.preview {
+                                    if preview.path == path {
+                                        preview.last_saved = Some(std::time::Instant::now());
+                                        if let Some(ref mut editor) = preview.editor {
+                                            editor.modified = false;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Trigger refresh for panes showing this file's parent
+                            if let Some(parent) = path.parent() {
+                                for (i, pane) in app_guard.panes.iter().enumerate() {
+                                    if let Some(fs) = pane.current_state() {
+                                        if fs.current_path == parent {
+                                            panes_needing_refresh.insert(i);
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-
-                    // Trigger refresh for panes showing this file's parent
-                    if let Some(parent) = path.parent() {
-                        for (i, pane) in app_guard.panes.iter().enumerate() {
-                            if let Some(fs) = pane.current_state() {
-                                if fs.current_path == parent {
-                                    panes_needing_refresh.insert(i);
-                                }
-                            }
+                        Err(e) => {
+                            let mut app_guard = app.lock().unwrap();
+                            let msg = format!("Failed to save file: {}", e);
+                            crate::app::log_debug(&msg);
+                            app_guard.last_action_msg = Some((msg, std::time::Instant::now()));
                         }
                     }
-
                     needs_draw = true;
                 }
                 AppEvent::CreateFile(path) => {
