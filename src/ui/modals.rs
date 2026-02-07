@@ -194,7 +194,7 @@ pub fn draw_hotkeys_modal(f: &mut Frame, area: Rect) {
                 ("Backspace", "Go Up Directory"),
                 ("Home / ~", "Go Home"),
                 ("Alt + Left/Right", "Resize Sidebar"),
-                ("F6", "Rename File"),
+                ("F2", "Rename File"),
                 ("Delete", "Delete File"),
             ],
         ),
