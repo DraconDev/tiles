@@ -630,7 +630,6 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         let pb = meta_b.map(|m| m.permissions).unwrap_or(0);
                                         pa.cmp(&pb)
                                     }
-                                    _ => std::cmp::Ordering::Equal,
                                 };
 
                                 if fs.sort_ascending {
