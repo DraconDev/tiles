@@ -1714,30 +1714,92 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             }
         }
 
-        // 2. Info Panel (Remotes & Stashes)
+        // 2. Info Panel (Right Area) - DYNAMIC based on selection
         let mut info_items = Vec::new();
         
-        if !remotes.is_empty() {
-            info_items.push(ListItem::new(Line::from(vec![
-                Span::styled(" REMOTES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
-            ])));
-            for r in remotes.iter().take(5) {
-                info_items.push(ListItem::new(Span::styled(format!("  {}", r), Style::default().fg(THEME.fg))));
+        let mut selected_history_item = None;
+        if let Some(pane) = app.panes.get(pane_idx) {
+            if let Some(tab) = pane.tabs.get(tab_idx) {
+                if let Some(idx) = tab.git_history_state.selected() {
+                    selected_history_item = tab.git_history.get(idx);
+                }
             }
+        }
+
+        let mut selected_active_item = None;
+        if let Some(pane) = app.panes.get(pane_idx) {
+            if let Some(tab) = pane.tabs.get(tab_idx) {
+                if let Some(idx) = tab.git_pending_state.selected() {
+                    selected_active_item = tab.git_pending.get(idx);
+                }
+            }
+        }
+
+        if let Some(commit) = selected_history_item {
+            info_items.push(ListItem::new(Line::from(vec![
+                Span::styled(" COMMIT DETAILS ", Style::default().bg(THEME.accent_secondary).fg(Color::Black).add_modifier(Modifier::BOLD)),
+            ])));
+            info_items.push(ListItem::new(format!("  Hash: {}", commit.hash)));
+            info_items.push(ListItem::new(format!("  Author: {}", commit.author)));
+            info_items.push(ListItem::new(format!("  Date: {}", commit.date)));
             info_items.push(ListItem::new(""));
-        }
-
-        if !stashes.is_empty() {
+            info_items.push(ListItem::new(Span::styled(format!("  {}", commit.message), Style::default().fg(Color::White))));
+            info_items.push(ListItem::new(""));
+            info_items.push(ListItem::new(vec![
+                Line::from(vec![
+                    Span::raw("  Files: "),
+                    Span::styled(format!("{}", commit.files_changed), Style::default().fg(Color::Cyan)),
+                ]),
+                Line::from(vec![
+                    Span::raw("  Additions: "),
+                    Span::styled(format!("+{}", commit.insertions), Style::default().fg(Color::Green)),
+                ]),
+                Line::from(vec![
+                    Span::raw("  Deletions: "),
+                    Span::styled(format!("-{}", commit.deletions), Style::default().fg(Color::Red)),
+                ]),
+            ]));
+        } else if let Some(change) = selected_active_item {
             info_items.push(ListItem::new(Line::from(vec![
-                Span::styled(" STASHES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
+                Span::styled(" CHANGE DETAILS ", Style::default().bg(Color::Yellow).fg(Color::Black).add_modifier(Modifier::BOLD)),
             ])));
-            for s in stashes.iter().take(5) {
-                info_items.push(ListItem::new(Span::styled(format!("  {}", s), Style::default().fg(THEME.fg))));
+            info_items.push(ListItem::new(format!("  Path: {}", change.path)));
+            info_items.push(ListItem::new(format!("  Status: {}", change.status)));
+            info_items.push(ListItem::new(""));
+            info_items.push(ListItem::new(vec![
+                Line::from(vec![
+                    Span::raw("  Additions: "),
+                    Span::styled(format!("+{}", change.insertions), Style::default().fg(Color::Green)),
+                ]),
+                Line::from(vec![
+                    Span::raw("  Deletions: "),
+                    Span::styled(format!("-{}", change.deletions), Style::default().fg(Color::Red)),
+                ]),
+            ]));
+        } else {
+            // Default: Remotes & Stashes
+            if !remotes.is_empty() {
+                info_items.push(ListItem::new(Line::from(vec![
+                    Span::styled(" REMOTES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
+                ])));
+                for r in remotes.iter().take(8) {
+                    info_items.push(ListItem::new(Span::styled(format!("  {}", r), Style::default().fg(THEME.fg))));
+                }
+                info_items.push(ListItem::new(""));
             }
-        }
 
-        if info_items.is_empty() {
-            info_items.push(ListItem::new(Span::styled("  (No remotes or stashes)", Style::default().fg(Color::DarkGray))));
+            if !stashes.is_empty() {
+                info_items.push(ListItem::new(Line::from(vec![
+                    Span::styled(" STASHES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
+                ])));
+                for s in stashes.iter().take(8) {
+                    info_items.push(ListItem::new(Span::styled(format!("  {}", s), Style::default().fg(THEME.fg))));
+                }
+            }
+
+            if info_items.is_empty() {
+                info_items.push(ListItem::new(Span::styled("  (No remotes or stashes)", Style::default().fg(Color::DarkGray))));
+            }
         }
 
         f.render_widget(
