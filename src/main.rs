@@ -833,7 +833,6 @@ fn setup_app(
         app.starred = loaded_starred;
 
         app.remote_bookmarks = state.remote_bookmarks;
-        app.current_view = state.current_view;
         app.path_colors = state.path_colors;
         app.external_tools = state.external_tools;
         if let Some(mode) = state.icon_mode {
