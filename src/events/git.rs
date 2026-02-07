@@ -48,12 +48,18 @@ pub fn handle_git_mouse(
             let pending_h = if pending.is_empty() { 
                 0 
             } else { 
-                (pending.len() as u16 + 2).min(inner_h / 3) 
+                (pending.len() as u16 + 1).min(inner_h / 3) 
             };
             
-            // Table starts at inner_y + header_h + pending_h
-            // Data rows start after table header (1 row)
-            let table_data_start_y = inner_y + header_h + pending_h + 1;
+            // Table starts at history_area.y
+            // history_area.y = inner_y + header_h + pending_h + 1 (spacer)
+            let history_area_y = inner_y + header_h + pending_h + 1;
+            
+            // Data rows start after:
+            // 1. Block title row (1)
+            // 2. Table header row (1)
+            // 3. Header bottom margin (1)
+            let table_data_start_y = history_area_y + 3;
 
             if row >= table_data_start_y {
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
