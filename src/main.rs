@@ -271,7 +271,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                     panes_needing_refresh.insert(pane_idx);
                 }
                 AppEvent::FilesChangedOnDisk(path) => {
-                    let mut app_guard = app.lock().unwrap();
+                    let app_guard = app.lock().unwrap();
                     let mut needs_reload = Vec::new();
 
                     for (i, pane) in app_guard.panes.iter().enumerate() {
