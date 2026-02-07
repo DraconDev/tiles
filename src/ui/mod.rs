@@ -2553,41 +2553,51 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         .iter()
         .map(|act| {
             let h_short = act.hash.chars().take(7).collect::<String>();
-            let stats = if act.files_changed > 0 {
-                format!(
-                    "{} files (+{}/-{})",
-                    act.files_changed, act.insertions, act.deletions
-                )
+            let branch_info = act.decorations.trim().trim_matches(|c| c == '(' || c == ')');
+            
+            let mut stats_cells = Vec::new();
+            if act.files_changed > 0 {
+                stats_cells.push(Cell::from(format!("{}", act.files_changed)).style(Style::default().fg(Color::Cyan)));
+                stats_cells.push(Cell::from(format!("+{}", act.insertions)).style(Style::default().fg(Color::Green)));
+                stats_cells.push(Cell::from(format!("-{}", act.deletions)).style(Style::default().fg(Color::Red)));
             } else {
-                String::new()
-            };
+                stats_cells.push(Cell::from(""));
+                stats_cells.push(Cell::from(""));
+                stats_cells.push(Cell::from(""));
+            }
 
-            Row::new(vec![
+            let mut row_cells = vec![
                 Cell::from(act.date.clone()).style(Style::default().fg(Color::DarkGray)),
                 Cell::from(h_short).style(
                     Style::default()
                         .fg(THEME.accent_secondary)
                         .add_modifier(Modifier::BOLD),
                 ),
+                Cell::from(truncate_to_width(branch_info, 15, "..")).style(Style::default().fg(Color::Yellow)),
                 Cell::from(act.author.clone()).style(Style::default().fg(Color::Cyan)),
                 Cell::from(act.message.clone()).style(Style::default().fg(THEME.fg)),
-                Cell::from(stats).style(Style::default().fg(Color::Rgb(100, 100, 110))),
-            ])
+            ];
+            row_cells.extend(stats_cells);
+
+            Row::new(row_cells)
         })
         .collect();
 
     let table = Table::new(
         rows,
         [
-            Constraint::Length(25), // DATE
-            Constraint::Length(12), // HASH
-            Constraint::Length(20), // AUTHOR
+            Constraint::Length(15), // DATE
+            Constraint::Length(8),  // HASH
+            Constraint::Length(15), // BRANCH
+            Constraint::Length(15), // AUTHOR
             Constraint::Fill(1),    // MESSAGE
-            Constraint::Length(25), // STATS
+            Constraint::Length(6),  // FILES
+            Constraint::Length(6),  // ADD
+            Constraint::Length(6),  // DEL
         ],
     )
     .header(
-        Row::new(vec!["DATE", "HASH", "AUTHOR", "MESSAGE", "STATS"])
+        Row::new(vec!["DATE", "HASH", "BRANCH", "AUTHOR", "MESSAGE", "FILES", "ADD", "DEL"])
             .style(
                 Style::default()
                     .fg(THEME.accent_secondary)
