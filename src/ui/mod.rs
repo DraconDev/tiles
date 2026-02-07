@@ -2563,7 +2563,6 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     // 3. History
     let history_area = chunks[2];
     if history.is_empty() {
-    if history.is_empty() {
         f.render_widget(
             Paragraph::new("\n\n No git history found for this path or not a git repository.")
                 .alignment(Alignment::Center),
