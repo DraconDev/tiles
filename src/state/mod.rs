@@ -303,6 +303,10 @@ pub struct FileState {
     pub git_pending: Vec<GitPendingChange>,
     #[serde(skip)]
     pub git_summary: Option<String>,
+    #[serde(skip)]
+    pub git_remotes: Vec<String>,
+    #[serde(skip)]
+    pub git_stashes: Vec<String>,
 }
 
 impl FileState {
@@ -342,6 +346,8 @@ impl FileState {
             git_behind: 0,
             git_pending: Vec::new(),
             git_summary: None,
+            git_remotes: Vec::new(),
+            git_stashes: Vec::new(),
         }
     }
 }
