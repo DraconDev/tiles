@@ -2383,7 +2383,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         0
     };
 
-    let (history, pending, _current_path, branch, summary) = if let Some(pane) = app.panes.get(pane_idx) {
+    let (history, pending, _current_path, branch, summary, remotes, stashes) = if let Some(pane) = app.panes.get(pane_idx) {
         if let Some(tab) = pane.tabs.get(tab_idx) {
             (
                 &tab.git_history,
@@ -2391,6 +2391,8 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                 tab.current_path.clone(),
                 tab.git_branch.clone(),
                 tab.git_summary.clone(),
+                &tab.git_remotes,
+                &tab.git_stashes,
             )
         } else {
             return;
@@ -2405,7 +2407,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         .border_style(Style::default().fg(THEME.accent_primary))
         .title_top(Line::from(vec![
             Span::styled(
-                " GIT HISTORY ",
+                " GIT HUB ",
                 Style::default()
                     .fg(Color::Black)
                     .bg(THEME.accent_primary)
@@ -2496,6 +2498,46 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             );
         f.render_widget(pending_table, chunks[0]);
     }
+
+    // 2. Bottom Section: History & Info
+    let bottom_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Fill(7), Constraint::Fill(3)])
+        .split(chunks[2]);
+
+    let history_area = bottom_chunks[0];
+    let info_area = bottom_chunks[1];
+
+    // Info Panel (Remotes & Stashes)
+    let mut info_items = Vec::new();
+    
+    // Remotes
+    info_items.push(ListItem::new(Line::from(vec![
+        Span::styled(" REMOTES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
+    ])));
+    if remotes.is_empty() {
+        info_items.push(ListItem::new(Span::styled("  (None)", Style::default().fg(Color::DarkGray))));
+    } else {
+        for r in remotes {
+            info_items.push(ListItem::new(Span::styled(format!("  {}", r), Style::default().fg(THEME.fg))));
+        }
+    }
+    
+    info_items.push(ListItem::new("")); // Spacer
+
+    // Stashes
+    info_items.push(ListItem::new(Line::from(vec![
+        Span::styled(" STASHES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
+    ])));
+    if stashes.is_empty() {
+        info_items.push(ListItem::new(Span::styled("  (None)", Style::default().fg(Color::DarkGray))));
+    } else {
+        for s in stashes {
+            info_items.push(ListItem::new(Span::styled(format!("  {}", s), Style::default().fg(THEME.fg))));
+        }
+    }
+
+    f.render_widget(List::new(info_items).block(Block::default().borders(Borders::LEFT).border_style(Style::default().fg(Color::Rgb(30, 30, 35)))), info_area);
 
     // 2. History
     let history_area = chunks[2];
