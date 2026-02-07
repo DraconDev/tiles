@@ -373,7 +373,8 @@ async fn run_tty() -> color_eyre::Result<()> {
                     });
                 }
                 AppEvent::SaveFile(path, content) => {
-                    let _ = std::fs::write(&path, content);
+                    let _ = std::fs::write(&path, &content);
+                    last_self_save.insert(path.clone(), content);
                     let mut app_guard = app.lock().unwrap();
                     if let Some(ref mut preview) = app_guard.editor_state {
                         if preview.path == path {
