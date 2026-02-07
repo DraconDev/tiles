@@ -2367,13 +2367,14 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         0
     };
 
-    let (history, pending, _current_path, branch) = if let Some(pane) = app.panes.get(pane_idx) {
+    let (history, pending, _current_path, branch, summary) = if let Some(pane) = app.panes.get(pane_idx) {
         if let Some(tab) = pane.tabs.get(tab_idx) {
             (
                 &tab.git_history,
                 &tab.git_pending,
                 tab.current_path.clone(),
                 tab.git_branch.clone(),
+                tab.git_summary.clone(),
             )
         } else {
             return;
@@ -2393,14 +2394,6 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                     .fg(Color::Black)
                     .bg(THEME.accent_primary)
                     .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(" "),
-            Span::styled(
-                format!(
-                    "({})",
-                    branch.as_ref().map(|s| s.as_str()).unwrap_or("HEAD")
-                ),
-                Style::default().fg(Color::Yellow),
             ),
         ]))
         .title_top(
@@ -2426,7 +2419,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             Constraint::Length(if pending.is_empty() {
                 0
             } else {
-                (pending.len() as u16 + 1).min(inner.height / 3)
+                (pending.len() as u16 + 2).min(inner.height / 2)
             }),
             Constraint::Length(1), // Spacer
             Constraint::Min(0),
@@ -2435,6 +2428,9 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
 
     // 1. Active Changes
     if !pending.is_empty() {
+        let branch_name = branch.as_ref().map(|s| s.as_str()).unwrap_or("HEAD");
+        let active_title = format!(" ACTIVE ({}) ", branch_name);
+        
         let pending_rows: Vec<_> = pending
             .iter()
             .map(|p| {
@@ -2445,7 +2441,16 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                     "R" => Color::Cyan,
                     _ => Color::White,
                 };
-                Row::new(vec![
+                
+                let mut stats_spans = Vec::new();
+                if p.insertions > 0 {
+                    stats_spans.push(Span::styled(format!(" +{}", p.insertions), Style::default().fg(Color::Green)));
+                }
+                if p.deletions > 0 {
+                    stats_spans.push(Span::styled(format!(" -{}", p.deletions), Style::default().fg(Color::Red)));
+                }
+
+                let mut row_spans = vec![
                     Cell::from(format!(" {} ", p.status)).style(
                         Style::default()
                             .bg(status_color)
@@ -2453,14 +2458,19 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                             .add_modifier(Modifier::BOLD),
                     ),
                     Cell::from(p.path.clone()).style(Style::default().fg(THEME.fg)),
-                ])
+                ];
+                row_spans.push(Cell::from(Line::from(stats_spans)));
+
+                Row::new(row_spans)
             })
             .collect();
 
-        let pending_table = Table::new(pending_rows, [Constraint::Length(6), Constraint::Fill(1)])
+        let summary_text = summary.unwrap_or_default();
+        let pending_table = Table::new(pending_rows, [Constraint::Length(6), Constraint::Fill(1), Constraint::Length(15)])
             .block(
                 Block::default()
-                    .title(" ACTIVE ")
+                    .title(active_title)
+                    .title_bottom(Line::from(format!(" {} ", summary_text)).alignment(Alignment::Right))
                     .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
             );
         f.render_widget(pending_table, chunks[0]);
