@@ -343,6 +343,7 @@ impl FileState {
             pending_select_path: None,
             git_history: Vec::new(),
             git_history_state: ratatui::widgets::TableState::default(),
+            git_pending_state: ratatui::widgets::TableState::default(),
             git_branch: None,
             git_ahead: 0,
             git_behind: 0,
