@@ -271,14 +271,41 @@ async fn run_tty() -> color_eyre::Result<()> {
                     panes_needing_refresh.insert(pane_idx);
                 }
                 AppEvent::FilesChangedOnDisk(path) => {
-                    let app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock().unwrap();
+                    let mut needs_reload = Vec::new();
+
                     for (i, pane) in app_guard.panes.iter().enumerate() {
                         if let Some(fs) = pane.current_state() {
                             if path.starts_with(&fs.current_path) {
                                 panes_needing_refresh.insert(i);
                             }
                         }
+                        if let Some(preview) = &pane.preview {
+                            if preview.path == path {
+                                if let Some(editor) = &preview.editor {
+                                    if !editor.modified {
+                                        needs_reload.push((i, path.clone()));
+                                    }
+                                }
+                            }
+                        }
                     }
+
+                    if let Some(preview) = &app_guard.editor_state {
+                        if preview.path == path {
+                            if let Some(editor) = &preview.editor {
+                                if !editor.modified {
+                                    needs_reload.push((app_guard.focused_pane_index, path.clone()));
+                                }
+                            }
+                        }
+                    }
+
+                    drop(app_guard);
+                    for (p_idx, p_path) in needs_reload {
+                        let _ = event_tx.try_send(AppEvent::PreviewRequested(p_idx, p_path));
+                    }
+                    needs_draw = true;
                 }
                 AppEvent::PreviewRequested(pane_idx, path) => {
                     let tx = event_tx.clone();
