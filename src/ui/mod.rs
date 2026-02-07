@@ -28,6 +28,62 @@ use unicode_width::UnicodeWidthStr;
 pub mod modals;
 pub mod theme;
 
+pub fn draw(f: &mut Frame, app: &mut App) {
+    if matches!(app.mode, AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorGoToLine | AppMode::EditorReplace) && app.show_main_stage && !app.is_split_mode {
+        let mut header_left = Vec::new();
+        let border_color = if let Some(preview) = &app.editor_state {
+            if let Some(last_saved) = preview.last_saved {
+                if last_saved.elapsed().as_secs() < 2 {
+                    Color::Green
+                } else if let Some(editor) = &preview.editor {
+                    if editor.modified {
+                        Color::Yellow
+                    } else {
+                        Color::White
+                    }
+                } else {
+                    Color::White
+                }
+            } else if let Some(editor) = &preview.editor {
+                if editor.modified {
+                    Color::Yellow
+                } else {
+                    Color::White
+                }
+            } else {
+                Color::White
+            }
+        } else {
+            Color::White
+        };
+
+        match app.mode {
+            AppMode::EditorSearch => {
+                header_left.push(Span::styled(
+                    "SEARCH: ",
+                    Style::default()
+                        .fg(THEME.accent_primary)
+                        .add_modifier(Modifier::BOLD),
+                ));
+                header_left.push(Span::styled(
+                    &app.input.value,
+                    Style::default().fg(Color::White),
+                ));
+            }
+            AppMode::EditorGoToLine => {
+                header_left.push(Span::styled(
+                    "GO TO LINE: ",
+                    Style::default()
+                        .fg(THEME.accent_primary)
+                        .add_modifier(Modifier::BOLD),
+                ));
+                header_left.push(Span::styled(
+                    &app.input.value,
+                    Style::default().fg(Color::White),
+                ));
+            }
+            AppMode::EditorReplace => {
+                if app.replace_buffer.is_empty() {
                     header_left.push(Span::styled(
                         "REPLACE [FIND]: ",
                         Style::default()
