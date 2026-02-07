@@ -528,12 +528,30 @@ async fn run_tty() -> color_eyre::Result<()> {
                             let filtered_files: Vec<_> = files
                                 .into_iter()
                                 .filter(|p| {
-                                    fs.show_hidden
-                                        || !p
+                                    // 1. Hidden filter
+                                    let is_hidden = p
+                                        .file_name()
+                                        .and_then(|n| n.to_str())
+                                        .map(|s| s.starts_with('.'))
+                                        .unwrap_or(false);
+                                    
+                                    if !fs.show_hidden && is_hidden {
+                                        return false;
+                                    }
+
+                                    // 2. Search filter
+                                    if !fs.search_filter.is_empty() {
+                                        let name = p
                                             .file_name()
                                             .and_then(|n| n.to_str())
-                                            .map(|s| s.starts_with('.'))
-                                            .unwrap_or(false)
+                                            .unwrap_or("")
+                                            .to_lowercase();
+                                        if !name.contains(&fs.search_filter.to_lowercase()) {
+                                            return false;
+                                        }
+                                    }
+
+                                    true
                                 })
                                 .collect();
 
