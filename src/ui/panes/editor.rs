@@ -67,6 +67,7 @@ pub fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usiz
                     editor.language = ext;
                     editor.invalidate_from(0);
                 }
+                editor.wrap = app.is_split_mode;
                 f.render_widget(editor, inner);
             }
         }
