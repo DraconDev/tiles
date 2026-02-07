@@ -84,7 +84,7 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
     let total_comps = components.len();
     
     let search_filter_text = if !search_filter.is_empty() {
-        format!(" [ {}{} ]", search_label, search_filter.trim())
+        format!(" [{}{}]", search_label, search_filter.trim())
     } else {
         String::new()
     };
