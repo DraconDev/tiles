@@ -26,7 +26,10 @@ use terma::widgets::HotkeyHint;
 use unicode_width::UnicodeWidthStr;
 
 pub mod modals;
+pub mod panes;
 pub mod theme;
+
+pub use panes::breadcrumbs::draw_pane_breadcrumbs;
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorGoToLine | AppMode::EditorReplace) && app.show_main_stage && !app.is_split_mode {
