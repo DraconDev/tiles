@@ -494,6 +494,8 @@ async fn run_tty() -> color_eyre::Result<()> {
                     ahead,
                     behind,
                     summary,
+                    remotes,
+                    stashes,
                 ) => {
                     let mut app_guard = app.lock().unwrap();
                     if let Some(pane) = app_guard.panes.get_mut(p_idx) {
@@ -504,6 +506,8 @@ async fn run_tty() -> color_eyre::Result<()> {
                             fs.git_ahead = ahead;
                             fs.git_behind = behind;
                             fs.git_summary = summary;
+                            fs.git_remotes = remotes;
+                            fs.git_stashes = stashes;
                         }
                     }
                     needs_draw = true;
