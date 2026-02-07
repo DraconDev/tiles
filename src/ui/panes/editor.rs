@@ -54,7 +54,19 @@ pub fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usiz
 
     if let Some(pane) = app.panes.get_mut(pane_idx) {
         if let Some(preview) = &mut pane.preview {
-            if let Some(editor) = &preview.editor {
+            if let Some(editor) = &mut preview.editor {
+                // Ensure language is set for syntax highlighting
+                let path_str = preview.path.to_string_lossy();
+                let ext = if path_str.starts_with("git://") {
+                    "diff".to_string()
+                } else {
+                    preview.path.extension().and_then(|s| s.to_str()).unwrap_or("").to_string()
+                };
+
+                if editor.language != ext {
+                    editor.language = ext;
+                    editor.invalidate_from(0);
+                }
                 f.render_widget(editor, inner);
             }
         }
