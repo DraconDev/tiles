@@ -12,6 +12,17 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
                 }
                 KeyCode::Enter if matches!(app.mode, AppMode::Normal) => {
                     if let Some(fs) = app.current_file_state() {
+                        // Priority 1: Pending changes (Diff)
+                        if let Some(idx) = fs.git_pending_state.selected() {
+                            if let Some(change) = fs.git_pending.get(idx) {
+                                let _ = event_tx.try_send(AppEvent::PreviewRequested(
+                                    app.focused_pane_index,
+                                    std::path::PathBuf::from(format!("git-diff://{}", change.path)),
+                                ));
+                                return true;
+                            }
+                        }
+                        // Priority 2: History (Commit)
                         if let Some(idx) = fs.git_history_state.selected() {
                             if let Some(commit) = fs.git_history.get(idx) {
                                 let hash = commit.hash.clone();
