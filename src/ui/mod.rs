@@ -1552,34 +1552,9 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             }
         }
         CurrentView::Editor => {
-            draw_editor_stage(f, area, app);
-                        Rect::new(cur_x, breadcrumb_y, 1, 1),
-                    );
-                    cur_x += sep_w;
-                    accumulated_width += sep_w;
-                }
-            }
+            crate::ui::panes::editor::draw_ide_editor(f, area, app);
         }
-    }
-
-    if !search_filter_text.is_empty() {
-        let max_filter_w = area.right().saturating_sub(cur_x + 2) as usize;
-        let display_filter = if search_filter_text.width() > max_filter_w {
-            truncate_to_width(&search_filter_text, max_filter_w, "..]")
-        } else {
-            search_filter_text
-        };
-
-        let filter_rect = Rect::new(cur_x + 1, area.y, display_filter.width() as u16, 1);
-        f.render_widget(
-            Paragraph::new(Span::styled(
-                display_filter,
-                Style::default()
-                    .fg(search_color)
-                    .add_modifier(Modifier::BOLD),
-            )),
-            filter_rect,
-        );
+        _ => {}
     }
 }
 
