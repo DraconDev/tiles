@@ -145,6 +145,7 @@ async fn run_tty() -> color_eyre::Result<()> {
     crate::app::log_debug("Entering main loop");
 
     let mut panes_needing_refresh = std::collections::HashSet::new();
+    let mut last_self_save: std::collections::HashMap<PathBuf, String> = std::collections::HashMap::new();
 
     loop {
         let mut needs_draw = false;
