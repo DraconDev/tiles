@@ -138,6 +138,54 @@ pub fn fetch_git_data(
     Some((history, pending, branch, ahead, behind))
 }
 
+pub fn global_search(
+    root: &Path,
+    query: &str,
+) -> (Vec<PathBuf>, HashMap<PathBuf, FileMetadata>) {
+    let mut results = Vec::new();
+    let mut metadata = HashMap::new();
+    let query_lower = query.to_lowercase();
+
+    let mut stack = vec![root.to_path_buf()];
+    let max_results = 50;
+
+    while let Some(current_dir) = stack.pop() {
+        if let Ok(entries) = std::fs::read_dir(&current_dir) {
+            for entry in entries.filter_map(|e| e.ok()) {
+                let p = entry.path();
+                let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+                if name.to_lowercase().contains(&query_lower) {
+                    if let Ok(m) = entry.metadata() {
+                        let meta = FileMetadata {
+                            size: m.len(),
+                            modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                            created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                            permissions: 0,
+                            is_dir: m.is_dir(),
+                        };
+                        results.push(p.clone());
+                        metadata.insert(p, meta);
+
+                        if results.len() >= max_results {
+                            return (results, metadata);
+                        }
+                    }
+                }
+
+                if p.is_dir() {
+                    // Avoid some known large/uninteresting dirs
+                    if name != "target" && name != ".git" && name != "node_modules" {
+                        stack.push(p);
+                    }
+                }
+            }
+        }
+    }
+
+    (results, metadata)
+}
+
 pub fn copy_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
     terma::utils::copy_recursive(src, dst)
 }
