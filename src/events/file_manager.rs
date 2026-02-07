@@ -600,10 +600,6 @@ pub fn handle_file_mouse(
                     if idx < fs.files.len() {
                         let is_divider = fs.files[idx].to_string_lossy() == "__DIVIDER__";
                         if is_divider {
-                            if idx + 1 < fs.files.len() {
-                                fs.selection.handle_move(idx + 1, false);
-                                fs.table_state.select(fs.selection.selected);
-                            }
                             return true;
                         }
 
