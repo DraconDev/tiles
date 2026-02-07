@@ -322,8 +322,11 @@ pub fn draw_file_view(
 
                     let content = match col_type {
                         FileColumn::Name => {
-                            let name =
-                                path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
+                            let name = if file_idx > file_state.local_count {
+                                path.to_string_lossy().to_string()
+                            } else {
+                                path.file_name().and_then(|n| n.to_str()).unwrap_or("..").to_string()
+                            };
                             let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                             let cat = crate::modules::files::get_file_category(path);
                             let icon_str = Icon::get_for_path(path, cat, is_dir, app.icon_mode);
