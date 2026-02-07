@@ -607,7 +607,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         let sb = meta_b.map(|m| m.size).unwrap_or(0);
                                         sa.cmp(&sb)
                                     }
-                                    crate::app::FileCategory::Audio | crate::app::FileColumn::Modified => {
+                                    crate::app::FileColumn::Modified => {
                                         let da = meta_a
                                             .map(|m| m.modified)
                                             .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
