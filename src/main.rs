@@ -390,12 +390,18 @@ async fn run_tty() -> color_eyre::Result<()> {
                     if let Some(ref mut preview) = app_guard.editor_state {
                         if preview.path == path {
                             preview.last_saved = Some(std::time::Instant::now());
+                            if let Some(ref mut editor) = preview.editor {
+                                editor.modified = false;
+                            }
                         }
                     }
                     for pane in &mut app_guard.panes {
                         if let Some(ref mut preview) = pane.preview {
                             if preview.path == path {
                                 preview.last_saved = Some(std::time::Instant::now());
+                                if let Some(ref mut editor) = preview.editor {
+                                    editor.modified = false;
+                                }
                             }
                         }
                     }
