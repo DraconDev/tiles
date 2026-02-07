@@ -148,7 +148,7 @@ pub fn global_search(
     let query_lower = query.to_lowercase();
 
     let mut stack = vec![root.to_path_buf()];
-    let max_results = 50;
+    let max_results = 100;
 
     while let Some(current_dir) = stack.pop() {
         if let Ok(entries) = std::fs::read_dir(&current_dir) {
@@ -176,8 +176,12 @@ pub fn global_search(
                 }
 
                 if p.is_dir() {
-                    // Avoid some known large/uninteresting dirs
-                    if name != "target" && name != ".git" && name != "node_modules" {
+                    // Avoid large/system/uninteresting dirs for performance
+                    let name_lower = name.to_lowercase();
+                    if name != "target" && name != ".git" && name != "node_modules" 
+                        && name != "Library" && name != ".cache" && name != ".cargo"
+                        && name_lower != "pictures" && name_lower != "videos" && name_lower != "music"
+                    {
                         stack.push(p);
                     }
                 }
