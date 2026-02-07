@@ -8,17 +8,18 @@ pub fn read_dir_with_metadata(path: &Path) -> (Vec<PathBuf>, HashMap<PathBuf, Fi
 
     if let Ok(entries) = std::fs::read_dir(path) {
         for entry in entries.filter_map(|e| e.ok()) {
-            let p = entry.path();
-            if let Ok(m) = entry.metadata() {
-                let meta = FileMetadata {
-                    size: m.len(),
-                    modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-                    created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-                    permissions: 0, // Simplified
-                    is_dir: m.is_dir(),
-                };
-                files.push(p.clone());
-                metadata.insert(p, meta);
+            if let Ok(p) = std::fs::canonicalize(entry.path()) {
+                if let Ok(m) = entry.metadata() {
+                    let meta = FileMetadata {
+                        size: m.len(),
+                        modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                        created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
+                        permissions: 0, // Simplified
+                        is_dir: m.is_dir(),
+                    };
+                    files.push(p.clone());
+                    metadata.insert(p, meta);
+                }
             }
         }
     }
