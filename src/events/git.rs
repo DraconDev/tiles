@@ -40,9 +40,6 @@ pub fn handle_git_mouse(
     if let MouseEventKind::Down(MouseButton::Left) = me.kind {
         if let Some(fs) = app.current_file_state() {
             let pending = &fs.git_pending;
-            
-            // Replicate draw_git_page layout logic
-            let inner_y = 1; // Top border
             let inner_h = app.terminal_size.1.saturating_sub(2);
             let pending_h = if pending.is_empty() { 
                 0 
@@ -50,14 +47,25 @@ pub fn handle_git_mouse(
                 (pending.len() as u16 + 2).min(inner_h / 2) 
             };
             
-            // history_area.y = inner_y + pending_h + 1 (spacer)
-            // In draw_git_page, chunks[0] is pending, chunks[1] is spacer, chunks[2] is bottom_chunks
-            let history_area_y = inner_y + pending_h + 1;
+            let inner_y = 1; // Top border
+            let active_data_start_y = inner_y + 1;
             
-            // Data rows start after:
-            // 1. Block title row (1)
-            // 2. Table header row (1)
-            // 3. Header bottom margin (1)
+            // 1. Check if click is in ACTIVE section
+            if !pending.is_empty() && row >= active_data_start_y && row < active_data_start_y + pending_h.saturating_sub(1) {
+                if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                    if let Some(tab) = pane.tabs.get_mut(pane.active_tab_index) {
+                        let rel_row = (row - active_data_start_y) as usize;
+                        if rel_row < tab.git_pending.len() {
+                            tab.git_pending_state.select(Some(rel_row));
+                            tab.git_history_state.select(None);
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            // 2. Check if click is in HISTORY section
+            let history_area_y = inner_y + pending_h + 1;
             let table_data_start_y = history_area_y + 3;
 
             if row >= table_data_start_y {
@@ -67,6 +75,7 @@ pub fn handle_git_mouse(
                         let rel_row = (row - table_data_start_y) as usize + scroll_offset;
                         if rel_row < tab.git_history.len() {
                             tab.git_history_state.select(Some(rel_row));
+                            tab.git_pending_state.select(None);
                             return true;
                         }
                     }
