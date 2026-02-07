@@ -33,7 +33,7 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
         }
     }
 
-    let mut search_label = "  ";
+    let mut search_label = "";
     let mut search_color = Color::Cyan;
 
     // IDE Mode Search Integration
@@ -45,27 +45,27 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
                         match app.mode {
                             AppMode::EditorSearch => {
                                 search_filter = app.input.value.clone();
-                                search_label = " ";
+                                search_label = "";
                             }
                             AppMode::EditorGoToLine => {
                                 search_filter = app.input.value.clone();
-                                search_label = " LINE: ";
+                                search_label = "LINE: ";
                             }
                             AppMode::EditorReplace => {
                                 search_filter = app.input.value.clone();
-                                search_label = if app.replace_buffer.is_empty() { " " } else { " WITH: " };
+                                search_label = if app.replace_buffer.is_empty() { "" } else { "WITH: " };
                                 search_color = Color::Magenta;
                             }
                             _ => {
                                 if !editor.filter_query.is_empty() {
                                     search_filter = editor.filter_query.clone();
-                                    search_label = " ";
+                                    search_label = "";
                                 }
                             }
                         }
                     } else if !editor.filter_query.is_empty() {
                         search_filter = editor.filter_query.clone();
-                        search_label = " ";
+                        search_label = "";
                     }
                 }
             }
@@ -84,7 +84,7 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
     let total_comps = components.len();
     
     let search_filter_text = if !search_filter.is_empty() {
-        format!(" [ {}{} ]", search_label, search_filter)
+        format!(" [ {}{} ]", search_label, search_filter.trim())
     } else {
         String::new()
     };
