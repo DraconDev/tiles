@@ -546,7 +546,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         draw_global_header(f, chunks[0], workspace[0].width, app);
 
         if app.show_sidebar || !app.show_main_stage {
-            draw_sidebar(f, workspace[0], app);
+            crate::ui::panes::sidebar::draw_sidebar(f, workspace[0], app);
         }
 
         if app.show_main_stage {
