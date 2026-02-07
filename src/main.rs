@@ -359,6 +359,18 @@ async fn run_tty() -> color_eyre::Result<()> {
                             }
                         }
                     }
+
+                    // Trigger refresh for panes showing this file's parent
+                    if let Some(parent) = path.parent() {
+                        for (i, pane) in app_guard.panes.iter().enumerate() {
+                            if let Some(fs) = pane.current_state() {
+                                if fs.current_path == parent {
+                                    panes_needing_refresh.insert(i);
+                                }
+                            }
+                        }
+                    }
+
                     needs_draw = true;
                 }
                 AppEvent::CreateFile(path) => {
