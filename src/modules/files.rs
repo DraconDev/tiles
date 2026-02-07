@@ -40,6 +40,8 @@ pub fn fetch_git_data(
     usize,
     usize,
     String,
+    Vec<String>, // Remotes
+    Vec<String>, // Stashes
 )> {
     let output = std::process::Command::new("git")
         .args(&["rev-parse", "--abbrev-ref", "HEAD"])
@@ -73,10 +75,16 @@ pub fn fetch_git_data(
         (0, 0)
     };
 
-    // Log
+    // Log with Graph
     let mut history = Vec::new();
     if let Ok(out) = std::process::Command::new("git")
-        .args(&["log", "-n", "50", "--pretty=format:%H|%an|%ar|%s", "--stat"])
+        .args(&[
+            "log",
+            "-n",
+            "100",
+            "--pretty=format:%H|%an|%ar|%s|%d",
+            "--stat",
+        ])
         .current_dir(path)
         .output()
     {
@@ -90,18 +98,17 @@ pub fn fetch_git_data(
                 }
                 let parts: Vec<&str> = line.split('|').collect();
                 if parts.len() >= 4 {
-                    current_commit = Some(crate::app::CommitInfo {
+                    history.push(crate::app::CommitInfo {
                         hash: parts[0].to_string(),
                         author: parts[1].to_string(),
                         date: parts[2].to_string(),
-                        message: parts[3..].join("|"),
+                        message: format!("{} {}", parts[4], parts[3]).trim().to_string(),
                         files_changed: 0,
                         insertions: 0,
                         deletions: 0,
                     });
                 }
-            } else if let Some(c) = current_commit.as_mut() {
-                // Parse stat: " 1 file changed, 1 insertion(+), 1 deletion(-)"
+            } else if let Some(c) = history.last_mut() {
                 if line.contains("file") && line.contains("changed") {
                     let parts: Vec<&str> = line.split_whitespace().collect();
                     for (i, part) in parts.iter().enumerate() {
@@ -116,16 +123,12 @@ pub fn fetch_git_data(
                 }
             }
         }
-        if let Some(c) = current_commit {
-            history.push(c);
-        }
     }
 
     // Status & Detailed Stats
     let mut pending = Vec::new();
     let mut stats_map = HashMap::new();
 
-    // Get numstat for unstaged
     if let Ok(out) = std::process::Command::new("git")
         .args(&["diff", "--numstat"])
         .current_dir(path)
@@ -141,7 +144,6 @@ pub fn fetch_git_data(
             }
         }
     }
-    // Get numstat for staged
     if let Ok(out) = std::process::Command::new("git")
         .args(&["diff", "--staged", "--numstat"])
         .current_dir(path)
@@ -190,7 +192,42 @@ pub fn fetch_git_data(
         String::new()
     };
 
-    Some((history, pending, branch, ahead, behind, summary))
+    let remotes = if let Ok(out) = std::process::Command::new("git")
+        .args(&["remote", "-v"])
+        .current_dir(path)
+        .output()
+    {
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .map(|s| s.to_string())
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    let stashes = if let Ok(out) = std::process::Command::new("git")
+        .args(&["stash", "list"])
+        .current_dir(path)
+        .output()
+    {
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .map(|s| s.to_string())
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    Some((
+        history,
+        pending,
+        branch,
+        ahead,
+        behind,
+        summary,
+        remotes,
+        stashes,
+    ))
 }
 
 pub fn global_search(
