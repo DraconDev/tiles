@@ -32,7 +32,44 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
 
-            // ... (Markers logic)
+            // 1. Collect markers ONLY for the active (visible) tab of each PANE
+            let mut active_storage_markers: HashMap<String, Vec<usize>> = HashMap::new();
+            let mut active_remote_markers: HashMap<String, Vec<usize>> = HashMap::new();
+
+            for (p_idx, pane) in app.panes.iter().enumerate() {
+                let panel_num = p_idx + 1; // 1 for Left, 2 for Right
+                if let Some(fs) = pane.current_state() {
+                    if let Some(ref session) = fs.remote_session {
+                        active_remote_markers
+                            .entry(session.host.clone())
+                            .or_default()
+                            .push(panel_num);
+                    } else {
+                        // Check Storage
+                        let mut matched_disk = None;
+                        let mut longest_prefix = 0;
+
+                        for disk in &app.system_state.disks {
+                            if disk.is_mounted {
+                                if fs.current_path.starts_with(&disk.name) {
+                                    let len = disk.name.len();
+                                    if len > longest_prefix {
+                                        longest_prefix = len;
+                                        matched_disk = Some(disk.name.clone());
+                                    }
+                                }
+                            }
+                        }
+
+                        if let Some(name) = matched_disk {
+                            active_storage_markers
+                                .entry(name)
+                                .or_default()
+                                .push(panel_num);
+                        }
+                    }
+                }
+            }
 
             let is_dragging_folder = app.is_dragging
                 && app
