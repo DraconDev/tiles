@@ -2350,6 +2350,7 @@ fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, i
 
     if let Some(preview) = &mut pane.preview {
         if let Some(editor) = &preview.editor {
+            editor.wrap = app.is_split_mode;
             f.render_widget(editor, editor_area);
         }
     } else {
