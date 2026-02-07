@@ -487,7 +487,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
         if let Some(preview) = &app.editor_state {
             if let Some(editor) = &preview.editor {
-                f.render_widget(editor, inner_area);
+                // Ensure wrap is handled in split mode
+                let mut editor_clone = editor.clone();
+                editor_clone.wrap = app.is_split_mode;
+                f.render_widget(&editor_clone, inner_area);
             }
         }
     } else if matches!(app.mode, AppMode::Settings) {
