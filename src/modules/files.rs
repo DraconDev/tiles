@@ -39,6 +39,7 @@ pub fn fetch_git_data(
     String,
     usize,
     usize,
+    String,
 )> {
     let output = std::process::Command::new("git")
         .args(&["rev-parse", "--abbrev-ref", "HEAD"])
@@ -120,8 +121,45 @@ pub fn fetch_git_data(
         }
     }
 
-    // Status
+    // Status & Detailed Stats
     let mut pending = Vec::new();
+    let mut stats_map = HashMap::new();
+
+    // Get numstat for unstaged
+    if let Ok(out) = std::process::Command::new("git")
+        .args(&["diff", "--numstat"])
+        .current_dir(path)
+        .output()
+    {
+        for line in String::from_utf8_lossy(&out.stdout).lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 3 {
+                let ins = parts[0].parse::<usize>().unwrap_or(0);
+                let del = parts[1].parse::<usize>().unwrap_or(0);
+                let file = parts[2].to_string();
+                stats_map.insert(file, (ins, del));
+            }
+        }
+    }
+    // Get numstat for staged
+    if let Ok(out) = std::process::Command::new("git")
+        .args(&["diff", "--staged", "--numstat"])
+        .current_dir(path)
+        .output()
+    {
+        for line in String::from_utf8_lossy(&out.stdout).lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 3 {
+                let ins = parts[0].parse::<usize>().unwrap_or(0);
+                let del = parts[1].parse::<usize>().unwrap_or(0);
+                let file = parts[2].to_string();
+                let entry = stats_map.entry(file).or_insert((0, 0));
+                entry.0 += ins;
+                entry.1 += del;
+            }
+        }
+    }
+
     if let Ok(out) = std::process::Command::new("git")
         .args(&["status", "--porcelain"])
         .current_dir(path)
@@ -131,12 +169,28 @@ pub fn fetch_git_data(
             if line.len() > 3 {
                 let status = line[0..2].trim().to_string();
                 let file = line[3..].to_string();
-                pending.push(crate::app::GitPendingChange { status, path: file });
+                let (ins, del) = stats_map.get(&file).cloned().unwrap_or((0, 0));
+                pending.push(crate::app::GitPendingChange {
+                    status,
+                    path: file,
+                    insertions: ins,
+                    deletions: del,
+                });
             }
         }
     }
 
-    Some((history, pending, branch, ahead, behind))
+    let summary = if let Ok(out) = std::process::Command::new("git")
+        .args(&["diff", "HEAD", "--shortstat"])
+        .current_dir(path)
+        .output()
+    {
+        String::from_utf8_lossy(&out.stdout).trim().to_string()
+    } else {
+        String::new()
+    };
+
+    Some((history, pending, branch, ahead, behind, summary))
 }
 
 pub fn global_search(
