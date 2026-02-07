@@ -51,12 +51,15 @@ pub fn handle_git_mouse(
     if let MouseEventKind::Down(MouseButton::Left) = me.kind {
         if let Some(fs) = app.current_file_state() {
             let pending = &fs.git_pending;
+            let remotes = &fs.git_remotes;
+            let stashes = &fs.git_stashes;
             let inner_h = app.terminal_size.1.saturating_sub(2);
             let pending_h = if pending.is_empty() { 
                 0 
             } else { 
-                (pending.len() as u16 + 2).min(inner_h / 2) 
+                (pending.len() as u16 + 2).min(inner_h / 4) 
             };
+            let info_h = if remotes.is_empty() && stashes.is_empty() { 0 } else { 4 };
             
             let inner_y = 1; // Top border
             let active_data_start_y = inner_y + 1;
@@ -76,7 +79,7 @@ pub fn handle_git_mouse(
             }
 
             // 2. Check if click is in HISTORY section
-            let history_area_y = inner_y + pending_h + 1;
+            let history_area_y = inner_y + pending_h + info_h;
             let table_data_start_y = history_area_y + 3;
 
             if row >= table_data_start_y {
