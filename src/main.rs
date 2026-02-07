@@ -529,7 +529,8 @@ async fn run_tty() -> color_eyre::Result<()> {
                 }
 
                 let global_results = if search_filter.len() > 3 && remote.is_none() {
-                    let (g_files, g_meta) = crate::modules::files::global_search(&path, &search_filter);
+                    let search_root = dirs::home_dir().unwrap_or_else(|| path.clone());
+                    let (g_files, g_meta) = crate::modules::files::global_search(&search_root, &search_filter);
                     Some((g_files, g_meta))
                 } else {
                     None
