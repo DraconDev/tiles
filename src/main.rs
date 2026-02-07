@@ -756,7 +756,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                     }
                 }
                 let _ = tx.send(AppEvent::Tick).await;
-                if let Some((history, pending, branch, ahead, behind)) = git_data {
+                if let Some((history, pending, branch, ahead, behind, summary)) = git_data {
                     let _ = tx
                         .send(AppEvent::GitHistoryUpdated(
                             pane_idx,
@@ -766,6 +766,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                             Some(branch),
                             ahead,
                             behind,
+                            Some(summary),
                         ))
                         .await;
                 }
