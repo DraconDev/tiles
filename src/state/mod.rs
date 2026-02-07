@@ -480,6 +480,8 @@ pub enum GitStatus {
 pub struct GitPendingChange {
     pub status: String,
     pub path: String,
+    pub insertions: usize,
+    pub deletions: usize,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
