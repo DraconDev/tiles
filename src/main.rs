@@ -775,6 +775,19 @@ fn setup_app(
             }
         }
         app.focused_pane_index = state.focused_pane_index;
+
+        // Ensure CWD is active on start, keeping history
+        if let Ok(cwd) = std::env::current_dir() {
+            if let Some(pane) = app.panes.get_mut(0) {
+                if let Some(fs) = pane.current_state_mut() {
+                    if fs.current_path != cwd {
+                        fs.current_path = cwd.clone();
+                        crate::event_helpers::push_history(fs, cwd);
+                    }
+                }
+            }
+        }
+
         // Merge favorites (Defaults + Loaded)
         let mut loaded_starred = state.starred;
         for def in app.starred {
