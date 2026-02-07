@@ -2495,8 +2495,19 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                     .title(active_title)
                     .title_bottom(Line::from(format!(" {} ", summary_text)).alignment(Alignment::Right))
                     .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
+            )
+            .row_highlight_style(
+                Style::default()
+                    .bg(Color::Rgb(40, 40, 50))
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
             );
-        f.render_widget(pending_table, chunks[0]);
+
+        if let Some(pane) = app.panes.get_mut(pane_idx) {
+            if let Some(tab) = pane.tabs.get_mut(tab_idx) {
+                f.render_stateful_widget(pending_table, chunks[0], &mut tab.git_pending_state);
+            }
+        }
     }
 
     // 2. Bottom Section: History & Info
