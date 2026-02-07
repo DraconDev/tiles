@@ -277,7 +277,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                         if let Ok(current_content) = std::fs::read_to_string(&path) {
                             if &current_content == saved_content {
                                 last_self_save.remove(&path);
-                                return; // Skip refreshing/reloading for our own saves
+                                continue; // Skip refreshing/reloading for our own saves
                             }
                         }
                         last_self_save.remove(&path);
