@@ -43,7 +43,6 @@ pub fn handle_git_mouse(
             
             // Replicate draw_git_page layout logic
             let inner_y = 1; // Top border
-            let header_h = 1;
             let inner_h = app.terminal_size.1.saturating_sub(2);
             let pending_h = if pending.is_empty() { 
                 0 
