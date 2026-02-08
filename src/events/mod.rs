@@ -154,7 +154,13 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
     if matches!(app.mode, AppMode::Normal) {
         match app.current_view {
             CurrentView::Git | CurrentView::Processes => {
+                if let Some(fs) = app.current_file_state_mut() {
+                    fs.search_filter.clear();
+                }
                 app.current_view = CurrentView::Files;
+                app.input_shield_until =
+                    Some(std::time::Instant::now() + std::time::Duration::from_millis(150));
+                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                 return true;
             }
             CurrentView::Editor => {
