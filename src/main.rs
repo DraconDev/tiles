@@ -156,6 +156,11 @@ async fn run_tty() -> color_eyre::Result<()> {
                     needs_draw = true;
                 }
                 AppEvent::Raw(raw) => {
+                    let (view_before, mode_before) = {
+                        let app_guard = app.lock().unwrap();
+                        (app_guard.current_view.clone(), app_guard.mode.clone())
+                    };
+
                     let mut app_guard = app.lock().unwrap();
                     if handle_event(
                         raw,
@@ -164,6 +169,10 @@ async fn run_tty() -> color_eyre::Result<()> {
                         &mut panes_needing_refresh,
                     ) {
                         needs_draw = true;
+                    }
+
+                    if app_guard.current_view != view_before || app_guard.mode != mode_before {
+                        let _ = terminal.clear();
                     }
                 }
                 AppEvent::SystemUpdated(data) => {
