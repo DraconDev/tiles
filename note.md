@@ -1,9 +1,6 @@
 ## Do
 
-- | G2 | Git -> Files transition | Split pane | Enter Git, switch back, switch pane focus | Both panes show correct Files UI and state | FAIL (suspected) |
-  - the infor section is quite artifacty, some letters are teal more are white,
-  - also we see random tch) and push)
-- history section files, add, del cols are empty 
+- re-run `G2` manually: Git -> Files transition in split pane and confirm both panes preserve correct Files UI/state
 
 ## Maybe
 
@@ -13,6 +10,8 @@
 
 ## Done
 
+- fixed Git info panel bleed/artifacts by clearing top subpanes before redraw
+- fixed Git history stat parsing so `FILES/ADD/DEL` populate from `git log --shortstat`
 - added optional setting for max preview file size (default `20MB`) with persistence
 - added minimal view-transition regression tests (Git escape + editor pane targeting)
 - `Esc` now exits Git/Monitor/Editor views reliably
