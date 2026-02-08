@@ -1566,26 +1566,17 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         0
     };
 
-    let (history, pending, _current_path, branch, summary, remotes, stashes) = if let Some(pane) = app.panes.get(pane_idx) {
-        if let Some(tab) = pane.tabs.get(tab_idx) {
-            (
-                tab.git_history.clone(),
-                tab.git_pending.clone(),
-                tab.current_path.clone(),
-                tab.git_branch.clone(),
-                tab.git_summary.clone(),
-                tab.git_remotes.clone(),
-                tab.git_stashes.clone(),
-            )
-        } else {
-            return;
-        }
-    } else {
+    let Some(tab) = app.panes.get(pane_idx).and_then(|p| p.tabs.get(tab_idx)) else {
         return;
     };
 
-    let branch_name = branch.as_deref().unwrap_or("HEAD");
-    let summary_text = summary.clone().unwrap_or_default();
+    let branch_name = tab.git_branch.as_deref().unwrap_or("HEAD");
+    let summary_text = tab.git_summary.as_deref().unwrap_or("");
+    let current_path_label = tab.current_path.to_string_lossy().to_string();
+    let history_len = tab.git_history.len();
+    let pending_len = tab.git_pending.len();
+    let remotes_len = tab.git_remotes.len();
+    let stashes_len = tab.git_stashes.len();
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -1600,9 +1591,12 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                     .bg(THEME.accent_primary)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled(format!(" [{}] ", branch_name), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
             Span::styled(
-                format!(" {} ", _current_path.to_string_lossy()),
+                format!(" [{}] ", branch_name),
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!(" {} ", current_path_label),
                 Style::default().fg(THEME.accent_secondary),
             ),
         ]))
@@ -1624,21 +1618,25 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    // Main vertical split: [ Top Row (Active & Info) | Bottom Row (History) ]
-    let top_h = if pending.is_empty() && remotes.is_empty() && stashes.is_empty() {
+    let top_h = if pending_len == 0 && remotes_len == 0 && stashes_len == 0 {
         0
     } else {
-        let p_len = if pending.is_empty() { 0 } else { pending.len() as u16 + 2 };
-        let i_len = if remotes.is_empty() && stashes.is_empty() { 0 } else { 6 };
+        let p_len = if pending_len == 0 {
+            0
+        } else {
+            pending_len as u16 + 2
+        };
+        let i_len = if remotes_len == 0 && stashes_len == 0 {
+            0
+        } else {
+            6
+        };
         p_len.max(i_len).min(inner.height / 3)
     };
 
     let main_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(top_h),
-            Constraint::Min(0),
-        ])
+        .constraints([Constraint::Length(top_h), Constraint::Min(0)])
         .split(inner);
 
     let top_area = main_chunks[0];
@@ -1655,55 +1653,69 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         f.render_widget(Clear, active_area);
         f.render_widget(Clear, info_area);
 
-        // 1. ACTIVE Changes
-        if !pending.is_empty() {
-            let active_title = format!(" ACTIVE ({} Affected) ", pending.len());
-            
-            let pending_rows: Vec<_> = pending
-                .iter()
-                .map(|p| {
-                    let status_color = match p.status.as_str() {
-                        "M" => Color::Yellow,
-                        "A" | "??" => Color::Green,
-                        "D" => Color::Red,
-                        "R" => Color::Cyan,
-                        _ => Color::White,
-                    };
-                    
-                    let mut stats_spans = Vec::new();
-                    if p.insertions > 0 {
-                        stats_spans.push(Span::styled(format!(" +{}", p.insertions), Style::default().fg(Color::Green)));
-                    }
-                    if p.deletions > 0 {
-                        stats_spans.push(Span::styled(format!(" -{}", p.deletions), Style::default().fg(Color::Red)));
-                    }
+        if pending_len > 0 {
+            let active_title = format!(" ACTIVE ({} Affected) ", pending_len);
+            let pending_rows: Vec<_> = app
+                .panes
+                .get(pane_idx)
+                .and_then(|p| p.tabs.get(tab_idx))
+                .map(|t| {
+                    t.git_pending
+                        .iter()
+                        .map(|p| {
+                            let status_color = match p.status.as_str() {
+                                "M" => Color::Yellow,
+                                "A" | "??" => Color::Green,
+                                "D" => Color::Red,
+                                "R" => Color::Cyan,
+                                _ => Color::White,
+                            };
 
-                    Row::new(vec![
-                        Cell::from(format!(" {} ", p.status)).style(
-                            Style::default()
-                                .bg(status_color)
-                                .fg(Color::Black)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                        Cell::from(p.path.clone()).style(Style::default().fg(THEME.fg)),
-                        Cell::from(Line::from(stats_spans)),
-                    ])
+                            let mut stats_spans = Vec::new();
+                            if p.insertions > 0 {
+                                stats_spans.push(Span::styled(
+                                    format!(" +{}", p.insertions),
+                                    Style::default().fg(Color::Green),
+                                ));
+                            }
+                            if p.deletions > 0 {
+                                stats_spans.push(Span::styled(
+                                    format!(" -{}", p.deletions),
+                                    Style::default().fg(Color::Red),
+                                ));
+                            }
+
+                            Row::new(vec![
+                                Cell::from(format!(" {} ", p.status)).style(
+                                    Style::default()
+                                        .bg(status_color)
+                                        .fg(Color::Black)
+                                        .add_modifier(Modifier::BOLD),
+                                ),
+                                Cell::from(p.path.clone()).style(Style::default().fg(THEME.fg)),
+                                Cell::from(Line::from(stats_spans)),
+                            ])
+                        })
+                        .collect::<Vec<_>>()
                 })
-                .collect();
+                .unwrap_or_default();
 
-            let pending_table = Table::new(pending_rows, [Constraint::Length(6), Constraint::Fill(1), Constraint::Length(15)])
-                .block(
-                    Block::default()
-                        .title(active_title)
-                        .border_style(Style::default().fg(Color::Rgb(40, 45, 55)))
-                        .borders(Borders::RIGHT),
-                )
-                .row_highlight_style(
-                    Style::default()
-                        .bg(Color::Rgb(40, 40, 50))
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                );
+            let pending_table = Table::new(
+                pending_rows,
+                [Constraint::Length(6), Constraint::Fill(1), Constraint::Length(15)],
+            )
+            .block(
+                Block::default()
+                    .title(active_title)
+                    .border_style(Style::default().fg(Color::Rgb(40, 45, 55)))
+                    .borders(Borders::RIGHT),
+            )
+            .row_highlight_style(
+                Style::default()
+                    .bg(Color::Rgb(40, 40, 50))
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            );
 
             if let Some(pane) = app.panes.get_mut(pane_idx) {
                 if let Some(tab) = pane.tabs.get_mut(tab_idx) {
@@ -1712,91 +1724,139 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             }
         }
 
-        // 2. Info Panel (Right Area) - DYNAMIC based on selection
         let mut info_items = Vec::new();
-        
-        let mut selected_history_item = None;
-        if let Some(pane) = app.panes.get(pane_idx) {
-            if let Some(tab) = pane.tabs.get(tab_idx) {
-                if let Some(idx) = tab.git_history_state.selected() {
-                    selected_history_item = tab.git_history.get(idx);
+        let (selected_history_item, selected_active_item, remotes, stashes) =
+            if let Some(pane) = app.panes.get(pane_idx) {
+                if let Some(tab) = pane.tabs.get(tab_idx) {
+                    let selected_history_item = tab
+                        .git_history_state
+                        .selected()
+                        .and_then(|idx| tab.git_history.get(idx))
+                        .cloned();
+                    let selected_active_item = tab
+                        .git_pending_state
+                        .selected()
+                        .and_then(|idx| tab.git_pending.get(idx))
+                        .cloned();
+                    (
+                        selected_history_item,
+                        selected_active_item,
+                        tab.git_remotes.clone(),
+                        tab.git_stashes.clone(),
+                    )
+                } else {
+                    (None, None, Vec::new(), Vec::new())
                 }
-            }
-        }
+            } else {
+                (None, None, Vec::new(), Vec::new())
+            };
 
-        let mut selected_active_item = None;
-        if let Some(pane) = app.panes.get(pane_idx) {
-            if let Some(tab) = pane.tabs.get(tab_idx) {
-                if let Some(idx) = tab.git_pending_state.selected() {
-                    selected_active_item = tab.git_pending.get(idx);
-                }
-            }
-        }
-
-        if let Some(commit) = selected_history_item {
-            info_items.push(ListItem::new(Line::from(vec![
-                Span::styled(" COMMIT DETAILS ", Style::default().bg(THEME.accent_secondary).fg(Color::Black).add_modifier(Modifier::BOLD)),
-            ])));
+        if let Some(commit) = selected_history_item.as_ref() {
+            info_items.push(ListItem::new(Line::from(vec![Span::styled(
+                " COMMIT DETAILS ",
+                Style::default()
+                    .bg(THEME.accent_secondary)
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD),
+            )])));
             info_items.push(ListItem::new(format!("  Hash: {}", commit.hash)));
             info_items.push(ListItem::new(format!("  Author: {}", commit.author)));
             info_items.push(ListItem::new(format!("  Date: {}", commit.date)));
             info_items.push(ListItem::new(""));
-            info_items.push(ListItem::new(Span::styled(format!("  {}", commit.message), Style::default().fg(Color::White))));
+            info_items.push(ListItem::new(Span::styled(
+                format!("  {}", commit.message),
+                Style::default().fg(Color::White),
+            )));
             info_items.push(ListItem::new(""));
             info_items.push(ListItem::new(vec![
                 Line::from(vec![
                     Span::raw("  Files: "),
-                    Span::styled(format!("{}", commit.files_changed), Style::default().fg(Color::Cyan)),
+                    Span::styled(
+                        format!("{}", commit.files_changed),
+                        Style::default().fg(Color::Cyan),
+                    ),
                 ]),
                 Line::from(vec![
                     Span::raw("  Additions: "),
-                    Span::styled(format!("+{}", commit.insertions), Style::default().fg(Color::Green)),
+                    Span::styled(
+                        format!("+{}", commit.insertions),
+                        Style::default().fg(Color::Green),
+                    ),
                 ]),
                 Line::from(vec![
                     Span::raw("  Deletions: "),
-                    Span::styled(format!("-{}", commit.deletions), Style::default().fg(Color::Red)),
+                    Span::styled(
+                        format!("-{}", commit.deletions),
+                        Style::default().fg(Color::Red),
+                    ),
                 ]),
             ]));
-        } else if let Some(change) = selected_active_item {
-            info_items.push(ListItem::new(Line::from(vec![
-                Span::styled(" CHANGE DETAILS ", Style::default().bg(Color::Yellow).fg(Color::Black).add_modifier(Modifier::BOLD)),
-            ])));
+        } else if let Some(change) = selected_active_item.as_ref() {
+            info_items.push(ListItem::new(Line::from(vec![Span::styled(
+                " CHANGE DETAILS ",
+                Style::default()
+                    .bg(Color::Yellow)
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD),
+            )])));
             info_items.push(ListItem::new(format!("  Path: {}", change.path)));
             info_items.push(ListItem::new(format!("  Status: {}", change.status)));
             info_items.push(ListItem::new(""));
             info_items.push(ListItem::new(vec![
                 Line::from(vec![
                     Span::raw("  Additions: "),
-                    Span::styled(format!("+{}", change.insertions), Style::default().fg(Color::Green)),
+                    Span::styled(
+                        format!("+{}", change.insertions),
+                        Style::default().fg(Color::Green),
+                    ),
                 ]),
                 Line::from(vec![
                     Span::raw("  Deletions: "),
-                    Span::styled(format!("-{}", change.deletions), Style::default().fg(Color::Red)),
+                    Span::styled(
+                        format!("-{}", change.deletions),
+                        Style::default().fg(Color::Red),
+                    ),
                 ]),
             ]));
         } else {
-            // Default: Remotes & Stashes
             if !remotes.is_empty() {
-                info_items.push(ListItem::new(Line::from(vec![
-                    Span::styled(" REMOTES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
-                ])));
+                info_items.push(ListItem::new(Line::from(vec![Span::styled(
+                    " REMOTES ",
+                    Style::default()
+                        .bg(Color::Rgb(40, 45, 55))
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+                )])));
                 for r in remotes.iter().take(8) {
-                    info_items.push(ListItem::new(Span::styled(format!("  {}", r), Style::default().fg(THEME.fg))));
+                    info_items.push(ListItem::new(Span::styled(
+                        format!("  {}", r),
+                        Style::default().fg(THEME.fg),
+                    )));
                 }
                 info_items.push(ListItem::new(""));
             }
 
             if !stashes.is_empty() {
-                info_items.push(ListItem::new(Line::from(vec![
-                    Span::styled(" STASHES ", Style::default().bg(Color::Rgb(40, 45, 55)).fg(Color::White).add_modifier(Modifier::BOLD)),
-                ])));
+                info_items.push(ListItem::new(Line::from(vec![Span::styled(
+                    " STASHES ",
+                    Style::default()
+                        .bg(Color::Rgb(40, 45, 55))
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+                )])));
                 for s in stashes.iter().take(8) {
-                    info_items.push(ListItem::new(Span::styled(format!("  {}", s), Style::default().fg(THEME.fg))));
+                    info_items.push(ListItem::new(Span::styled(
+                        format!("  {}", s),
+                        Style::default().fg(THEME.fg),
+                    )));
                 }
             }
 
             if info_items.is_empty() {
-                info_items.push(ListItem::new(Span::styled("  (No remotes or stashes)", Style::default().fg(Color::DarkGray))));
+                info_items.push(ListItem::new(Span::styled(
+                    "  (No remotes or stashes)",
+                    Style::default().fg(Color::DarkGray),
+                )));
             }
         }
 
@@ -1811,69 +1871,87 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         );
     }
 
-    // 3. HISTORY
-    if history.is_empty() {
+    if history_len == 0 {
         f.render_widget(
             Paragraph::new("\n\n No git history found for this path or not a git repository.")
                 .alignment(Alignment::Center),
             history_area,
         );
     } else {
-        let rows: Vec<_> = history
-            .iter()
-            .map(|act| {
-                let h_short = act.hash.chars().take(7).collect::<String>();
-                let branch_info = act.decorations.trim().trim_matches(|c| c == '(' || c == ')');
-                
-                let mut stats_cells = Vec::new();
-                if act.files_changed > 0 {
-                    stats_cells.push(Cell::from(format!("{}", act.files_changed)).style(Style::default().fg(Color::Cyan)));
-                    stats_cells.push(Cell::from(format!("+{}", act.insertions)).style(Style::default().fg(Color::Green)));
-                    stats_cells.push(Cell::from(format!("-{}", act.deletions)).style(Style::default().fg(Color::Red)));
-                } else {
-                    stats_cells.push(Cell::from(""));
-                    stats_cells.push(Cell::from(""));
-                    stats_cells.push(Cell::from(""));
-                }
+        let rows: Vec<_> = app
+            .panes
+            .get(pane_idx)
+            .and_then(|p| p.tabs.get(tab_idx))
+            .map(|t| {
+                t.git_history
+                    .iter()
+                    .map(|act| {
+                        let h_short = act.hash.chars().take(7).collect::<String>();
+                        let branch_info = act.decorations.trim().trim_matches(|c| c == '(' || c == ')');
 
-                let mut row_cells = vec![
-                    Cell::from(act.date.clone()).style(Style::default().fg(Color::DarkGray)),
-                    Cell::from(h_short).style(
-                        Style::default()
-                            .fg(THEME.accent_secondary)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                    Cell::from(truncate_to_width(branch_info, 15, "..")).style(Style::default().fg(Color::Yellow)),
-                    Cell::from(act.author.clone()).style(Style::default().fg(Color::Cyan)),
-                    Cell::from(act.message.clone()).style(Style::default().fg(THEME.fg)),
-                ];
-                row_cells.extend(stats_cells);
+                        let mut stats_cells = Vec::new();
+                        if act.files_changed > 0 {
+                            stats_cells.push(
+                                Cell::from(format!("{}", act.files_changed))
+                                    .style(Style::default().fg(Color::Cyan)),
+                            );
+                            stats_cells.push(
+                                Cell::from(format!("+{}", act.insertions))
+                                    .style(Style::default().fg(Color::Green)),
+                            );
+                            stats_cells.push(
+                                Cell::from(format!("-{}", act.deletions))
+                                    .style(Style::default().fg(Color::Red)),
+                            );
+                        } else {
+                            stats_cells.push(Cell::from(""));
+                            stats_cells.push(Cell::from(""));
+                            stats_cells.push(Cell::from(""));
+                        }
 
-                Row::new(row_cells)
+                        let mut row_cells = vec![
+                            Cell::from(act.date.clone()).style(Style::default().fg(Color::DarkGray)),
+                            Cell::from(h_short).style(
+                                Style::default()
+                                    .fg(THEME.accent_secondary)
+                                    .add_modifier(Modifier::BOLD),
+                            ),
+                            Cell::from(truncate_to_width(branch_info, 15, ".."))
+                                .style(Style::default().fg(Color::Yellow)),
+                            Cell::from(act.author.clone()).style(Style::default().fg(Color::Cyan)),
+                            Cell::from(act.message.clone()).style(Style::default().fg(THEME.fg)),
+                        ];
+                        row_cells.extend(stats_cells);
+
+                        Row::new(row_cells)
+                    })
+                    .collect::<Vec<_>>()
             })
-            .collect();
+            .unwrap_or_default();
 
         let table = Table::new(
             rows,
             [
-                Constraint::Length(15), // DATE
-                Constraint::Length(8),  // HASH
-                Constraint::Length(15), // BRANCH
-                Constraint::Length(15), // AUTHOR
-                Constraint::Fill(1),    // MESSAGE
-                Constraint::Length(6),  // FILES
-                Constraint::Length(6),  // ADD
-                Constraint::Length(6),  // DEL
+                Constraint::Length(15),
+                Constraint::Length(8),
+                Constraint::Length(15),
+                Constraint::Length(15),
+                Constraint::Fill(1),
+                Constraint::Length(6),
+                Constraint::Length(6),
+                Constraint::Length(6),
             ],
         )
         .header(
-            Row::new(vec!["DATE", "HASH", "BRANCH", "AUTHOR", "MESSAGE", "FILES", "ADD", "DEL"])
-                .style(
-                    Style::default()
-                        .fg(THEME.accent_secondary)
-                        .add_modifier(Modifier::BOLD),
-                )
-                .bottom_margin(1),
+            Row::new(vec![
+                "DATE", "HASH", "BRANCH", "AUTHOR", "MESSAGE", "FILES", "ADD", "DEL",
+            ])
+            .style(
+                Style::default()
+                    .fg(THEME.accent_secondary)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .bottom_margin(1),
         )
         .block(
             Block::default()
