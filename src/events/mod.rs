@@ -713,12 +713,11 @@ mod tests {
     }
 
     #[test]
-    fn esc_from_editor_returns_to_git_when_flagged() {
+    fn esc_from_commit_view_returns_to_git() {
         let (tx, _rx) = mpsc::channel(8);
         let mut app = test_app();
-        app.current_view = CurrentView::Editor;
+        app.current_view = CurrentView::Commit;
         app.mode = AppMode::Normal;
-        app.return_to_git_after_editor = true;
 
         let mut refresh = HashSet::new();
         let changed = handle_event(
@@ -734,6 +733,5 @@ mod tests {
 
         assert!(changed);
         assert_eq!(app.current_view, CurrentView::Git);
-        assert!(!app.return_to_git_after_editor);
     }
 }
