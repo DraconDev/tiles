@@ -581,14 +581,12 @@ fn handle_sidebar_mouse(
             true
         }
         MouseEventKind::Drag(_) | MouseEventKind::Moved => {
-            let mut changed = false;
             if let Some((sx, sy)) = app.drag_start_pos {
                 let dist_sq =
                     (column as f32 - sx as f32).powi(2) + (row as f32 - sy as f32).powi(2);
                 if dist_sq >= 1.0 {
                     if !app.is_dragging {
                         app.is_dragging = true;
-                        changed = true;
                     }
                 }
             }
@@ -623,12 +621,12 @@ fn handle_sidebar_mouse(
                     }
                 }
                 if app.hovered_drop_target != prev_target {
-                    changed = true;
+                    return true;
                 }
                 // Keep repainting while dragging to move drag ghost with cursor.
                 return true;
             }
-            changed
+            false
         }
         _ => false,
     }
