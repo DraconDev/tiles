@@ -14,14 +14,22 @@ use crate::ui::theme::THEME;
 pub fn draw_ide_editor(f: &mut Frame, area: Rect, app: &mut App) {
     let pc = app.panes.len();
     if pc == 0 { return; }
-    
-    let pw = area.width / pc as u16;
 
     for i in 0..pc {
+        let pw = area.width / pc as u16;
+        if pw == 0 {
+            return;
+        }
+        let pane_x = area.x + (i as u16 * pw);
+        let pane_w = if i + 1 == pc {
+            area.x.saturating_add(area.width).saturating_sub(pane_x)
+        } else {
+            pw
+        };
         let pane_area = Rect::new(
-            area.x + (i as u16 * pw),
+            pane_x,
             area.y,
-            pw,
+            pane_w,
             area.height,
         );
         let is_focused = app.focused_pane_index == i;
