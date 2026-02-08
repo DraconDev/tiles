@@ -10,10 +10,6 @@ pub fn handle_monitor_events(
     if let Event::Key(key) = evt {
         if key.modifiers.is_empty() {
             match key.code {
-                KeyCode::Esc => {
-                    app.current_view = CurrentView::Files;
-                    return true;
-                }
                 KeyCode::Char('1') => {
                     app.monitor_subview = MonitorSubview::Overview;
                     return true;
