@@ -488,10 +488,70 @@ async fn run_tty() -> color_eyre::Result<()> {
                 }
                 AppEvent::Copy(src, dest) => {
                     let tx = event_tx.clone();
+                    let app_clone = app.clone();
                     tokio::spawn(async move {
                         let _ = terma::utils::copy_recursive(&src, &dest);
-                        let _ = tx.send(AppEvent::RefreshFiles(0)).await;
+                        let mut panes_to_refresh = std::collections::HashSet::new();
+                        if let Some(parent) = dest.parent() {
+                            let app_guard = app_clone.lock().unwrap();
+                            for (i, pane) in app_guard.panes.iter().enumerate() {
+                                if let Some(fs) = pane.current_state() {
+                                    if fs.current_path == parent {
+                                        panes_to_refresh.insert(i);
+                                    }
+                                }
+                            }
+                        }
+                        if panes_to_refresh.is_empty() {
+                            let _ = tx.send(AppEvent::RefreshFiles(0)).await;
+                        } else {
+                            for pane_idx in panes_to_refresh {
+                                let _ = tx.send(AppEvent::RefreshFiles(pane_idx)).await;
+                            }
+                        }
                     });
+                }
+                AppEvent::Symlink(src, dest) => {
+                    let result = {
+                        #[cfg(unix)]
+                        {
+                            std::os::unix::fs::symlink(&src, &dest)
+                        }
+                        #[cfg(windows)]
+                        {
+                            if src.is_dir() {
+                                std::os::windows::fs::symlink_dir(&src, &dest)
+                            } else {
+                                std::os::windows::fs::symlink_file(&src, &dest)
+                            }
+                        }
+                    };
+
+                    match result {
+                        Ok(_) => {
+                            if let Some(parent) = dest.parent() {
+                                let app_guard = app.lock().unwrap();
+                                for (i, pane) in app_guard.panes.iter().enumerate() {
+                                    if let Some(fs) = pane.current_state() {
+                                        if fs.current_path == parent {
+                                            panes_needing_refresh.insert(i);
+                                        }
+                                    }
+                                }
+                            }
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                "Linked {} -> {}",
+                                dest.display(),
+                                src.display()
+                            )));
+                        }
+                        Err(e) => {
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                "Symlink failed: {}",
+                                e
+                            )));
+                        }
+                    }
                 }
                 AppEvent::SpawnTerminal {
                     path,
