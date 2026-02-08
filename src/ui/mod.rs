@@ -32,6 +32,9 @@ pub use panes::breadcrumbs::draw_pane_breadcrumbs;
 pub fn draw(f: &mut Frame, app: &mut App) {
     f.render_widget(Clear, f.area());
 
+    if app.current_view == CurrentView::Commit {
+        draw_commit_view(f, f.area(), app);
+    } else
     if matches!(app.mode, AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorGoToLine | AppMode::EditorReplace) && app.show_main_stage && !app.is_split_mode {
         // --- FULL SCREEN EDITOR VIEW (Zen Mode / Overlay) ---
         let mut header_left = Vec::new();
@@ -268,6 +271,29 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if app.is_dragging {
         draw_drag_ghost(f, app);
     }
+}
+
+fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
+    f.render_widget(
+        Block::default().style(Style::default().bg(Color::Rgb(0, 0, 0))),
+        area,
+    );
+
+    if let Some(preview) = &app.editor_state {
+        if let Some(editor) = &preview.editor {
+            let mut editor_clone = editor.clone();
+            editor_clone.wrap = false;
+            f.render_widget(&editor_clone, area);
+            return;
+        }
+    }
+
+    f.render_widget(
+        Paragraph::new("Loading commit...")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::DarkGray)),
+        area,
+    );
 }
 
 fn draw_drag_drop_modal(
