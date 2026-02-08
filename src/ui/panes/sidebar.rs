@@ -50,13 +50,11 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         let mut longest_prefix = 0;
 
                         for disk in &app.system_state.disks {
-                            if disk.is_mounted {
-                                if fs.current_path.starts_with(&disk.name) {
-                                    let len = disk.name.len();
-                                    if len > longest_prefix {
-                                        longest_prefix = len;
-                                        matched_disk = Some(disk.name.clone());
-                                    }
+                            if disk.is_mounted && fs.current_path.starts_with(&disk.name) {
+                                let len = disk.name.len();
+                                if len > longest_prefix {
+                                    longest_prefix = len;
+                                    matched_disk = Some(disk.name.clone());
                                 }
                             }
                         }
@@ -226,7 +224,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
                 let disk_icon = Icon::Storage.get(app.icon_mode);
                 if disk.is_mounted {
-                    let available = (disk.available_space as f64 / 1_073_741_824.0).round() as u64;
+                    let available = (disk.available_space / 1_073_741_824.0).round() as u64;
                     spans.push(Span::styled(
                         format!("{}{}: {}G Free", disk_icon, display_name, available),
                         name_style,
