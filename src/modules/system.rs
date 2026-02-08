@@ -18,12 +18,12 @@ impl SystemModule {
 
     pub fn update_app_state(app: &mut App, data: SystemData) {
         let s = &mut app.system_state;
-        s.cpu_usage = data.cpu_usage as f32;
-        s.cpu_cores = data.cpu_cores.iter().map(|&c| c as f32).collect();
-        s.mem_usage = data.mem_usage as f32;
-        s.total_mem = data.total_mem as f32;
-        s.swap_usage = data.swap_usage as f32;
-        s.total_swap = data.total_swap as f32;
+        s.cpu_usage = data.cpu_usage;
+        s.cpu_cores = data.cpu_cores.to_vec();
+        s.mem_usage = data.mem_usage;
+        s.total_mem = data.total_mem;
+        s.swap_usage = data.swap_usage;
+        s.total_swap = data.total_swap;
         s.disks = data.disks;
         s.uptime = data.uptime;
         s.processes = data.processes;
