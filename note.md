@@ -1,6 +1,6 @@
 ## Do
 
-now our permissioins col in the file section is only -------
+- verify Git page responsiveness after commit selection and scrolling in a large history
 
 ## Maybe
 
@@ -10,6 +10,8 @@ now our permissioins col in the file section is only -------
 
 ## Done
 
+- fixed file permissions column by reading real filesystem permission bits (instead of always `-------`)
+- reduced Git page render overhead by removing full history/pending clones per frame
 - fixed Git info panel bleed/artifacts by clearing top subpanes before redraw
 - fixed Git history stat parsing so `FILES/ADD/DEL` populate from `git log --shortstat`
 - added optional setting for max preview file size (default `20MB`) with persistence
