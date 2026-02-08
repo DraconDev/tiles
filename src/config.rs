@@ -33,10 +33,16 @@ pub struct PersistentState {
     pub show_side_panel: bool,
     #[serde(default = "default_true")]
     pub default_show_hidden: bool,
+    #[serde(default = "default_preview_max_mb")]
+    pub preview_max_mb: u16,
 }
 
 fn default_true() -> bool {
     true
+}
+
+fn default_preview_max_mb() -> u16 {
+    20
 }
 
 pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
@@ -80,6 +86,7 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
         show_sidebar: app.show_sidebar,
         show_side_panel: app.show_side_panel,
         default_show_hidden: app.default_show_hidden,
+        preview_max_mb: app.preview_max_mb,
     };
 
     let config_dir = dirs::config_dir()
