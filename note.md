@@ -1,6 +1,5 @@
 ## Do
 
-- re-run `G2` manually: Git -> Files transition in split pane and confirm both panes preserve correct Files UI/state
 
 ## Maybe
 
