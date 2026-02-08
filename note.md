@@ -1,7 +1,13 @@
 ## Do
 
 | S1 | Drag-drop Link action | Single pane | Drag item to folder, choose Link | Symlink created at destination | FAIL (known unhandled event) |
-this bugged out symlink didnt work and the modal didnt 
+this bugged out symlink didnt work and the modal didnt close rithmetic safety in file manager paths
+- increased text preview size limit from 5MB to 20MB
+- added QA checklist matrix: `docs/qa/matrix.md`
+- editor sidebar now shows current path in title (instead of `PROJECT`)
+- editor split panes now render with rounded borders
+- editor split panes now show active pane status/title (`P1/P2 ACTIVE`)
+
 
 - verify Git page responsiveness after commit selection and scrolling in a large history
 
@@ -23,9 +29,4 @@ this bugged out symlink didnt work and the modal didnt
 - fixed editor split pane targeting when opening from project sidebar
 - implemented `Symlink` action handling in app event loop
 - copy refresh now targets destination-visible panes (not hardcoded pane 0)
-- improved mouse/index arithmetic safety in file manager paths
-- increased text preview size limit from 5MB to 20MB
-- added QA checklist matrix: `docs/qa/matrix.md`
-- editor sidebar now shows current path in title (instead of `PROJECT`)
-- editor split panes now render with rounded borders
-- editor split panes now show active pane status/title (`P1/P2 ACTIVE`)
+- improved mouse/index a
