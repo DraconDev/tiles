@@ -25,7 +25,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     match app.current_view {
         CurrentView::Files => {
             let (mut sidebar_items, search_filter) = {
-                let mut items = Vec::new();
+                let items = Vec::new();
                 let filter = app.current_file_state().map(|fs| fs.search_filter.clone()).unwrap_or_default();
                 (items, filter)
             };
