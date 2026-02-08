@@ -69,14 +69,6 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 }
             }
 
-            let is_dragging_folder = app.is_dragging
-                && app
-                    .drag_source
-                    .as_ref()
-                    .map(|s| s.is_dir())
-                    .unwrap_or(false);
-            let is_dragging_over_sidebar = is_dragging_folder && app.mouse_pos.0 < area.width;
-
             // Helper to check if name matches search filter
             let matches_filter = |name: &str| {
                 if !app.sidebar_focus || search_filter.is_empty() {
@@ -85,26 +77,23 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 name.to_lowercase().contains(&search_filter.to_lowercase())
             };
 
-            if is_dragging_over_sidebar {
-                // ...
-            } else {
-                let current_idx = sidebar_items.len();
-                let icon = Icon::Star.get(app.icon_mode);
-                let is_selected = app.sidebar_index == current_idx;
-                let mut style = Style::default()
-                    .fg(THEME.accent_secondary)
-                    .add_modifier(Modifier::BOLD);
-                if is_selected {
-                    style = style.bg(THEME.accent_primary).fg(Color::Black);
-                }
-                sidebar_items.push(ListItem::new(format!("{}FAVORITES", icon)).style(style));
-                app.sidebar_bounds.push(SidebarBounds {
-                    y: current_y,
-                    index: current_idx,
-                    target: SidebarTarget::Header("FAVORITES".to_string()),
-                });
-                current_y += 1;
+            let current_idx = sidebar_items.len();
+            let icon = Icon::Star.get(app.icon_mode);
+            let is_selected = app.sidebar_index == current_idx;
+            let is_drop_target = matches!(app.hovered_drop_target, Some(DropTarget::Favorites));
+            let mut style = Style::default()
+                .fg(THEME.accent_secondary)
+                .add_modifier(Modifier::BOLD);
+            if is_selected || is_drop_target {
+                style = style.bg(THEME.accent_primary).fg(Color::Black);
             }
+            sidebar_items.push(ListItem::new(format!("{}FAVORITES", icon)).style(style));
+            app.sidebar_bounds.push(SidebarBounds {
+                y: current_y,
+                index: current_idx,
+                target: SidebarTarget::Header("FAVORITES".to_string()),
+            });
+            current_y += 1;
 
             // Render Starred Folders (Favorites - NO markers as requested)
             for path in &app.starred {
@@ -118,7 +107,6 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 }
 
                 let current_idx = sidebar_items.len();
-                // ...
                 let is_selected = app.sidebar_index == current_idx;
                 let is_hovered =
                     matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
