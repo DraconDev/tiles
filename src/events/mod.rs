@@ -371,32 +371,32 @@ fn handle_general_mouse(
 
     // 5. Sidebar vs Panes
     let sw = app.sidebar_width();
-    if app.current_view == CurrentView::Editor {
-        if matches!(
+    if app.current_view == CurrentView::Editor
+        && matches!(
             me.kind,
             MouseEventKind::Down(_) | MouseEventKind::Up(_) | MouseEventKind::Drag(_)
-        ) && column >= sw
-        {
-            let pane_count = app.panes.len();
-            if pane_count > 0 {
-                let content_w = w.saturating_sub(sw);
-                let pane_w = content_w / pane_count as u16;
-                if pane_w > 0 {
-                    let mut pane_idx = (column.saturating_sub(sw) / pane_w) as usize;
-                    if pane_idx >= pane_count {
-                        pane_idx = pane_count - 1;
-                    }
-                    app.focused_pane_index = pane_idx;
-                    app.sidebar_focus = false;
-                    if matches!(me.kind, MouseEventKind::Down(_)) {
-                        app.mouse_click_pos = (column, row);
-                    }
+        )
+        && column >= sw
+    {
+        let pane_count = app.panes.len();
+        if pane_count > 0 {
+            let content_w = w.saturating_sub(sw);
+            let pane_w = content_w / pane_count as u16;
+            if pane_w > 0 {
+                let mut pane_idx = (column.saturating_sub(sw) / pane_w) as usize;
+                if pane_idx >= pane_count {
+                    pane_idx = pane_count - 1;
+                }
+                app.focused_pane_index = pane_idx;
+                app.sidebar_focus = false;
+                if matches!(me.kind, MouseEventKind::Down(_)) {
+                    app.mouse_click_pos = (column, row);
                 }
             }
         }
     }
     if column < sw {
-        return handle_sidebar_mouse(me, app, event_tx);
+        handle_sidebar_mouse(me, app, event_tx)
     } else {
         // Sidebar Resizing check (MUST BE LEFT CLICK ONLY)
         if let MouseEventKind::Down(MouseButton::Left) = me.kind {
@@ -416,9 +416,9 @@ fn handle_general_mouse(
         );
         if app.current_view == CurrentView::Editor || is_editor_mode {
             crate::app::log_debug("DEBUG: Routing mouse to editor::handle_editor_mouse");
-            return editor::handle_editor_mouse(me, app, event_tx);
+            editor::handle_editor_mouse(me, app, event_tx)
         } else {
-            return file_manager::handle_file_mouse(me, app, event_tx, panes_needing_refresh);
+            file_manager::handle_file_mouse(me, app, event_tx, panes_needing_refresh)
         }
     }
 }
