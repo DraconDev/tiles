@@ -2,7 +2,7 @@
 
 - run manual QA pass against `docs/qa/matrix.md`
 
-
+- | G2 | Git -> Files transition | Split pane | Enter Git, switch back, switch pane focus | Both panes show correct Files UI and state | FAIL (suspected) |
 
 ## Maybe
 
