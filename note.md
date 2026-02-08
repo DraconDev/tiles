@@ -19,14 +19,3 @@ this bugged out symlink didnt work and the modal didnt close rithmetic safety in
 
 ## Done
 
-- fixed file permissions column by reading real filesystem permission bits (instead of always `-------`)
-- reduced Git page render overhead by removing full history/pending clones per frame
-- fixed Git info panel bleed/artifacts by clearing top subpanes before redraw
-- fixed Git history stat parsing so `FILES/ADD/DEL` populate from `git log --shortstat`
-- added optional setting for max preview file size (default `20MB`) with persistence
-- added minimal view-transition regression tests (Git escape + editor pane targeting)
-- `Esc` now exits Git/Monitor/Editor views reliably
-- fixed editor split pane targeting when opening from project sidebar
-- implemented `Symlink` action handling in app event loop
-- copy refresh now targets destination-visible panes (not hardcoded pane 0)
-- improved mouse/index a
