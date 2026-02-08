@@ -125,7 +125,7 @@ async fn run_tty() -> color_eyre::Result<()> {
         tokio::spawn(async move {
             loop {
                 let _ = tx.send(AppEvent::Tick).await;
-                tokio::time::sleep(Duration::from_millis(100)).await;
+                tokio::time::sleep(Duration::from_millis(250)).await;
             }
         });
     }
@@ -888,7 +888,7 @@ async fn run_tty() -> color_eyre::Result<()> {
             terminal.draw(|f| ui::draw(f, &mut app_guard))?;
         }
 
-        tokio::time::sleep(Duration::from_millis(16)).await;
+        tokio::time::sleep(Duration::from_millis(33)).await;
     }
 
     Ok(())
