@@ -6,6 +6,8 @@ use unicode_width::UnicodeWidthStr;
 fn pane_editor_area(app: &App, pane_idx: usize) -> Option<ratatui::layout::Rect> {
     let (w, h) = app.terminal_size;
     let sw = app.sidebar_width();
+    let stage_y = 1;
+    let stage_h = h.saturating_sub(3);
     let pc = app.panes.len();
     if pc == 0 {
         return None;
@@ -22,11 +24,11 @@ fn pane_editor_area(app: &App, pane_idx: usize) -> Option<ratatui::layout::Rect>
     } else {
         pw
     };
-    if pane_w < 2 || h < 3 {
+    if pane_w < 2 || stage_h < 3 {
         return None;
     }
 
-    let pane_area = ratatui::layout::Rect::new(pane_x, 1, pane_w, h.saturating_sub(1));
+    let pane_area = ratatui::layout::Rect::new(pane_x, stage_y, pane_w, stage_h);
     let inner = ratatui::widgets::Block::default()
         .borders(ratatui::widgets::Borders::ALL)
         .inner(pane_area);
