@@ -62,6 +62,16 @@ pub fn handle_event(
                 return true;
             }
 
+            // Plain Escape should exit non-files views.
+            if key.code == KeyCode::Esc
+                && matches!(
+                    app.current_view,
+                    CurrentView::Git | CurrentView::Processes | CurrentView::Editor
+                )
+            {
+                return handle_global_escape(app, &event_tx);
+            }
+
             // Global Escape (Ctrl+[)
             if has_control && key.code == KeyCode::Char('[') {
                 return handle_global_escape(app, &event_tx);
