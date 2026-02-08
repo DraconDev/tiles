@@ -3,7 +3,7 @@
 - | G2 | Git -> Files transition | Split pane | Enter Git, switch back, switch pane focus | Both panes show correct Files UI and state | FAIL (suspected) |
   - the infor section is quite artifacty, some letters are teal more are white,
   - also we see random tch) and push)
-- 
+- his
 
 ## Maybe
 
