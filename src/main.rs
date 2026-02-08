@@ -347,7 +347,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                         let path_str = path.to_string_lossy();
                         let content = if let Some(hash) = path_str.strip_prefix("git://") {
                             let output = std::process::Command::new("git")
-                                .args(["show", "--stat", hash])
+                                .args(["show", "--patch", "--stat", "--color=never", hash])
                                 .current_dir(&current_dir)
                                 .output();
                             match output {
