@@ -281,7 +281,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::Rgb(50, 65, 85)))
         .title_top(Line::from(vec![Span::styled(
-            " COMMIT VIEW ",
+            " COMMIT ",
             Style::default()
                 .fg(Color::Black)
                 .bg(Color::Rgb(90, 170, 255))
@@ -303,20 +303,149 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
+    let (
+        mut commit_hash,
+        mut author,
+        mut date,
+        mut files_changed,
+        mut additions,
+        mut deletions,
+        mut hunks,
+    ) = (
+        String::new(),
+        String::new(),
+        String::new(),
+        0usize,
+        0usize,
+        0usize,
+        0usize,
+    );
+
+    if let Some(preview) = &app.editor_state {
+        for line in preview.content.lines() {
+            if commit_hash.is_empty() && line.starts_with("commit ") {
+                commit_hash = line.trim_start_matches("commit ").trim().to_string();
+                continue;
+            }
+            if author.is_empty() && line.starts_with("Author:") {
+                author = line.trim_start_matches("Author:").trim().to_string();
+                continue;
+            }
+            if date.is_empty() && line.starts_with("Date:") {
+                date = line.trim_start_matches("Date:").trim().to_string();
+                continue;
+            }
+            if line.starts_with("diff --git ") {
+                files_changed += 1;
+            } else if line.starts_with("@@") {
+                hunks += 1;
+            } else if line.starts_with('+') && !line.starts_with("+++") {
+                additions += 1;
+            } else if line.starts_with('-') && !line.starts_with("---") {
+                deletions += 1;
+            }
+        }
+    }
+
+    let short_hash = if commit_hash.is_empty() {
+        "unknown".to_string()
+    } else {
+        commit_hash.chars().take(12).collect::<String>()
+    };
+    if author.is_empty() {
+        author = "unknown author".to_string();
+    }
+    if date.is_empty() {
+        date = "unknown date".to_string();
+    }
+
     let layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Min(0)])
+        .constraints([
+            Constraint::Length(2),
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Min(0),
+        ])
         .split(inner);
 
     f.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled("+ additions ", Style::default().fg(Color::Green)),
-            Span::styled("- deletions ", Style::default().fg(Color::Red)),
-            Span::styled("@@ hunk ", Style::default().fg(Color::Cyan)),
-            Span::styled("full patch view", Style::default().fg(Color::DarkGray)),
+            Span::styled(
+                format!("{} ", short_hash),
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Rgb(90, 170, 255))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled("  ", Style::default()),
+            Span::styled(author, Style::default().fg(Color::White)),
         ])),
         layout[0],
     );
+
+    f.render_widget(
+        Paragraph::new(Line::from(vec![Span::styled(
+            date,
+            Style::default().fg(Color::DarkGray),
+        )])),
+        layout[1],
+    );
+
+    f.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled(
+                format!(" {} files ", files_changed),
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Rgb(120, 180, 255))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" "),
+            Span::styled(
+                format!(" +{} ", additions),
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Green)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" "),
+            Span::styled(
+                format!(" -{} ", deletions),
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Red)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" "),
+            Span::styled(
+                format!(" @@ {} ", hunks),
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                "  [Green:+] [Red:-] [Cyan:@@]",
+                Style::default().fg(Color::DarkGray),
+            ),
+        ])),
+        layout[2],
+    );
+
+    let content_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Rgb(60, 80, 105)))
+        .title_top(Line::from(vec![Span::styled(
+            " PATCH ",
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Rgb(90, 170, 255))
+                .add_modifier(Modifier::BOLD),
+        )]));
+    let content_inner = content_block.inner(layout[3]);
+    f.render_widget(content_block, layout[3]);
 
     if let Some(preview) = &app.editor_state {
         if let Some(editor) = &preview.editor {
@@ -327,7 +456,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
             if editor_clone.language.is_empty() {
                 editor_clone.language = "diff".to_string();
             }
-            f.render_widget(&editor_clone, layout[1]);
+            f.render_widget(&editor_clone, content_inner);
             return;
         }
     }
@@ -336,7 +465,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         Paragraph::new("Loading commit...")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::DarkGray)),
-        layout[1],
+        content_inner,
     );
 }
 
