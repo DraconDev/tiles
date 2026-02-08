@@ -2722,7 +2722,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
     );
 
     // 2. Center Section: Selection Summary (Only in Files view)
-    if app.current_view != CurrentView::Editor {
+    if app.current_view == CurrentView::Files {
         if let Some(fs) = app.current_file_state() {
             let sel_count = if !fs.selection.is_empty() {
                 fs.selection.multi.len()
@@ -2732,14 +2732,27 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                 0
             };
             let total_count = fs.files.len();
-            let summary = format!(" SEL: {} / {} ", sel_count, total_count);
+            let pane_label = format!("P{}", app.focused_pane_index + 1);
+            let focus_label = if app.sidebar_focus { "SIDEBAR" } else { "FILES" };
+            let summary = format!(
+                " {} {}  SEL: {} / {} ",
+                pane_label, focus_label, sel_count, total_count
+            );
+            let summary_style = if app.sidebar_focus {
+                Style::default()
+                    .bg(Color::Rgb(85, 80, 20))
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+                    .bg(THEME.accent_primary)
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD)
+            };
             f.render_widget(
                 Paragraph::new(Span::styled(
                     summary,
-                    Style::default()
-                        .bg(THEME.accent_primary)
-                        .fg(Color::Black)
-                        .add_modifier(Modifier::BOLD),
+                    summary_style,
                 ))
                 .alignment(ratatui::layout::Alignment::Right),
                 top_chunks[1],
