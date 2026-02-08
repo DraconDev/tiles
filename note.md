@@ -1,6 +1,6 @@
 ## Do
 
-now our permissio
+now our permissioins col in the file section is 
 
 ## Maybe
 
