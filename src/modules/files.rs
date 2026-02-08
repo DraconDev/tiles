@@ -83,7 +83,7 @@ pub fn fetch_git_data(
             "-n",
             "100",
             "--pretty=format:%H|%an|%ar|%s|%d",
-            "--stat",
+            "--shortstat",
         ])
         .current_dir(path)
         .output()
@@ -92,7 +92,8 @@ pub fn fetch_git_data(
         let mut current_commit: Option<crate::app::CommitInfo> = None;
 
         for line in out_str.lines() {
-            if line.contains('|') && !line.starts_with(' ') {
+            let line = line.trim();
+            if line.contains('|') && (line.starts_with('0') || line.chars().next().map_or(false, |c| c.is_ascii_hexdigit())) {
                 if let Some(c) = current_commit.take() {
                     history.push(c);
                 }
@@ -112,6 +113,7 @@ pub fn fetch_git_data(
             } else if let Some(ref mut c) = current_commit {
                 if line.contains("file") && line.contains("changed") {
                     let parts: Vec<&str> = line.split_whitespace().collect();
+                    // "1 file changed, 5 insertions(+), 2 deletions(-)"
                     for (i, part) in parts.iter().enumerate() {
                         if part.contains("changed") && i > 0 {
                             c.files_changed = parts[i - 1].parse().unwrap_or(0);
