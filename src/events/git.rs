@@ -6,10 +6,6 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
     if let CurrentView::Git = app.current_view {
         if let Event::Key(key) = evt {
             match key.code {
-                KeyCode::Esc if matches!(app.mode, AppMode::Normal) => {
-                    app.current_view = CurrentView::Files;
-                    return true;
-                }
                 KeyCode::Enter if matches!(app.mode, AppMode::Normal) => {
                     if let Some(fs) = app.current_file_state() {
                         // Priority 1: Pending changes (Diff)
