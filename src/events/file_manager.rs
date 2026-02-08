@@ -843,19 +843,7 @@ fn handle_space_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
 
         if let Some(idx) = fs.selection.selected {
             if let Some(path) = fs.files.get(idx).cloned() {
-                let mut target_pane = app.focused_pane_index;
-                let will_go_single = !app.view_prefs.editor.is_split_mode
-                    || (app.is_split_mode && {
-                        let other_idx = if app.focused_pane_index == 0 { 1 } else { 0 };
-                        app.panes
-                            .get(other_idx)
-                            .map(|p| p.preview.is_none())
-                            .unwrap_or(true)
-                    });
-
-                if will_go_single {
-                    target_pane = 0;
-                }
+                let target_pane = app.focused_pane_index.min(app.panes.len().saturating_sub(1));
 
                 let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path));
                 app.save_current_view_prefs();
@@ -863,18 +851,10 @@ fn handle_space_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
                 app.load_view_prefs(CurrentView::Editor);
                 app.show_sidebar = true; // Ensure sidebar is visible for "file view on left"
 
-                if app.is_split_mode {
-                    let other_idx = if app.focused_pane_index == 0 { 1 } else { 0 };
-                    if let Some(other_pane) = app.panes.get(other_idx) {
-                        if other_pane.preview.is_none() {
-                            app.apply_split_mode(false);
-                            app.save_current_view_prefs();
-                        }
-                    }
-                }
-
                 if app.panes.len() == 1 {
                     app.focused_pane_index = 0;
+                } else {
+                    app.focused_pane_index = target_pane;
                 }
                 app.sidebar_focus = false;
             }
