@@ -33,7 +33,9 @@ pub use panes::breadcrumbs::draw_pane_breadcrumbs;
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     f.render_widget(Clear, f.area());
-    if matches!(app.mode, AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorGoToLine | AppMode::EditorReplace) && app.show_main_stage && !app.is_split_mode {
+
+    if app.current_view == CurrentView::Editor && !app.is_split_mode {
+        // --- FULL SCREEN EDITOR VIEW ---
         let mut header_left = Vec::new();
         let border_color = if let Some(preview) = &app.editor_state {
             if let Some(last_saved) = preview.last_saved {
@@ -111,7 +113,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                     ));
                 }
             }
-            AppMode::Editor | AppMode::Viewer => {
+            _ => {
                 header_left.extend(HotkeyHint::render("^F", "Find", THEME.accent_secondary));
                 header_left.extend(HotkeyHint::render(
                     "^R/F2",
@@ -120,7 +122,6 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 ));
                 header_left.extend(HotkeyHint::render("^G", "Line", THEME.accent_secondary));
             }
-            _ => {}
         }
 
         let mut header_right = Vec::new();
@@ -147,13 +148,12 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
         if let Some(preview) = &app.editor_state {
             if let Some(editor) = &preview.editor {
-                // Ensure wrap is handled in split mode
+                // Ensure wrap is handled
                 let mut editor_clone = editor.clone();
                 editor_clone.wrap = app.is_split_mode;
                 f.render_widget(&editor_clone, inner_area);
             }
         }
-        return;
     } else if matches!(app.mode, AppMode::Settings) {
         f.render_widget(
             Block::default().style(Style::default().bg(Color::Black)),
