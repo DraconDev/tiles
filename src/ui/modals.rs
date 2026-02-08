@@ -720,7 +720,7 @@ pub fn draw_highlight_modal(f: &mut Frame, _app: &App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    let colors = vec![
+    let colors = [
         (1, " R ", Color::Red),
         (2, " G ", Color::Green),
         (3, " Y ", Color::Yellow),
