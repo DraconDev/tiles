@@ -83,8 +83,8 @@ async fn run_tty() -> color_eyre::Result<()> {
                     Ok(true) => match stdin.read(&mut buffer) {
                         Ok(0) => break,
                         Ok(n) => {
-                            for i in 0..n {
-                                if let Some(evt) = parser.advance(buffer[i]) {
+                            for byte in buffer.iter().take(n) {
+                                if let Some(evt) = parser.advance(*byte) {
                                     if let Some(converted) = crate::event::convert_event(evt) {
                                         let _ = tx.blocking_send(AppEvent::Raw(converted));
                                     }
@@ -131,15 +131,16 @@ async fn run_tty() -> color_eyre::Result<()> {
     }
 
     // Initial State Setup
-    {
+    let pane_count = {
         let mut app_guard = app.lock().unwrap();
         app_guard.running = true;
         if let Ok(size) = terminal.size() {
             app_guard.terminal_size = (size.width, size.height);
         }
-        for i in 0..app_guard.panes.len() {
-            let _ = event_tx.send(AppEvent::RefreshFiles(i)).await;
-        }
+        app_guard.panes.len()
+    };
+    for i in 0..pane_count {
+        let _ = event_tx.send(AppEvent::RefreshFiles(i)).await;
     }
 
     crate::app::log_debug("Entering main loop");
@@ -344,20 +345,18 @@ async fn run_tty() -> color_eyre::Result<()> {
 
                     tokio::spawn(async move {
                         let path_str = path.to_string_lossy();
-                        let content = if path_str.starts_with("git://") {
-                            let hash = &path_str[6..];
+                        let content = if let Some(hash) = path_str.strip_prefix("git://") {
                             let output = std::process::Command::new("git")
-                                .args(&["show", "--stat", hash])
+                                .args(["show", "--stat", hash])
                                 .current_dir(&current_dir)
                                 .output();
                             match output {
                                 Ok(out) => String::from_utf8_lossy(&out.stdout).to_string(),
                                 Err(e) => format!("Error fetching commit data: {}", e),
                             }
-                        } else if path_str.starts_with("git-diff://") {
-                            let file_path = &path_str[11..];
+                        } else if let Some(file_path) = path_str.strip_prefix("git-diff://") {
                             let output = std::process::Command::new("git")
-                                .args(&["diff", file_path])
+                                .args(["diff", file_path])
                                 .current_dir(&current_dir)
                                 .output();
                             match output {
