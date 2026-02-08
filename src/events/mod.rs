@@ -262,11 +262,6 @@ fn handle_general_mouse(
     let (w, _) = app.terminal_size;
     app.mouse_pos = (column, row);
 
-    crate::app::log_debug(&format!(
-        "DEBUG: Mouse Event: {:?} at ({}, {})",
-        me.kind, column, row
-    ));
-
     if let MouseEventKind::Down(MouseButton::Middle) = me.kind {
         crate::app::log_debug("DEBUG: Middle Button Down detected in handle_general_mouse");
     }
@@ -434,7 +429,6 @@ fn handle_general_mouse(
                 | AppMode::EditorGoToLine
         );
         if app.current_view == CurrentView::Editor || is_editor_mode {
-            crate::app::log_debug("DEBUG: Routing mouse to editor::handle_editor_mouse");
             editor::handle_editor_mouse(me, app, event_tx)
         } else {
             file_manager::handle_file_mouse(me, app, event_tx, panes_needing_refresh)
@@ -587,15 +581,20 @@ fn handle_sidebar_mouse(
             true
         }
         MouseEventKind::Drag(_) | MouseEventKind::Moved => {
+            let mut changed = false;
             if let Some((sx, sy)) = app.drag_start_pos {
                 let dist_sq =
                     (column as f32 - sx as f32).powi(2) + (row as f32 - sy as f32).powi(2);
                 if dist_sq >= 1.0 {
-                    app.is_dragging = true;
+                    if !app.is_dragging {
+                        app.is_dragging = true;
+                        changed = true;
+                    }
                 }
             }
             // Update hovered drop target during drag for visual feedback
             if app.is_dragging {
+                let prev_target = app.hovered_drop_target.clone();
                 app.hovered_drop_target = None;
                 // Find what sidebar item we're hovering over
                 for bound in &app.sidebar_bounds {
@@ -623,8 +622,13 @@ fn handle_sidebar_mouse(
                         break;
                     }
                 }
+                if app.hovered_drop_target != prev_target {
+                    changed = true;
+                }
+                // Keep repainting while dragging to move drag ghost with cursor.
+                return true;
             }
-            true
+            changed
         }
         _ => false,
     }
