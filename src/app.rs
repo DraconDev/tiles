@@ -402,6 +402,10 @@ impl App {
 }
 
 pub fn log_debug(msg: &str) {
+    if !debug_logging_enabled() {
+        return;
+    }
+
     use std::io::Write;
     if let Ok(mut file) = std::fs::OpenOptions::new()
         .append(true)
@@ -410,4 +414,13 @@ pub fn log_debug(msg: &str) {
     {
         let _ = writeln!(file, "[{}] DEBUG: {}", chrono::Utc::now(), msg);
     }
+}
+
+pub fn debug_logging_enabled() -> bool {
+    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ENABLED.get_or_init(|| {
+        std::env::var("TILES_DEBUG_LOG")
+            .map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "True"))
+            .unwrap_or(false)
+    })
 }
