@@ -276,10 +276,6 @@ fn handle_text_editor_mouse(
     event_tx: &mpsc::Sender<AppEvent>,
     path: &std::path::PathBuf,
 ) -> bool {
-    crate::app::log_debug(&format!(
-        "DEBUG: Entering handle_text_editor_mouse with kind: {:?} at ({}, {}) in area {:?}",
-        me.kind, me.column, me.row, area
-    ));
     match me.kind {
         MouseEventKind::Down(MouseButton::Left) => {
             let now = std::time::Instant::now();
