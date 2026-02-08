@@ -1546,15 +1546,7 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
                 .split(area);
             for i in 0..pane_count {
                 let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
-                let borders = if pane_count > 1 {
-                    if i == 0 {
-                        Borders::ALL
-                    } else {
-                        Borders::ALL
-                    }
-                } else {
-                    Borders::ALL
-                };
+                let borders = Borders::ALL;
                 draw_file_view(f, chunks[i], app, i, is_focused, borders);
             }
         }
@@ -1592,7 +1584,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         return;
     };
 
-    let branch_name = branch.as_ref().map(|s| s.as_str()).unwrap_or("HEAD");
+    let branch_name = branch.as_deref().unwrap_or("HEAD");
     let summary_text = summary.clone().unwrap_or_default();
 
     let block = Block::default()
@@ -3343,7 +3335,7 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
             ),
         chunks[0],
     );
-    let options = vec![
+    let options = [
         (FileColumn::Size, "Size (s)"),
         (FileColumn::Modified, "Modified (m)"),
         (FileColumn::Created, "Created (c)"),
@@ -3464,7 +3456,7 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
         key: &'static str,
         bool_state: Option<bool>,
     }
-    let options = vec![
+    let options = [
         GeneralOption {
             label: "Show Hidden Files",
             status: if app.default_show_hidden {
@@ -3773,7 +3765,7 @@ fn draw_highlight_modal(f: &mut Frame, _app: &App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    let colors = vec![
+    let colors = [
         (1, " R ", Color::Red),
         (2, " G ", Color::Green),
         (3, " Y ", Color::Yellow),
