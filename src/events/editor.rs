@@ -224,7 +224,10 @@ pub fn handle_editor_mouse(
         if pw == 0 {
             return false;
         }
-        let cp = (column.saturating_sub(sw) / pw) as usize;
+        let mut cp = (column.saturating_sub(sw) / pw) as usize;
+        if cp >= pc {
+            cp = pc - 1;
+        }
 
         if cp < pc {
             let pane_idx = cp;
