@@ -1,6 +1,6 @@
 ## Do
 
-editor should sho
+editor should show file w
 
 ## Maybe
 
