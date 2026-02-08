@@ -46,6 +46,19 @@ fn parse_git_log_record(line: &str) -> Option<crate::app::CommitInfo> {
     })
 }
 
+fn metadata_permissions(m: &std::fs::Metadata) -> u32 {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        return m.permissions().mode();
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = m;
+        0
+    }
+}
+
 pub fn read_dir_with_metadata(path: &Path) -> (Vec<PathBuf>, HashMap<PathBuf, FileMetadata>) {
     let mut files = Vec::new();
     let mut metadata = HashMap::new();
@@ -58,7 +71,7 @@ pub fn read_dir_with_metadata(path: &Path) -> (Vec<PathBuf>, HashMap<PathBuf, Fi
                         size: m.len(),
                         modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
                         created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-                        permissions: 0, // Simplified
+                        permissions: metadata_permissions(&m),
                         is_dir: m.is_dir(),
                     };
                     files.push(p.clone());
@@ -316,7 +329,7 @@ pub fn global_search(
                             size: m.len(),
                             modified: m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
                             created: m.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH),
-                            permissions: 0,
+                            permissions: metadata_permissions(&m),
                             is_dir: m.is_dir(),
                         };
                         let abs_p = p.canonicalize().unwrap_or(p.clone());
