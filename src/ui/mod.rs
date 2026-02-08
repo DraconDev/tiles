@@ -153,6 +153,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 f.render_widget(&editor_clone, inner_area);
             }
         }
+        return;
     } else if matches!(app.mode, AppMode::Settings) {
         f.render_widget(
             Block::default().style(Style::default().bg(Color::Black)),
