@@ -1579,6 +1579,42 @@ fn likely_branch_from_refs(refs: &[String]) -> Option<String> {
         .cloned()
 }
 
+fn style_for_ref_label(label: &str) -> Style {
+    if label.starts_with("HEAD -> ") {
+        Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)
+    } else if label.starts_with("tag: ") {
+        Style::default().fg(Color::Magenta)
+    } else if label.starts_with("origin/") {
+        Style::default().fg(Color::Cyan)
+    } else {
+        Style::default().fg(Color::Yellow)
+    }
+}
+
+fn refs_line(refs: &[String], max_refs: usize) -> Line<'static> {
+    if refs.is_empty() {
+        return Line::from("");
+    }
+
+    let mut spans = Vec::new();
+    let shown = refs.len().min(max_refs);
+    for (i, r) in refs.iter().take(shown).enumerate() {
+        if i > 0 {
+            spans.push(Span::styled(", ", Style::default().fg(Color::DarkGray)));
+        }
+        spans.push(Span::styled(truncate_to_width(r, 18, ".."), style_for_ref_label(r)));
+    }
+
+    if refs.len() > shown {
+        spans.push(Span::styled(
+            format!(" +{}", refs.len() - shown),
+            Style::default().fg(Color::DarkGray),
+        ));
+    }
+
+    Line::from(spans)
+}
+
 fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(Clear, area);
     let pane_idx = app.focused_pane_index;
@@ -1793,7 +1829,10 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             info_items.push(ListItem::new(format!("  Author: {}", commit.author)));
             info_items.push(ListItem::new(format!("  Date: {}", commit.date)));
             info_items.push(ListItem::new(format!("  Likely Branch: {}", likely_branch)));
-            info_items.push(ListItem::new(format!("  Refs: {}", refs_text)));
+            info_items.push(ListItem::new("  Refs:"));
+            let mut refs_spans = vec![Span::raw("   ")];
+            refs_spans.extend(refs_line(&refs, 4).spans);
+            info_items.push(ListItem::new(Line::from(refs_spans)));
             info_items.push(ListItem::new(""));
             info_items.push(ListItem::new(Span::styled(
                 format!("  {}", commit.message),
@@ -1920,11 +1959,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                     .map(|act| {
                         let h_short = act.hash.chars().take(7).collect::<String>();
                         let refs = parse_commit_refs(&act.decorations);
-                        let refs_compact = if refs.is_empty() {
-                            String::new()
-                        } else {
-                            refs.iter().take(2).cloned().collect::<Vec<_>>().join(", ")
-                        };
+                        let refs_compact = refs_line(&refs, 2);
 
                         let mut stats_cells = Vec::new();
                         if act.files_changed > 0 {
@@ -1953,8 +1988,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                                     .fg(THEME.accent_secondary)
                                     .add_modifier(Modifier::BOLD),
                             ),
-                            Cell::from(truncate_to_width(&refs_compact, 20, ".."))
-                                .style(Style::default().fg(Color::Yellow)),
+                            Cell::from(refs_compact),
                             Cell::from(act.author.clone()).style(Style::default().fg(Color::Cyan)),
                             Cell::from(act.message.clone()).style(Style::default().fg(THEME.fg)),
                         ];
