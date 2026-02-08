@@ -754,18 +754,23 @@ pub fn handle_file_mouse(
             true
         }
         MouseEventKind::Moved | MouseEventKind::Drag(_) => {
+            let mut changed = false;
             if let Some((sx, sy)) = app.drag_start_pos {
                 let dist_sq =
                     (column as f32 - sx as f32).powi(2) + (row as f32 - sy as f32).powi(2);
                 if dist_sq >= 1.0 {
                     if !me.modifiers.contains(KeyModifiers::SHIFT) && !app.selection_mode {
-                        app.is_dragging = true;
+                        if !app.is_dragging {
+                            app.is_dragging = true;
+                            changed = true;
+                        }
                     }
                 }
             }
 
             // Update drop target if dragging
             if app.is_dragging {
+                let prev_target = app.hovered_drop_target.clone();
                 app.hovered_drop_target = None;
                 if row >= 3 && column >= sw {
                     let idx = crate::event_helpers::fs_mouse_index(row, app);
@@ -782,6 +787,9 @@ pub fn handle_file_mouse(
                             }
                         }
                     }
+                }
+                if app.hovered_drop_target != prev_target {
+                    changed = true;
                 }
             }
 
@@ -806,10 +814,17 @@ pub fn handle_file_mouse(
                         }
                         fs.selection.selected = Some(idx);
                         fs.table_state.select(Some(idx));
+                        changed = true;
                     }
                 }
             }
-            true
+
+            if app.is_dragging {
+                // Keep repainting while dragging to move drag ghost with cursor.
+                true
+            } else {
+                changed
+            }
         }
         MouseEventKind::ScrollUp => {
             if let Some(fs) = app.current_file_state_mut() {
