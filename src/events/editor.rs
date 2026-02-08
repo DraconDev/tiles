@@ -3,6 +3,36 @@ use terma::input::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEvent,
 use tokio::sync::mpsc;
 use unicode_width::UnicodeWidthStr;
 
+fn pane_editor_area(app: &App, pane_idx: usize) -> Option<ratatui::layout::Rect> {
+    let (w, h) = app.terminal_size;
+    let sw = app.sidebar_width();
+    let pc = app.panes.len();
+    if pc == 0 {
+        return None;
+    }
+    let cw = w.saturating_sub(sw);
+    let pw = cw / pc as u16;
+    if pw == 0 {
+        return None;
+    }
+
+    let pane_x = sw + (pane_idx as u16 * pw);
+    let pane_w = if pane_idx + 1 == pc {
+        w.saturating_sub(pane_x)
+    } else {
+        pw
+    };
+    if pane_w < 2 || h < 3 {
+        return None;
+    }
+
+    let pane_area = ratatui::layout::Rect::new(pane_x, 1, pane_w, h.saturating_sub(1));
+    let inner = ratatui::widgets::Block::default()
+        .borders(ratatui::widgets::Borders::ALL)
+        .inner(pane_area);
+    Some(inner)
+}
+
 pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     let key = match evt {
         Event::Key(k) => k,
@@ -36,15 +66,10 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
         && !app.sidebar_focus
         && matches!(app.mode, AppMode::Normal)
     {
-        let (w, h) = app.terminal_size;
-        let sw = app.sidebar_width();
-        let pc = app.panes.len();
-        let cw = w.saturating_sub(sw);
-        let pw = if pc > 0 { cw / pc as u16 } else { cw };
         let pane_idx = app.focused_pane_index;
-
-        let pane_area =
-            ratatui::layout::Rect::new(sw + (pane_idx as u16 * pw), 1, pw, h.saturating_sub(1));
+        let Some(pane_area) = pane_editor_area(app, pane_idx) else {
+            return false;
+        };
 
         if let Some(pane) = app.panes.get_mut(pane_idx) {
             if let Some(preview) = &mut pane.preview {
@@ -189,8 +214,14 @@ pub fn handle_editor_mouse(
     if app.current_view == CurrentView::Editor && column >= app.sidebar_width() {
         let sw = app.sidebar_width();
         let pc = app.panes.len();
+        if pc == 0 {
+            return false;
+        }
         let cw = w.saturating_sub(sw);
-        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+        let pw = cw / pc as u16;
+        if pw == 0 {
+            return false;
+        }
         let cp = (column.saturating_sub(sw) / pw) as usize;
 
         if cp < pc {
@@ -201,29 +232,8 @@ pub fn handle_editor_mouse(
             if let Some(pane) = app.panes.get_mut(pane_idx) {
                 if let Some(preview) = &mut pane.preview {
                     if let Some(editor) = &mut preview.editor {
-                        // Correct calculation matching draw_pane_editor in src/ui/panes/editor.rs
-                        let pane_x = sw + (pane_idx as u16 * pw);
-                        let pane_area =
-                            ratatui::layout::Rect::new(pane_x, 1, pw, h.saturating_sub(1));
-
-                        let inner = ratatui::widgets::Block::default()
-                            .borders(ratatui::widgets::Borders::ALL)
-                            .border_type(ratatui::widgets::BorderType::Rounded)
-                            .inner(pane_area);
-
-                        let chunks = ratatui::layout::Layout::default()
-                            .direction(ratatui::layout::Direction::Vertical)
-                            .constraints([
-                                ratatui::layout::Constraint::Length(1), // Breadcrumbs
-                                ratatui::layout::Constraint::Fill(1),   // Editor
-                            ])
-                            .split(inner);
-
-                        let editor_area = ratatui::layout::Rect {
-                            x: chunks[1].x,
-                            y: chunks[1].y,
-                            width: chunks[1].width.saturating_sub(2),
-                            height: chunks[1].height,
+                        let Some(editor_area) = pane_editor_area(app, pane_idx) else {
+                            return false;
                         };
 
                         let mut clipboard = app.editor_clipboard.clone();
