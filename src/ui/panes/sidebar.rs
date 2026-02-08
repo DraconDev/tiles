@@ -377,7 +377,15 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         let full = title_path.to_string_lossy().to_string();
         let max_w = area.width.saturating_sub(10) as usize;
         if full.width() > max_w && max_w > 4 {
-            format!("...{}", &full[full.len().saturating_sub(max_w - 3)..])
+            let tail: String = full
+                .chars()
+                .rev()
+                .take(max_w - 3)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect();
+            format!("...{}", tail)
         } else {
             full
         }
