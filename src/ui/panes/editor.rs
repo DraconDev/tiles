@@ -1,7 +1,9 @@
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
+    style::Style,
+    text::Line,
     widgets::{
-        Block, Borders,
+        Block, BorderType, Borders,
     },
     Frame,
 };
@@ -38,8 +40,31 @@ pub fn draw_ide_editor(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 pub fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool) {
+    let title = if let Some(pane) = app.panes.get(pane_idx) {
+        if let Some(preview) = &pane.preview {
+            let name = preview
+                .path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| preview.path.to_string_lossy().to_string());
+            if is_focused {
+                format!(" P{} ACTIVE: {} ", pane_idx + 1, name)
+            } else {
+                format!(" P{}: {} ", pane_idx + 1, name)
+            }
+        } else if is_focused {
+            format!(" P{} ACTIVE ", pane_idx + 1)
+        } else {
+            format!(" P{} ", pane_idx + 1)
+        }
+    } else {
+        format!(" P{} ", pane_idx + 1)
+    };
+
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title_top(Line::from(title))
         .border_style(if is_focused {
             Style::default().fg(THEME.border_active)
         } else {
@@ -70,5 +95,3 @@ pub fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usiz
         }
     }
 }
-
-use ratatui::style::Style;
