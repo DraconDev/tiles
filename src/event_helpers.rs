@@ -438,7 +438,7 @@ pub fn fs_mouse_index(row: u16, app: &App) -> usize {
     if let Some(fs) = app.current_file_state() {
         let offset = fs.table_state.offset();
         let rel_row = row.saturating_sub(3) as usize;
-        offset + rel_row
+        offset.saturating_add(rel_row)
     } else {
         0
     }
