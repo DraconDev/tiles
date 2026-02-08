@@ -1385,47 +1385,49 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 
                 let mut spans = vec![Span::styled(format!(" {} ", base_name), base_style)];
 
-                // Add git info if available from active tab
-                if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
-                    if let Some(branch) = &tab.git_branch {
-                        let pending = tab.git_pending.len();
-                        let ahead = tab.git_ahead;
-                        let behind = tab.git_behind;
+                // Restrict git indicators to Git page to avoid cross-view bleed.
+                if app.current_view == CurrentView::Git {
+                    if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
+                        if let Some(branch) = &tab.git_branch {
+                            let pending = tab.git_pending.len();
+                            let ahead = tab.git_ahead;
+                            let behind = tab.git_behind;
 
-                        let branch_color = if pending > 0 {
-                            Color::Red
-                        } else if ahead > 0 || behind > 0 {
-                            Color::Yellow
-                        } else {
-                            Color::Green
-                        };
+                            let branch_color = if pending > 0 {
+                                Color::Red
+                            } else if ahead > 0 || behind > 0 {
+                                Color::Yellow
+                            } else {
+                                Color::Green
+                            };
 
-                        let mut branch_style = Style::default().fg(branch_color);
-                        if is_focused_pane {
-                            branch_style = branch_style.add_modifier(Modifier::BOLD);
-                        }
+                            let mut branch_style = Style::default().fg(branch_color);
+                            if is_focused_pane {
+                                branch_style = branch_style.add_modifier(Modifier::BOLD);
+                            }
 
-                        spans.push(Span::styled(format!("({})", branch), branch_style));
+                            spans.push(Span::styled(format!("({})", branch), branch_style));
 
-                        if pending > 0 {
-                            spans.push(Span::styled(
-                                format!("+{}", pending),
-                                Style::default().fg(Color::Red),
-                            ));
+                            if pending > 0 {
+                                spans.push(Span::styled(
+                                    format!("+{}", pending),
+                                    Style::default().fg(Color::Red),
+                                ));
+                            }
+                            if ahead > 0 {
+                                spans.push(Span::styled(
+                                    format!(" ↑{}", ahead),
+                                    Style::default().fg(Color::Yellow),
+                                ));
+                            }
+                            if behind > 0 {
+                                spans.push(Span::styled(
+                                    format!(" ↓{}", behind),
+                                    Style::default().fg(Color::Yellow),
+                                ));
+                            }
+                            spans.push(Span::raw(" "));
                         }
-                        if ahead > 0 {
-                            spans.push(Span::styled(
-                                format!(" ↑{}", ahead),
-                                Style::default().fg(Color::Yellow),
-                            ));
-                        }
-                        if behind > 0 {
-                            spans.push(Span::styled(
-                                format!(" ↓{}", behind),
-                                Style::default().fg(Color::Yellow),
-                            ));
-                        }
-                        spans.push(Span::raw(" "));
                     }
                 }
 
@@ -1473,45 +1475,47 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 
             spans.push(Span::styled(format!(" {} ", base_name), base_style));
 
-            if let Some(branch) = &tab.git_branch {
-                let pending = tab.git_pending.len();
-                let ahead = tab.git_ahead;
-                let behind = tab.git_behind;
+            if app.current_view == CurrentView::Git {
+                if let Some(branch) = &tab.git_branch {
+                    let pending = tab.git_pending.len();
+                    let ahead = tab.git_ahead;
+                    let behind = tab.git_behind;
 
-                let branch_color = if pending > 0 {
-                    Color::Red
-                } else if ahead > 0 || behind > 0 {
-                    Color::Yellow
-                } else {
-                    Color::Green
-                };
+                    let branch_color = if pending > 0 {
+                        Color::Red
+                    } else if ahead > 0 || behind > 0 {
+                        Color::Yellow
+                    } else {
+                        Color::Green
+                    };
 
-                let mut branch_style = Style::default().fg(branch_color);
-                if is_active_tab && is_focused_pane {
-                    branch_style = branch_style.add_modifier(Modifier::BOLD);
-                }
+                    let mut branch_style = Style::default().fg(branch_color);
+                    if is_active_tab && is_focused_pane {
+                        branch_style = branch_style.add_modifier(Modifier::BOLD);
+                    }
 
-                spans.push(Span::styled(format!("({})", branch), branch_style));
+                    spans.push(Span::styled(format!("({})", branch), branch_style));
 
-                if pending > 0 {
-                    spans.push(Span::styled(
-                        format!("+{}", pending),
-                        Style::default().fg(Color::Red),
-                    ));
+                    if pending > 0 {
+                        spans.push(Span::styled(
+                            format!("+{}", pending),
+                            Style::default().fg(Color::Red),
+                        ));
+                    }
+                    if ahead > 0 {
+                        spans.push(Span::styled(
+                            format!(" ↑{}", ahead),
+                            Style::default().fg(Color::Yellow),
+                        ));
+                    }
+                    if behind > 0 {
+                        spans.push(Span::styled(
+                            format!(" ↓{}", behind),
+                            Style::default().fg(Color::Yellow),
+                        ));
+                    }
+                    spans.push(Span::raw(" "));
                 }
-                if ahead > 0 {
-                    spans.push(Span::styled(
-                        format!(" ↑{}", ahead),
-                        Style::default().fg(Color::Yellow),
-                    ));
-                }
-                if behind > 0 {
-                    spans.push(Span::styled(
-                        format!(" ↓{}", behind),
-                        Style::default().fg(Color::Yellow),
-                    ));
-                }
-                spans.push(Span::raw(" "));
             }
 
             let line = Line::from(spans);
