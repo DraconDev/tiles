@@ -718,7 +718,7 @@ mod tests {
         let (tx, _rx) = mpsc::channel(8);
         let mut app = test_app();
         app.current_view = CurrentView::Commit;
-        app.mode = AppMode::Normal;
+        app.mode = AppMode::Viewer;
 
         let mut refresh = HashSet::new();
         let changed = handle_event(
