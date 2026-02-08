@@ -34,8 +34,8 @@ pub use panes::breadcrumbs::draw_pane_breadcrumbs;
 pub fn draw(f: &mut Frame, app: &mut App) {
     f.render_widget(Clear, f.area());
 
-    if app.current_view == CurrentView::Editor && !app.is_split_mode {
-        // --- FULL SCREEN EDITOR VIEW ---
+    if matches!(app.mode, AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorGoToLine | AppMode::EditorReplace) && app.show_main_stage && !app.is_split_mode {
+        // --- FULL SCREEN EDITOR VIEW (Zen Mode / Overlay) ---
         let mut header_left = Vec::new();
         let border_color = if let Some(preview) = &app.editor_state {
             if let Some(last_saved) = preview.last_saved {
