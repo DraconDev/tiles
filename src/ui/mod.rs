@@ -351,8 +351,8 @@ fn draw_drag_drop_modal(
             ),
         ]));
         // List first few items
-        for i in 0..std::cmp::min(sources.len(), 3) {
-            let name = sources[i].file_name().unwrap_or_default().to_string_lossy();
+        for source in sources.iter().take(std::cmp::min(sources.len(), 3)) {
+            let name = source.file_name().unwrap_or_default().to_string_lossy();
             text.push(Line::from(vec![
                 Span::raw("  - "),
                 Span::styled(name, Style::default().fg(Color::DarkGray)),
@@ -816,16 +816,16 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         f,
         bank_layout[1],
         "MEM",
-        app.system_state.mem_usage as f32,
-        app.system_state.total_mem as f32,
+        app.system_state.mem_usage,
+        app.system_state.total_mem,
         "GB",
     );
     draw_telemetry_bank(
         f,
         bank_layout[2],
         "SWAP",
-        app.system_state.swap_usage as f32,
-        app.system_state.total_swap as f32,
+        app.system_state.swap_usage,
+        app.system_state.total_swap,
         "GB",
     );
 
