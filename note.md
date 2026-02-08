@@ -1,6 +1,6 @@
 ## Do
 
-now our permissioins col in the file section is onl
+now our permissioins col in the file section is only -------
 
 ## Maybe
 
