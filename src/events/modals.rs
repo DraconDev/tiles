@@ -646,7 +646,7 @@ fn handle_input_modals_keys(
             app.input.clear();
             true
         }
-        _ => app.input.handle_event(&Event::Key(key.clone())),
+        _ => app.input.handle_event(&Event::Key(*key)),
     }
 }
 
