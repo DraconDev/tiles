@@ -274,16 +274,60 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 }
 
 fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
+    f.render_widget(Block::default().style(Style::default().bg(Color::Black)), area);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Rgb(50, 65, 85)))
+        .title_top(Line::from(vec![Span::styled(
+            " COMMIT VIEW ",
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Rgb(90, 170, 255))
+                .add_modifier(Modifier::BOLD),
+        )]))
+        .title_top(
+            Line::from(vec![
+                Span::styled(
+                    " Esc ",
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Red)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(" Back to Git ", Style::default().fg(Color::Red)),
+            ])
+            .alignment(Alignment::Right),
+        );
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Min(0)])
+        .split(inner);
+
     f.render_widget(
-        Block::default().style(Style::default().bg(Color::Rgb(0, 0, 0))),
-        area,
+        Paragraph::new(Line::from(vec![
+            Span::styled("+ additions ", Style::default().fg(Color::Green)),
+            Span::styled("- deletions ", Style::default().fg(Color::Red)),
+            Span::styled("@@ hunk ", Style::default().fg(Color::Cyan)),
+            Span::styled("full patch view", Style::default().fg(Color::DarkGray)),
+        ])),
+        layout[0],
     );
 
     if let Some(preview) = &app.editor_state {
         if let Some(editor) = &preview.editor {
             let mut editor_clone = editor.clone();
             editor_clone.wrap = false;
-            f.render_widget(&editor_clone, area);
+            editor_clone.show_line_numbers = true;
+            editor_clone.read_only = true;
+            if editor_clone.language.is_empty() {
+                editor_clone.language = "diff".to_string();
+            }
+            f.render_widget(&editor_clone, layout[1]);
             return;
         }
     }
@@ -292,7 +336,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         Paragraph::new("Loading commit...")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::DarkGray)),
-        area,
+        layout[1],
     );
 }
 
