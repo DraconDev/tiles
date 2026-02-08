@@ -15,9 +15,10 @@ use crate::app::{
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
 use terma::utils::{
-    format_permissions, format_size, truncate_to_width,
+    format_permissions, format_size,
 };
 
+#[allow(dead_code)]
 pub fn draw_pane(f: &mut Frame, area: Rect, pane_idx: usize, app: &mut App) {
     let is_focused = app.focused_pane_index == pane_idx;
     let borders = if app.is_split_mode {
@@ -28,6 +29,7 @@ pub fn draw_pane(f: &mut Frame, area: Rect, pane_idx: usize, app: &mut App) {
     draw_file_view(f, area, app, pane_idx, is_focused, borders);
 }
 
+#[allow(dead_code)]
 pub fn draw_file_view(
     f: &mut Frame,
     area: Rect,
@@ -419,7 +421,6 @@ pub fn draw_file_view(
                                 cell_rect,
                             );
                         }
-                        _ => {}
                     }
                 }
             }
@@ -441,6 +442,7 @@ pub fn draw_file_view(
     }
 }
 
+#[allow(dead_code)]
 fn format_modified_time(time: SystemTime) -> String {
     use chrono::{DateTime, Local};
     let dt: DateTime<Local> = time.into();
