@@ -610,3 +610,87 @@ fn handle_sidebar_mouse(
         _ => false,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::{CurrentView, SidebarBounds, SidebarTarget};
+    use std::collections::HashSet;
+    use std::path::PathBuf;
+    use std::sync::{Arc, Mutex};
+    use terma::compositor::engine::TilePlacement;
+    use terma::input::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton};
+    use tokio::sync::mpsc;
+
+    fn test_app() -> App {
+        let queue: Arc<Mutex<Vec<TilePlacement>>> = Arc::new(Mutex::new(Vec::new()));
+        App::new(queue)
+    }
+
+    #[test]
+    fn esc_exits_git_view_to_files() {
+        let (tx, mut rx) = mpsc::channel(8);
+        let mut app = test_app();
+        app.current_view = CurrentView::Git;
+        app.mode = AppMode::Normal;
+
+        let mut refresh = HashSet::new();
+        let changed = handle_event(
+            Event::Key(KeyEvent {
+                code: KeyCode::Esc,
+                modifiers: KeyModifiers::empty(),
+                kind: KeyEventKind::Press,
+            }),
+            &mut app,
+            tx,
+            &mut refresh,
+        );
+
+        assert!(changed);
+        assert_eq!(app.current_view, CurrentView::Files);
+        match rx.try_recv() {
+            Ok(AppEvent::RefreshFiles(_)) => {}
+            other => panic!("expected RefreshFiles event, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn editor_sidebar_open_targets_last_clicked_pane() {
+        let (tx, mut rx) = mpsc::channel(8);
+        let mut app = test_app();
+        app.current_view = CurrentView::Editor;
+        app.mode = AppMode::Normal;
+        app.terminal_size = (120, 40);
+        app.apply_split_mode(true);
+        app.focused_pane_index = 0;
+        app.mouse_click_pos = (90, 10); // right pane side
+        let test_path = PathBuf::from("/tmp/tiles_editor_sidebar_target.txt");
+        app.sidebar_bounds.push(SidebarBounds {
+            y: 5,
+            index: 0,
+            target: SidebarTarget::Project(test_path.clone()),
+        });
+
+        let handled = handle_sidebar_mouse(
+            &terma::input::event::MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 2,
+                row: 5,
+                modifiers: KeyModifiers::empty(),
+            },
+            &mut app,
+            &tx,
+        );
+
+        assert!(handled);
+        assert_eq!(app.focused_pane_index, 1);
+
+        match rx.try_recv() {
+            Ok(AppEvent::PreviewRequested(pane_idx, path)) => {
+                assert_eq!(pane_idx, 1);
+                assert_eq!(path, test_path);
+            }
+            other => panic!("expected PreviewRequested event, got {:?}", other),
+        }
+    }
+}
