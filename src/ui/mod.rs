@@ -8,13 +8,11 @@ use ratatui::{
     },
     Frame,
 };
-use std::collections::HashMap;
-use std::path::PathBuf;
 use std::time::SystemTime;
 
 use crate::app::{
-    App, AppMode, CurrentView, DropTarget, FileCategory, FileColumn, MonitorSubview, ProcessColumn,
-    SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget,
+    App, AppMode, CurrentView, DropTarget, FileColumn, MonitorSubview, ProcessColumn,
+    SettingsSection, SettingsTarget,
 };
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
