@@ -1,7 +1,6 @@
 ## Do
 
-- add an optional setting for max preview file size (default 20MB)
-- add minimal integration tests for view transitions (Files <-> Git <-> Editor)
+- run manual QA pass against `docs/qa/matrix.md`
 
 ## Maybe
 
@@ -11,6 +10,8 @@
 
 ## Done
 
+- added optional setting for max preview file size (default `20MB`) with persistence
+- added minimal view-transition regression tests (Git escape + editor pane targeting)
 - `Esc` now exits Git/Monitor/Editor views reliably
 - fixed editor split pane targeting when opening from project sidebar
 - implemented `Symlink` action handling in app event loop
