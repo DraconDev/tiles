@@ -156,7 +156,20 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
             CurrentView::Git | CurrentView::Processes => {
                 if let Some(fs) = app.current_file_state_mut() {
                     fs.search_filter.clear();
+                    fs.git_pending_state.select(None);
+                    fs.git_history_state.select(None);
                 }
+                // Prevent Git-only previews from leaking into file view.
+                for pane in &mut app.panes {
+                    if let Some(preview) = &pane.preview {
+                        let p = preview.path.to_string_lossy();
+                        if p.starts_with("git://") || p.starts_with("git-diff://") {
+                            pane.preview = None;
+                        }
+                    }
+                }
+                app.mode = AppMode::Normal;
+                app.input.clear();
                 app.current_view = CurrentView::Files;
                 app.input_shield_until =
                     Some(std::time::Instant::now() + std::time::Duration::from_millis(150));
