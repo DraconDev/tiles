@@ -58,6 +58,7 @@ pub struct App {
     pub semantic_coloring: bool,
     pub auto_save: bool,
     pub default_show_hidden: bool,
+    pub preview_max_mb: u16,
     pub single_columns: Vec<FileColumn>,
     pub split_columns: Vec<FileColumn>,
     pub monitor_subview: MonitorSubview,
@@ -198,6 +199,7 @@ impl App {
             semantic_coloring: true,
             auto_save: true,
             default_show_hidden: false,
+            preview_max_mb: 20,
             single_columns: vec![
                 FileColumn::Name,
                 FileColumn::Size,
