@@ -2,7 +2,7 @@
 
 editor should show file with its path instead of PROJECT
 
-we 
+we should r
 
 ## Maybe
 
