@@ -18,12 +18,14 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
                             }
                         }
                         // Priority 2: History (Commit)
-                        if open_preview.is_none() && let Some(idx) = fs.git_history_state.selected() {
-                            if let Some(commit) = fs.git_history.get(idx) {
-                                let hash = commit.hash.clone();
-                                open_preview =
-                                    Some(std::path::PathBuf::from(format!("git://{}", hash)));
-                                open_editor_for_commit = true;
+                        if open_preview.is_none() {
+                            if let Some(idx) = fs.git_history_state.selected() {
+                                if let Some(commit) = fs.git_history.get(idx) {
+                                    let hash = commit.hash.clone();
+                                    open_preview =
+                                        Some(std::path::PathBuf::from(format!("git://{}", hash)));
+                                    open_editor_for_commit = true;
+                                }
                             }
                         }
                     }
