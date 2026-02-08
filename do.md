@@ -1,6 +1,6 @@
 ## Do
 
-editor should show file w
+editor should show file with its path inst
 
 ## Maybe
 
