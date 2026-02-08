@@ -28,6 +28,24 @@ fn parse_git_shortstat(line: &str) -> (usize, usize, usize) {
     (files_changed, insertions, deletions)
 }
 
+fn parse_git_log_record(line: &str) -> Option<crate::app::CommitInfo> {
+    let parts: Vec<&str> = line.split('\x1f').collect();
+    if parts.len() < 5 {
+        return None;
+    }
+
+    Some(crate::app::CommitInfo {
+        hash: parts[0].to_string(),
+        author: parts[1].to_string(),
+        date: parts[2].to_string(),
+        message: parts[3].to_string(),
+        decorations: parts[4].to_string(),
+        files_changed: 0,
+        insertions: 0,
+        deletions: 0,
+    })
+}
+
 pub fn read_dir_with_metadata(path: &Path) -> (Vec<PathBuf>, HashMap<PathBuf, FileMetadata>) {
     let mut files = Vec::new();
     let mut metadata = HashMap::new();
@@ -105,10 +123,11 @@ pub fn fetch_git_data(
     let mut history = Vec::new();
     if let Ok(out) = std::process::Command::new("git")
         .args(&[
+            "--no-pager",
             "log",
             "-n",
             "100",
-            "--pretty=format:%H|%an|%ar|%s|%d",
+            "--pretty=format:%H%x1f%an%x1f%ar%x1f%s%x1f%d",
             "--shortstat",
         ])
         .current_dir(path)
@@ -119,23 +138,11 @@ pub fn fetch_git_data(
 
         for line in out_str.lines() {
             let line = line.trim();
-            if line.contains('|') && (line.starts_with('0') || line.chars().next().map_or(false, |c| c.is_ascii_hexdigit())) {
+            if let Some(parsed) = parse_git_log_record(line) {
                 if let Some(c) = current_commit.take() {
                     history.push(c);
                 }
-                let parts: Vec<&str> = line.split('|').collect();
-                if parts.len() >= 4 {
-                    current_commit = Some(crate::app::CommitInfo {
-                        hash: parts[0].to_string(),
-                        author: parts[1].to_string(),
-                        date: parts[2].to_string(),
-                        message: parts[3].to_string(),
-                        decorations: if parts.len() > 4 { parts[4].to_string() } else { String::new() },
-                        files_changed: 0,
-                        insertions: 0,
-                        deletions: 0,
-                    });
-                }
+                current_commit = Some(parsed);
             } else if let Some(ref mut c) = current_commit {
                 if line.contains("changed") {
                     let (files_changed, insertions, deletions) = parse_git_shortstat(line);
@@ -268,6 +275,18 @@ mod tests {
             (3, 27, 0)
         );
         assert_eq!(super::parse_git_shortstat("1 file changed"), (1, 0, 0));
+    }
+
+    #[test]
+    fn parse_log_record_with_pipe_in_subject() {
+        let line =
+            "abcdef123456\x1fAlice\x1f2 days ago\x1ffeat: a | b | c\x1f (HEAD -> main, origin/main)";
+        let record = super::parse_git_log_record(line).expect("record should parse");
+        assert_eq!(record.hash, "abcdef123456");
+        assert_eq!(record.author, "Alice");
+        assert_eq!(record.date, "2 days ago");
+        assert_eq!(record.message, "feat: a | b | c");
+        assert_eq!(record.decorations, " (HEAD -> main, origin/main)");
     }
 }
 
