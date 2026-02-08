@@ -228,14 +228,13 @@ pub fn handle_editor_mouse(
             let pane_idx = cp;
             app.focused_pane_index = pane_idx;
             app.sidebar_focus = false;
+            let Some(editor_area) = pane_editor_area(app, pane_idx) else {
+                return false;
+            };
 
             if let Some(pane) = app.panes.get_mut(pane_idx) {
                 if let Some(preview) = &mut pane.preview {
                     if let Some(editor) = &mut preview.editor {
-                        let Some(editor_area) = pane_editor_area(app, pane_idx) else {
-                            return false;
-                        };
-
                         let mut clipboard = app.editor_clipboard.clone();
                         let handled = handle_text_editor_mouse(
                             me,
