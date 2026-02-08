@@ -6,6 +6,8 @@ Welcome to the **Sovereign Developer Environment**. This repository contains **T
 
 ### 1. [Tiles (The Application)](./plan.md)
 
+ok ?
+
 A high-performance, modular data commander.
 
 - **Role:** File Manager + Container Orchestrator + System Dashboard.
