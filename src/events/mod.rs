@@ -166,6 +166,17 @@ pub fn handle_event(
 }
 
 fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
+    if app.current_view == CurrentView::Commit {
+        app.current_view = CurrentView::Git;
+        app.mode = AppMode::Normal;
+        app.editor_state = None;
+        app.sidebar_focus = false;
+        app.input.clear();
+        app.input_shield_until =
+            Some(std::time::Instant::now() + std::time::Duration::from_millis(60));
+        return true;
+    }
+
     if matches!(app.mode, AppMode::Normal) {
         match app.current_view {
             CurrentView::Git | CurrentView::Processes => {
@@ -189,16 +200,6 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
                 app.input_shield_until =
                     Some(std::time::Instant::now() + std::time::Duration::from_millis(150));
                 let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                return true;
-            }
-            CurrentView::Commit => {
-                app.current_view = CurrentView::Git;
-                app.mode = AppMode::Normal;
-                app.editor_state = None;
-                app.sidebar_focus = false;
-                app.input.clear();
-                app.input_shield_until =
-                    Some(std::time::Instant::now() + std::time::Duration::from_millis(80));
                 return true;
             }
             CurrentView::Editor => {
