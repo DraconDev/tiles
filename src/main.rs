@@ -370,7 +370,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                 path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string()))
                         } else {
                             let (is_binary, is_too_large, size_mb) =
-                                terma::utils::check_file_suitability(&path, 5 * 1024 * 1024);
+                                terma::utils::check_file_suitability(&path, 20 * 1024 * 1024);
                             if is_binary {
                                 format!("<Binary file: {} MB>", size_mb)
                             } else if is_too_large {
