@@ -675,6 +675,16 @@ fn handle_settings_keys(
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
+    fn cycle_preview_max_mb(current: u16) -> u16 {
+        match current {
+            5 => 10,
+            10 => 20,
+            20 => 50,
+            50 => 100,
+            _ => 5,
+        }
+    }
+
     match key.code {
         KeyCode::Esc => {
             app.mode = AppMode::Normal;
@@ -711,7 +721,7 @@ fn handle_settings_keys(
         }
         KeyCode::Down => {
             let max = match app.settings_section {
-                SettingsSection::General => 5,
+                SettingsSection::General => 6,
                 SettingsSection::Columns => 3,
                 _ => 0,
             };
@@ -729,7 +739,8 @@ fn handle_settings_keys(
                         2 => app.smart_date = !app.smart_date,
                         3 => app.semantic_coloring = !app.semantic_coloring,
                         4 => app.auto_save = !app.auto_save,
-                        5 => {
+                        5 => app.preview_max_mb = cycle_preview_max_mb(app.preview_max_mb),
+                        6 => {
                             app.icon_mode = match app.icon_mode {
                                 IconMode::Nerd => IconMode::Unicode,
                                 IconMode::Unicode => IconMode::ASCII,
@@ -928,7 +939,7 @@ pub fn handle_modal_mouse(
 
                     match app.settings_section {
                         SettingsSection::General => {
-                            if rel_y < 6 {
+                            if rel_y < 7 {
                                 app.settings_index = rel_y as usize;
                                 match app.settings_index {
                                     0 => app.default_show_hidden = !app.default_show_hidden,
@@ -936,7 +947,8 @@ pub fn handle_modal_mouse(
                                     2 => app.smart_date = !app.smart_date,
                                     3 => app.semantic_coloring = !app.semantic_coloring,
                                     4 => app.auto_save = !app.auto_save,
-                                    5 => {
+                                    5 => app.preview_max_mb = cycle_preview_max_mb(app.preview_max_mb),
+                                    6 => {
                                         app.icon_mode = match app.icon_mode {
                                             IconMode::Nerd => IconMode::Unicode,
                                             IconMode::Unicode => IconMode::ASCII,
