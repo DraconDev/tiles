@@ -386,7 +386,8 @@ impl App {
                     fs.selection.handle_move(next, shift);
                     fs.table_state.select(fs.selection.selected);
                     if next >= fs.table_state.offset() + capacity {
-                        *fs.table_state.offset_mut() = next.saturating_sub(capacity - 1);
+                        let keep_visible = capacity.saturating_sub(1);
+                        *fs.table_state.offset_mut() = next.saturating_sub(keep_visible);
                     }
                 }
             }
