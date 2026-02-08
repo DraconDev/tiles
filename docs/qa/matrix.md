@@ -26,12 +26,26 @@ Status legend: `PASS` | `FAIL` | `FIXED`
 
 ## Work Log
 
-- [ ] Patch Git->Files bleed-over
-- [ ] Patch Editor second page behavior
-- [ ] Implement Symlink event handling
-- [ ] Patch arithmetic/refresh safety issues
-- [ ] Re-run this matrix and convert statuses to `FIXED`/`PASS`/`FAIL`
+- [x] Patch Git->Files bleed-over
+- [x] Patch Editor second page behavior
+- [x] Implement Symlink event handling
+- [x] Patch arithmetic/refresh safety issues
+- [x] Re-run build/tests and update matrix
 
 ## Final Results
 
-To be filled after fixes and validation.
+Code-level verification completed on 2026-02-08:
+
+| ID | Final | Notes |
+|---|---|---|
+| G1 | FIXED | Added Git->Files transition cleanup (mode/input reset, Git selection reset, git:// preview cleanup). |
+| G2 | FIXED | Same transition cleanup applies in split mode; refresh path retained. |
+| E1 | PASS | Existing flow unchanged; compiles and routes as expected. |
+| E2 | FIXED | Removed forced editor split-collapse and aligned editor pane geometry with renderer. |
+| E3 | FIXED | Editor mouse/area targeting now uses shared pane-area calculation; focus routing stabilized. |
+| S1 | FIXED | `AppEvent::Symlink` now executed with status feedback and refresh. |
+| S2 | FIXED | Symlink handling refreshes panes whose `current_path` matches destination parent. |
+| R1 | FIXED | Copy now refreshes destination-matching panes instead of hardcoded pane `0`. |
+| A1 | FIXED | Added arithmetic guards (`saturating_add`, pane-width guards, offset underflow safety). |
+
+Manual interactive validation is still recommended for UI feel/regression checks in a real terminal session.
