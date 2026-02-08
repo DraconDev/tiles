@@ -337,10 +337,56 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
+    // Resolve both tree base path and a user-facing title path from focused editor context.
+    let (base_path, title_path) = if let Some(pane) = app.panes.get(app.focused_pane_index) {
+        if let Some(preview) = &pane.preview {
+            if preview.path.is_dir() {
+                (preview.path.clone(), preview.path.clone())
+            } else {
+                (
+                    preview
+                        .path
+                        .parent()
+                        .map(|p| p.to_path_buf())
+                        .unwrap_or_else(|| PathBuf::from("/")),
+                    preview.path.clone(),
+                )
+            }
+        } else if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
+            (tab.current_path.clone(), tab.current_path.clone())
+        } else {
+            return;
+        }
+    } else if let Some(preview) = &app.editor_state {
+        if preview.path.is_dir() {
+            (preview.path.clone(), preview.path.clone())
+        } else {
+            (
+                preview
+                    .path
+                    .parent()
+                    .map(|p| p.to_path_buf())
+                    .unwrap_or_else(|| PathBuf::from("/")),
+                preview.path.clone(),
+            )
+        }
+    } else {
+        return;
+    };
+    let title_text = {
+        let full = title_path.to_string_lossy().to_string();
+        let max_w = area.width.saturating_sub(10) as usize;
+        if full.width() > max_w && max_w > 4 {
+            format!("...{}", &full[full.len().saturating_sub(max_w - 3)..])
+        } else {
+            full
+        }
+    };
+
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(" PROJECT ")
+        .title(format!(" {} ", title_text))
         .border_style(if app.sidebar_focus {
             Style::default().fg(THEME.border_active)
         } else {
@@ -349,32 +395,6 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
     let inner = block.inner(area);
     f.render_widget(block, area);
-
-    // Get the base path from the focused pane first; this keeps split editor behavior pane-local.
-    let base_path = if let Some(pane) = app.panes.get(app.focused_pane_index) {
-        if let Some(preview) = &pane.preview {
-            if preview.path.is_dir() {
-                preview.path.clone()
-            } else {
-                preview.path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("/"))
-            }
-        } else if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
-            tab.current_path.clone()
-        } else {
-            return;
-        }
-    } else if let Some(preview) = &app.editor_state {
-        if preview.path.is_dir() {
-            preview.path.clone()
-        } else {
-            preview.path
-                .parent()
-                .map(|p| p.to_path_buf())
-                .unwrap_or_else(|| PathBuf::from("/"))
-        }
-    } else {
-        return;
-    };
 
     let mut tree_items: Vec<(PathBuf, u16)> = Vec::new();
     collect_tree_items(&base_path, 0, app, &mut tree_items);
