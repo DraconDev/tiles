@@ -11,6 +11,16 @@ pub fn handle_modal_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<A
     }
 }
 
+fn cycle_preview_max_mb(current: u16) -> u16 {
+    match current {
+        5 => 10,
+        10 => 20,
+        20 => 50,
+        50 => 100,
+        _ => 5,
+    }
+}
+
 fn handle_modal_keys(
     key: &terma::input::event::KeyEvent,
     app: &mut App,
@@ -675,16 +685,6 @@ fn handle_settings_keys(
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
-    fn cycle_preview_max_mb(current: u16) -> u16 {
-        match current {
-            5 => 10,
-            10 => 20,
-            20 => 50,
-            50 => 100,
-            _ => 5,
-        }
-    }
-
     match key.code {
         KeyCode::Esc => {
             app.mode = AppMode::Normal;
