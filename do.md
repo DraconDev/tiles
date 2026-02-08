@@ -1,9 +1,5 @@
 ## Do
 
-- editor should show file with its path instead of PROJECT
-
-- round the corners in editor view too
-- add a small status line in editor split mode showing active pane index/name
 - add an optional setting for max preview file size (default 20MB)
 - add minimal integration tests for view transitions (Files <-> Git <-> Editor)
 
@@ -22,3 +18,6 @@
 - improved mouse/index arithmetic safety in file manager paths
 - increased text preview size limit from 5MB to 20MB
 - added QA checklist matrix: `docs/qa/matrix.md`
+- editor sidebar now shows current path in title (instead of `PROJECT`)
+- editor split panes now render with rounded borders
+- editor split panes now show active pane status/title (`P1/P2 ACTIVE`)
