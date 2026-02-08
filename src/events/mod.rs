@@ -164,6 +164,7 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
     if matches!(app.mode, AppMode::Normal) {
         match app.current_view {
             CurrentView::Git | CurrentView::Processes => {
+                app.return_to_git_after_editor = false;
                 if let Some(fs) = app.current_file_state_mut() {
                     fs.search_filter.clear();
                     fs.git_pending_state.select(None);
@@ -213,8 +214,13 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
                 }
 
                 app.save_current_view_prefs();
-                app.current_view = CurrentView::Files;
-                app.load_view_prefs(CurrentView::Files);
+                if app.return_to_git_after_editor {
+                    app.current_view = CurrentView::Git;
+                    app.return_to_git_after_editor = false;
+                } else {
+                    app.current_view = CurrentView::Files;
+                    app.load_view_prefs(CurrentView::Files);
+                }
                 app.editor_state = None;
                 app.input.clear(); // Ensure no stray inputs remain
                                    // Increase shield to catch escape sequences
