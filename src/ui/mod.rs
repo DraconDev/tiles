@@ -3460,67 +3460,88 @@ fn draw_tab_settings(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
-    let icon_mode_str = format!("{:?}", app.icon_mode);
+    struct GeneralOption {
+        label: &'static str,
+        status: String,
+        key: &'static str,
+        bool_state: Option<bool>,
+    }
     let options = vec![
-        (
-            "Show Hidden Files",
-            if app.default_show_hidden {
-                "ENABLED "
+        GeneralOption {
+            label: "Show Hidden Files",
+            status: if app.default_show_hidden {
+                "ENABLED ".to_string()
             } else {
-                "DISABLED"
+                "DISABLED".to_string()
             },
-            "h",
-        ),
-        (
-            "Confirm Delete",
-            if app.confirm_delete {
-                "ENABLED "
+            key: "h",
+            bool_state: Some(app.default_show_hidden),
+        },
+        GeneralOption {
+            label: "Confirm Delete",
+            status: if app.confirm_delete {
+                "ENABLED ".to_string()
             } else {
-                "DISABLED"
+                "DISABLED".to_string()
             },
-            "d",
-        ),
-        (
-            "Smart Date Formatting",
-            if app.smart_date {
-                "ENABLED "
+            key: "d",
+            bool_state: Some(app.confirm_delete),
+        },
+        GeneralOption {
+            label: "Smart Date Formatting",
+            status: if app.smart_date {
+                "ENABLED ".to_string()
             } else {
-                "DISABLED"
+                "DISABLED".to_string()
             },
-            "t",
-        ),
-        (
-            "Semantic Coloring",
-            if app.semantic_coloring {
-                "ENABLED "
+            key: "t",
+            bool_state: Some(app.smart_date),
+        },
+        GeneralOption {
+            label: "Semantic Coloring",
+            status: if app.semantic_coloring {
+                "ENABLED ".to_string()
             } else {
-                "DISABLED"
+                "DISABLED".to_string()
             },
-            "s",
-        ),
-        (
-            "Auto Save",
-            if app.auto_save {
-                "ENABLED "
+            key: "s",
+            bool_state: Some(app.semantic_coloring),
+        },
+        GeneralOption {
+            label: "Auto Save",
+            status: if app.auto_save {
+                "ENABLED ".to_string()
             } else {
-                "DISABLED"
+                "DISABLED".to_string()
             },
-            "a",
-        ),
-        ("Icon Mode", &icon_mode_str, "i"),
+            key: "a",
+            bool_state: Some(app.auto_save),
+        },
+        GeneralOption {
+            label: "Preview Max Size",
+            status: format!("{} MB", app.preview_max_mb),
+            key: "p",
+            bool_state: None,
+        },
+        GeneralOption {
+            label: "Icon Mode",
+            status: format!("{:?}", app.icon_mode),
+            key: "i",
+            bool_state: None,
+        },
     ];
 
     let rows: Vec<_> = options
         .iter()
         .enumerate()
-        .map(|(i, (label, status, key))| {
+        .map(|(i, opt)| {
             let is_selected =
                 i == app.settings_index && app.settings_section == SettingsSection::General;
             let mut style = Style::default().fg(THEME.fg);
-            let mut status_style = if status.contains("ENABLED") {
-                Style::default().fg(Color::Green)
-            } else {
-                Style::default().fg(Color::Red)
+            let mut status_style = match opt.bool_state {
+                Some(true) => Style::default().fg(Color::Green),
+                Some(false) => Style::default().fg(Color::Red),
+                None => Style::default().fg(Color::Cyan),
             };
 
             if is_selected {
@@ -3535,9 +3556,9 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
             }
 
             Row::new(vec![
-                Cell::from(format!("  {}", label)).style(style),
-                Cell::from(format!(" [ {} ] ", status)).style(status_style),
-                Cell::from(format!("({})", key)).style(if is_selected {
+                Cell::from(format!("  {}", opt.label)).style(style),
+                Cell::from(format!(" [ {} ] ", opt.status)).style(status_style),
+                Cell::from(format!("({})", opt.key)).style(if is_selected {
                     style
                 } else {
                     Style::default().fg(Color::DarkGray)
