@@ -7,28 +7,33 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
         if let Event::Key(key) = evt {
             match key.code {
                 KeyCode::Enter if matches!(app.mode, AppMode::Normal) => {
+                    let mut open_preview: Option<std::path::PathBuf> = None;
+                    let mut open_editor_for_commit = false;
                     if let Some(fs) = app.current_file_state() {
                         // Priority 1: Pending changes (Diff)
                         if let Some(idx) = fs.git_pending_state.selected() {
                             if let Some(change) = fs.git_pending.get(idx) {
-                                let _ = event_tx.try_send(AppEvent::PreviewRequested(
-                                    app.focused_pane_index,
-                                    std::path::PathBuf::from(format!("git-diff://{}", change.path)),
-                                ));
-                                return true;
+                                open_preview =
+                                    Some(std::path::PathBuf::from(format!("git-diff://{}", change.path)));
                             }
                         }
                         // Priority 2: History (Commit)
-                        if let Some(idx) = fs.git_history_state.selected() {
+                        if open_preview.is_none() && let Some(idx) = fs.git_history_state.selected() {
                             if let Some(commit) = fs.git_history.get(idx) {
                                 let hash = commit.hash.clone();
-                                let _ = event_tx.try_send(AppEvent::PreviewRequested(
-                                    app.focused_pane_index,
-                                    std::path::PathBuf::from(format!("git://{}", hash)),
-                                ));
-                                return true;
+                                open_preview =
+                                    Some(std::path::PathBuf::from(format!("git://{}", hash)));
+                                open_editor_for_commit = true;
                             }
                         }
+                    }
+                    if let Some(path) = open_preview {
+                        let _ = event_tx.try_send(AppEvent::PreviewRequested(app.focused_pane_index, path));
+                        if open_editor_for_commit {
+                            app.return_to_git_after_editor = true;
+                            let _ = event_tx.try_send(AppEvent::Editor);
+                        }
+                        return true;
                     }
                 }
                 _ => {}
@@ -41,7 +46,7 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
 pub fn handle_git_mouse(
     me: &terma::input::event::MouseEvent,
     app: &mut App,
-    _event_tx: &mpsc::Sender<AppEvent>,
+    event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
     let row = me.row;
     if let MouseEventKind::Down(MouseButton::Left) = me.kind {
@@ -87,6 +92,14 @@ pub fn handle_git_mouse(
                         if rel_row < tab.git_history.len() {
                             tab.git_history_state.select(Some(rel_row));
                             tab.git_pending_state.select(None);
+                            if let Some(commit) = tab.git_history.get(rel_row) {
+                                let _ = event_tx.try_send(AppEvent::PreviewRequested(
+                                    app.focused_pane_index,
+                                    std::path::PathBuf::from(format!("git://{}", commit.hash)),
+                                ));
+                                app.return_to_git_after_editor = true;
+                                let _ = event_tx.try_send(AppEvent::Editor);
+                            }
                             return true;
                         }
                     }
