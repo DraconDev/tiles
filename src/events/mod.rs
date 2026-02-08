@@ -457,8 +457,12 @@ fn handle_sidebar_mouse(
                                     app.expanded_folders.insert(path.clone());
                                 }
                             } else {
+                                let target_pane = app
+                                    .focused_pane_index
+                                    .min(app.panes.len().saturating_sub(1));
+                                app.focused_pane_index = target_pane;
                                 let _ = event_tx.try_send(AppEvent::PreviewRequested(
-                                    app.focused_pane_index,
+                                    target_pane,
                                     path.clone(),
                                 ));
                                 app.sidebar_focus = false;
