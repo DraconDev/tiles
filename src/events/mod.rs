@@ -388,6 +388,9 @@ fn handle_general_mouse(
                     }
                     app.focused_pane_index = pane_idx;
                     app.sidebar_focus = false;
+                    if matches!(me.kind, MouseEventKind::Down(_)) {
+                        app.mouse_click_pos = (column, row);
+                    }
                 }
             }
         }
@@ -459,9 +462,24 @@ fn handle_sidebar_mouse(
                                     app.expanded_folders.insert(path.clone());
                                 }
                             } else {
-                                let target_pane = app
-                                    .focused_pane_index
-                                    .min(app.panes.len().saturating_sub(1));
+                                let target_pane = {
+                                    let pane_count = app.panes.len();
+                                    if pane_count <= 1 {
+                                        0
+                                    } else {
+                                        let sidebar_w = app.sidebar_width();
+                                        let content_w = app.terminal_size.0.saturating_sub(sidebar_w);
+                                        let pane_w = content_w / pane_count as u16;
+                                        if pane_w == 0 {
+                                            app.focused_pane_index.min(pane_count - 1)
+                                        } else if app.mouse_click_pos.0 >= sidebar_w {
+                                            ((app.mouse_click_pos.0.saturating_sub(sidebar_w) / pane_w) as usize)
+                                                .min(pane_count - 1)
+                                        } else {
+                                            app.focused_pane_index.min(pane_count - 1)
+                                        }
+                                    }
+                                };
                                 app.focused_pane_index = target_pane;
                                 let _ = event_tx.try_send(AppEvent::PreviewRequested(
                                     target_pane,
