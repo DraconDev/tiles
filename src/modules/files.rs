@@ -98,7 +98,7 @@ pub fn fetch_git_data(
                 }
                 let parts: Vec<&str> = line.split('|').collect();
                 if parts.len() >= 4 {
-                    history.push(crate::app::CommitInfo {
+                    current_commit = Some(crate::app::CommitInfo {
                         hash: parts[0].to_string(),
                         author: parts[1].to_string(),
                         date: parts[2].to_string(),
@@ -109,7 +109,7 @@ pub fn fetch_git_data(
                         deletions: 0,
                     });
                 }
-            } else if let Some(c) = history.last_mut() {
+            } else if let Some(ref mut c) = current_commit {
                 if line.contains("file") && line.contains("changed") {
                     let parts: Vec<&str> = line.split_whitespace().collect();
                     for (i, part) in parts.iter().enumerate() {
@@ -123,6 +123,9 @@ pub fn fetch_git_data(
                     }
                 }
             }
+        }
+        if let Some(c) = current_commit {
+            history.push(c);
         }
     }
 
