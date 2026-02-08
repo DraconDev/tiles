@@ -1813,11 +1813,6 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             let refs = parse_commit_refs(&commit.decorations);
             let likely_branch =
                 likely_branch_from_refs(&refs).unwrap_or_else(|| "Unknown".to_string());
-            let refs_text = if refs.is_empty() {
-                "(none)".to_string()
-            } else {
-                truncate_to_width(&refs.join(", "), 56, "..")
-            };
             info_items.push(ListItem::new(Line::from(vec![Span::styled(
                 " COMMIT DETAILS ",
                 Style::default()
