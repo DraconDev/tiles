@@ -1,6 +1,6 @@
 ## Do
 
-editor should show file with its path instead of 
+editor should show file with its path instead of PROJ
 
 ## Maybe
 
