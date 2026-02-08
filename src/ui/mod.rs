@@ -1652,6 +1652,8 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
 
         let active_area = top_chunks[0];
         let info_area = top_chunks[1];
+        f.render_widget(Clear, active_area);
+        f.render_widget(Clear, info_area);
 
         // 1. ACTIVE Changes
         if !pending.is_empty() {
