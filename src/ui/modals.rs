@@ -96,8 +96,8 @@ pub fn draw_drag_drop_modal(
             ),
         ]));
         // List first few items
-        for i in 0..std::cmp::min(sources.len(), 3) {
-            let name = sources[i].file_name().unwrap_or_default().to_string_lossy();
+        for source in sources.iter().take(std::cmp::min(sources.len(), 3)) {
+            let name = source.file_name().unwrap_or_default().to_string_lossy();
             text.push(Line::from(vec![
                 Span::raw("  - "),
                 Span::styled(name, Style::default().fg(Color::DarkGray)),
