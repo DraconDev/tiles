@@ -331,9 +331,15 @@ async fn run_tty() -> color_eyre::Result<()> {
                 AppEvent::PreviewRequested(pane_idx, path) => {
                     let tx = event_tx.clone();
                     let app_clone = app.clone();
-                    let current_dir = {
+                    let (current_dir, preview_limit_mb) = {
                         let app_guard = app.lock().unwrap();
-                        app_guard.current_file_state().map(|fs| fs.current_path.clone()).unwrap_or_else(|| PathBuf::from("."))
+                        (
+                            app_guard
+                                .current_file_state()
+                                .map(|fs| fs.current_path.clone())
+                                .unwrap_or_else(|| PathBuf::from(".")),
+                            app_guard.preview_max_mb.max(1),
+                        )
                     };
 
                     tokio::spawn(async move {
@@ -370,7 +376,10 @@ async fn run_tty() -> color_eyre::Result<()> {
                                 path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string()))
                         } else {
                             let (is_binary, is_too_large, size_mb) =
-                                terma::utils::check_file_suitability(&path, 20 * 1024 * 1024);
+                                terma::utils::check_file_suitability(
+                                    &path,
+                                    preview_limit_mb as usize * 1024 * 1024,
+                                );
                             if is_binary {
                                 format!("<Binary file: {} MB>", size_mb)
                             } else if is_too_large {
@@ -935,6 +944,7 @@ fn setup_app(
         app.show_sidebar = state.show_sidebar;
         app.show_side_panel = state.show_side_panel;
         app.default_show_hidden = state.default_show_hidden;
+        app.preview_max_mb = state.preview_max_mb.max(1);
     }
 
     let app_arc = Arc::new(Mutex::new(app));
