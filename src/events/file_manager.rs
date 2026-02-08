@@ -508,7 +508,13 @@ pub fn handle_file_mouse(
         if column >= sw {
             let cw = w.saturating_sub(sw);
             let pc = app.panes.len();
-            let pw = if pc > 0 { cw / pc as u16 } else { cw };
+            if pc == 0 {
+                return false;
+            }
+            let pw = cw / pc as u16;
+            if pw == 0 {
+                return false;
+            }
             let cp = (column.saturating_sub(sw) / pw) as usize;
             if cp < pc {
                 app.focused_pane_index = cp;
@@ -556,12 +562,20 @@ pub fn handle_file_mouse(
                     if column >= sw {
                         let cw = w.saturating_sub(sw);
                         let pc = app.panes.len();
-                        let pw = if pc > 0 { cw / pc as u16 } else { cw };
+                        if pc == 0 {
+                            return false;
+                        }
+                        let pw = cw / pc as u16;
+                        if pw == 0 {
+                            return false;
+                        }
                         let cp = (column.saturating_sub(sw) / pw) as usize;
                         if let Some(fs) = app.panes.get_mut(cp).and_then(|p| p.current_state_mut())
                         {
                             for (r, col) in &fs.column_bounds {
-                                if column >= r.x && column < r.x + r.width + 1 {
+                                if column >= r.x
+                                    && column < r.x.saturating_add(r.width).saturating_add(1)
+                                {
                                     if fs.sort_column == *col {
                                         fs.sort_ascending = !fs.sort_ascending;
                                     } else {
@@ -810,7 +824,7 @@ pub fn handle_file_mouse(
                     .files
                     .len()
                     .saturating_sub(fs.view_height.saturating_sub(3));
-                let new_offset = (fs.table_state.offset() + 1).min(max_offset);
+                let new_offset = fs.table_state.offset().saturating_add(1).min(max_offset);
                 *fs.table_state.offset_mut() = new_offset;
             }
             true
