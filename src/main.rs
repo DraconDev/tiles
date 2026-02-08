@@ -378,7 +378,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                             let (is_binary, is_too_large, size_mb) =
                                 terma::utils::check_file_suitability(
                                     &path,
-                                    preview_limit_mb as usize * 1024 * 1024,
+                                    preview_limit_mb as u64 * 1024 * 1024,
                                 );
                             if is_binary {
                                 format!("<Binary file: {} MB>", size_mb)
