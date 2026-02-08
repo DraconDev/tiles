@@ -2,6 +2,32 @@ use crate::app::FileMetadata;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+fn parse_git_shortstat(line: &str) -> (usize, usize, usize) {
+    let mut files_changed = 0usize;
+    let mut insertions = 0usize;
+    let mut deletions = 0usize;
+
+    for segment in line.split(',').map(str::trim) {
+        let num = segment
+            .split_whitespace()
+            .next()
+            .and_then(|s| s.parse::<usize>().ok());
+        let Some(value) = num else {
+            continue;
+        };
+
+        if segment.contains("file changed") || segment.contains("files changed") {
+            files_changed = value;
+        } else if segment.contains("insertion") {
+            insertions = value;
+        } else if segment.contains("deletion") {
+            deletions = value;
+        }
+    }
+
+    (files_changed, insertions, deletions)
+}
+
 pub fn read_dir_with_metadata(path: &Path) -> (Vec<PathBuf>, HashMap<PathBuf, FileMetadata>) {
     let mut files = Vec::new();
     let mut metadata = HashMap::new();
@@ -111,18 +137,11 @@ pub fn fetch_git_data(
                     });
                 }
             } else if let Some(ref mut c) = current_commit {
-                if line.contains("file") && line.contains("changed") {
-                    let parts: Vec<&str> = line.split_whitespace().collect();
-                    // "1 file changed, 5 insertions(+), 2 deletions(-)"
-                    for (i, part) in parts.iter().enumerate() {
-                        if part.contains("changed") && i > 0 {
-                            c.files_changed = parts[i - 1].parse().unwrap_or(0);
-                        } else if part.contains("insertion") && i > 0 {
-                            c.insertions = parts[i - 1].parse().unwrap_or(0);
-                        } else if part.contains("deletion") && i > 0 {
-                            c.deletions = parts[i - 1].parse().unwrap_or(0);
-                        }
-                    }
+                if line.contains("changed") {
+                    let (files_changed, insertions, deletions) = parse_git_shortstat(line);
+                    c.files_changed = files_changed;
+                    c.insertions = insertions;
+                    c.deletions = deletions;
                 }
             }
         }
@@ -234,6 +253,22 @@ pub fn fetch_git_data(
         remotes,
         stashes,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn parse_shortstat_like_git_formats() {
+        assert_eq!(
+            super::parse_git_shortstat("1 file changed, 5 insertions(+), 2 deletions(-)"),
+            (1, 5, 2)
+        );
+        assert_eq!(
+            super::parse_git_shortstat("3 files changed, 27 insertions(+)"),
+            (3, 27, 0)
+        );
+        assert_eq!(super::parse_git_shortstat("1 file changed"), (1, 0, 0));
+    }
 }
 
 pub fn global_search(
