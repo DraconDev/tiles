@@ -1,7 +1,7 @@
 ## Do
 
 | S1 | Drag-drop Link action | Single pane | Drag item to folder, choose Link | Symlink created at destination | FAIL (known unhandled event) |
-
+this bugged out 
 
 - verify Git page responsiveness after commit selection and scrolling in a large history
 
