@@ -63,6 +63,7 @@ pub enum AppEvent {
 pub enum CurrentView {
     Files,
     Editor,
+    Commit,
     Git,
     Processes,
 }
