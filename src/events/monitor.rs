@@ -1,4 +1,4 @@
-use crate::app::{App, AppEvent, CurrentView, MonitorSubview};
+use crate::app::{App, AppEvent, MonitorSubview};
 use terma::input::event::{Event, KeyCode};
 use tokio::sync::mpsc;
 
