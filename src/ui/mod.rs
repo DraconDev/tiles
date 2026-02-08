@@ -1557,6 +1557,28 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
+fn parse_commit_refs(decorations: &str) -> Vec<String> {
+    decorations
+        .trim()
+        .trim_matches(|c| c == '(' || c == ')')
+        .split(',')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect()
+}
+
+fn likely_branch_from_refs(refs: &[String]) -> Option<String> {
+    for r in refs {
+        if let Some(head_target) = r.strip_prefix("HEAD -> ") {
+            return Some(head_target.to_string());
+        }
+    }
+    refs.iter()
+        .find(|r| !r.starts_with("origin/") && !r.starts_with("tag: "))
+        .cloned()
+}
+
 fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     f.render_widget(Clear, area);
     let pane_idx = app.focused_pane_index;
@@ -1752,6 +1774,14 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             };
 
         if let Some(commit) = selected_history_item.as_ref() {
+            let refs = parse_commit_refs(&commit.decorations);
+            let likely_branch =
+                likely_branch_from_refs(&refs).unwrap_or_else(|| "Unknown".to_string());
+            let refs_text = if refs.is_empty() {
+                "(none)".to_string()
+            } else {
+                truncate_to_width(&refs.join(", "), 56, "..")
+            };
             info_items.push(ListItem::new(Line::from(vec![Span::styled(
                 " COMMIT DETAILS ",
                 Style::default()
@@ -1762,6 +1792,8 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             info_items.push(ListItem::new(format!("  Hash: {}", commit.hash)));
             info_items.push(ListItem::new(format!("  Author: {}", commit.author)));
             info_items.push(ListItem::new(format!("  Date: {}", commit.date)));
+            info_items.push(ListItem::new(format!("  Likely Branch: {}", likely_branch)));
+            info_items.push(ListItem::new(format!("  Refs: {}", refs_text)));
             info_items.push(ListItem::new(""));
             info_items.push(ListItem::new(Span::styled(
                 format!("  {}", commit.message),
@@ -1887,7 +1919,12 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                     .iter()
                     .map(|act| {
                         let h_short = act.hash.chars().take(7).collect::<String>();
-                        let branch_info = act.decorations.trim().trim_matches(|c| c == '(' || c == ')');
+                        let refs = parse_commit_refs(&act.decorations);
+                        let refs_compact = if refs.is_empty() {
+                            String::new()
+                        } else {
+                            refs.iter().take(2).cloned().collect::<Vec<_>>().join(", ")
+                        };
 
                         let mut stats_cells = Vec::new();
                         if act.files_changed > 0 {
@@ -1916,7 +1953,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                                     .fg(THEME.accent_secondary)
                                     .add_modifier(Modifier::BOLD),
                             ),
-                            Cell::from(truncate_to_width(branch_info, 15, ".."))
+                            Cell::from(truncate_to_width(&refs_compact, 20, ".."))
                                 .style(Style::default().fg(Color::Yellow)),
                             Cell::from(act.author.clone()).style(Style::default().fg(Color::Cyan)),
                             Cell::from(act.message.clone()).style(Style::default().fg(THEME.fg)),
@@ -1934,7 +1971,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             [
                 Constraint::Length(15),
                 Constraint::Length(8),
-                Constraint::Length(15),
+                Constraint::Length(20),
                 Constraint::Length(15),
                 Constraint::Fill(1),
                 Constraint::Length(6),
@@ -1944,7 +1981,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         )
         .header(
             Row::new(vec![
-                "DATE", "HASH", "BRANCH", "AUTHOR", "MESSAGE", "FILES", "ADD", "DEL",
+                "DATE", "HASH", "REFS", "AUTHOR", "MESSAGE", "FILES", "ADD", "DEL",
             ])
             .style(
                 Style::default()
