@@ -8,7 +8,7 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
             match key.code {
                 KeyCode::Enter if matches!(app.mode, AppMode::Normal) => {
                     let mut open_preview: Option<std::path::PathBuf> = None;
-                    let mut open_editor_for_commit = false;
+                    let mut open_commit_view = false;
                     if let Some(fs) = app.current_file_state() {
                         // Priority 1: Pending changes (Diff)
                         if let Some(idx) = fs.git_pending_state.selected() {
@@ -24,16 +24,17 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
                                     let hash = commit.hash.clone();
                                     open_preview =
                                         Some(std::path::PathBuf::from(format!("git://{}", hash)));
-                                    open_editor_for_commit = true;
+                                    open_commit_view = true;
                                 }
                             }
                         }
                     }
                     if let Some(path) = open_preview {
                         let _ = event_tx.try_send(AppEvent::PreviewRequested(app.focused_pane_index, path));
-                        if open_editor_for_commit {
-                            app.return_to_git_after_editor = true;
-                            let _ = event_tx.try_send(AppEvent::Editor);
+                        if open_commit_view {
+                            app.current_view = CurrentView::Commit;
+                            app.mode = AppMode::Viewer;
+                            app.sidebar_focus = false;
                         }
                         return true;
                     }
@@ -99,8 +100,9 @@ pub fn handle_git_mouse(
                                     app.focused_pane_index,
                                     std::path::PathBuf::from(format!("git://{}", commit.hash)),
                                 ));
-                                app.return_to_git_after_editor = true;
-                                let _ = event_tx.try_send(AppEvent::Editor);
+                                app.current_view = CurrentView::Commit;
+                                app.mode = AppMode::Viewer;
+                                app.sidebar_focus = false;
                             }
                             return true;
                         }
