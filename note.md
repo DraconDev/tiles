@@ -1,8 +1,6 @@
 ## Do
 
-- re-run `G2` manually: Git -> Files transition in split pane and confirm both panes preserve correct Files UI/state
 
-- re-run `G2` manually: Git -> Files transition in split pane and confirm both panes preserve correct Files UI/stat
 
 - verify Git page responsiveness after commit selection and scrolling in a large history
 
