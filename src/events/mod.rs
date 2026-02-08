@@ -66,7 +66,7 @@ pub fn handle_event(
             if key.code == KeyCode::Esc
                 && matches!(
                     app.current_view,
-                    CurrentView::Git | CurrentView::Processes | CurrentView::Editor
+                    CurrentView::Git | CurrentView::Processes | CurrentView::Editor | CurrentView::Commit
                 )
             {
                 return handle_global_escape(app, &event_tx);
@@ -113,6 +113,11 @@ pub fn handle_event(
 
             match app.current_view {
                 CurrentView::Editor => {
+                    if editor::handle_editor_events(&evt, app, &event_tx) {
+                        return true;
+                    }
+                }
+                CurrentView::Commit => {
                     if editor::handle_editor_events(&evt, app, &event_tx) {
                         return true;
                     }
@@ -164,7 +169,6 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
     if matches!(app.mode, AppMode::Normal) {
         match app.current_view {
             CurrentView::Git | CurrentView::Processes => {
-                app.return_to_git_after_editor = false;
                 if let Some(fs) = app.current_file_state_mut() {
                     fs.search_filter.clear();
                     fs.git_pending_state.select(None);
@@ -185,6 +189,16 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
                 app.input_shield_until =
                     Some(std::time::Instant::now() + std::time::Duration::from_millis(150));
                 let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                return true;
+            }
+            CurrentView::Commit => {
+                app.current_view = CurrentView::Git;
+                app.mode = AppMode::Normal;
+                app.editor_state = None;
+                app.sidebar_focus = false;
+                app.input.clear();
+                app.input_shield_until =
+                    Some(std::time::Instant::now() + std::time::Duration::from_millis(80));
                 return true;
             }
             CurrentView::Editor => {
@@ -214,13 +228,8 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
                 }
 
                 app.save_current_view_prefs();
-                if app.return_to_git_after_editor {
-                    app.current_view = CurrentView::Git;
-                    app.return_to_git_after_editor = false;
-                } else {
-                    app.current_view = CurrentView::Files;
-                    app.load_view_prefs(CurrentView::Files);
-                }
+                app.current_view = CurrentView::Files;
+                app.load_view_prefs(CurrentView::Files);
                 app.editor_state = None;
                 app.input.clear(); // Ensure no stray inputs remain
                                    // Increase shield to catch escape sequences
@@ -284,6 +293,9 @@ fn handle_general_mouse(
     }
     if app.current_view == CurrentView::Git {
         return git::handle_git_mouse(me, app, event_tx);
+    }
+    if app.current_view == CurrentView::Commit {
+        return editor::handle_editor_mouse(me, app, event_tx);
     }
 
     // 3. Header Icons (Row 0)
