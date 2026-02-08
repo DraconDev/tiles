@@ -699,4 +699,29 @@ mod tests {
             other => panic!("expected PreviewRequested event, got {:?}", other),
         }
     }
+
+    #[test]
+    fn esc_from_editor_returns_to_git_when_flagged() {
+        let (tx, _rx) = mpsc::channel(8);
+        let mut app = test_app();
+        app.current_view = CurrentView::Editor;
+        app.mode = AppMode::Normal;
+        app.return_to_git_after_editor = true;
+
+        let mut refresh = HashSet::new();
+        let changed = handle_event(
+            Event::Key(KeyEvent {
+                code: KeyCode::Esc,
+                modifiers: KeyModifiers::empty(),
+                kind: KeyEventKind::Press,
+            }),
+            &mut app,
+            tx,
+            &mut refresh,
+        );
+
+        assert!(changed);
+        assert_eq!(app.current_view, CurrentView::Git);
+        assert!(!app.return_to_git_after_editor);
+    }
 }
