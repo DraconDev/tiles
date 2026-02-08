@@ -99,7 +99,6 @@ pub struct App {
     #[allow(dead_code)]
     pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
     pub saved_pane: Option<Pane>,
-    pub return_to_git_after_editor: bool,
 }
 
 impl App {
@@ -254,7 +253,6 @@ impl App {
             background_tasks: Vec::new(),
             tile_queue,
             saved_pane: None,
-            return_to_git_after_editor: false,
         }
     }
 
