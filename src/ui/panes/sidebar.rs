@@ -18,6 +18,7 @@ use crate::icons::Icon;
 use crate::ui::theme::THEME;
 
 pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
+    let selection_bg = Color::Rgb(0, 150, 255);
     let inner = area.inner(ratatui::layout::Margin {
         vertical: 1,
         horizontal: 1,
@@ -85,7 +86,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 .fg(THEME.accent_secondary)
                 .add_modifier(Modifier::BOLD);
             if is_selected || is_drop_target {
-                style = style.bg(THEME.accent_primary).fg(Color::Black);
+                style = style.bg(selection_bg).fg(Color::Black);
             }
             sidebar_items.push(ListItem::new(format!("{}FAVORITES", icon)).style(style));
             app.sidebar_bounds.push(SidebarBounds {
@@ -115,7 +116,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let mut style = Style::default().fg(THEME.fg);
                 if is_selected {
                     style = style
-                        .bg(THEME.accent_primary)
+                        .bg(selection_bg)
                         .fg(Color::Black)
                         .add_modifier(Modifier::BOLD);
                 } else if is_hovered && app.is_dragging {
@@ -147,7 +148,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 .fg(THEME.accent_secondary)
                 .add_modifier(Modifier::BOLD);
             if app.sidebar_index == current_storage_header_idx {
-                storage_style = storage_style.bg(THEME.accent_primary).fg(Color::Black);
+                storage_style = storage_style.bg(selection_bg).fg(Color::Black);
             }
             sidebar_items
                 .push(ListItem::new(format!("{}STORAGES", storage_icon)).style(storage_style));
@@ -184,7 +185,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 };
                 if is_selected {
                     name_style = name_style
-                        .bg(THEME.accent_primary)
+                        .bg(selection_bg)
                         .fg(Color::Black)
                         .add_modifier(Modifier::BOLD);
                 }
@@ -243,7 +244,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             if matches!(app.hovered_drop_target, Some(DropTarget::RemotesHeader))
                 || app.sidebar_index == current_header_idx
             {
-                remotes_style = remotes_style.bg(THEME.accent_primary).fg(Color::Black);
+                remotes_style = remotes_style.bg(selection_bg).fg(Color::Black);
             }
             let remote_icon = Icon::Remote.get(app.icon_mode);
             sidebar_items.push(
@@ -268,7 +269,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let mut style = Style::default().fg(THEME.fg);
                 if is_selected {
                     style = style
-                        .bg(THEME.accent_primary)
+                        .bg(selection_bg)
                         .fg(Color::Black)
                         .add_modifier(Modifier::BOLD);
                 }
@@ -405,14 +406,14 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         
         let mut style = Style::default().fg(THEME.fg);
         if is_selected {
-            style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+            style = style.bg(selection_bg).fg(Color::Black).add_modifier(Modifier::BOLD);
         }
 
         let cat = crate::modules::files::get_file_category(&path);
         let icon_mode = app.icon_mode;
         
         let style = if is_selected {
-            Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD)
+            Style::default().bg(selection_bg).fg(Color::Black).add_modifier(Modifier::BOLD)
         } else {
             let fg = match cat {
                 crate::app::FileCategory::Script => THEME.file_code,
