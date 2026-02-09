@@ -23,18 +23,18 @@ impl DraconTheme {
         Self {
             bg: Color::Rgb(0, 0, 0),                   // True Color Pure Black
             fg: Color::Rgb(255, 255, 255),             // Pure White
-            accent_primary: Color::Rgb(0, 150, 255),   // Informational Blue
-            accent_secondary: Color::Rgb(180, 120, 255), // Violet
-            selection_bg: Color::Rgb(0, 150, 255),     // Informational Blue
+            accent_primary: Color::Rgb(255, 176, 72),  // Focus Amber
+            accent_secondary: Color::Rgb(120, 170, 255), // Secondary Blue
+            selection_bg: Color::Rgb(255, 176, 72),    // Focus Amber
             selection_fg: Color::Rgb(0, 0, 0),         // Black (for contrast)
-            border_active: Color::Rgb(0, 150, 255),    // Primary Accent
-            border_inactive: Color::Rgb(80, 80, 90),   // Dark Grey (Brightened for contrast)
-            header_fg: Color::Rgb(180, 120, 255),       // Secondary Accent
-            file_code: Color::Rgb(255, 128, 0),        // Orange (Code)
-            file_config: Color::Rgb(255, 215, 0),      // Gold (Config)
-            file_media: Color::Rgb(138, 43, 226),      // Violet (Media)
-            file_archive: Color::Rgb(255, 105, 180),   // Hot Pink (Archive)
-            file_exec: Color::Rgb(50, 205, 50),        // Lime Green (Exec)
+            border_active: Color::Rgb(255, 176, 72),   // Primary Accent
+            border_inactive: Color::Rgb(92, 94, 104),  // Dark Grey
+            header_fg: Color::Rgb(255, 204, 130),      // Warm Header Accent
+            file_code: Color::Rgb(214, 167, 95),       // Sand
+            file_config: Color::Rgb(132, 177, 255),    // Soft Blue
+            file_media: Color::Rgb(188, 145, 240),     // Lilac
+            file_archive: Color::Rgb(220, 130, 160),   // Rose
+            file_exec: Color::Rgb(116, 198, 130),      // Green
         }
     }
 
