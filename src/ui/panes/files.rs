@@ -275,7 +275,7 @@ pub fn draw_file_view(
                 matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
 
             if is_selected {
-                row_bg_style = row_bg_style.bg(THEME.accent_primary);
+                row_bg_style = row_bg_style.bg(Color::Rgb(0, 150, 255));
             } else if is_multi_selected {
                 row_bg_style = row_bg_style.bg(Color::Rgb(0, 95, 170));
             } else if is_hovered_drop {
