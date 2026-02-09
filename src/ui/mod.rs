@@ -2863,10 +2863,21 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
             let total_count = fs.files.len();
             let pane_label = format!("P{}", app.focused_pane_index + 1);
             let focus_label = if app.sidebar_focus { "SIDEBAR" } else { "FILES" };
-            let summary = format!(
+            let summary_w = top_chunks[1].width as usize;
+            let full_summary = format!(
                 " {} {}  SEL: {} / {} ",
                 pane_label, focus_label, sel_count, total_count
             );
+            let medium_summary = format!(" {} {}  {} / {} ", pane_label, focus_label, sel_count, total_count);
+            let compact_focus = if app.sidebar_focus { "SB" } else { "F" };
+            let compact_summary = format!(" {} {} {}/{} ", pane_label, compact_focus, sel_count, total_count);
+            let summary = if full_summary.width() <= summary_w {
+                full_summary
+            } else if medium_summary.width() <= summary_w {
+                medium_summary
+            } else {
+                compact_summary
+            };
             let summary_style = if app.sidebar_focus {
                 Style::default()
                     .bg(Color::Rgb(85, 80, 20))
@@ -2883,7 +2894,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                     summary,
                     summary_style,
                 ))
-                .alignment(ratatui::layout::Alignment::Right),
+                .alignment(ratatui::layout::Alignment::Center),
                 top_chunks[1],
             );
         }
