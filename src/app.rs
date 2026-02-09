@@ -241,7 +241,7 @@ impl App {
                 },
                 editor: ViewPreferences {
                     show_sidebar: false,
-                    is_split_mode: true,
+                    is_split_mode: false,
                 },
             },
             settings_index: 0,
