@@ -2687,7 +2687,7 @@ fn draw_stat_bar(label: &str, value: f32, max: f32) -> Line<'static> {
         } else if ratio < 0.7 {
             Color::Rgb(255, 255, 0) // Yellow
         } else {
-            Color::Rgb(255, 0, 85) // Neon Red
+            Color::Red // Warning/Danger
         };
 
         if i < filled {
