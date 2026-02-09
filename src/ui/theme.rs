@@ -48,15 +48,30 @@ pub struct ThemeStyle {
 }
 
 impl ThemeStyle {
-    pub fn default_purple() -> Self {
+    pub fn preset_warm() -> Self {
         Self {
-            accent_primary: RgbColor::new(168, 118, 255),
-            accent_secondary: RgbColor::new(120, 186, 255),
-            selection_bg: RgbColor::new(168, 118, 255),
-            border_active: RgbColor::new(168, 118, 255),
-            border_inactive: RgbColor::new(92, 94, 104),
-            header_fg: RgbColor::new(196, 160, 255),
+            accent_primary: RgbColor::new(224, 164, 90), // Warm amber
+            accent_secondary: RgbColor::new(94, 199, 178), // Mint-teal
+            selection_bg: RgbColor::new(178, 122, 64),   // Muted bronze
+            border_active: RgbColor::new(224, 164, 90),  // Warm amber
+            border_inactive: RgbColor::new(86, 88, 98),  // Neutral slate
+            header_fg: RgbColor::new(240, 196, 138),     // Sand
         }
+    }
+
+    pub fn preset_cool() -> Self {
+        Self {
+            accent_primary: RgbColor::new(160, 118, 255),   // Purple
+            accent_secondary: RgbColor::new(116, 184, 255), // Ice blue
+            selection_bg: RgbColor::new(104, 80, 150),      // Deep violet
+            border_active: RgbColor::new(160, 118, 255),    // Purple
+            border_inactive: RgbColor::new(82, 86, 104),    // Cool slate
+            header_fg: RgbColor::new(198, 164, 255),        // Soft violet
+        }
+    }
+
+    pub fn default_purple() -> Self {
+        Self::preset_warm()
     }
 
     fn apply_to_theme(&self, theme: &mut DraconTheme) {
@@ -72,20 +87,20 @@ impl ThemeStyle {
 impl DraconTheme {
     pub fn cyberpunk() -> Self {
         Self {
-            bg: Color::Rgb(0, 0, 0),                   // True Color Pure Black
-            fg: Color::Rgb(255, 255, 255),             // Pure White
-            accent_primary: Color::Rgb(168, 118, 255), // Focus Purple
-            accent_secondary: Color::Rgb(120, 186, 255), // Secondary Ice Blue
-            selection_bg: Color::Rgb(168, 118, 255),   // Focus Purple
-            selection_fg: Color::Rgb(0, 0, 0),         // Black (for contrast)
-            border_active: Color::Rgb(168, 118, 255),  // Primary Accent
-            border_inactive: Color::Rgb(92, 94, 104),  // Dark Grey
-            header_fg: Color::Rgb(196, 160, 255),      // Soft Violet
-            file_code: Color::Rgb(176, 152, 230),      // Muted Purple
-            file_config: Color::Rgb(132, 186, 255),    // Soft Blue
-            file_media: Color::Rgb(200, 138, 255),     // Violet
-            file_archive: Color::Rgb(228, 140, 210),   // Pink-Violet
-            file_exec: Color::Rgb(116, 198, 130),      // Green
+            bg: Color::Rgb(0, 0, 0),                    // True Color Pure Black
+            fg: Color::Rgb(255, 255, 255),              // Pure White
+            accent_primary: Color::Rgb(224, 164, 90),   // Warm Amber
+            accent_secondary: Color::Rgb(94, 199, 178), // Mint-Teal
+            selection_bg: Color::Rgb(178, 122, 64),     // Muted Bronze
+            selection_fg: Color::Rgb(0, 0, 0),          // Black (for contrast)
+            border_active: Color::Rgb(224, 164, 90),    // Primary Accent
+            border_inactive: Color::Rgb(86, 88, 98),    // Neutral Slate
+            header_fg: Color::Rgb(240, 196, 138),       // Sand
+            file_code: Color::Rgb(236, 156, 116),       // Apricot
+            file_config: Color::Rgb(132, 190, 255),     // Sky Blue
+            file_media: Color::Rgb(201, 156, 244),      // Lilac
+            file_archive: Color::Rgb(238, 132, 170),    // Rose
+            file_exec: Color::Rgb(118, 203, 125),       // Green
         }
     }
 

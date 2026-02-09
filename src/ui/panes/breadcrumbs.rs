@@ -1,23 +1,19 @@
 use ratatui::{
-    layout::{Rect},
+    layout::Rect,
     style::{Color, Modifier, Style},
-    text::{Span},
-    widgets::{Paragraph},
+    text::Span,
+    widgets::Paragraph,
     Frame,
 };
 use std::path::PathBuf;
 use unicode_width::UnicodeWidthStr;
 
-use crate::app::{
-    App, AppMode, CurrentView, DropTarget,
-};
-use terma::utils::{
-    get_visual_width, squarify, truncate_to_width,
-};
+use crate::app::{App, AppMode, CurrentView, DropTarget};
+use terma::utils::{get_visual_width, squarify, truncate_to_width};
 
 pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize) {
     let _is_focused = pane_idx == app.focused_pane_index && !app.sidebar_focus;
-    
+
     let active_tab_idx = app.panes[pane_idx].active_tab_index;
     let (mut path, mut search_filter) = {
         let tab = &app.panes[pane_idx].tabs[active_tab_idx];
@@ -52,7 +48,11 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
                             }
                             AppMode::EditorReplace => {
                                 search_filter = app.input.value.clone();
-                                search_label = if app.replace_buffer.is_empty() { "" } else { "WITH: " };
+                                search_label = if app.replace_buffer.is_empty() {
+                                    ""
+                                } else {
+                                    "WITH: "
+                                };
                                 search_color = Color::Magenta;
                             }
                             _ => {
@@ -78,16 +78,19 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
     let mut cur_p = PathBuf::new();
     let breadcrumb_y = area.y;
     let mut cur_x = area.x + 2;
-    
+
     let components: Vec<_> = path.components().collect();
     let total_comps = components.len();
-    
+
     let search_filter_text = if !search_filter.is_empty() {
         format!(" [{}{}]", search_label, search_filter.trim())
     } else {
         String::new()
     };
-    let search_filter_width = search_filter_text.chars().map(get_visual_width).sum::<usize>() as u16;
+    let search_filter_width = search_filter_text
+        .chars()
+        .map(get_visual_width)
+        .sum::<usize>() as u16;
     let max_header_width = area.width.saturating_sub(search_filter_width + 10);
 
     let mut accumulated_width = 0;
@@ -146,7 +149,7 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
 
             let bread_rect = Rect::new(cur_x, breadcrumb_y, width, 1);
             f.render_widget(Paragraph::new(Span::styled(segment, style)), bread_rect);
-            
+
             if let Some(tab) = app.panes[pane_idx].tabs.get_mut(active_tab_idx) {
                 tab.breadcrumb_bounds.push((bread_rect, s_path));
             }

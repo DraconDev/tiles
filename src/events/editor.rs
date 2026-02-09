@@ -1,5 +1,7 @@
 use crate::app::{App, AppEvent, AppMode, CurrentView};
-use terma::input::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use dracon_tui_contracts::{
+    InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+};
 use tokio::sync::mpsc;
 use unicode_width::UnicodeWidthStr;
 
@@ -304,6 +306,13 @@ fn handle_text_editor_mouse(
     event_tx: &mpsc::Sender<AppEvent>,
     path: &std::path::PathBuf,
 ) -> bool {
+    let to_runtime_mouse = |mouse: MouseEvent| -> dracon_tui_input::input::event::MouseEvent {
+        match dracon_tui_input::to_runtime_event(&Event::Mouse(mouse)) {
+            dracon_tui_input::input::event::Event::Mouse(m) => m,
+            _ => unreachable!(),
+        }
+    };
+
     match me.kind {
         MouseEventKind::Down(MouseButton::Left) => {
             let now = std::time::Instant::now();
@@ -338,7 +347,7 @@ fn handle_text_editor_mouse(
                     *mouse_click_count = 0;
                 }
                 _ => {
-                    editor.handle_mouse_event(*me, area);
+                    editor.handle_mouse_event(to_runtime_mouse(*me), area);
                 }
             }
             *mouse_last_click = now;
@@ -357,18 +366,18 @@ fn handle_text_editor_mouse(
                         (editor.scroll_row + 5).min(editor.lines.len().saturating_sub(1));
                 }
             } else {
-                editor.handle_mouse_event(*me, area);
+                editor.handle_mouse_event(to_runtime_mouse(*me), area);
             }
         }
         MouseEventKind::ScrollUp => {
             if me.modifiers.contains(KeyModifiers::CONTROL) {
                 editor.scroll_row = editor.scroll_row.saturating_sub(5);
             } else {
-                editor.handle_mouse_event(*me, area);
+                editor.handle_mouse_event(to_runtime_mouse(*me), area);
             }
         }
         _ => {
-            editor.handle_mouse_event(*me, area);
+            editor.handle_mouse_event(to_runtime_mouse(*me), area);
         }
     }
 
@@ -390,7 +399,7 @@ fn handle_text_editor_mouse(
 }
 
 fn handle_generic_editor_shortcuts(
-    key: &terma::input::event::KeyEvent,
+    key: &dracon_tui_contracts::KeyEvent,
     editor: &mut terma::widgets::TextEditor,
     clipboard: &mut Option<String>,
     auto_save: bool,
@@ -472,11 +481,9 @@ fn handle_generic_editor_shortcuts(
         return true;
     }
 
-    if has_control
-        && !key.modifiers.contains(KeyModifiers::SHIFT)
-        && key.code == KeyCode::Char('z')
+    if has_control && !key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::Char('z')
     {
-        editor.handle_event(evt, area);
+        editor.handle_event(&dracon_tui_input::to_runtime_event(evt), area);
         return true;
     }
     if has_control
@@ -484,7 +491,7 @@ fn handle_generic_editor_shortcuts(
             || key.code == KeyCode::Char('Y')
             || key.code == KeyCode::Char('Z'))
     {
-        editor.handle_event(evt, area);
+        editor.handle_event(&dracon_tui_input::to_runtime_event(evt), area);
         return true;
     }
 
@@ -534,7 +541,7 @@ fn handle_generic_editor_shortcuts(
         return true;
     }
 
-    if editor.handle_event(evt, area) {
+    if editor.handle_event(&dracon_tui_input::to_runtime_event(evt), area) {
         if auto_save && editor.modified {
             let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
             editor.modified = false;

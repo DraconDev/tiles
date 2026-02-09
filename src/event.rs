@@ -1,11 +1,6 @@
-use terma::input::event::Event as TermaEvent;
-use terma::input::event::Event;
+use dracon_tui_input::Event;
+use terma::input::event::Event as RuntimeEvent;
 
-pub fn convert_event(evt: TermaEvent) -> Option<Event> {
-    match evt {
-        TermaEvent::Key(k) => Some(Event::Key(k)),
-        TermaEvent::Mouse(m) => Some(Event::Mouse(m)),
-        TermaEvent::Resize(w, h) => Some(Event::Resize(w, h)),
-        _ => None,
-    }
+pub fn convert_event(evt: RuntimeEvent) -> Option<Event> {
+    Some(dracon_tui_input::from_runtime_event(evt))
 }

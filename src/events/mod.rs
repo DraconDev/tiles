@@ -1,10 +1,10 @@
 use crate::app::{
     App, AppEvent, AppMode, ContextMenuTarget, CurrentView, DropTarget, SidebarTarget,
 };
-use std::collections::HashSet;
-use terma::input::event::{
-    Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind,
+use dracon_tui_contracts::{
+    InputEvent as Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind,
 };
+use std::collections::HashSet;
 use tokio::sync::mpsc;
 
 pub mod editor;
@@ -66,7 +66,11 @@ pub fn handle_event(
             if key.code == KeyCode::Esc
                 && matches!(
                     app.current_view,
-                    CurrentView::Git | CurrentView::Processes | CurrentView::Editor | CurrentView::Commit
+                    CurrentView::Git
+                        | CurrentView::Processes
+                        | CurrentView::Editor
+                        | CurrentView::Commit
+                        | CurrentView::Debug
                 )
             {
                 return handle_global_escape(app, &event_tx);
@@ -79,6 +83,15 @@ pub fn handle_event(
 
             // --- GLOBAL OVERRIDES (High Priority) ---
             if has_control {
+                if key.code == KeyCode::Char('d') || key.code == KeyCode::Char('D') {
+                    app.current_view = if app.current_view == CurrentView::Debug {
+                        CurrentView::Files
+                    } else {
+                        CurrentView::Debug
+                    };
+                    app.mode = AppMode::Normal;
+                    return true;
+                }
                 match key.code {
                     KeyCode::Char('m') | KeyCode::Char('M') => {
                         if app.current_view == CurrentView::Editor {
@@ -132,6 +145,9 @@ pub fn handle_event(
                         return true;
                     }
                 }
+                CurrentView::Debug => {
+                    return true;
+                }
                 CurrentView::Files => {
                     if file_manager::handle_file_events(&evt, app, &event_tx) {
                         return true;
@@ -179,7 +195,7 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
 
     if matches!(app.mode, AppMode::Normal) {
         match app.current_view {
-            CurrentView::Git | CurrentView::Processes => {
+            CurrentView::Git | CurrentView::Processes | CurrentView::Debug => {
                 if let Some(fs) = app.current_file_state_mut() {
                     fs.search_filter.clear();
                     fs.git_pending_state.select(None);
@@ -252,7 +268,7 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
 }
 
 fn handle_general_mouse(
-    me: &terma::input::event::MouseEvent,
+    me: &dracon_tui_contracts::MouseEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     panes_needing_refresh: &mut HashSet<usize>,
@@ -432,7 +448,7 @@ fn handle_general_mouse(
 }
 
 fn handle_sidebar_mouse(
-    me: &terma::input::event::MouseEvent,
+    me: &dracon_tui_contracts::MouseEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -464,11 +480,17 @@ fn handle_sidebar_mouse(
                         }
                         SidebarTarget::Project(path) => {
                             if path.is_dir() {
-                                if app.expanded_folders.contains(path) {
-                                    app.expanded_folders.remove(path);
-                                } else {
-                                    app.expanded_folders.insert(path.clone());
+                                app.expanded_folders.insert(path.clone());
+                                if let Some(fs) = app.current_file_state_mut() {
+                                    fs.current_path = path.clone();
+                                    fs.selection.selected = Some(0);
+                                    fs.selection.anchor = Some(0);
+                                    fs.selection.clear_multi();
+                                    crate::event_helpers::push_history(fs, path.clone());
+                                    let _ = event_tx
+                                        .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                 }
+                                app.sidebar_focus = false;
                             } else {
                                 let target_pane = {
                                     let pane_count = app.panes.len();
@@ -476,12 +498,15 @@ fn handle_sidebar_mouse(
                                         0
                                     } else {
                                         let sidebar_w = app.sidebar_width();
-                                        let content_w = app.terminal_size.0.saturating_sub(sidebar_w);
+                                        let content_w =
+                                            app.terminal_size.0.saturating_sub(sidebar_w);
                                         let pane_w = content_w / pane_count as u16;
                                         if pane_w == 0 {
                                             app.focused_pane_index.min(pane_count - 1)
                                         } else if app.mouse_click_pos.0 >= sidebar_w {
-                                            ((app.mouse_click_pos.0.saturating_sub(sidebar_w) / pane_w) as usize)
+                                            ((app.mouse_click_pos.0.saturating_sub(sidebar_w)
+                                                / pane_w)
+                                                as usize)
                                                 .min(pane_count - 1)
                                         } else {
                                             app.focused_pane_index.min(pane_count - 1)
@@ -631,11 +656,11 @@ fn handle_sidebar_mouse(
 mod tests {
     use super::*;
     use crate::app::{CurrentView, SidebarBounds, SidebarTarget};
+    use dracon_tui_contracts::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton};
     use std::collections::HashSet;
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
     use terma::compositor::engine::TilePlacement;
-    use terma::input::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton};
     use tokio::sync::mpsc;
 
     fn test_app() -> App {
@@ -688,7 +713,7 @@ mod tests {
         });
 
         let handled = handle_sidebar_mouse(
-            &terma::input::event::MouseEvent {
+            &dracon_tui_contracts::MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: 2,
                 row: 5,

@@ -3,13 +3,15 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-use terma::input::event::Event;
-use terma::integration::ratatui::TermaBackend;
+use dracon_tui_contracts::InputEvent as Event;
+use dracon_tui_input::input::parser::Parser as TuiParser;
+use dracon_tui_input::to_ui_event;
+use dracon_tui_ratatui_adapter::TermaBackend;
 
 // Ratatui Imports
 use ratatui::Terminal;
 
-use crate::app::{App, AppEvent, CurrentView, PreviewState, RemoteSession};
+use crate::app::{App, AppEvent, CurrentView, PreviewState};
 mod app;
 mod config;
 mod event;
@@ -71,7 +73,7 @@ async fn run_tty() -> color_eyre::Result<()> {
         std::thread::spawn(move || {
             use std::io::Read;
             use std::os::fd::AsRawFd;
-            let mut parser = terma::input::parser::Parser::new();
+            let mut parser = TuiParser::new();
             let mut stdin = std::io::stdin();
             let fd = stdin.as_raw_fd();
             let mut buffer = [0; 1024];
@@ -86,6 +88,9 @@ async fn run_tty() -> color_eyre::Result<()> {
                             for byte in buffer.iter().take(n) {
                                 if let Some(evt) = parser.advance(*byte) {
                                     if let Some(converted) = crate::event::convert_event(evt) {
+                                        if let Some(ui_event) = to_ui_event(&converted) {
+                                            let _ = tx.blocking_send(AppEvent::Ui(ui_event));
+                                        }
                                         let _ = tx.blocking_send(AppEvent::Raw(converted));
                                     }
                                 }
@@ -96,6 +101,9 @@ async fn run_tty() -> color_eyre::Result<()> {
                     Ok(false) => {
                         if let Some(evt) = parser.check_timeout() {
                             if let Some(converted) = crate::event::convert_event(evt) {
+                                if let Some(ui_event) = to_ui_event(&converted) {
+                                    let _ = tx.blocking_send(AppEvent::Ui(ui_event));
+                                }
                                 let _ = tx.blocking_send(AppEvent::Raw(converted));
                             }
                         }
@@ -112,8 +120,9 @@ async fn run_tty() -> color_eyre::Result<()> {
         tokio::spawn(async move {
             let mut sys_mod = crate::modules::system::SystemModule::new();
             loop {
-                let data = sys_mod.get_data();
-                let _ = tx.send(AppEvent::SystemUpdated(data)).await;
+                if let Ok(data) = sys_mod.get_data() {
+                    let _ = tx.send(AppEvent::SystemUpdated(data)).await;
+                }
                 tokio::time::sleep(Duration::from_millis(1000)).await;
             }
         });
@@ -146,7 +155,8 @@ async fn run_tty() -> color_eyre::Result<()> {
     crate::app::log_debug("Entering main loop");
 
     let mut panes_needing_refresh = std::collections::HashSet::new();
-    let mut last_self_save: std::collections::HashMap<PathBuf, String> = std::collections::HashMap::new();
+    let mut last_self_save: std::collections::HashMap<PathBuf, String> =
+        std::collections::HashMap::new();
 
     loop {
         let mut needs_draw = false;
@@ -161,7 +171,6 @@ async fn run_tty() -> color_eyre::Result<()> {
                         let app_guard = app.lock().unwrap();
                         (app_guard.current_view.clone(), app_guard.mode.clone())
                     };
-
                     let mut app_guard = app.lock().unwrap();
                     if handle_event(
                         raw,
@@ -176,6 +185,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                         let _ = terminal.clear();
                     }
                 }
+                AppEvent::Ui(_ui_event) => {}
                 AppEvent::SystemUpdated(data) => {
                     let mut app_guard = app.lock().unwrap();
                     crate::modules::system::SystemModule::update_app_state(&mut app_guard, data);
@@ -195,72 +205,24 @@ async fn run_tty() -> color_eyre::Result<()> {
                         )));
 
                         tokio::spawn(async move {
-                            match std::net::TcpStream::connect(format!(
-                                "{}:{}",
-                                remote.host, remote.port
-                            )) {
-                                Ok(tcp) => {
-                                    let mut sess = ssh2::Session::new().unwrap();
-                                    sess.set_tcp_stream(tcp);
-                                    sess.set_blocking(true);
-                                    if let Err(e) = sess.handshake() {
-                                        let _ = tx.try_send(AppEvent::StatusMsg(format!(
-                                            "Handshake failed: {}",
-                                            e
-                                        )));
-                                        return;
-                                    }
-                                    let mut auth_ok = false;
-                                    if let Ok(mut agent) = sess.agent() {
-                                        if agent.connect().is_ok() {
-                                            if let Ok(_identities) = agent.list_identities() {
-                                                for identity in agent.identities().unwrap() {
-                                                    if agent
-                                                        .userauth(&remote.user, &identity)
-                                                        .is_ok()
-                                                    {
-                                                        auth_ok = true;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    if !auth_ok {
-                                        if let Some(key_path) = &remote.key_path {
-                                            if sess
-                                                .userauth_pubkey_file(
-                                                    &remote.user,
-                                                    None,
-                                                    key_path,
-                                                    None,
-                                                )
-                                                .is_ok()
-                                            {
-                                                auth_ok = true;
-                                            }
-                                        }
-                                    }
-                                    if auth_ok {
-                                        let session = RemoteSession {
-                                            host: remote.host.clone(),
-                                            user: remote.user.clone(),
-                                            name: remote.name.clone(),
-                                            session: Some(Arc::new(Mutex::new(sess))),
-                                        };
-                                        let _ = tx
-                                            .send(AppEvent::RemoteConnected(p_idx, session))
-                                            .await;
-                                    } else {
-                                        let _ = tx.try_send(AppEvent::StatusMsg(
-                                            "Authentication failed".to_string(),
-                                        ));
-                                    }
+                            let connect_result = tokio::task::spawn_blocking(move || {
+                                crate::modules::remote::connect_remote(&remote)
+                            })
+                            .await;
+
+                            match connect_result {
+                                Ok(Ok(session)) => {
+                                    let _ =
+                                        tx.send(AppEvent::RemoteConnected(p_idx, session)).await;
+                                }
+                                Ok(Err(e)) => {
+                                    let _ = tx.try_send(AppEvent::StatusMsg(format!(
+                                        "Connection failed: {e}"
+                                    )));
                                 }
                                 Err(e) => {
                                     let _ = tx.try_send(AppEvent::StatusMsg(format!(
-                                        "Connection failed: {}",
-                                        e
+                                        "Connection task failed: {e}"
                                     )));
                                 }
                             }
@@ -332,50 +294,80 @@ async fn run_tty() -> color_eyre::Result<()> {
                 AppEvent::PreviewRequested(pane_idx, path) => {
                     let tx = event_tx.clone();
                     let app_clone = app.clone();
-                    let (current_dir, preview_limit_mb) = {
+                    let (current_dir, preview_limit_mb, remote_session) = {
                         let app_guard = app.lock().unwrap();
-                        (
-                            app_guard
-                                .current_file_state()
-                                .map(|fs| fs.current_path.clone())
-                                .unwrap_or_else(|| PathBuf::from(".")),
-                            app_guard.preview_max_mb.max(1),
-                        )
+                        if let Some(pane) = app_guard.panes.get(pane_idx) {
+                            if let Some(fs) = pane.current_state() {
+                                (
+                                    fs.current_path.clone(),
+                                    app_guard.preview_max_mb.max(1),
+                                    fs.remote_session.clone(),
+                                )
+                            } else {
+                                (PathBuf::from("."), app_guard.preview_max_mb.max(1), None)
+                            }
+                        } else {
+                            (PathBuf::from("."), app_guard.preview_max_mb.max(1), None)
+                        }
                     };
 
                     tokio::spawn(async move {
                         let path_str = path.to_string_lossy();
                         let content = if let Some(hash) = path_str.strip_prefix("git://") {
-                            let output = std::process::Command::new("git")
-                                .args(["show", "--patch", "--stat", "--color=never", hash])
-                                .current_dir(&current_dir)
-                                .output();
-                            match output {
-                                Ok(out) => String::from_utf8_lossy(&out.stdout).to_string(),
-                                Err(e) => format!("Error fetching commit data: {}", e),
+                            if let Some(remote) = &remote_session {
+                                match crate::modules::remote::show_commit_patch(
+                                    remote,
+                                    &current_dir,
+                                    hash,
+                                ) {
+                                    Ok(content) => content,
+                                    Err(e) => format!("Error fetching commit data: {}", e),
+                                }
+                            } else {
+                                match crate::modules::files::show_commit_patch(&current_dir, hash) {
+                                    Ok(content) => content,
+                                    Err(e) => format!("Error fetching commit data: {}", e),
+                                }
                             }
                         } else if let Some(file_path) = path_str.strip_prefix("git-diff://") {
-                            let output = std::process::Command::new("git")
-                                .args(["diff", file_path])
-                                .current_dir(&current_dir)
-                                .output();
-                            match output {
-                                Ok(out) => {
-                                    let content = String::from_utf8_lossy(&out.stdout).to_string();
-                                    if content.is_empty() {
-                                        "(No changes or file only in index)".to_string()
-                                    } else {
-                                        content
-                                    }
+                            if let Some(remote) = &remote_session {
+                                match crate::modules::remote::show_file_diff(
+                                    remote,
+                                    &current_dir,
+                                    file_path,
+                                ) {
+                                    Ok(content) => content,
+                                    Err(e) => format!("Error fetching diff data: {}", e),
                                 }
-                                Err(e) => format!("Error fetching diff data: {}", e),
+                            } else {
+                                match crate::modules::files::show_file_diff(&current_dir, file_path)
+                                {
+                                    Ok(content) => content,
+                                    Err(e) => format!("Error fetching diff data: {}", e),
+                                }
+                            }
+                        } else if let Some(remote) = &remote_session {
+                            match crate::modules::remote::is_dir(remote, &path) {
+                                Ok(true) => format!(
+                                    "\n\n   << PROJECT VIEW: {} >>\n\n   Select a file from the sidebar to begin editing.",
+                                    path.file_name()
+                                        .map(|n| n.to_string_lossy().to_string())
+                                        .unwrap_or_else(|| "/".to_string())
+                                ),
+                                Ok(false) => crate::modules::remote::read_to_string(remote, &path)
+                                    .unwrap_or_else(|e| format!("Error reading remote file: {e}")),
+                                Err(e) => format!("Error probing remote path: {e}"),
                             }
                         } else if path.is_dir() {
-                            format!("\n\n   << PROJECT VIEW: {} >>\n\n   Select a file from the sidebar to begin editing.", 
-                                path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "/".to_string()))
+                            format!(
+                                "\n\n   << PROJECT VIEW: {} >>\n\n   Select a file from the sidebar to begin editing.",
+                                path.file_name()
+                                    .map(|n| n.to_string_lossy().to_string())
+                                    .unwrap_or_else(|| "/".to_string())
+                            )
                         } else {
                             let (is_binary, is_too_large, size_mb) =
-                                terma::utils::check_file_suitability(
+                                crate::modules::files::check_file_suitability(
                                     &path,
                                     preview_limit_mb as u64 * 1024 * 1024,
                                 );
@@ -393,10 +385,23 @@ async fn run_tty() -> color_eyre::Result<()> {
                         if path_str.starts_with("git://") || path_str.starts_with("git-diff://") {
                             editor.language = "diff".to_string();
                             editor.read_only = true;
+                        } else if remote_session.is_some() {
+                            let is_dir = crate::modules::remote::is_dir(
+                                remote_session.as_ref().unwrap(),
+                                &path,
+                            )
+                            .unwrap_or(false);
+                            if is_dir {
+                                editor.read_only = true;
+                            }
                         } else if path.is_dir() {
                             editor.read_only = true;
                         } else {
-                            editor.language = path.extension().and_then(|s| s.to_str()).unwrap_or("").to_string();
+                            editor.language = path
+                                .extension()
+                                .and_then(|s| s.to_str())
+                                .unwrap_or("")
+                                .to_string();
                         }
 
                         {
@@ -425,9 +430,38 @@ async fn run_tty() -> color_eyre::Result<()> {
                     });
                 }
                 AppEvent::SaveFile(path, content) => {
-                    match std::fs::write(&path, &content) {
+                    let remote_for_save = {
+                        let app_guard = app.lock().unwrap();
+                        app_guard
+                            .panes
+                            .iter()
+                            .find_map(|pane| {
+                                let fs = pane.current_state()?;
+                                let preview = pane.preview.as_ref()?;
+                                if preview.path == path {
+                                    fs.remote_session.clone()
+                                } else {
+                                    None
+                                }
+                            })
+                            .or_else(|| {
+                                let fs = app_guard.current_file_state()?;
+                                app_guard.editor_state.as_ref()?;
+                                fs.remote_session.clone()
+                            })
+                    };
+
+                    let save_res = if let Some(remote) = &remote_for_save {
+                        crate::modules::remote::write_string(remote, &path, &content)
+                    } else {
+                        std::fs::write(&path, &content)
+                    };
+
+                    match save_res {
                         Ok(_) => {
-                            last_self_save.insert(path.clone(), content);
+                            if remote_for_save.is_none() {
+                                last_self_save.insert(path.clone(), content);
+                            }
                             let mut app_guard = app.lock().unwrap();
                             if let Some(ref mut preview) = app_guard.editor_state {
                                 if preview.path == path {
@@ -469,19 +503,50 @@ async fn run_tty() -> color_eyre::Result<()> {
                     needs_draw = true;
                 }
                 AppEvent::CreateFile(path) => {
-                    let _ = std::fs::File::create(&path);
+                    let remote = {
+                        let app_guard = app.lock().unwrap();
+                        app_guard
+                            .current_file_state()
+                            .and_then(|fs| fs.remote_session.clone())
+                    };
+                    if let Some(remote) = remote {
+                        let _ = crate::modules::remote::create_file(&remote, &path);
+                    } else {
+                        let _ = std::fs::File::create(&path);
+                    }
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(
                         app.lock().unwrap().focused_pane_index,
                     ));
                 }
                 AppEvent::CreateFolder(path) => {
-                    let _ = std::fs::create_dir_all(&path);
+                    let remote = {
+                        let app_guard = app.lock().unwrap();
+                        app_guard
+                            .current_file_state()
+                            .and_then(|fs| fs.remote_session.clone())
+                    };
+                    if let Some(remote) = remote {
+                        let _ = crate::modules::remote::create_dir_all(&remote, &path);
+                    } else {
+                        let _ = std::fs::create_dir_all(&path);
+                    }
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(
                         app.lock().unwrap().focused_pane_index,
                     ));
                 }
                 AppEvent::Rename(old, new) => {
-                    match std::fs::rename(&old, &new) {
+                    let remote = {
+                        let app_guard = app.lock().unwrap();
+                        app_guard
+                            .current_file_state()
+                            .and_then(|fs| fs.remote_session.clone())
+                    };
+                    let rename_res = if let Some(remote) = &remote {
+                        crate::modules::remote::rename(remote, &old, &new)
+                    } else {
+                        std::fs::rename(&old, &new)
+                    };
+                    match rename_res {
                         Ok(_) => {
                             let mut app_guard = app.lock().unwrap();
                             // Undo should move the path back to its original location.
@@ -493,18 +558,26 @@ async fn run_tty() -> color_eyre::Result<()> {
                                 .try_send(AppEvent::RefreshFiles(app_guard.focused_pane_index));
                         }
                         Err(e) => {
-                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                                "Rename failed: {}",
-                                e
-                            )));
+                            let _ = event_tx
+                                .try_send(AppEvent::StatusMsg(format!("Rename failed: {}", e)));
                         }
                     }
                 }
                 AppEvent::Delete(path) => {
-                    if path.is_dir() {
-                        let _ = std::fs::remove_dir_all(&path);
+                    let remote = {
+                        let app_guard = app.lock().unwrap();
+                        app_guard
+                            .current_file_state()
+                            .and_then(|fs| fs.remote_session.clone())
+                    };
+                    if let Some(remote) = remote {
+                        let _ = crate::modules::remote::remove_path(&remote, &path);
                     } else {
-                        let _ = std::fs::remove_file(&path);
+                        if path.is_dir() {
+                            let _ = std::fs::remove_dir_all(&path);
+                        } else {
+                            let _ = std::fs::remove_file(&path);
+                        }
                     }
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(
                         app.lock().unwrap().focused_pane_index,
@@ -514,7 +587,17 @@ async fn run_tty() -> color_eyre::Result<()> {
                     let tx = event_tx.clone();
                     let app_clone = app.clone();
                     tokio::spawn(async move {
-                        let copied = terma::utils::copy_recursive(&src, &dest).is_ok();
+                        let remote = {
+                            let app_guard = app_clone.lock().unwrap();
+                            app_guard
+                                .current_file_state()
+                                .and_then(|fs| fs.remote_session.clone())
+                        };
+                        let copied = if let Some(remote) = &remote {
+                            crate::modules::remote::copy_recursive(remote, &src, &dest).is_ok()
+                        } else {
+                            terma::utils::copy_recursive(&src, &dest).is_ok()
+                        };
                         if copied {
                             let mut app_guard = app_clone.lock().unwrap();
                             app_guard
@@ -543,6 +626,18 @@ async fn run_tty() -> color_eyre::Result<()> {
                     });
                 }
                 AppEvent::Symlink(src, dest) => {
+                    let remote = {
+                        let app_guard = app.lock().unwrap();
+                        app_guard
+                            .current_file_state()
+                            .and_then(|fs| fs.remote_session.clone())
+                    };
+                    if remote.is_some() {
+                        let _ = event_tx.try_send(AppEvent::StatusMsg(
+                            "Symlink is not supported for remote panes".to_string(),
+                        ));
+                        continue;
+                    }
                     let result = {
                         #[cfg(unix)]
                         {
@@ -577,30 +672,32 @@ async fn run_tty() -> color_eyre::Result<()> {
                             )));
                         }
                         Err(e) => {
-                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                                "Symlink failed: {}",
-                                e
-                            )));
+                            let _ = event_tx
+                                .try_send(AppEvent::StatusMsg(format!("Symlink failed: {}", e)));
                         }
                     }
                 }
                 AppEvent::SpawnTerminal {
                     path,
                     new_tab,
-                    remote: _,
+                    remote,
                     command,
                 } => {
-                    let cmd_str = command.as_deref();
+                    let remote_cmd = remote.as_ref().map(|r| {
+                        crate::modules::remote::build_remote_terminal_command(
+                            r,
+                            &path,
+                            command.as_deref(),
+                        )
+                    });
+                    let cmd_str = remote_cmd.as_deref().or(command.as_deref());
                     terma::utils::spawn_terminal_at(&path, new_tab, cmd_str);
                 }
                 AppEvent::SpawnDetached { cmd, args } => {
                     terma::utils::spawn_detached(&cmd, args);
                 }
                 AppEvent::KillProcess(pid) => {
-                    let _ = std::process::Command::new("kill")
-                        .arg("-9")
-                        .arg(pid.to_string())
-                        .spawn();
+                    let _ = crate::modules::system::SystemModule::kill_process(pid);
                 }
                 AppEvent::GitHistoryUpdated(
                     p_idx,
@@ -714,7 +811,11 @@ async fn run_tty() -> color_eyre::Result<()> {
                 let app_guard = app.lock().unwrap();
                 if let Some(pane) = app_guard.panes.get(pane_idx) {
                     if let Some(fs) = pane.current_state() {
-                        (fs.current_path.clone(), fs.remote_session.clone(), fs.search_filter.clone())
+                        (
+                            fs.current_path.clone(),
+                            fs.remote_session.clone(),
+                            fs.search_filter.clone(),
+                        )
                     } else {
                         continue;
                     }
@@ -726,23 +827,27 @@ async fn run_tty() -> color_eyre::Result<()> {
             let tx = event_tx.clone();
             let app_clone = app.clone();
             tokio::spawn(async move {
-                let (files, mut metadata) = if let Some(_session) = &remote {
-                    // Remote refresh logic (mocked for now)
-                    (Vec::new(), std::collections::HashMap::new())
+                let (files, mut metadata) = if let Some(session) = &remote {
+                    crate::modules::remote::read_dir_with_metadata(session, &path)
+                        .unwrap_or_else(|_| (Vec::new(), std::collections::HashMap::new()))
                 } else {
                     crate::modules::files::read_dir_with_metadata(&path)
                 };
 
-                let git_data = if remote.is_none() {
-                    crate::modules::files::fetch_git_data(&path)
+                let git_data = if let Some(session) = &remote {
+                    crate::modules::remote::fetch_git_data(session, &path)
                 } else {
-                    None
+                    crate::modules::files::fetch_git_data(&path)
                 };
 
                 let trimmed_filter = current_filter.trim();
-                let (g_files, g_meta) = if trimmed_filter.len() > 3 && remote.is_none() {
-                    let search_root = dirs::home_dir().unwrap_or_else(|| path.clone());
-                    crate::modules::files::global_search(&search_root, trimmed_filter)
+                let (g_files, g_meta) = if trimmed_filter.len() > 3 {
+                    if let Some(session) = &remote {
+                        crate::modules::remote::global_search(session, &path, trimmed_filter)
+                    } else {
+                        let search_root = dirs::home_dir().unwrap_or_else(|| path.clone());
+                        crate::modules::files::global_search(&search_root, trimmed_filter)
+                    }
                 } else {
                     (Vec::new(), std::collections::HashMap::new())
                 };
@@ -767,7 +872,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                                         .and_then(|n| n.to_str())
                                         .map(|s| s.starts_with('.'))
                                         .unwrap_or(false);
-                                    
+
                                     if !fs.show_hidden && is_hidden {
                                         return false;
                                     }
@@ -884,7 +989,9 @@ async fn run_tty() -> color_eyre::Result<()> {
                     }
                 }
                 let _ = tx.send(AppEvent::Tick).await;
-                if let Some((history, pending, branch, ahead, behind, summary, remotes, stashes)) = git_data {
+                if let Some((history, pending, branch, ahead, behind, summary, remotes, stashes)) =
+                    git_data
+                {
                     let _ = tx
                         .send(AppEvent::GitHistoryUpdated(
                             pane_idx,
@@ -928,18 +1035,49 @@ fn setup_app(
     let mut app = App::new(tile_queue);
 
     if let Some(state) = crate::config::load_state() {
-        app.panes = state.panes;
+        if !state.panes.is_empty() {
+            app.panes = state.panes;
+        }
         for pane in &mut app.panes {
+            if pane.tabs.is_empty() {
+                let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+                pane.tabs.push(crate::state::FileState::new(
+                    cwd,
+                    None,
+                    app.default_show_hidden,
+                    app.single_columns.clone(),
+                    crate::state::FileColumn::Name,
+                    true,
+                ));
+                pane.active_tab_index = 0;
+            } else if pane.active_tab_index >= pane.tabs.len() {
+                pane.active_tab_index = 0;
+            }
+
             for tab in &mut pane.tabs {
-                tab.local_count = tab.files.len();
+                // Never trust persisted transient tab data; force a clean first refresh.
+                tab.files.clear();
+                tab.metadata.clear();
+                tab.search_filter.clear();
+                tab.local_count = 0;
+                tab.selection.clear_multi();
+                tab.selection.anchor = None;
+                tab.selection.selected = None;
+                *tab.table_state.offset_mut() = 0;
             }
         }
         app.focused_pane_index = state.focused_pane_index;
+        if app.focused_pane_index >= app.panes.len() {
+            app.focused_pane_index = 0;
+        }
 
         // Ensure CWD is active on start, keeping history
         if let Ok(cwd) = std::env::current_dir() {
             if let Some(pane) = app.panes.get_mut(0) {
                 if let Some(fs) = pane.current_state_mut() {
+                    // Always start local on pane 1/tab active, otherwise a persisted
+                    // remote_session can make startup refresh return an empty listing.
+                    fs.remote_session = None;
                     if fs.current_path != cwd {
                         fs.current_path = cwd.clone();
                         crate::event_helpers::push_history(fs, cwd);
@@ -974,6 +1112,10 @@ fn setup_app(
         }
     }
 
+    // Prime visible tabs synchronously so startup never renders as empty while waiting
+    // for async refresh/tick scheduling.
+    prime_visible_tabs(&mut app);
+
     let app_arc = Arc::new(Mutex::new(app));
     (app_arc, tx, rx)
 }
@@ -985,4 +1127,140 @@ fn handle_event(
     panes_needing_refresh: &mut std::collections::HashSet<usize>,
 ) -> bool {
     events::handle_event(evt, app, event_tx, panes_needing_refresh)
+}
+
+fn prime_visible_tabs(app: &mut App) {
+    for pane in &mut app.panes {
+        if let Some(fs) = pane.current_state_mut() {
+            prime_local_file_state(fs);
+        }
+    }
+}
+
+fn prime_local_file_state(fs: &mut crate::state::FileState) {
+    if fs.remote_session.is_some() {
+        return;
+    }
+
+    let (files, mut metadata) = crate::modules::files::read_dir_with_metadata(&fs.current_path);
+    let mut filtered_files: Vec<_> = files
+        .into_iter()
+        .filter(|p| {
+            let is_hidden = p
+                .file_name()
+                .and_then(|n| n.to_str())
+                .map(|s| s.starts_with('.'))
+                .unwrap_or(false);
+            fs.show_hidden || !is_hidden
+        })
+        .collect();
+
+    filtered_files.sort_by(|a, b| {
+        let meta_a = metadata.get(a);
+        let meta_b = metadata.get(b);
+        let is_dir_a = meta_a.map(|m| m.is_dir).unwrap_or(false);
+        let is_dir_b = meta_b.map(|m| m.is_dir).unwrap_or(false);
+        if is_dir_a != is_dir_b {
+            return if is_dir_a {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Greater
+            };
+        }
+
+        let ord = match fs.sort_column {
+            crate::app::FileColumn::Name => {
+                let na = a
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .to_lowercase();
+                let nb = b
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .to_lowercase();
+                na.cmp(&nb)
+            }
+            crate::app::FileColumn::Size => {
+                let sa = meta_a.map(|m| m.size).unwrap_or(0);
+                let sb = meta_b.map(|m| m.size).unwrap_or(0);
+                sa.cmp(&sb)
+            }
+            crate::app::FileColumn::Modified => {
+                let da = meta_a
+                    .map(|m| m.modified)
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                let db = meta_b
+                    .map(|m| m.modified)
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                da.cmp(&db)
+            }
+            crate::app::FileColumn::Created => {
+                let da = meta_a
+                    .map(|m| m.created)
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                let db = meta_b
+                    .map(|m| m.created)
+                    .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+                da.cmp(&db)
+            }
+            crate::app::FileColumn::Permissions => {
+                let pa = meta_a.map(|m| m.permissions).unwrap_or(0);
+                let pb = meta_b.map(|m| m.permissions).unwrap_or(0);
+                pa.cmp(&pb)
+            }
+        };
+        if fs.sort_ascending {
+            ord
+        } else {
+            ord.reverse()
+        }
+    });
+
+    fs.local_count = filtered_files.len();
+    fs.files = filtered_files;
+    fs.metadata = std::mem::take(&mut metadata);
+    if fs.selection.selected.is_none() && !fs.files.is_empty() {
+        fs.selection.selected = Some(0);
+        fs.table_state.select(Some(0));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, Mutex};
+    use terma::compositor::engine::TilePlacement;
+
+    #[test]
+    fn startup_prime_populates_first_pane_listing() {
+        let tmp = std::env::temp_dir().join(format!("tiles-startup-prime-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(tmp.join("example.txt"), "ok").unwrap();
+
+        let queue: Arc<Mutex<Vec<TilePlacement>>> = Arc::new(Mutex::new(Vec::new()));
+        let mut app = App::new(queue);
+        if let Some(fs) = app.current_file_state_mut() {
+            fs.current_path = tmp.clone();
+            fs.files.clear();
+            fs.metadata.clear();
+            fs.selection.selected = None;
+        }
+
+        prime_visible_tabs(&mut app);
+
+        let fs = app.current_file_state().unwrap();
+        assert!(
+            !fs.files.is_empty(),
+            "startup should hydrate first pane file list"
+        );
+        assert!(fs
+            .files
+            .iter()
+            .any(|p| p.file_name().and_then(|n| n.to_str()) == Some("example.txt")));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
 }

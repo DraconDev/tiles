@@ -3,6 +3,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, Instant};
+
+static LAST_SAVE: LazyLock<Mutex<Option<(Instant, String)>>> = LazyLock::new(|| Mutex::new(None));
+const SAVE_DEBOUNCE_MS: u64 = 350;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ExternalTool {
@@ -98,6 +103,26 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(&config_dir)?;
     let state_path = config_dir.join("state.json");
     let json = serde_json::to_string_pretty(&state)?;
+
+    {
+        let mut last = LAST_SAVE.lock().unwrap();
+        let now = Instant::now();
+        if let Some((last_at, last_json)) = last.as_ref() {
+            // Avoid repeated writes of identical content.
+            if *last_json == json {
+                return Ok(());
+            }
+            // Debounce bursts while app is active/autosaving.
+            if app.running
+                && app.auto_save
+                && now.duration_since(*last_at) < Duration::from_millis(SAVE_DEBOUNCE_MS)
+            {
+                return Ok(());
+            }
+        }
+        *last = Some((now, json.clone()));
+    }
+
     fs::write(state_path, json)?;
     Ok(())
 }

@@ -2,18 +2,14 @@ use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{
-        Block, BorderType, Borders, List, ListItem,
-    },
+    widgets::{Block, BorderType, Borders, List, ListItem},
     Frame,
 };
 use std::collections::HashMap;
 use std::path::PathBuf;
 use unicode_width::UnicodeWidthStr;
 
-use crate::app::{
-    App, DropTarget, SidebarBounds, SidebarTarget, CurrentView,
-};
+use crate::app::{App, CurrentView, DropTarget, SidebarBounds, SidebarTarget};
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
 
@@ -27,7 +23,10 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         CurrentView::Files => {
             let (mut sidebar_items, search_filter) = {
                 let items = Vec::new();
-                let filter = app.current_file_state().map(|fs| fs.search_filter.clone()).unwrap_or_default();
+                let filter = app
+                    .current_file_state()
+                    .map(|fs| fs.search_filter.clone())
+                    .unwrap_or_default();
                 (items, filter)
             };
             app.sidebar_bounds.clear();
@@ -102,7 +101,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     .file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or("?".to_string());
-                
+
                 if !matches_filter(&name) {
                     continue;
                 }
@@ -120,7 +119,9 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .fg(Color::Black)
                         .add_modifier(Modifier::BOLD);
                 } else if is_hovered && app.is_dragging {
-                    style = style.bg(crate::ui::theme::accent_secondary()).fg(Color::Black);
+                    style = style
+                        .bg(crate::ui::theme::accent_secondary())
+                        .fg(Color::Black);
                 }
 
                 if app.is_dragging && app.mouse_pos.1 == current_y && app.mouse_pos.0 < area.width {
@@ -417,25 +418,36 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
     for (path, depth) in tree_items {
         let is_dir = path.is_dir();
-        let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or("?".to_string());
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or("?".to_string());
         let current_idx = sidebar_items.len();
         let is_selected = app.sidebar_focus && app.sidebar_index == current_idx;
-        
+
         let mut style = Style::default().fg(THEME.fg);
         if is_selected {
-            style = style.bg(selection_bg).fg(Color::Black).add_modifier(Modifier::BOLD);
+            style = style
+                .bg(selection_bg)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD);
         }
 
         let cat = crate::modules::files::get_file_category(&path);
         let icon_mode = app.icon_mode;
-        
+
         let style = if is_selected {
-            Style::default().bg(selection_bg).fg(Color::Black).add_modifier(Modifier::BOLD)
+            Style::default()
+                .bg(selection_bg)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD)
         } else {
             let fg = match cat {
                 crate::app::FileCategory::Script => THEME.file_code,
                 crate::app::FileCategory::Text => THEME.file_config,
-                crate::app::FileCategory::Image | crate::app::FileCategory::Video | crate::app::FileCategory::Audio => THEME.file_media,
+                crate::app::FileCategory::Image
+                | crate::app::FileCategory::Video
+                | crate::app::FileCategory::Audio => THEME.file_media,
                 crate::app::FileCategory::Archive => THEME.file_archive,
                 crate::app::FileCategory::Document => THEME.fg,
                 _ if is_dir => crate::ui::theme::header_fg(),
@@ -446,22 +458,27 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
         // Show expansion marker for folders
         let marker = if is_dir {
-            if app.expanded_folders.contains(&path) { "▾ " } else { "▸ " }
+            if app.expanded_folders.contains(&path) {
+                "▾ "
+            } else {
+                "▸ "
+            }
         } else {
             "  "
         };
 
         let icon = Icon::get_for_path(&path, cat, is_dir, icon_mode);
         let indent = "  ".repeat(depth as usize);
-        
-        sidebar_items.push(ListItem::new(format!("{}{}{}{}", indent, marker, icon, name)).style(style));
+
+        sidebar_items
+            .push(ListItem::new(format!("{}{}{}{}", indent, marker, icon, name)).style(style));
         app.sidebar_bounds.push(SidebarBounds {
             y: current_y,
             index: current_idx,
             target: SidebarTarget::Project(path.clone()),
         });
         current_y += 1;
-        
+
         if current_y >= inner.y + inner.height {
             break;
         }
@@ -473,27 +490,36 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 fn collect_tree_items(path: &PathBuf, depth: u16, app: &App, items: &mut Vec<(PathBuf, u16)>) {
     if let Ok(entries) = std::fs::read_dir(path) {
         let mut sorted_entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
-        
+
         sorted_entries.sort_by(|a, b| {
             let a_is_dir = a.path().is_dir();
             let b_is_dir = b.path().is_dir();
-            if a_is_dir && !b_is_dir { std::cmp::Ordering::Less }
-            else if !a_is_dir && b_is_dir { std::cmp::Ordering::Greater }
-            else { a.file_name().cmp(&b.file_name()) }
+            if a_is_dir && !b_is_dir {
+                std::cmp::Ordering::Less
+            } else if !a_is_dir && b_is_dir {
+                std::cmp::Ordering::Greater
+            } else {
+                a.file_name().cmp(&b.file_name())
+            }
         });
 
         for entry in sorted_entries {
             let p = entry.path();
             let name = p.file_name().unwrap_or_default().to_string_lossy();
-            
+
             if !app.default_show_hidden && name.starts_with('.') {
                 continue;
             }
 
             // Check if matches search filter (if any)
-            let matches_filter = if let Some(fs) = app.panes.get(app.focused_pane_index).and_then(|p| p.current_state()) {
+            let matches_filter = if let Some(fs) = app
+                .panes
+                .get(app.focused_pane_index)
+                .and_then(|p| p.current_state())
+            {
                 if !fs.search_filter.is_empty() && app.sidebar_focus {
-                    name.to_lowercase().contains(&fs.search_filter.to_lowercase())
+                    name.to_lowercase()
+                        .contains(&fs.search_filter.to_lowercase())
                 } else {
                     true
                 }
@@ -504,7 +530,7 @@ fn collect_tree_items(path: &PathBuf, depth: u16, app: &App, items: &mut Vec<(Pa
             if matches_filter {
                 items.push((p.clone(), depth));
             }
-            
+
             if p.is_dir() && app.expanded_folders.contains(&p) {
                 collect_tree_items(&p, depth + 1, app, items);
             }

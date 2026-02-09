@@ -9,8 +9,8 @@ pub use crate::state::{
     AppEvent, AppMode, ClipboardOp, CommandAction, CommandItem, CommitInfo, ContextMenuAction,
     ContextMenuTarget, CurrentView, DropTarget, FileCategory, FileColumn, FileMetadata, FileState,
     GitPendingChange, LicenseStatus, MonitorSubview, Pane, PreviewState, ProcessColumn,
-    RemoteBookmark, RemoteSession, SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget,
-    SystemState, UndoAction, ViewPreferences, ViewStatePersistence,
+    RemoteBookmark, SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget, SystemState,
+    UndoAction, ViewPreferences, ViewStatePersistence,
 };
 
 pub struct BackgroundTask {
@@ -352,11 +352,22 @@ impl App {
                 if sel > 0 {
                     let mut next = sel - 1;
                     // Skip divider
-                    while next > 0 && fs.files.get(next).map(|p| p.to_string_lossy() == "__DIVIDER__").unwrap_or(false) {
+                    while next > 0
+                        && fs
+                            .files
+                            .get(next)
+                            .map(|p| p.to_string_lossy() == "__DIVIDER__")
+                            .unwrap_or(false)
+                    {
                         next -= 1;
                     }
                     // Final check if the skipped-to item is still a divider (shouldn't be at index 0, but safety first)
-                    if fs.files.get(next).map(|p| p.to_string_lossy() == "__DIVIDER__").unwrap_or(false) {
+                    if fs
+                        .files
+                        .get(next)
+                        .map(|p| p.to_string_lossy() == "__DIVIDER__")
+                        .unwrap_or(false)
+                    {
                         return;
                     }
 
@@ -377,11 +388,22 @@ impl App {
                 if sel + 1 < fs.files.len() {
                     let mut next = sel + 1;
                     // Skip divider
-                    while next < fs.files.len() - 1 && fs.files.get(next).map(|p| p.to_string_lossy() == "__DIVIDER__").unwrap_or(false) {
+                    while next < fs.files.len() - 1
+                        && fs
+                            .files
+                            .get(next)
+                            .map(|p| p.to_string_lossy() == "__DIVIDER__")
+                            .unwrap_or(false)
+                    {
                         next += 1;
                     }
                     // Final check
-                    if fs.files.get(next).map(|p| p.to_string_lossy() == "__DIVIDER__").unwrap_or(false) {
+                    if fs
+                        .files
+                        .get(next)
+                        .map(|p| p.to_string_lossy() == "__DIVIDER__")
+                        .unwrap_or(false)
+                    {
                         return;
                     }
 

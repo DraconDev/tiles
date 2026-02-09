@@ -2,19 +2,17 @@ use ratatui::{
     layout::Rect,
     style::Style,
     text::Line,
-    widgets::{
-        Block, BorderType, Borders,
-    },
+    widgets::{Block, BorderType, Borders},
     Frame,
 };
 
-use crate::app::{
-    App,
-};
+use crate::app::App;
 
 pub fn draw_ide_editor(f: &mut Frame, area: Rect, app: &mut App) {
     let pc = app.panes.len();
-    if pc == 0 { return; }
+    if pc == 0 {
+        return;
+    }
 
     for i in 0..pc {
         let pw = area.width / pc as u16;
@@ -27,18 +25,19 @@ pub fn draw_ide_editor(f: &mut Frame, area: Rect, app: &mut App) {
         } else {
             pw
         };
-        let pane_area = Rect::new(
-            pane_x,
-            area.y,
-            pane_w,
-            area.height,
-        );
+        let pane_area = Rect::new(pane_x, area.y, pane_w, area.height);
         let is_focused = app.focused_pane_index == i;
         draw_pane_editor(f, pane_area, app, i, is_focused);
     }
 }
 
-pub fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize, is_focused: bool) {
+pub fn draw_pane_editor(
+    f: &mut Frame,
+    area: Rect,
+    app: &mut App,
+    pane_idx: usize,
+    is_focused: bool,
+) {
     let title = if let Some(pane) = app.panes.get(pane_idx) {
         if let Some(preview) = &pane.preview {
             let route = preview.path.to_string_lossy().to_string();
@@ -71,7 +70,12 @@ pub fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usiz
                 let ext = if path_str.starts_with("git://") {
                     "diff".to_string()
                 } else {
-                    preview.path.extension().and_then(|s| s.to_str()).unwrap_or("").to_string()
+                    preview
+                        .path
+                        .extension()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("")
+                        .to_string()
                 };
 
                 if editor.language != ext {

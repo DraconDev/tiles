@@ -1,5 +1,5 @@
 use crate::app::{App, AppEvent, MonitorSubview};
-use terma::input::event::{Event, KeyCode};
+use dracon_tui_contracts::{InputEvent as Event, KeyCode};
 use tokio::sync::mpsc;
 
 pub fn handle_monitor_events(
@@ -75,11 +75,11 @@ pub fn handle_monitor_events(
 }
 
 pub fn handle_monitor_mouse(
-    me: &terma::input::event::MouseEvent,
+    me: &dracon_tui_contracts::MouseEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
-    if let terma::input::event::MouseEventKind::Down(_) = me.kind {
+    if let dracon_tui_contracts::MouseEventKind::Down(_) = me.kind {
         for (rect, sv) in &app.monitor_subview_bounds {
             if rect.contains(ratatui::layout::Position {
                 x: me.column,

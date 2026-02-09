@@ -34,8 +34,16 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     if app.current_view == CurrentView::Commit {
         draw_commit_view(f, f.area(), app);
-    } else
-    if matches!(app.mode, AppMode::Editor | AppMode::Viewer | AppMode::EditorSearch | AppMode::EditorGoToLine | AppMode::EditorReplace) && app.show_main_stage && !app.is_split_mode {
+    } else if matches!(
+        app.mode,
+        AppMode::Editor
+            | AppMode::Viewer
+            | AppMode::EditorSearch
+            | AppMode::EditorGoToLine
+            | AppMode::EditorReplace
+    ) && app.show_main_stage
+        && !app.is_split_mode
+    {
         // --- FULL SCREEN EDITOR VIEW (Zen Mode / Overlay) ---
         let mut header_left = Vec::new();
         let border_color = if let Some(preview) = &app.editor_state {
@@ -115,13 +123,21 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 }
             }
             _ => {
-                header_left.extend(HotkeyHint::render("^F", "Find", crate::ui::theme::accent_secondary()));
+                header_left.extend(HotkeyHint::render(
+                    "^F",
+                    "Find",
+                    crate::ui::theme::accent_secondary(),
+                ));
                 header_left.extend(HotkeyHint::render(
                     "^R/F2",
                     "Replace",
                     crate::ui::theme::accent_secondary(),
                 ));
-                header_left.extend(HotkeyHint::render("^G", "Line", crate::ui::theme::accent_secondary()));
+                header_left.extend(HotkeyHint::render(
+                    "^G",
+                    "Line",
+                    crate::ui::theme::accent_secondary(),
+                ));
             }
         }
 
@@ -155,7 +171,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 f.render_widget(&editor_clone, inner_area);
             }
         }
-    } else if matches!(app.mode, AppMode::Settings) {
+    } else if matches!(
+        app.mode,
+        AppMode::Settings | AppMode::StyleColorInput | AppMode::ResetSettingsConfirm
+    ) {
         f.render_widget(
             Block::default().style(Style::default().bg(Color::Black)),
             f.area(),
@@ -163,7 +182,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         draw_settings_modal(f, app);
     } else if matches!(
         app.current_view,
-        CurrentView::Processes | CurrentView::Git
+        CurrentView::Processes | CurrentView::Git | CurrentView::Debug
     ) {
         f.render_widget(
             Block::default().style(Style::default().bg(Color::Black)),
@@ -172,6 +191,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         match app.current_view {
             CurrentView::Processes => draw_monitor_page(f, f.area(), app),
             CurrentView::Git => draw_git_page(f, f.area(), app),
+            CurrentView::Debug => draw_debug_page(f, f.area(), app),
             _ => {}
         }
     } else {
@@ -251,6 +271,12 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::CommandPalette) {
         draw_command_palette(f, app);
     }
+    if matches!(app.mode, AppMode::StyleColorInput) {
+        draw_style_color_modal(f, app);
+    }
+    if matches!(app.mode, AppMode::ResetSettingsConfirm) {
+        draw_reset_settings_modal(f, app);
+    }
     if matches!(app.mode, AppMode::AddRemote(_)) {
         draw_add_remote_modal(f, app);
     }
@@ -274,7 +300,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 }
 
 fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
-    f.render_widget(Block::default().style(Style::default().bg(Color::Black)), area);
+    f.render_widget(
+        Block::default().style(Style::default().bg(Color::Black)),
+        area,
+    );
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -914,7 +943,8 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
         f.render_widget(Paragraph::new(name).style(style), rect);
         if is_active {
             f.render_widget(
-                Paragraph::new("━━━━").style(Style::default().fg(crate::ui::theme::accent_primary())),
+                Paragraph::new("━━━━")
+                    .style(Style::default().fg(crate::ui::theme::accent_primary())),
                 Rect::new(rect.x, rect.y + 1, 4, 1),
             );
         }
@@ -1243,14 +1273,20 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         )),
         Line::from(""),
         Line::from(vec![
-            Span::styled("RX ▼ ", Style::default().fg(crate::ui::theme::accent_secondary())),
+            Span::styled(
+                "RX ▼ ",
+                Style::default().fg(crate::ui::theme::accent_secondary()),
+            ),
             Span::styled(
                 format_size(rx),
                 Style::default().add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(vec![
-            Span::styled("TX ▲ ", Style::default().fg(crate::ui::theme::accent_primary())),
+            Span::styled(
+                "TX ▲ ",
+                Style::default().fg(crate::ui::theme::accent_primary()),
+            ),
             Span::styled(
                 format_size(tx),
                 Style::default().add_modifier(Modifier::BOLD),
@@ -1638,8 +1674,8 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 
                 let mut spans = vec![Span::styled(format!(" {} ", base_name), base_style)];
 
-                // Restrict git indicators to Git page to avoid cross-view bleed.
-                if app.current_view == CurrentView::Git {
+                // Show git indicators on file and git pages.
+                if matches!(app.current_view, CurrentView::Files | CurrentView::Git) {
                     if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
                         if let Some(branch) = &tab.git_branch {
                             let pending = tab.git_pending.len();
@@ -1728,7 +1764,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 
             spans.push(Span::styled(format!(" {} ", base_name), base_style));
 
-            if app.current_view == CurrentView::Git {
+            if matches!(app.current_view, CurrentView::Files | CurrentView::Git) {
                 if let Some(branch) = &tab.git_branch {
                     let pending = tab.git_pending.len();
                     let ahead = tab.git_ahead;
@@ -1836,7 +1872,9 @@ fn likely_branch_from_refs(refs: &[String]) -> Option<String> {
 
 fn style_for_ref_label(label: &str) -> Style {
     if label.starts_with("HEAD -> ") {
-        Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Green)
+            .add_modifier(Modifier::BOLD)
     } else if label.starts_with("tag: ") {
         Style::default().fg(Color::Magenta)
     } else if label.starts_with("origin/") {
@@ -1857,7 +1895,10 @@ fn refs_line(refs: &[String], max_refs: usize) -> Line<'static> {
         if i > 0 {
             spans.push(Span::styled(", ", Style::default().fg(Color::DarkGray)));
         }
-        spans.push(Span::styled(truncate_to_width(r, 18, ".."), style_for_ref_label(r)));
+        spans.push(Span::styled(
+            truncate_to_width(r, 18, ".."),
+            style_for_ref_label(r),
+        ));
     }
 
     if refs.len() > shown {
@@ -1906,7 +1947,9 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             ),
             Span::styled(
                 format!(" [{}] ", branch_name),
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
                 format!(" {} ", current_path_label),
@@ -2015,7 +2058,11 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
 
             let pending_table = Table::new(
                 pending_rows,
-                [Constraint::Length(6), Constraint::Fill(1), Constraint::Length(15)],
+                [
+                    Constraint::Length(6),
+                    Constraint::Fill(1),
+                    Constraint::Length(15),
+                ],
             )
             .block(
                 Block::default()
@@ -2032,7 +2079,11 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
 
             if let Some(pane) = app.panes.get_mut(pane_idx) {
                 if let Some(tab) = pane.tabs.get_mut(tab_idx) {
-                    f.render_stateful_widget(pending_table, active_area, &mut tab.git_pending_state);
+                    f.render_stateful_widget(
+                        pending_table,
+                        active_area,
+                        &mut tab.git_pending_state,
+                    );
                 }
             }
         }
@@ -2232,7 +2283,8 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                         }
 
                         let mut row_cells = vec![
-                            Cell::from(act.date.clone()).style(Style::default().fg(Color::DarkGray)),
+                            Cell::from(act.date.clone())
+                                .style(Style::default().fg(Color::DarkGray)),
                             Cell::from(h_short).style(
                                 Style::default()
                                     .fg(crate::ui::theme::accent_secondary())
@@ -2617,7 +2669,8 @@ fn draw_file_view(
                                 {
                                     if app.semantic_coloring {
                                         if is_dir {
-                                            cell_style = cell_style.fg(crate::ui::theme::accent_secondary());
+                                            cell_style =
+                                                cell_style.fg(crate::ui::theme::accent_secondary());
                                         } else {
                                             cell_style = cell_style.fg(cat.cyber_color());
                                         }
@@ -2864,17 +2917,57 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         let mut shortcuts = Vec::new();
         if app.current_view == CurrentView::Editor {
             shortcuts.extend(HotkeyHint::render("Esc", "Back", Color::Red));
-            shortcuts.extend(HotkeyHint::render("^B", "Sidebar", crate::ui::theme::accent_secondary()));
-            shortcuts.extend(HotkeyHint::render("^P", "Split", crate::ui::theme::accent_secondary()));
-            shortcuts.extend(HotkeyHint::render("^F", "Find", crate::ui::theme::accent_secondary()));
-            shortcuts.extend(HotkeyHint::render("^R", "Replace", crate::ui::theme::accent_secondary()));
-            shortcuts.extend(HotkeyHint::render("^G", "GoTo", crate::ui::theme::accent_secondary()));
+            shortcuts.extend(HotkeyHint::render(
+                "^B",
+                "Sidebar",
+                crate::ui::theme::accent_secondary(),
+            ));
+            shortcuts.extend(HotkeyHint::render(
+                "^P",
+                "Split",
+                crate::ui::theme::accent_secondary(),
+            ));
+            shortcuts.extend(HotkeyHint::render(
+                "^F",
+                "Find",
+                crate::ui::theme::accent_secondary(),
+            ));
+            shortcuts.extend(HotkeyHint::render(
+                "^R",
+                "Replace",
+                crate::ui::theme::accent_secondary(),
+            ));
+            shortcuts.extend(HotkeyHint::render(
+                "^G",
+                "GoTo",
+                crate::ui::theme::accent_secondary(),
+            ));
         } else {
-            shortcuts.extend(HotkeyHint::render("^P", "Split", crate::ui::theme::accent_secondary()));
-            shortcuts.extend(HotkeyHint::render("^T", "Tab", crate::ui::theme::accent_secondary()));
-            shortcuts.extend(HotkeyHint::render("F5", "Refresh", crate::ui::theme::accent_secondary()));
-            shortcuts.extend(HotkeyHint::render("^N", "TermTab", crate::ui::theme::accent_secondary()));
-            shortcuts.extend(HotkeyHint::render("^K", "TermWin", crate::ui::theme::accent_secondary()));
+            shortcuts.extend(HotkeyHint::render(
+                "^P",
+                "Split",
+                crate::ui::theme::accent_secondary(),
+            ));
+            shortcuts.extend(HotkeyHint::render(
+                "^T",
+                "Tab",
+                crate::ui::theme::accent_secondary(),
+            ));
+            shortcuts.extend(HotkeyHint::render(
+                "F5",
+                "Refresh",
+                crate::ui::theme::accent_secondary(),
+            ));
+            shortcuts.extend(HotkeyHint::render(
+                "^N",
+                "TermTab",
+                crate::ui::theme::accent_secondary(),
+            ));
+            shortcuts.extend(HotkeyHint::render(
+                "^K",
+                "TermWin",
+                crate::ui::theme::accent_secondary(),
+            ));
             shortcuts.extend(HotkeyHint::render(
                 "^H",
                 "Hidden",
@@ -2953,7 +3046,11 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                 0
             };
             let pane_label = format!("P{}", app.focused_pane_index + 1);
-            let focus_label = if app.sidebar_focus { "SIDEBAR" } else { "FILES" };
+            let focus_label = if app.sidebar_focus {
+                "SIDEBAR"
+            } else {
+                "FILES"
+            };
             let summary_w = top_chunks[1].width as usize;
             let size_tag = if sel_count > 1 {
                 format!(" {}", format_size(selected_bytes))
@@ -2965,9 +3062,15 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                 pane_label, focus_label, sel_count, total_count
             );
             let full_with_size = format!("{}{} ", full_summary.trim_end(), size_tag.trim_end());
-            let medium_summary = format!(" {} {}  {} / {} ", pane_label, focus_label, sel_count, total_count);
+            let medium_summary = format!(
+                " {} {}  {} / {} ",
+                pane_label, focus_label, sel_count, total_count
+            );
             let compact_focus = if app.sidebar_focus { "SB" } else { "F" };
-            let compact_summary = format!(" {} {} {}/{} ", pane_label, compact_focus, sel_count, total_count);
+            let compact_summary = format!(
+                " {} {} {}/{} ",
+                pane_label, compact_focus, sel_count, total_count
+            );
             let summary = if !size_tag.is_empty() && full_with_size.width() <= summary_w {
                 full_with_size
             } else if full_summary.width() <= summary_w {
@@ -2989,11 +3092,8 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                     .add_modifier(Modifier::BOLD)
             };
             f.render_widget(
-                Paragraph::new(Span::styled(
-                    summary,
-                    summary_style,
-                ))
-                .alignment(ratatui::layout::Alignment::Center),
+                Paragraph::new(Span::styled(summary, summary_style))
+                    .alignment(ratatui::layout::Alignment::Center),
                 top_chunks[1],
             );
         }
@@ -3391,20 +3491,26 @@ fn draw_rename_modal(f: &mut Frame, app: &App) {
                 Line::from(vec![
                     Span::styled(
                         stem_part,
-                        Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black),
+                        Style::default()
+                            .bg(crate::ui::theme::accent_primary())
+                            .fg(Color::Black),
                     ),
                     Span::raw(ext_part),
                 ])
             } else {
                 Line::from(vec![Span::styled(
                     &app.input.value,
-                    Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black),
+                    Style::default()
+                        .bg(crate::ui::theme::accent_primary())
+                        .fg(Color::Black),
                 )])
             }
         } else {
             Line::from(vec![Span::styled(
                 &app.input.value,
-                Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black),
+                Style::default()
+                    .bg(crate::ui::theme::accent_primary())
+                    .fg(Color::Black),
             )])
         };
         f.render_widget(Paragraph::new(text), inner);
@@ -3530,11 +3636,17 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
             .unwrap_or_default();
 
         text.push(Line::from(vec![
-            Span::styled("Name: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+            Span::styled(
+                "Name: ",
+                Style::default().fg(crate::ui::theme::accent_secondary()),
+            ),
             Span::raw(name),
         ]));
         text.push(Line::from(vec![
-            Span::styled("Location: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+            Span::styled(
+                "Location: ",
+                Style::default().fg(crate::ui::theme::accent_secondary()),
+            ),
             Span::raw(parent),
         ]));
         text.push(Line::from(""));
@@ -3542,23 +3654,38 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
         if let Some(meta) = fs.metadata.get(target_path) {
             let type_str = if meta.is_dir { "Folder" } else { "File" };
             text.push(Line::from(vec![
-                Span::styled("Type: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                Span::styled(
+                    "Type: ",
+                    Style::default().fg(crate::ui::theme::accent_secondary()),
+                ),
                 Span::raw(type_str),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Size: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                Span::styled(
+                    "Size: ",
+                    Style::default().fg(crate::ui::theme::accent_secondary()),
+                ),
                 Span::raw(format_size(meta.size)),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Modified: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                Span::styled(
+                    "Modified: ",
+                    Style::default().fg(crate::ui::theme::accent_secondary()),
+                ),
                 Span::raw(format_time(meta.modified)),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Created: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                Span::styled(
+                    "Created: ",
+                    Style::default().fg(crate::ui::theme::accent_secondary()),
+                ),
                 Span::raw(format_time(meta.created)),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Permissions: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                Span::styled(
+                    "Permissions: ",
+                    Style::default().fg(crate::ui::theme::accent_secondary()),
+                ),
                 Span::raw(format_permissions(meta.permissions)),
             ]));
         } else {
@@ -3566,16 +3693,25 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
                 if let Ok(m) = std::fs::metadata(target_path) {
                     let is_dir = m.is_dir();
                     text.push(Line::from(vec![
-                        Span::styled("Type: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                        Span::styled(
+                            "Type: ",
+                            Style::default().fg(crate::ui::theme::accent_secondary()),
+                        ),
                         Span::raw(if is_dir { "Folder" } else { "File" }),
                     ]));
                     text.push(Line::from(vec![
-                        Span::styled("Size: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                        Span::styled(
+                            "Size: ",
+                            Style::default().fg(crate::ui::theme::accent_secondary()),
+                        ),
                         Span::raw(format_size(m.len())),
                     ]));
                     if let Ok(mod_time) = m.modified() {
                         text.push(Line::from(vec![
-                            Span::styled("Modified: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                            Span::styled(
+                                "Modified: ",
+                                Style::default().fg(crate::ui::theme::accent_secondary()),
+                            ),
                             Span::raw(format_time(mod_time)),
                         ]));
                     }
@@ -3700,6 +3836,8 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             vec![
                 ("Ctrl + q", "Quit Application"),
                 ("Ctrl + g", "Open Settings"),
+                ("Ctrl + d", "Open/Close Debug Screen"),
+                ("4 (in Settings)", "Open Style Section"),
                 ("Ctrl + Space", "Open Command Palette"),
                 ("Ctrl + b", "Toggle Sidebar"),
                 ("Ctrl + m", "Toggle Main Stage"),
@@ -3735,6 +3873,8 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
                 ("Ctrl + Shift + z", "Redo Alternative"),
                 ("?", "Show this Help"),
                 ("Esc / Ctrl + [", "Back / Exit Mode"),
+                ("Enter/E (Style row)", "Edit color as #RRGGBB or R,G,B"),
+                ("General: Reset All Settings", "Type RESET to confirm"),
             ],
         ),
         (
@@ -4012,6 +4152,12 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
             key: "i",
             bool_state: None,
         },
+        GeneralOption {
+            label: "Reset All Settings",
+            status: "CONFIRM".to_string(),
+            key: "!",
+            bool_state: None,
+        },
     ];
 
     let rows: Vec<_> = options
@@ -4071,7 +4217,7 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
 
 fn draw_style_settings(f: &mut Frame, area: Rect, app: &App) {
     let style = crate::ui::theme::style_settings();
-    let rows_data = vec![
+    let color_rows = vec![
         ("Accent Primary", style.accent_primary),
         ("Accent Secondary", style.accent_secondary),
         ("Selection Background", style.selection_bg),
@@ -4080,30 +4226,82 @@ fn draw_style_settings(f: &mut Frame, area: Rect, app: &App) {
         ("Header Accent", style.header_fg),
     ];
 
-    let rows: Vec<_> = rows_data
-        .iter()
-        .enumerate()
-        .map(|(i, (label, rgb))| {
-            let is_selected = i == app.settings_index && app.settings_section == SettingsSection::Style;
-            let mut left_style = Style::default().fg(THEME.fg);
-            let mut value_style = Style::default().fg(Color::Rgb(rgb.r, rgb.g, rgb.b));
-            if is_selected {
-                left_style = left_style
-                    .bg(crate::ui::theme::accent_primary())
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD);
-                value_style = value_style
-                    .bg(crate::ui::theme::accent_primary())
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD);
-            }
-            Row::new(vec![
-                Cell::from(format!("  {}", label)).style(left_style),
-                Cell::from("■").style(value_style),
-                Cell::from(format!("rgb({}, {}, {})", rgb.r, rgb.g, rgb.b)).style(value_style),
-            ])
-        })
-        .collect();
+    let mut rows: Vec<Row> = Vec::new();
+    let reset_selected = app.settings_index == 0 && app.settings_section == SettingsSection::Style;
+    let reset_style = if reset_selected {
+        Style::default()
+            .bg(crate::ui::theme::accent_primary())
+            .fg(Color::Black)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default()
+            .fg(Color::Yellow)
+            .add_modifier(Modifier::BOLD)
+    };
+    rows.push(Row::new(vec![
+        Cell::from("  Reset To Default Theme").style(reset_style),
+        Cell::from("↺").style(reset_style),
+        Cell::from("restore baseline").style(reset_style),
+    ]));
+
+    let warm_selected = app.settings_index == 1 && app.settings_section == SettingsSection::Style;
+    let warm_style = if warm_selected {
+        Style::default()
+            .bg(crate::ui::theme::accent_primary())
+            .fg(Color::Black)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::Yellow)
+    };
+    rows.push(Row::new(vec![
+        Cell::from("  Preset: Warm").style(warm_style),
+        Cell::from("●").style(warm_style),
+        Cell::from("amber + mint").style(warm_style),
+    ]));
+
+    let cool_selected = app.settings_index == 2 && app.settings_section == SettingsSection::Style;
+    let cool_style = if cool_selected {
+        Style::default()
+            .bg(crate::ui::theme::accent_primary())
+            .fg(Color::Black)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(Color::Cyan)
+    };
+    rows.push(Row::new(vec![
+        Cell::from("  Preset: Cool").style(cool_style),
+        Cell::from("●").style(cool_style),
+        Cell::from("violet + ice").style(cool_style),
+    ]));
+
+    rows.extend(
+        color_rows
+            .iter()
+            .enumerate()
+            .map(|(i, (label, rgb))| {
+                let row_idx = i + 3;
+                let is_selected =
+                    row_idx == app.settings_index && app.settings_section == SettingsSection::Style;
+                let mut left_style = Style::default().fg(THEME.fg);
+                let mut value_style = Style::default().fg(Color::Rgb(rgb.r, rgb.g, rgb.b));
+                if is_selected {
+                    left_style = left_style
+                        .bg(crate::ui::theme::accent_primary())
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD);
+                    value_style = value_style
+                        .bg(crate::ui::theme::accent_primary())
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD);
+                }
+                Row::new(vec![
+                    Cell::from(format!("  {}", label)).style(left_style),
+                    Cell::from("■").style(value_style),
+                    Cell::from(format!("rgb({}, {}, {})", rgb.r, rgb.g, rgb.b)).style(value_style),
+                ])
+            })
+            .collect::<Vec<_>>(),
+    );
 
     let table = Table::new(
         rows,
@@ -4115,13 +4313,216 @@ fn draw_style_settings(f: &mut Frame, area: Rect, app: &App) {
     )
     .block(
         Block::default()
-            .title(" STYLE (Enter to cycle, R to reset) ")
+            .title(" STYLE (Warm/Cool presets + custom colors) ")
             .borders(Borders::TOP)
             .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
     )
     .column_spacing(1);
 
     f.render_widget(table, area);
+}
+
+fn draw_style_color_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(64, 9, f.area());
+    f.render_widget(Clear, area);
+
+    let field_name = match app.settings_index.saturating_sub(3) {
+        0 => "Accent Primary",
+        1 => "Accent Secondary",
+        2 => "Selection Background",
+        3 => "Border Active",
+        4 => "Border Inactive",
+        5 => "Header Accent",
+        _ => "Accent Primary",
+    };
+
+    let color = {
+        let style = crate::ui::theme::style_settings();
+        match app.settings_index.saturating_sub(3) {
+            0 => style.accent_primary,
+            1 => style.accent_secondary,
+            2 => style.selection_bg,
+            3 => style.border_active,
+            4 => style.border_inactive,
+            5 => style.header_fg,
+            _ => style.accent_primary,
+        }
+    };
+
+    let block = Block::default()
+        .title(format!(" Edit {} ", field_name))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let lines = vec![
+        Line::from(vec![
+            Span::raw("Current: "),
+            Span::styled(
+                "■",
+                Style::default()
+                    .fg(Color::Rgb(color.r, color.g, color.b))
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(format!("  rgb({}, {}, {})", color.r, color.g, color.b)),
+        ]),
+        Line::from("Input: #RRGGBB or R,G,B"),
+    ];
+    f.render_widget(
+        Paragraph::new(lines).style(Style::default().fg(THEME.fg)),
+        Rect::new(inner.x, inner.y, inner.width, 2),
+    );
+
+    let input_block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(crate::ui::theme::accent_secondary()));
+    f.render_widget(
+        Paragraph::new(app.input.value.as_str()).block(input_block),
+        Rect::new(inner.x, inner.y + 2, inner.width, 3),
+    );
+
+    let footer = Line::from(vec![
+        Span::styled(
+            " Enter ",
+            Style::default().fg(Color::Black).bg(Color::Green),
+        ),
+        Span::raw(" apply  "),
+        Span::styled(" Esc ", Style::default().fg(Color::Black).bg(Color::Red)),
+        Span::raw(" cancel"),
+    ]);
+    f.render_widget(
+        Paragraph::new(footer),
+        Rect::new(inner.x, inner.y + 6, inner.width, 1),
+    );
+
+    if let Some((msg, time)) = &app.last_action_msg {
+        if time.elapsed().as_secs() < 5 && msg.starts_with("Invalid color for ") {
+            f.render_widget(
+                Paragraph::new(msg.as_str()).style(Style::default().fg(Color::Red)),
+                Rect::new(inner.x, inner.y + 7, inner.width, 1),
+            );
+        }
+    }
+}
+
+fn draw_reset_settings_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(56, 12, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default()
+        .title(" Reset All Settings ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Red));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let text = vec![
+        Line::from("This resets global settings to defaults."),
+        Line::from("Bookmarks and remotes are kept."),
+        Line::from(""),
+        Line::from(vec![
+            Span::raw("Type "),
+            Span::styled(
+                "RESET",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw(" and press Enter."),
+        ]),
+    ];
+    f.render_widget(
+        Paragraph::new(text).style(Style::default().fg(THEME.fg)),
+        Rect::new(inner.x, inner.y, inner.width, 5),
+    );
+
+    let input_block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()));
+    f.render_widget(
+        Paragraph::new(app.input.value.as_str()).block(input_block),
+        Rect::new(inner.x, inner.y + 5, inner.width, 3),
+    );
+
+    let footer = Line::from(vec![
+        Span::styled(
+            " Enter ",
+            Style::default().fg(Color::Black).bg(Color::Green),
+        ),
+        Span::raw(" apply  "),
+        Span::styled(" Esc ", Style::default().fg(Color::Black).bg(Color::Red)),
+        Span::raw(" cancel"),
+    ]);
+    f.render_widget(
+        Paragraph::new(footer),
+        Rect::new(inner.x, inner.y + 9, inner.width, 1),
+    );
+}
+
+fn draw_debug_page(f: &mut Frame, area: Rect, app: &App) {
+    let block = Block::default()
+        .title_top(Line::from(vec![Span::styled(
+            " DEBUG ",
+            Style::default()
+                .fg(Color::Black)
+                .bg(crate::ui::theme::accent_primary())
+                .add_modifier(Modifier::BOLD),
+        )]))
+        .title_top(
+            Line::from(vec![
+                Span::styled(
+                    " Esc ",
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Red)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(" Back ", Style::default().fg(Color::Red)),
+            ])
+            .alignment(Alignment::Right),
+        )
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(crate::ui::theme::border_inactive()))
+        .style(Style::default().bg(Color::Rgb(8, 8, 12)));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let pane_idx = app.focused_pane_index;
+    let (path, filter, remote) = app
+        .current_file_state()
+        .map(|fs| {
+            (
+                fs.current_path.display().to_string(),
+                fs.search_filter.clone(),
+                fs.remote_session.is_some(),
+            )
+        })
+        .unwrap_or_else(|| ("-".to_string(), "".to_string(), false));
+
+    let lines = vec![
+        Line::from(format!("view={:?} mode={:?}", app.current_view, app.mode)),
+        Line::from(format!(
+            "pane={} sidebar_focus={}",
+            pane_idx, app.sidebar_focus
+        )),
+        Line::from(format!(
+            "split={} sidebar={} stage={}",
+            app.is_split_mode, app.show_sidebar, app.show_main_stage
+        )),
+        Line::from(format!("remote={} filter='{}'", remote, filter)),
+        Line::from(format!(
+            "path={}",
+            truncate_to_width(&path, inner.width.saturating_sub(8) as usize, "...")
+        )),
+        Line::from("Open/Close: Ctrl+D"),
+    ];
+    f.render_widget(
+        Paragraph::new(lines).style(Style::default().fg(Color::Rgb(190, 190, 200))),
+        inner,
+    );
 }
 
 fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {

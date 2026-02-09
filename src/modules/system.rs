@@ -1,22 +1,31 @@
 use crate::app::App;
-use terma::system::{SystemData, SystemMonitor};
+use dracon_system::{
+    DiskSnapshot, ProcessControlContract, ProcessController, ProcessSnapshot, SystemSnapshot,
+    SystemSnapshotContract, SystemSnapshotProvider,
+};
+use terma::system::{DiskInfo, ProcessInfo};
 
 pub struct SystemModule {
-    monitor: SystemMonitor,
+    monitor: SystemSnapshotProvider,
 }
 
 impl SystemModule {
     pub fn new() -> Self {
         Self {
-            monitor: SystemMonitor::new(),
+            monitor: SystemSnapshotProvider::new(),
         }
     }
 
-    pub fn get_data(&mut self) -> SystemData {
-        self.monitor.get_data()
+    pub fn get_data(&mut self) -> std::io::Result<SystemSnapshot> {
+        self.monitor.capture_snapshot()
     }
 
-    pub fn update_app_state(app: &mut App, data: SystemData) {
+    pub fn kill_process(pid: u32) -> std::io::Result<()> {
+        let controller = ProcessController;
+        controller.kill_process(pid, Some(9))
+    }
+
+    pub fn update_app_state(app: &mut App, data: SystemSnapshot) {
         let s = &mut app.system_state;
         s.cpu_usage = data.cpu_usage;
         s.cpu_cores = data.cpu_cores.to_vec();
@@ -24,9 +33,9 @@ impl SystemModule {
         s.total_mem = data.total_mem as f32;
         s.swap_usage = data.swap_usage as f32;
         s.total_swap = data.total_swap as f32;
-        s.disks = data.disks;
+        s.disks = data.disks.into_iter().map(map_disk).collect();
         s.uptime = data.uptime;
-        s.processes = data.processes;
+        s.processes = data.processes.into_iter().map(map_process).collect();
         s.hostname = data.hostname;
         s.os_name = data.os_name;
         s.os_version = data.os_version;
@@ -85,5 +94,27 @@ impl SystemModule {
         s.net_out = data.net_out;
 
         app.apply_process_sort();
+    }
+}
+
+fn map_disk(d: DiskSnapshot) -> DiskInfo {
+    DiskInfo {
+        name: d.name,
+        device: d.device,
+        used_space: d.used_space,
+        available_space: d.available_space,
+        total_space: d.total_space,
+        is_mounted: d.is_mounted,
+    }
+}
+
+fn map_process(p: ProcessSnapshot) -> ProcessInfo {
+    ProcessInfo {
+        pid: p.pid,
+        name: p.name,
+        cpu: p.cpu,
+        mem: p.mem,
+        user: p.user,
+        status: p.status,
     }
 }

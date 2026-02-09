@@ -2,27 +2,25 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{
-        Block, BorderType, Borders, Paragraph, TableState,
-    },
+    widgets::{Block, BorderType, Borders, Paragraph, TableState},
     Frame,
 };
 use std::time::SystemTime;
 
-use crate::app::{
-    App, DropTarget, FileColumn,
-};
+use crate::app::{App, DropTarget, FileColumn};
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
-use terma::utils::{
-    format_permissions, format_size,
-};
+use terma::utils::{format_permissions, format_size};
 
 #[allow(dead_code)]
 pub fn draw_pane(f: &mut Frame, area: Rect, pane_idx: usize, app: &mut App) {
     let is_focused = app.focused_pane_index == pane_idx;
     let borders = if app.is_split_mode {
-        if pane_idx == 0 { Borders::ALL } else { Borders::TOP | Borders::BOTTOM | Borders::RIGHT }
+        if pane_idx == 0 {
+            Borders::ALL
+        } else {
+            Borders::TOP | Borders::BOTTOM | Borders::RIGHT
+        }
     } else {
         Borders::ALL
     };
@@ -53,13 +51,19 @@ pub fn draw_file_view(
             let lines = if let Some(cached) = &preview.highlighted_lines {
                 cached.clone()
             } else {
-                let language = preview.path.extension().and_then(|s| s.to_str()).unwrap_or("");
-                
+                let language = preview
+                    .path
+                    .extension()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("");
+
                 // PERFORMANCE OPTIMIZATION: Only highlight what's likely to be visible + some buffer
                 // This is a PREVIEW, so full file highlighting is overkill for large files.
                 let content_to_highlight = if preview.content.lines().count() > 500 {
-                    preview.content.lines().take(500).collect::<Vec<_>>().join("
-")
+                    preview.content.lines().take(500).collect::<Vec<_>>().join(
+                        "
+",
+                    )
                 } else {
                     preview.content.clone()
                 };
@@ -67,7 +71,11 @@ pub fn draw_file_view(
                 let highlighted = terma::utils::highlight_code(&content_to_highlight, language);
                 let mut lines = Vec::new();
                 for (i, line) in highlighted.iter().enumerate() {
-                    let mut spans = line.spans.iter().map(|s| Span::styled(s.content.to_string(), s.style)).collect::<Vec<_>>();
+                    let mut spans = line
+                        .spans
+                        .iter()
+                        .map(|s| Span::styled(s.content.to_string(), s.style))
+                        .collect::<Vec<_>>();
                     // Prepend line number gutter
                     let num = format!("{:>3} │ ", i + 1);
                     spans.insert(
@@ -251,16 +259,18 @@ pub fn draw_file_view(
             }
             let row_y = content_y + i as u16;
             let path = &file_state.files[file_idx];
-            
+
             if path.to_string_lossy() == "__DIVIDER__" {
                 let divider_style = Style::default().fg(Color::Rgb(60, 60, 70));
-                let label_style = Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD);
+                let label_style = Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD);
                 let line_char = "─";
                 let label = " GLOBAL SEARCH ";
                 let total_w = inner_area.width as usize;
                 let left_w = 4;
                 let right_w = total_w.saturating_sub(left_w + label.len() + 2);
-                
+
                 f.render_widget(
                     Paragraph::new(Line::from(vec![
                         Span::styled(line_char.repeat(left_w), divider_style),
@@ -337,21 +347,30 @@ pub fn draw_file_view(
 
                     match col_type {
                         FileColumn::Name => {
-                            let is_global = file_state.local_count > 0 && file_idx > file_state.local_count && file_state.search_filter.len() > 3;
+                            let is_global = file_state.local_count > 0
+                                && file_idx > file_state.local_count
+                                && file_state.search_filter.len() > 3;
                             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("..");
                             let is_dir = metadata.map(|m| m.is_dir).unwrap_or(false);
                             let cat = crate::modules::files::get_file_category(path);
                             let icon_str = Icon::get_for_path(path, cat, is_dir, app.icon_mode);
 
-                            if !is_selected && !is_multi_selected && !app.path_colors.contains_key(path) && !is_hovered_drop {
+                            if !is_selected
+                                && !is_multi_selected
+                                && !app.path_colors.contains_key(path)
+                                && !is_hovered_drop
+                            {
                                 if app.semantic_coloring {
                                     if is_dir {
-                                        cell_style = cell_style.fg(crate::ui::theme::accent_secondary());
+                                        cell_style =
+                                            cell_style.fg(crate::ui::theme::accent_secondary());
                                     } else {
                                         let semantic_color = match cat {
                                             crate::app::FileCategory::Script => THEME.file_code,
                                             crate::app::FileCategory::Text => THEME.file_config,
-                                            crate::app::FileCategory::Image | crate::app::FileCategory::Video | crate::app::FileCategory::Audio => THEME.file_media,
+                                            crate::app::FileCategory::Image
+                                            | crate::app::FileCategory::Video
+                                            | crate::app::FileCategory::Audio => THEME.file_media,
                                             crate::app::FileCategory::Archive => THEME.file_archive,
                                             crate::app::FileCategory::Document => THEME.fg,
                                             _ => THEME.fg,
@@ -359,7 +378,8 @@ pub fn draw_file_view(
                                         cell_style = cell_style.fg(semantic_color);
                                     }
                                 } else if is_dir {
-                                    cell_style = cell_style.fg(crate::ui::theme::accent_secondary());
+                                    cell_style =
+                                        cell_style.fg(crate::ui::theme::accent_secondary());
                                 }
                             }
 
@@ -386,13 +406,11 @@ pub fn draw_file_view(
                             }
 
                             if app.starred.contains(path) {
-                                spans.push(Span::styled(" [*]", Style::default().fg(Color::Yellow)));
+                                spans
+                                    .push(Span::styled(" [*]", Style::default().fg(Color::Yellow)));
                             }
 
-                            f.render_widget(
-                                Paragraph::new(Line::from(spans)),
-                                cell_rect,
-                            );
+                            f.render_widget(Paragraph::new(Line::from(spans)), cell_rect);
                         }
                         FileColumn::Size => {
                             let size = metadata.map(|m| m.size).unwrap_or(0);
@@ -403,28 +421,41 @@ pub fn draw_file_view(
                                 format_size(size)
                             };
                             f.render_widget(
-                                Paragraph::new(Span::styled(content, cell_style)).alignment(alignment),
+                                Paragraph::new(Span::styled(content, cell_style))
+                                    .alignment(alignment),
                                 cell_rect,
                             );
                         }
                         FileColumn::Modified => {
-                            let content = format_modified_time(metadata.map(|m| m.modified).unwrap_or(SystemTime::UNIX_EPOCH));
+                            let content = format_modified_time(
+                                metadata
+                                    .map(|m| m.modified)
+                                    .unwrap_or(SystemTime::UNIX_EPOCH),
+                            );
                             f.render_widget(
-                                Paragraph::new(Span::styled(content, cell_style)).alignment(alignment),
+                                Paragraph::new(Span::styled(content, cell_style))
+                                    .alignment(alignment),
                                 cell_rect,
                             );
                         }
                         FileColumn::Created => {
-                            let content = format_modified_time(metadata.map(|m| m.created).unwrap_or(SystemTime::UNIX_EPOCH));
+                            let content = format_modified_time(
+                                metadata
+                                    .map(|m| m.created)
+                                    .unwrap_or(SystemTime::UNIX_EPOCH),
+                            );
                             f.render_widget(
-                                Paragraph::new(Span::styled(content, cell_style)).alignment(alignment),
+                                Paragraph::new(Span::styled(content, cell_style))
+                                    .alignment(alignment),
                                 cell_rect,
                             );
                         }
                         FileColumn::Permissions => {
-                            let content = format_permissions(metadata.map(|m| m.permissions).unwrap_or(0));
+                            let content =
+                                format_permissions(metadata.map(|m| m.permissions).unwrap_or(0));
                             f.render_widget(
-                                Paragraph::new(Span::styled(content, cell_style)).alignment(alignment),
+                                Paragraph::new(Span::styled(content, cell_style))
+                                    .alignment(alignment),
                                 cell_rect,
                             );
                         }

@@ -1,7 +1,9 @@
+use dracon_tui_contracts::{
+    InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind,
+};
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::time::Duration;
-use terma::input::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
 use tokio::sync::mpsc;
 
 use crate::app::{
@@ -193,19 +195,30 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         if has_control && !key.modifiers.contains(KeyModifiers::SHIFT) =>
                     {
                         if let Some(action) = app.undo_stack.pop() {
+                            let active_remote = app
+                                .current_file_state()
+                                .and_then(|fs| fs.remote_session.clone());
                             let mut success = true;
                             let action_name = match action.clone() {
                                 UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                    success = std::fs::rename(&old, &new).is_ok();
+                                    success = if let Some(remote) = &active_remote {
+                                        crate::modules::remote::rename(remote, &old, &new).is_ok()
+                                    } else {
+                                        std::fs::rename(&old, &new).is_ok()
+                                    };
                                     "move/rename"
                                 }
                                 UndoAction::Copy(src, dest) => {
-                                    success = if dest.is_dir() {
-                                        std::fs::remove_dir_all(&dest)
+                                    success = if let Some(remote) = &active_remote {
+                                        crate::modules::remote::remove_path(remote, &dest).is_ok()
                                     } else {
-                                        std::fs::remove_file(&dest)
-                                    }
-                                    .is_ok();
+                                        if dest.is_dir() {
+                                            std::fs::remove_dir_all(&dest)
+                                        } else {
+                                            std::fs::remove_file(&dest)
+                                        }
+                                        .is_ok()
+                                    };
                                     let _ = src;
                                     "copy"
                                 }
@@ -232,15 +245,26 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     }
                     KeyCode::Char('y') if has_control => {
                         if let Some(action) = app.redo_stack.pop() {
+                            let active_remote = app
+                                .current_file_state()
+                                .and_then(|fs| fs.remote_session.clone());
                             let mut success = true;
                             let action_name = match action.clone() {
                                 UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                    success = std::fs::rename(&old, &new).is_ok();
+                                    success = if let Some(remote) = &active_remote {
+                                        crate::modules::remote::rename(remote, &old, &new).is_ok()
+                                    } else {
+                                        std::fs::rename(&old, &new).is_ok()
+                                    };
                                     "move/rename"
                                 }
                                 UndoAction::Copy(src, dest) => {
-                                    success =
-                                        crate::modules::files::copy_recursive(&src, &dest).is_ok();
+                                    success = if let Some(remote) = &active_remote {
+                                        crate::modules::remote::copy_recursive(remote, &src, &dest)
+                                            .is_ok()
+                                    } else {
+                                        crate::modules::files::copy_recursive(&src, &dest).is_ok()
+                                    };
                                     "copy"
                                 }
                                 _ => "action",
@@ -262,15 +286,26 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         if has_control && key.modifiers.contains(KeyModifiers::SHIFT) =>
                     {
                         if let Some(action) = app.redo_stack.pop() {
+                            let active_remote = app
+                                .current_file_state()
+                                .and_then(|fs| fs.remote_session.clone());
                             let mut success = true;
                             let action_name = match action.clone() {
                                 UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                    success = std::fs::rename(&old, &new).is_ok();
+                                    success = if let Some(remote) = &active_remote {
+                                        crate::modules::remote::rename(remote, &old, &new).is_ok()
+                                    } else {
+                                        std::fs::rename(&old, &new).is_ok()
+                                    };
                                     "move/rename"
                                 }
                                 UndoAction::Copy(src, dest) => {
-                                    success =
-                                        crate::modules::files::copy_recursive(&src, &dest).is_ok();
+                                    success = if let Some(remote) = &active_remote {
+                                        crate::modules::remote::copy_recursive(remote, &src, &dest)
+                                            .is_ok()
+                                    } else {
+                                        crate::modules::files::copy_recursive(&src, &dest).is_ok()
+                                    };
                                     "copy"
                                 }
                                 _ => "action",
@@ -290,15 +325,26 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     }
                     KeyCode::Char('Z') if has_control => {
                         if let Some(action) = app.redo_stack.pop() {
+                            let active_remote = app
+                                .current_file_state()
+                                .and_then(|fs| fs.remote_session.clone());
                             let mut success = true;
                             let action_name = match action.clone() {
                                 UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                    success = std::fs::rename(&old, &new).is_ok();
+                                    success = if let Some(remote) = &active_remote {
+                                        crate::modules::remote::rename(remote, &old, &new).is_ok()
+                                    } else {
+                                        std::fs::rename(&old, &new).is_ok()
+                                    };
                                     "move/rename"
                                 }
                                 UndoAction::Copy(src, dest) => {
-                                    success =
-                                        crate::modules::files::copy_recursive(&src, &dest).is_ok();
+                                    success = if let Some(remote) = &active_remote {
+                                        crate::modules::remote::copy_recursive(remote, &src, &dest)
+                                            .is_ok()
+                                    } else {
+                                        crate::modules::files::copy_recursive(&src, &dest).is_ok()
+                                    };
                                     "copy"
                                 }
                                 _ => "action",
@@ -663,7 +709,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
 }
 
 pub fn handle_file_mouse(
-    me: &terma::input::event::MouseEvent,
+    me: &dracon_tui_contracts::MouseEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     _panes_needing_refresh: &mut HashSet<usize>,
@@ -851,9 +897,11 @@ pub fn handle_file_mouse(
                     app.drag_start_pos = Some((column, row));
 
                     // Double Click
+                    let (last_x, last_y) = app.mouse_click_pos;
+                    let close_enough = last_x.abs_diff(column) <= 1 && last_y.abs_diff(row) <= 1;
                     if button == MouseButton::Left
                         && app.mouse_last_click.elapsed() < Duration::from_millis(500)
-                        && app.mouse_click_pos == (column, row)
+                        && close_enough
                     {
                         if path.is_dir() {
                             if let Some(fs) = app.current_file_state_mut() {
@@ -1043,7 +1091,9 @@ fn handle_space_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
 
         if let Some(idx) = fs.selection.selected {
             if let Some(path) = fs.files.get(idx).cloned() {
-                let target_pane = app.focused_pane_index.min(app.panes.len().saturating_sub(1));
+                let target_pane = app
+                    .focused_pane_index
+                    .min(app.panes.len().saturating_sub(1));
 
                 let _ = event_tx.try_send(AppEvent::PreviewRequested(target_pane, path));
                 app.save_current_view_prefs();
@@ -1088,11 +1138,17 @@ fn handle_enter_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
                 }
                 SidebarTarget::Project(path) => {
                     if path.is_dir() {
-                        if app.expanded_folders.contains(&path) {
-                            app.expanded_folders.remove(&path);
-                        } else {
-                            app.expanded_folders.insert(path);
+                        app.expanded_folders.insert(path.clone());
+                        if let Some(fs) = app.current_file_state_mut() {
+                            fs.current_path = path.clone();
+                            fs.selection.selected = Some(0);
+                            fs.selection.anchor = Some(0);
+                            fs.selection.clear_multi();
+                            crate::event_helpers::push_history(fs, path.clone());
+                            let _ =
+                                event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                         }
+                        app.sidebar_focus = false;
                     } else {
                         let _ = event_tx
                             .try_send(AppEvent::PreviewRequested(app.focused_pane_index, path));

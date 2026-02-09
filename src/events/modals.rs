@@ -1,6 +1,8 @@
 use crate::app::{App, AppEvent, AppMode, ContextMenuAction, ContextMenuTarget, SettingsSection};
 use crate::state::IconMode;
-use terma::input::event::{Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind};
+use dracon_tui_contracts::{
+    InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind,
+};
 use tokio::sync::mpsc;
 
 pub fn handle_modal_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
@@ -21,44 +23,187 @@ fn cycle_preview_max_mb(current: u16) -> u16 {
     }
 }
 
-fn style_palette() -> [crate::ui::theme::RgbColor; 8] {
-    [
-        crate::ui::theme::RgbColor::new(168, 118, 255), // Purple
-        crate::ui::theme::RgbColor::new(120, 186, 255), // Ice Blue
-        crate::ui::theme::RgbColor::new(94, 215, 176),  // Mint
-        crate::ui::theme::RgbColor::new(255, 176, 72),  // Amber
-        crate::ui::theme::RgbColor::new(255, 122, 168), // Pink
-        crate::ui::theme::RgbColor::new(209, 163, 255), // Lilac
-        crate::ui::theme::RgbColor::new(135, 148, 176), // Slate
-        crate::ui::theme::RgbColor::new(228, 140, 210), // Magenta
-    ]
+fn open_style_color_input(app: &mut App) {
+    if app.settings_index < 3 {
+        return;
+    }
+    let style = crate::ui::theme::style_settings();
+    let color = style_field_color(app.settings_index, &style);
+    app.input.value = format!("#{:02X}{:02X}{:02X}", color.r, color.g, color.b);
+    app.input.cursor_position = app.input.value.len();
+    app.mode = AppMode::StyleColorInput;
 }
 
-fn next_palette_color(current: crate::ui::theme::RgbColor) -> crate::ui::theme::RgbColor {
-    let palette = style_palette();
-    let idx = palette
-        .iter()
-        .position(|c| c.r == current.r && c.g == current.g && c.b == current.b)
-        .unwrap_or(0);
-    palette[(idx + 1) % palette.len()]
+fn style_field_name(index: usize) -> &'static str {
+    let idx = index.saturating_sub(3);
+    match idx {
+        0 => "accent_primary",
+        1 => "accent_secondary",
+        2 => "selection_bg",
+        3 => "border_active",
+        4 => "border_inactive",
+        5 => "header_fg",
+        _ => "accent_primary",
+    }
 }
 
-fn cycle_style_setting(index: usize) {
-    let mut style = crate::ui::theme::style_settings();
-    match index {
-        0 => style.accent_primary = next_palette_color(style.accent_primary),
-        1 => style.accent_secondary = next_palette_color(style.accent_secondary),
-        2 => style.selection_bg = next_palette_color(style.selection_bg),
-        3 => style.border_active = next_palette_color(style.border_active),
-        4 => style.border_inactive = next_palette_color(style.border_inactive),
-        5 => style.header_fg = next_palette_color(style.header_fg),
+fn style_field_color(
+    index: usize,
+    style: &crate::ui::theme::ThemeStyle,
+) -> crate::ui::theme::RgbColor {
+    let idx = index.saturating_sub(3);
+    match idx {
+        0 => style.accent_primary,
+        1 => style.accent_secondary,
+        2 => style.selection_bg,
+        3 => style.border_active,
+        4 => style.border_inactive,
+        5 => style.header_fg,
+        _ => style.accent_primary,
+    }
+}
+
+fn set_style_field_color(
+    index: usize,
+    style: &mut crate::ui::theme::ThemeStyle,
+    color: crate::ui::theme::RgbColor,
+) {
+    let idx = index.saturating_sub(3);
+    match idx {
+        0 => style.accent_primary = color,
+        1 => style.accent_secondary = color,
+        2 => style.selection_bg = color,
+        3 => style.border_active = color,
+        4 => style.border_inactive = color,
+        5 => style.header_fg = color,
         _ => {}
     }
-    crate::ui::theme::set_style_settings(style);
+}
+
+fn parse_style_color_input(input: &str) -> Option<crate::ui::theme::RgbColor> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let hex = trimmed.trim_start_matches('#');
+    if hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()) {
+        let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+        let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+        let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+        return Some(crate::ui::theme::RgbColor::new(r, g, b));
+    }
+
+    let parts: Vec<&str> = trimmed.split(',').map(|p| p.trim()).collect();
+    if parts.len() == 3 {
+        let r = parts[0].parse::<u8>().ok()?;
+        let g = parts[1].parse::<u8>().ok()?;
+        let b = parts[2].parse::<u8>().ok()?;
+        return Some(crate::ui::theme::RgbColor::new(r, g, b));
+    }
+
+    None
+}
+
+fn handle_style_color_input_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) -> bool {
+    match key.code {
+        KeyCode::Esc => {
+            app.mode = AppMode::Settings;
+            app.input.clear();
+            true
+        }
+        KeyCode::Enter => {
+            if let Some(color) = parse_style_color_input(&app.input.value) {
+                let mut style = crate::ui::theme::style_settings();
+                set_style_field_color(app.settings_index, &mut style, color);
+                crate::ui::theme::set_style_settings(style);
+                let _ = crate::config::save_state(app);
+                app.mode = AppMode::Settings;
+                app.input.clear();
+            } else {
+                app.last_action_msg = Some((
+                    format!(
+                        "Invalid color for {}. Use #RRGGBB or R,G,B",
+                        style_field_name(app.settings_index)
+                    ),
+                    std::time::Instant::now(),
+                ));
+            }
+            true
+        }
+        _ => app
+            .input
+            .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(*key))),
+    }
+}
+
+fn reset_all_settings_to_defaults(app: &mut App) {
+    app.confirm_delete = true;
+    app.smart_date = true;
+    app.semantic_coloring = true;
+    app.auto_save = true;
+    app.default_show_hidden = false;
+    app.preview_max_mb = 20;
+    app.icon_mode = crate::state::IconMode::Nerd;
+    app.show_sidebar = true;
+    app.show_side_panel = true;
+    app.show_main_stage = true;
+    app.sidebar_width_percent = 15;
+    app.single_columns = vec![
+        crate::app::FileColumn::Name,
+        crate::app::FileColumn::Size,
+        crate::app::FileColumn::Modified,
+        crate::app::FileColumn::Permissions,
+    ];
+    app.split_columns = vec![crate::app::FileColumn::Name, crate::app::FileColumn::Size];
+    app.view_prefs.files.show_sidebar = true;
+    app.view_prefs.files.is_split_mode = false;
+    app.view_prefs.editor.show_sidebar = false;
+    app.view_prefs.editor.is_split_mode = false;
+    app.settings_section = SettingsSection::General;
+    app.settings_index = 0;
+    crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_warm());
+
+    for pane in &mut app.panes {
+        for tab in &mut pane.tabs {
+            tab.show_hidden = app.default_show_hidden;
+        }
+    }
+}
+
+fn handle_reset_settings_confirm_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) -> bool {
+    match key.code {
+        KeyCode::Esc => {
+            app.mode = AppMode::Settings;
+            app.input.clear();
+            true
+        }
+        KeyCode::Enter => {
+            if app.input.value.trim().eq_ignore_ascii_case("RESET") {
+                reset_all_settings_to_defaults(app);
+                let _ = crate::config::save_state(app);
+                app.last_action_msg = Some((
+                    "Settings reset to defaults".to_string(),
+                    std::time::Instant::now(),
+                ));
+                app.mode = AppMode::Settings;
+            } else {
+                app.last_action_msg = Some((
+                    "Type RESET to confirm".to_string(),
+                    std::time::Instant::now(),
+                ));
+            }
+            app.input.clear();
+            true
+        }
+        _ => app
+            .input
+            .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(*key))),
+    }
 }
 
 fn handle_modal_keys(
-    key: &terma::input::event::KeyEvent,
+    key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     evt: &Event,
@@ -81,6 +226,8 @@ fn handle_modal_keys(
         AppMode::CommandPalette => handle_command_palette_keys(key, app, event_tx, evt),
         AppMode::AddRemote(idx) => handle_add_remote_keys(key, app, event_tx, idx, evt),
         AppMode::Highlight => handle_highlight_keys(key, app),
+        AppMode::StyleColorInput => handle_style_color_input_keys(key, app),
+        AppMode::ResetSettingsConfirm => handle_reset_settings_confirm_keys(key, app),
         AppMode::NewFile
         | AppMode::NewFolder
         | AppMode::Rename
@@ -103,7 +250,7 @@ fn handle_modal_keys(
 }
 
 fn handle_search_keys(
-    key: &terma::input::event::KeyEvent,
+    key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -138,7 +285,11 @@ fn handle_search_keys(
         }
         _ => {
             // Live Update
-            let handled = app.input.handle_event(&Event::Key(key.clone()));
+            let handled = app
+                .input
+                .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(
+                    key.clone(),
+                )));
             if handled {
                 let filter = app.input.value.clone();
                 if let Some(fs) = app.current_file_state_mut() {
@@ -151,7 +302,7 @@ fn handle_search_keys(
     }
 }
 
-fn handle_properties_keys(key: &terma::input::event::KeyEvent, app: &mut App) -> bool {
+fn handle_properties_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) -> bool {
     match key.code {
         KeyCode::Esc | KeyCode::Enter | KeyCode::Char('q') => {
             app.mode = AppMode::Normal;
@@ -162,7 +313,7 @@ fn handle_properties_keys(key: &terma::input::event::KeyEvent, app: &mut App) ->
 }
 
 fn handle_context_menu_keys(
-    key: &terma::input::event::KeyEvent,
+    key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     actions: &[ContextMenuAction],
@@ -247,7 +398,7 @@ fn handle_context_menu_keys(
 }
 
 fn handle_drag_drop_keys(
-    key: &terma::input::event::KeyEvent,
+    key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     sources: &[std::path::PathBuf],
@@ -303,7 +454,7 @@ fn handle_drag_drop_keys(
 }
 
 fn handle_editor_replace_keys(
-    key: &terma::input::event::KeyEvent,
+    key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     evt: &Event,
@@ -369,7 +520,9 @@ fn handle_editor_replace_keys(
             true
         }
         _ => {
-            let res = app.input.handle_event(evt);
+            let res = app
+                .input
+                .handle_event(&dracon_tui_input::to_runtime_event(evt));
             if res && app.replace_buffer.is_empty() && app.input.value.is_empty() {
                 app.mode = app.previous_mode.clone();
                 app.input.clear();
@@ -381,7 +534,7 @@ fn handle_editor_replace_keys(
 }
 
 fn handle_editor_search_keys(
-    _key: &terma::input::event::KeyEvent,
+    _key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
     evt: &Event,
@@ -409,7 +562,7 @@ fn handle_editor_search_keys(
             if let Some(preview) = &mut app.editor_state {
                 if let Some(editor) = &mut preview.editor {
                     editor.handle_event(
-                        evt,
+                        &dracon_tui_input::to_runtime_event(evt),
                         ratatui::layout::Rect::new(
                             1,
                             1,
@@ -422,14 +575,19 @@ fn handle_editor_search_keys(
             if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                 if let Some(preview) = &mut pane.preview {
                     if let Some(editor) = &mut preview.editor {
-                        editor.handle_event(evt, ratatui::layout::Rect::new(0, 0, 100, 100));
+                        editor.handle_event(
+                            &dracon_tui_input::to_runtime_event(evt),
+                            ratatui::layout::Rect::new(0, 0, 100, 100),
+                        );
                     }
                 }
             }
             true
         }
         _ => {
-            let handled = app.input.handle_event(evt);
+            let handled = app
+                .input
+                .handle_event(&dracon_tui_input::to_runtime_event(evt));
             if handled {
                 let filter = app.input.value.clone();
                 if filter.is_empty() {
@@ -456,7 +614,7 @@ fn handle_editor_search_keys(
 }
 
 fn handle_editor_goto_keys(
-    _key: &terma::input::event::KeyEvent,
+    _key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
     evt: &Event,
@@ -491,12 +649,14 @@ fn handle_editor_goto_keys(
             app.input.clear();
             true
         }
-        _ => app.input.handle_event(evt),
+        _ => app
+            .input
+            .handle_event(&dracon_tui_input::to_runtime_event(evt)),
     }
 }
 
 fn handle_command_palette_keys(
-    _key: &terma::input::event::KeyEvent,
+    _key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     evt: &Event,
@@ -515,7 +675,9 @@ fn handle_command_palette_keys(
             true
         }
         _ => {
-            let handled = app.input.handle_event(evt);
+            let handled = app
+                .input
+                .handle_event(&dracon_tui_input::to_runtime_event(evt));
             if handled {
                 crate::event_helpers::update_commands(app);
             }
@@ -525,7 +687,7 @@ fn handle_command_palette_keys(
 }
 
 fn handle_add_remote_keys(
-    _key: &terma::input::event::KeyEvent,
+    _key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
     idx: usize,
@@ -564,11 +726,13 @@ fn handle_add_remote_keys(
             }
             true
         }
-        _ => app.input.handle_event(evt),
+        _ => app
+            .input
+            .handle_event(&dracon_tui_input::to_runtime_event(evt)),
     }
 }
 
-fn handle_highlight_keys(key: &terma::input::event::KeyEvent, app: &mut App) -> bool {
+fn handle_highlight_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) -> bool {
     if let KeyCode::Char(c) = key.code {
         if let Some(digit) = c.to_digit(10) {
             if digit <= 6 {
@@ -612,7 +776,7 @@ fn handle_highlight_keys(key: &terma::input::event::KeyEvent, app: &mut App) -> 
 }
 
 fn handle_input_modals_keys(
-    key: &terma::input::event::KeyEvent,
+    key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -682,12 +846,14 @@ fn handle_input_modals_keys(
             app.input.clear();
             true
         }
-        _ => app.input.handle_event(&Event::Key(*key)),
+        _ => app
+            .input
+            .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(*key))),
     }
 }
 
 fn handle_header_keys(
-    _key: &terma::input::event::KeyEvent,
+    _key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
     _idx: usize,
@@ -717,7 +883,7 @@ fn handle_header_keys(
 }
 
 fn handle_settings_keys(
-    key: &terma::input::event::KeyEvent,
+    key: &dracon_tui_contracts::KeyEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -759,8 +925,25 @@ fn handle_settings_keys(
         KeyCode::Char('r') | KeyCode::Char('R')
             if app.settings_section == SettingsSection::Style =>
         {
-            crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::default_purple());
+            crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_warm());
             let _ = crate::config::save_state(app);
+            true
+        }
+        KeyCode::Char('e') | KeyCode::Char('E')
+            if app.settings_section == SettingsSection::Style =>
+        {
+            if app.settings_index == 0 {
+                crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_warm());
+                let _ = crate::config::save_state(app);
+            } else if app.settings_index == 1 {
+                crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_warm());
+                let _ = crate::config::save_state(app);
+            } else if app.settings_index == 2 {
+                crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_cool());
+                let _ = crate::config::save_state(app);
+            } else {
+                open_style_color_input(app);
+            }
             true
         }
         KeyCode::Up => {
@@ -769,9 +952,9 @@ fn handle_settings_keys(
         }
         KeyCode::Down => {
             let max = match app.settings_section {
-                SettingsSection::General => 6,
+                SettingsSection::General => 7,
                 SettingsSection::Columns => 3,
-                SettingsSection::Style => 5,
+                SettingsSection::Style => 8,
                 _ => 0,
             };
             if app.settings_index < max {
@@ -796,9 +979,15 @@ fn handle_settings_keys(
                                 IconMode::ASCII => IconMode::Nerd,
                             }
                         }
+                        7 => {
+                            app.mode = AppMode::ResetSettingsConfirm;
+                            app.input.clear();
+                        }
                         _ => {}
                     }
-                    let _ = crate::config::save_state(app);
+                    if app.settings_index != 7 {
+                        let _ = crate::config::save_state(app);
+                    }
                 }
                 SettingsSection::Columns => {
                     let col = match app.settings_index {
@@ -820,8 +1009,24 @@ fn handle_settings_keys(
                     let _ = crate::config::save_state(app);
                 }
                 SettingsSection::Style => {
-                    cycle_style_setting(app.settings_index);
-                    let _ = crate::config::save_state(app);
+                    if app.settings_index == 0 {
+                        crate::ui::theme::set_style_settings(
+                            crate::ui::theme::ThemeStyle::preset_warm(),
+                        );
+                        let _ = crate::config::save_state(app);
+                    } else if app.settings_index == 1 {
+                        crate::ui::theme::set_style_settings(
+                            crate::ui::theme::ThemeStyle::preset_warm(),
+                        );
+                        let _ = crate::config::save_state(app);
+                    } else if app.settings_index == 2 {
+                        crate::ui::theme::set_style_settings(
+                            crate::ui::theme::ThemeStyle::preset_cool(),
+                        );
+                        let _ = crate::config::save_state(app);
+                    } else {
+                        open_style_color_input(app);
+                    }
                 }
                 _ => {}
             }
@@ -832,7 +1037,7 @@ fn handle_settings_keys(
 }
 
 pub fn handle_modal_mouse(
-    me: &terma::input::event::MouseEvent,
+    me: &dracon_tui_contracts::MouseEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -851,6 +1056,8 @@ pub fn handle_modal_mouse(
                 | AppMode::EditorSearch
                 | AppMode::EditorReplace
                 | AppMode::EditorGoToLine
+                | AppMode::StyleColorInput
+                | AppMode::ResetSettingsConfirm
         ) {
             if let Some(text) = terma::utils::get_primary_selection_text() {
                 let pos = app.input.cursor_position;
@@ -966,6 +1173,40 @@ pub fn handle_modal_mouse(
             }
             return true; // Consume all mouse events while context menu is open
         }
+        AppMode::StyleColorInput => {
+            if let MouseEventKind::Down(_) = me.kind {
+                let area_w = 64;
+                let area_h = 9;
+                let area_x = (w.saturating_sub(area_w)) / 2;
+                let area_y = (h.saturating_sub(area_h)) / 2;
+                let inside = column >= area_x
+                    && column < area_x + area_w
+                    && row >= area_y
+                    && row < area_y + area_h;
+                if !inside {
+                    app.mode = AppMode::Settings;
+                    app.input.clear();
+                }
+                return true;
+            }
+        }
+        AppMode::ResetSettingsConfirm => {
+            if let MouseEventKind::Down(_) = me.kind {
+                let area_w = 56;
+                let area_h = 12;
+                let area_x = (w.saturating_sub(area_w)) / 2;
+                let area_y = (h.saturating_sub(area_h)) / 2;
+                let inside = column >= area_x
+                    && column < area_x + area_w
+                    && row >= area_y
+                    && row < area_y + area_h;
+                if !inside {
+                    app.mode = AppMode::Settings;
+                    app.input.clear();
+                }
+                return true;
+            }
+        }
         AppMode::Settings => {
             if let MouseEventKind::Down(_) = me.kind {
                 if row == 0 && column >= w.saturating_sub(10) {
@@ -993,7 +1234,7 @@ pub fn handle_modal_mouse(
 
                     match app.settings_section {
                         SettingsSection::General => {
-                            if rel_y < 7 {
+                            if rel_y < 8 {
                                 app.settings_index = rel_y as usize;
                                 match app.settings_index {
                                     0 => app.default_show_hidden = !app.default_show_hidden,
@@ -1001,7 +1242,10 @@ pub fn handle_modal_mouse(
                                     2 => app.smart_date = !app.smart_date,
                                     3 => app.semantic_coloring = !app.semantic_coloring,
                                     4 => app.auto_save = !app.auto_save,
-                                    5 => app.preview_max_mb = cycle_preview_max_mb(app.preview_max_mb),
+                                    5 => {
+                                        app.preview_max_mb =
+                                            cycle_preview_max_mb(app.preview_max_mb)
+                                    }
                                     6 => {
                                         app.icon_mode = match app.icon_mode {
                                             IconMode::Nerd => IconMode::Unicode,
@@ -1009,9 +1253,15 @@ pub fn handle_modal_mouse(
                                             IconMode::ASCII => IconMode::Nerd,
                                         }
                                     }
+                                    7 => {
+                                        app.mode = AppMode::ResetSettingsConfirm;
+                                        app.input.clear();
+                                    }
                                     _ => {}
                                 }
-                                let _ = crate::config::save_state(app);
+                                if app.settings_index != 7 {
+                                    let _ = crate::config::save_state(app);
+                                }
                             }
                         }
                         SettingsSection::Columns => {
@@ -1051,10 +1301,26 @@ pub fn handle_modal_mouse(
                             }
                         }
                         SettingsSection::Style => {
-                            if rel_y < 6 {
+                            if rel_y < 9 {
                                 app.settings_index = rel_y as usize;
-                                cycle_style_setting(app.settings_index);
-                                let _ = crate::config::save_state(app);
+                                if app.settings_index == 0 {
+                                    crate::ui::theme::set_style_settings(
+                                        crate::ui::theme::ThemeStyle::preset_warm(),
+                                    );
+                                    let _ = crate::config::save_state(app);
+                                } else if app.settings_index == 1 {
+                                    crate::ui::theme::set_style_settings(
+                                        crate::ui::theme::ThemeStyle::preset_warm(),
+                                    );
+                                    let _ = crate::config::save_state(app);
+                                } else if app.settings_index == 2 {
+                                    crate::ui::theme::set_style_settings(
+                                        crate::ui::theme::ThemeStyle::preset_cool(),
+                                    );
+                                    let _ = crate::config::save_state(app);
+                                } else {
+                                    open_style_color_input(app);
+                                }
                             }
                         }
                         _ => {}
@@ -1184,10 +1450,10 @@ pub fn handle_modal_mouse(
 mod tests {
     use super::*;
     use crate::app::{App, AppMode};
+    use dracon_tui_contracts::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
     use terma::compositor::engine::TilePlacement;
-    use terma::input::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
     use tokio::sync::mpsc;
 
     fn test_app() -> App {

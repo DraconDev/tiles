@@ -459,20 +459,26 @@ pub fn draw_rename_modal(f: &mut Frame, app: &App) {
                 Line::from(vec![
                     Span::styled(
                         stem_part,
-                        Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black),
+                        Style::default()
+                            .bg(crate::ui::theme::accent_primary())
+                            .fg(Color::Black),
                     ),
                     Span::raw(ext_part),
                 ])
             } else {
                 Line::from(vec![Span::styled(
                     &app.input.value,
-                    Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black),
+                    Style::default()
+                        .bg(crate::ui::theme::accent_primary())
+                        .fg(Color::Black),
                 )])
             }
         } else {
             Line::from(vec![Span::styled(
                 &app.input.value,
-                Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black),
+                Style::default()
+                    .bg(crate::ui::theme::accent_primary())
+                    .fg(Color::Black),
             )])
         };
         f.render_widget(Paragraph::new(text), inner);
@@ -572,11 +578,17 @@ pub fn draw_properties_modal(f: &mut Frame, app: &App) {
             .unwrap_or_default();
 
         text.push(Line::from(vec![
-            Span::styled("Name: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+            Span::styled(
+                "Name: ",
+                Style::default().fg(crate::ui::theme::accent_secondary()),
+            ),
             Span::raw(name),
         ]));
         text.push(Line::from(vec![
-            Span::styled("Location: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+            Span::styled(
+                "Location: ",
+                Style::default().fg(crate::ui::theme::accent_secondary()),
+            ),
             Span::raw(parent),
         ]));
         text.push(Line::from(""));
@@ -584,23 +596,38 @@ pub fn draw_properties_modal(f: &mut Frame, app: &App) {
         if let Some(meta) = fs.metadata.get(target_path) {
             let type_str = if meta.is_dir { "Folder" } else { "File" };
             text.push(Line::from(vec![
-                Span::styled("Type: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                Span::styled(
+                    "Type: ",
+                    Style::default().fg(crate::ui::theme::accent_secondary()),
+                ),
                 Span::raw(type_str),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Size: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                Span::styled(
+                    "Size: ",
+                    Style::default().fg(crate::ui::theme::accent_secondary()),
+                ),
                 Span::raw(format_size(meta.size)),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Modified: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                Span::styled(
+                    "Modified: ",
+                    Style::default().fg(crate::ui::theme::accent_secondary()),
+                ),
                 Span::raw(format_time(meta.modified)),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Created: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                Span::styled(
+                    "Created: ",
+                    Style::default().fg(crate::ui::theme::accent_secondary()),
+                ),
                 Span::raw(format_time(meta.created)),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Permissions: ", Style::default().fg(crate::ui::theme::accent_secondary())),
+                Span::styled(
+                    "Permissions: ",
+                    Style::default().fg(crate::ui::theme::accent_secondary()),
+                ),
                 Span::raw(format_permissions(meta.permissions)),
             ]));
         }

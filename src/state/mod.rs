@@ -1,10 +1,10 @@
+use dracon_tui_contracts::UiEvent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 use terma::widgets::TextEditor;
 
-pub use terma::system::{DiskInfo, ProcessInfo, SystemData};
+pub use terma::system::{DiskInfo, ProcessInfo};
 pub use terma::utils::{FileCategory, FileColumn, IconMode, SelectionState};
 
 #[allow(dead_code)]
@@ -27,7 +27,7 @@ pub enum AppEvent {
     AddToFavorites(PathBuf),
     ConnectToRemote(usize, usize),
     RemoteConnected(usize, RemoteSession),
-    SystemUpdated(SystemData),
+    SystemUpdated(dracon_system::SystemSnapshot),
     MountDisk(String),
     KillProcess(u32),
     GitHistoryUpdated(
@@ -56,7 +56,8 @@ pub enum AppEvent {
         args: Vec<String>,
     },
     Editor,
-    Raw(terma::input::event::Event),
+    Ui(UiEvent),
+    Raw(dracon_tui_contracts::InputEvent),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -66,6 +67,7 @@ pub enum CurrentView {
     Commit,
     Git,
     Processes,
+    Debug,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -154,6 +156,8 @@ pub enum AppMode {
     DeleteFile(PathBuf),
     Search,
     CommandPalette,
+    StyleColorInput,
+    ResetSettingsConfirm,
     AddRemote(usize),
     ImportServers,
     Viewer,
@@ -243,9 +247,8 @@ pub struct RemoteSession {
     pub host: String,
     pub user: String,
     pub name: String,
-    #[serde(skip)]
-    #[allow(dead_code)]
-    pub session: Option<Arc<Mutex<ssh2::Session>>>,
+    pub port: u16,
+    pub key_path: Option<PathBuf>,
 }
 
 impl std::fmt::Debug for RemoteSession {

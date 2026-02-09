@@ -1,5 +1,5 @@
 use crate::app::{App, AppEvent, AppMode, CurrentView};
-use terma::input::event::{Event, KeyCode, MouseButton, MouseEventKind};
+use dracon_tui_contracts::{InputEvent as Event, KeyCode, MouseButton, MouseEventKind};
 use tokio::sync::mpsc;
 
 pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
@@ -13,8 +13,10 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
                         // Priority 1: Pending changes (Diff)
                         if let Some(idx) = fs.git_pending_state.selected() {
                             if let Some(change) = fs.git_pending.get(idx) {
-                                open_preview =
-                                    Some(std::path::PathBuf::from(format!("git-diff://{}", change.path)));
+                                open_preview = Some(std::path::PathBuf::from(format!(
+                                    "git-diff://{}",
+                                    change.path
+                                )));
                             }
                         }
                         // Priority 2: History (Commit)
@@ -30,7 +32,8 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
                         }
                     }
                     if let Some(path) = open_preview {
-                        let _ = event_tx.try_send(AppEvent::PreviewRequested(app.focused_pane_index, path));
+                        let _ = event_tx
+                            .try_send(AppEvent::PreviewRequested(app.focused_pane_index, path));
                         if open_commit_view {
                             app.current_view = CurrentView::Commit;
                             app.mode = AppMode::Viewer;
@@ -47,7 +50,7 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
 }
 
 pub fn handle_git_mouse(
-    me: &terma::input::event::MouseEvent,
+    me: &dracon_tui_contracts::MouseEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -61,16 +64,27 @@ pub fn handle_git_mouse(
             let top_h = if pending.is_empty() && remotes.is_empty() && stashes.is_empty() {
                 0
             } else {
-                let p_len = if pending.is_empty() { 0 } else { pending.len() as u16 + 2 };
-                let i_len = if remotes.is_empty() && stashes.is_empty() { 0 } else { 6 };
+                let p_len = if pending.is_empty() {
+                    0
+                } else {
+                    pending.len() as u16 + 2
+                };
+                let i_len = if remotes.is_empty() && stashes.is_empty() {
+                    0
+                } else {
+                    6
+                };
                 p_len.max(i_len).min(inner_h / 3)
             };
-            
+
             let inner_y = 1; // Top border
             let active_data_start_y = inner_y + 1;
-            
+
             // 1. Check if click is in ACTIVE section
-            if !pending.is_empty() && row >= active_data_start_y && row < active_data_start_y + top_h.saturating_sub(1) {
+            if !pending.is_empty()
+                && row >= active_data_start_y
+                && row < active_data_start_y + top_h.saturating_sub(1)
+            {
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                     if let Some(tab) = pane.tabs.get_mut(pane.active_tab_index) {
                         let rel_row = (row - active_data_start_y) as usize;

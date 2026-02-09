@@ -1,4 +1,4 @@
-pub mod sidebar;
 pub mod breadcrumbs;
-pub mod files;
 pub mod editor;
+pub mod files;
+pub mod sidebar;
