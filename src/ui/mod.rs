@@ -2862,17 +2862,49 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                 0
             };
             let total_count = fs.files.len();
+            let selected_bytes = if !fs.selection.is_empty() {
+                let mut sum = 0u64;
+                for &idx in fs.selection.multi_selected_indices() {
+                    if let Some(path) = fs.files.get(idx) {
+                        if let Some(meta) = fs.metadata.get(path) {
+                            if !meta.is_dir {
+                                sum = sum.saturating_add(meta.size);
+                            }
+                        }
+                    }
+                }
+                sum
+            } else if let Some(idx) = fs.selection.selected {
+                if let Some(path) = fs.files.get(idx) {
+                    fs.metadata
+                        .get(path)
+                        .map(|m| if m.is_dir { 0 } else { m.size })
+                        .unwrap_or(0)
+                } else {
+                    0
+                }
+            } else {
+                0
+            };
             let pane_label = format!("P{}", app.focused_pane_index + 1);
             let focus_label = if app.sidebar_focus { "SIDEBAR" } else { "FILES" };
             let summary_w = top_chunks[1].width as usize;
+            let size_tag = if sel_count > 1 {
+                format!(" {}", format_size(selected_bytes))
+            } else {
+                String::new()
+            };
             let full_summary = format!(
                 " {} {}  SEL: {} / {} ",
                 pane_label, focus_label, sel_count, total_count
             );
+            let full_with_size = format!("{}{} ", full_summary.trim_end(), size_tag.trim_end());
             let medium_summary = format!(" {} {}  {} / {} ", pane_label, focus_label, sel_count, total_count);
             let compact_focus = if app.sidebar_focus { "SB" } else { "F" };
             let compact_summary = format!(" {} {} {}/{} ", pane_label, compact_focus, sel_count, total_count);
-            let summary = if full_summary.width() <= summary_w {
+            let summary = if !size_tag.is_empty() && full_with_size.width() <= summary_w {
+                full_with_size
+            } else if full_summary.width() <= summary_w {
                 full_summary
             } else if medium_summary.width() <= summary_w {
                 medium_summary
