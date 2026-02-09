@@ -145,7 +145,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let current_storage_header_idx = sidebar_items.len();
             let storage_icon = Icon::Storage.get(app.icon_mode);
             let mut storage_style = Style::default()
-                .fg(Color::Rgb(185, 210, 235))
+                .fg(Color::Rgb(230, 205, 150))
                 .add_modifier(Modifier::BOLD);
             if app.sidebar_index == current_storage_header_idx {
                 storage_style = storage_style.bg(selection_bg).fg(Color::Black);
