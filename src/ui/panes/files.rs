@@ -315,7 +315,9 @@ pub fn draw_file_view(
                             .fg(Color::Black)
                             .add_modifier(Modifier::BOLD)
                     } else if is_multi_selected {
-                        Style::default().fg(Color::Black)
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::BOLD)
                     } else if is_hovered_drop {
                         Style::default()
                             .fg(Color::Black)
