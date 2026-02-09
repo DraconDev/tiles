@@ -282,7 +282,7 @@ pub fn draw_file_view(
             if is_selected {
                 row_bg_style = row_bg_style.bg(THEME.selection_bg);
             } else if is_multi_selected {
-                row_bg_style = row_bg_style.bg(Color::Rgb(62, 66, 84));
+                row_bg_style = row_bg_style.bg(Color::Rgb(78, 58, 112));
             } else if is_hovered_drop {
                 row_bg_style = row_bg_style.bg(THEME.accent_secondary);
             } else if let Some(&c) = app.path_colors.get(path) {
