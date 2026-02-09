@@ -444,11 +444,18 @@ fn handle_generic_editor_shortcuts(
         return true;
     }
 
-    if has_control && (key.code == KeyCode::Char('z') || key.code == KeyCode::Char('Z')) {
+    if has_control
+        && !key.modifiers.contains(KeyModifiers::SHIFT)
+        && key.code == KeyCode::Char('z')
+    {
         editor.handle_event(evt, area);
         return true;
     }
-    if has_control && (key.code == KeyCode::Char('y') || key.code == KeyCode::Char('Y')) {
+    if has_control
+        && (key.code == KeyCode::Char('y')
+            || key.code == KeyCode::Char('Y')
+            || key.code == KeyCode::Char('Z'))
+    {
         editor.handle_event(evt, area);
         return true;
     }
