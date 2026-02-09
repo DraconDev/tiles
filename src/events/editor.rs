@@ -35,6 +35,28 @@ fn pane_editor_area(app: &App, pane_idx: usize) -> Option<ratatui::layout::Rect>
     Some(inner)
 }
 
+fn commit_editor_area(app: &App) -> ratatui::layout::Rect {
+    use ratatui::layout::{Constraint, Direction, Layout, Rect};
+    use ratatui::widgets::{Block, Borders};
+
+    let (w, h) = app.terminal_size;
+    let area = Rect::new(0, 0, w, h);
+    let outer = Block::default().borders(Borders::ALL);
+    let inner = outer.inner(area);
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(2),
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Min(0),
+        ])
+        .split(inner);
+    let content_block = Block::default().borders(Borders::ALL);
+    content_block.inner(layout[4])
+}
+
 pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     let key = match evt {
         Event::Key(k) => k,
@@ -115,9 +137,12 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
                     return true;
                 }
 
-                let (w, h) = app.terminal_size;
-                let editor_area =
-                    ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
+                let editor_area = if app.current_view == CurrentView::Commit {
+                    commit_editor_area(app)
+                } else {
+                    let (w, h) = app.terminal_size;
+                    ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2))
+                };
 
                 let mut clipboard = app.editor_clipboard.clone();
                 let auto_save = app.auto_save;
@@ -175,8 +200,11 @@ pub fn handle_editor_mouse(
     {
         if let Some(preview) = &mut app.editor_state {
             if let Some(editor) = &mut preview.editor {
-                let editor_area =
-                    ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2));
+                let editor_area = if app.current_view == CurrentView::Commit {
+                    commit_editor_area(app)
+                } else {
+                    ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2))
+                };
 
                 // Header buttons
                 if row == 0 {
