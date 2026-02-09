@@ -2485,7 +2485,7 @@ fn draw_file_view(
             if is_selected {
                 row_bg_style = row_bg_style.bg(Color::Rgb(0, 150, 255));
             } else if is_multi_selected {
-                row_bg_style = row_bg_style.bg(Color::Rgb(150, 40, 40));
+                row_bg_style = row_bg_style.bg(Color::Rgb(0, 95, 170));
             } else if is_hovered_drop {
                 row_bg_style = row_bg_style.bg(THEME.accent_secondary);
             } else if let Some(&c) = app.path_colors.get(path) {
