@@ -3646,6 +3646,7 @@ fn draw_settings_modal(f: &mut Frame, app: &App) {
         ListItem::new(" 󰟜  Columns "),
         ListItem::new(" 󰓩  Tabs "),
         ListItem::new(" 󰒓  General "),
+        ListItem::new(" 󰸌  Style "),
         ListItem::new(" 󰒍  Remotes "),
         ListItem::new(" 󰌌  Shortcuts "),
     ];
@@ -3654,8 +3655,9 @@ fn draw_settings_modal(f: &mut Frame, app: &App) {
         SettingsSection::Columns => 0,
         SettingsSection::Tabs => 1,
         SettingsSection::General => 2,
-        SettingsSection::Remotes => 3,
-        SettingsSection::Shortcuts => 4,
+        SettingsSection::Style => 3,
+        SettingsSection::Remotes => 4,
+        SettingsSection::Shortcuts => 5,
     };
     let items: Vec<ListItem> = sections
         .into_iter()
@@ -3685,6 +3687,7 @@ fn draw_settings_modal(f: &mut Frame, app: &App) {
         SettingsSection::Columns => draw_column_settings(f, chunks[1], app),
         SettingsSection::Tabs => draw_tab_settings(f, chunks[1], app),
         SettingsSection::General => draw_general_settings(f, chunks[1], app),
+        SettingsSection::Style => draw_style_settings(f, chunks[1], app),
         SettingsSection::Remotes => draw_remote_settings(f, chunks[1], app),
         SettingsSection::Shortcuts => draw_shortcuts_settings(f, chunks[1], app),
     }
@@ -4062,6 +4065,61 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
             .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
     )
     .column_spacing(2);
+
+    f.render_widget(table, area);
+}
+
+fn draw_style_settings(f: &mut Frame, area: Rect, app: &App) {
+    let style = crate::ui::theme::style_settings();
+    let rows_data = vec![
+        ("Accent Primary", style.accent_primary),
+        ("Accent Secondary", style.accent_secondary),
+        ("Selection Background", style.selection_bg),
+        ("Border Active", style.border_active),
+        ("Border Inactive", style.border_inactive),
+        ("Header Accent", style.header_fg),
+    ];
+
+    let rows: Vec<_> = rows_data
+        .iter()
+        .enumerate()
+        .map(|(i, (label, rgb))| {
+            let is_selected = i == app.settings_index && app.settings_section == SettingsSection::Style;
+            let mut left_style = Style::default().fg(THEME.fg);
+            let mut value_style = Style::default().fg(Color::Rgb(rgb.r, rgb.g, rgb.b));
+            if is_selected {
+                left_style = left_style
+                    .bg(crate::ui::theme::accent_primary())
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD);
+                value_style = value_style
+                    .bg(crate::ui::theme::accent_primary())
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD);
+            }
+            Row::new(vec![
+                Cell::from(format!("  {}", label)).style(left_style),
+                Cell::from("■").style(value_style),
+                Cell::from(format!("rgb({}, {}, {})", rgb.r, rgb.g, rgb.b)).style(value_style),
+            ])
+        })
+        .collect();
+
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Fill(1),
+            Constraint::Length(3),
+            Constraint::Length(20),
+        ],
+    )
+    .block(
+        Block::default()
+            .title(" STYLE (Enter to cycle, R to reset) ")
+            .borders(Borders::TOP)
+            .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
+    )
+    .column_spacing(1);
 
     f.render_widget(table, area);
 }

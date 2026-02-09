@@ -35,6 +35,8 @@ pub struct PersistentState {
     pub default_show_hidden: bool,
     #[serde(default = "default_preview_max_mb")]
     pub preview_max_mb: u16,
+    #[serde(default)]
+    pub theme_style: Option<crate::ui::theme::ThemeStyle>,
 }
 
 fn default_true() -> bool {
@@ -87,6 +89,7 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
         show_side_panel: app.show_side_panel,
         default_show_hidden: app.default_show_hidden,
         preview_max_mb: app.preview_max_mb,
+        theme_style: Some(crate::ui::theme::style_settings()),
     };
 
     let config_dir = dirs::config_dir()

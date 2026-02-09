@@ -129,6 +129,7 @@ pub enum SettingsSection {
     Tabs,
     Remotes,
     Shortcuts,
+    Style,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

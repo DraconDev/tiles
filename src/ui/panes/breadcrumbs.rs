@@ -11,7 +11,6 @@ use unicode_width::UnicodeWidthStr;
 use crate::app::{
     App, AppMode, CurrentView, DropTarget,
 };
-use crate::ui::theme::THEME;
 use terma::utils::{
     get_visual_width, squarify, truncate_to_width,
 };

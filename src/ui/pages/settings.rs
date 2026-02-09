@@ -42,6 +42,7 @@ pub fn draw_settings_modal(f: &mut Frame, app: &App) {
         ListItem::new(" 󰟜  Columns "),
         ListItem::new(" 󰓩  Tabs "),
         ListItem::new(" 󰒓  General "),
+        ListItem::new(" 󰸌  Style "),
         ListItem::new(" 󰒍  Remotes "),
         ListItem::new(" 󰌌  Shortcuts "),
     ];
@@ -50,8 +51,9 @@ pub fn draw_settings_modal(f: &mut Frame, app: &App) {
         SettingsSection::Columns => 0,
         SettingsSection::Tabs => 1,
         SettingsSection::General => 2,
-        SettingsSection::Remotes => 3,
-        SettingsSection::Shortcuts => 4,
+        SettingsSection::Style => 3,
+        SettingsSection::Remotes => 4,
+        SettingsSection::Shortcuts => 5,
     };
     let items: Vec<ListItem> = sections
         .into_iter()
@@ -81,9 +83,16 @@ pub fn draw_settings_modal(f: &mut Frame, app: &App) {
         SettingsSection::Columns => draw_column_settings(f, chunks[1], app),
         SettingsSection::Tabs => draw_tab_settings(f, chunks[1], app),
         SettingsSection::General => draw_general_settings(f, chunks[1], app),
+        SettingsSection::Style => draw_style_settings(f, chunks[1], app),
         SettingsSection::Remotes => draw_remote_settings(f, chunks[1], app),
         SettingsSection::Shortcuts => draw_shortcuts_settings(f, chunks[1], app),
     }
+}
+
+fn draw_style_settings(f: &mut Frame, area: Rect, _app: &App) {
+    let p = Paragraph::new("Style settings are managed in the main settings renderer.")
+        .style(Style::default().fg(Color::DarkGray));
+    f.render_widget(p, area);
 }
 
 fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {

@@ -21,6 +21,42 @@ fn cycle_preview_max_mb(current: u16) -> u16 {
     }
 }
 
+fn style_palette() -> [crate::ui::theme::RgbColor; 8] {
+    [
+        crate::ui::theme::RgbColor::new(168, 118, 255), // Purple
+        crate::ui::theme::RgbColor::new(120, 186, 255), // Ice Blue
+        crate::ui::theme::RgbColor::new(94, 215, 176),  // Mint
+        crate::ui::theme::RgbColor::new(255, 176, 72),  // Amber
+        crate::ui::theme::RgbColor::new(255, 122, 168), // Pink
+        crate::ui::theme::RgbColor::new(209, 163, 255), // Lilac
+        crate::ui::theme::RgbColor::new(135, 148, 176), // Slate
+        crate::ui::theme::RgbColor::new(228, 140, 210), // Magenta
+    ]
+}
+
+fn next_palette_color(current: crate::ui::theme::RgbColor) -> crate::ui::theme::RgbColor {
+    let palette = style_palette();
+    let idx = palette
+        .iter()
+        .position(|c| c.r == current.r && c.g == current.g && c.b == current.b)
+        .unwrap_or(0);
+    palette[(idx + 1) % palette.len()]
+}
+
+fn cycle_style_setting(index: usize) {
+    let mut style = crate::ui::theme::style_settings();
+    match index {
+        0 => style.accent_primary = next_palette_color(style.accent_primary),
+        1 => style.accent_secondary = next_palette_color(style.accent_secondary),
+        2 => style.selection_bg = next_palette_color(style.selection_bg),
+        3 => style.border_active = next_palette_color(style.border_active),
+        4 => style.border_inactive = next_palette_color(style.border_inactive),
+        5 => style.header_fg = next_palette_color(style.header_fg),
+        _ => {}
+    }
+    crate::ui::theme::set_style_settings(style);
+}
+
 fn handle_modal_keys(
     key: &terma::input::event::KeyEvent,
     app: &mut App,
@@ -706,13 +742,25 @@ fn handle_settings_keys(
             true
         }
         KeyCode::Char('4') => {
-            app.settings_section = SettingsSection::Remotes;
+            app.settings_section = SettingsSection::Style;
             app.settings_index = 0;
             true
         }
         KeyCode::Char('5') => {
+            app.settings_section = SettingsSection::Remotes;
+            app.settings_index = 0;
+            true
+        }
+        KeyCode::Char('6') => {
             app.settings_section = SettingsSection::Shortcuts;
             app.settings_index = 0;
+            true
+        }
+        KeyCode::Char('r') | KeyCode::Char('R')
+            if app.settings_section == SettingsSection::Style =>
+        {
+            crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::default_purple());
+            let _ = crate::config::save_state(app);
             true
         }
         KeyCode::Up => {
@@ -723,6 +771,7 @@ fn handle_settings_keys(
             let max = match app.settings_section {
                 SettingsSection::General => 6,
                 SettingsSection::Columns => 3,
+                SettingsSection::Style => 5,
                 _ => 0,
             };
             if app.settings_index < max {
@@ -768,6 +817,10 @@ fn handle_settings_keys(
                     } else {
                         target_set.push(col);
                     }
+                    let _ = crate::config::save_state(app);
+                }
+                SettingsSection::Style => {
+                    cycle_style_setting(app.settings_index);
                     let _ = crate::config::save_state(app);
                 }
                 _ => {}
@@ -927,8 +980,9 @@ pub fn handle_modal_mouse(
                         0 => app.settings_section = SettingsSection::Columns,
                         1 => app.settings_section = SettingsSection::Tabs,
                         2 => app.settings_section = SettingsSection::General,
-                        3 => app.settings_section = SettingsSection::Remotes,
-                        4 => app.settings_section = SettingsSection::Shortcuts,
+                        3 => app.settings_section = SettingsSection::Style,
+                        4 => app.settings_section = SettingsSection::Remotes,
+                        5 => app.settings_section = SettingsSection::Shortcuts,
                         _ => {}
                     }
                     app.settings_index = 0;
@@ -994,6 +1048,13 @@ pub fn handle_modal_mouse(
                                     }
                                     let _ = crate::config::save_state(app);
                                 }
+                            }
+                        }
+                        SettingsSection::Style => {
+                            if rel_y < 6 {
+                                app.settings_index = rel_y as usize;
+                                cycle_style_setting(app.settings_index);
+                                let _ = crate::config::save_state(app);
                             }
                         }
                         _ => {}

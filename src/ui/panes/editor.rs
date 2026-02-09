@@ -11,7 +11,6 @@ use ratatui::{
 use crate::app::{
     App,
 };
-use crate::ui::theme::THEME;
 
 pub fn draw_ide_editor(f: &mut Frame, area: Rect, app: &mut App) {
     let pc = app.panes.len();

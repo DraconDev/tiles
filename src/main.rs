@@ -969,6 +969,9 @@ fn setup_app(
         app.show_side_panel = state.show_side_panel;
         app.default_show_hidden = state.default_show_hidden;
         app.preview_max_mb = state.preview_max_mb.max(1);
+        if let Some(theme_style) = state.theme_style {
+            crate::ui::theme::set_style_settings(theme_style);
+        }
     }
 
     let app_arc = Arc::new(Mutex::new(app));
