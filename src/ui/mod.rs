@@ -2544,7 +2544,7 @@ fn draw_file_view(
             if is_selected {
                 row_bg_style = row_bg_style.bg(Color::Rgb(0, 150, 255));
             } else if is_multi_selected {
-                row_bg_style = row_bg_style.bg(Color::Rgb(88, 70, 130));
+                row_bg_style = row_bg_style.bg(Color::Rgb(165, 120, 45));
             } else if is_hovered_drop {
                 row_bg_style = row_bg_style.bg(THEME.accent_secondary);
             } else if let Some(&c) = app.path_colors.get(path) {
@@ -3004,7 +3004,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         "CPU",
         app.system_state.cpu_usage,
         100.0,
-        THEME.accent_secondary,
+        Color::Rgb(80, 200, 255),
         Color::Yellow,
         Color::DarkGray,
     );
