@@ -145,7 +145,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let current_storage_header_idx = sidebar_items.len();
             let storage_icon = Icon::Storage.get(app.icon_mode);
             let mut storage_style = Style::default()
-                .fg(THEME.accent_secondary)
+                .fg(Color::Rgb(185, 210, 235))
                 .add_modifier(Modifier::BOLD);
             if app.sidebar_index == current_storage_header_idx {
                 storage_style = storage_style.bg(selection_bg).fg(Color::Black);
@@ -181,7 +181,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let mut name_style = if !disk.is_mounted {
                     Style::default().fg(Color::DarkGray)
                 } else {
-                    Style::default().fg(Color::Green)
+                    Style::default().fg(Color::White)
                 };
                 if is_selected {
                     name_style = name_style
@@ -206,7 +206,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     spans.push(Span::styled(
                         format!("{}| ", m_str),
                         Style::default()
-                            .fg(THEME.accent_primary)
+                            .fg(Color::Magenta)
                             .add_modifier(Modifier::BOLD),
                     ));
                 }
@@ -214,10 +214,26 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let disk_icon = Icon::Storage.get(app.icon_mode);
                 if disk.is_mounted {
                     let available = (disk.available_space / 1_073_741_824.0).round() as u64;
+                    let free_ratio = if disk.total_space > 0.0 {
+                        disk.available_space / disk.total_space
+                    } else {
+                        0.0
+                    };
+                    let mut free_style = if free_ratio < 0.15 {
+                        Style::default().fg(Color::Red)
+                    } else if free_ratio < 0.35 {
+                        Style::default().fg(Color::Yellow)
+                    } else {
+                        Style::default().fg(Color::Green)
+                    };
+                    if is_selected {
+                        free_style = free_style.fg(Color::Black).add_modifier(Modifier::BOLD);
+                    }
                     spans.push(Span::styled(
-                        format!("{}{}: {}G Free", disk_icon, display_name, available),
+                        format!("{}{}: ", disk_icon, display_name),
                         name_style,
                     ));
+                    spans.push(Span::styled(format!("{}G Free", available), free_style));
                 } else {
                     spans.push(Span::styled(
                         format!("{}{}(Not mounted)", disk_icon, disk.name),
