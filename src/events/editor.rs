@@ -250,38 +250,40 @@ pub fn handle_editor_mouse(
         if pw == 0 {
             return false;
         }
-        let mut cp = (column.saturating_sub(sw) / pw) as usize;
-        if cp >= pc {
-            cp = pc - 1;
-        }
-
-        if cp < pc {
-            let pane_idx = cp;
-            app.focused_pane_index = pane_idx;
+        let pane_idx = if matches!(me.kind, MouseEventKind::Down(_)) {
+            let mut cp = (column.saturating_sub(sw) / pw) as usize;
+            if cp >= pc {
+                cp = pc - 1;
+            }
+            app.focused_pane_index = cp;
             app.sidebar_focus = false;
-            let Some(editor_area) = pane_editor_area(app, pane_idx) else {
-                return false;
-            };
+            cp
+        } else {
+            app.focused_pane_index.min(pc - 1)
+        };
 
-            if let Some(pane) = app.panes.get_mut(pane_idx) {
-                if let Some(preview) = &mut pane.preview {
-                    if let Some(editor) = &mut preview.editor {
-                        let mut clipboard = app.editor_clipboard.clone();
-                        let handled = handle_text_editor_mouse(
-                            me,
-                            editor,
-                            &mut clipboard,
-                            &mut app.mouse_last_click,
-                            &mut app.mouse_click_pos,
-                            &mut app.mouse_click_count,
-                            app.auto_save,
-                            editor_area,
-                            event_tx,
-                            &preview.path,
-                        );
-                        app.editor_clipboard = clipboard;
-                        return handled;
-                    }
+        let Some(editor_area) = pane_editor_area(app, pane_idx) else {
+            return false;
+        };
+
+        if let Some(pane) = app.panes.get_mut(pane_idx) {
+            if let Some(preview) = &mut pane.preview {
+                if let Some(editor) = &mut preview.editor {
+                    let mut clipboard = app.editor_clipboard.clone();
+                    let handled = handle_text_editor_mouse(
+                        me,
+                        editor,
+                        &mut clipboard,
+                        &mut app.mouse_last_click,
+                        &mut app.mouse_click_pos,
+                        &mut app.mouse_click_count,
+                        app.auto_save,
+                        editor_area,
+                        event_tx,
+                        &preview.path,
+                    );
+                    app.editor_clipboard = clipboard;
+                    return handled;
                 }
             }
         }
