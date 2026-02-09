@@ -189,7 +189,9 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         }
                         return true;
                     }
-                    KeyCode::Char('z') if has_control => {
+                    KeyCode::Char('z')
+                        if has_control && !key.modifiers.contains(KeyModifiers::SHIFT) =>
+                    {
                         if let Some(action) = app.undo_stack.pop() {
                             match action.clone() {
                                 UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
