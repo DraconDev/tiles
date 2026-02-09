@@ -129,6 +129,12 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
 
     // 3. Full-Screen Editor/Viewer Priority
     if let AppMode::Editor | AppMode::Viewer = app.mode {
+        let editor_area = if app.current_view == CurrentView::Commit {
+            commit_editor_area(app)
+        } else {
+            let (w, h) = app.terminal_size;
+            ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2))
+        };
         if let Some(preview) = &mut app.editor_state {
             if let Some(editor) = &mut preview.editor {
                 if key.code == KeyCode::Esc {
@@ -136,13 +142,6 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
                     app.editor_state = None;
                     return true;
                 }
-
-                let editor_area = if app.current_view == CurrentView::Commit {
-                    commit_editor_area(app)
-                } else {
-                    let (w, h) = app.terminal_size;
-                    ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2))
-                };
 
                 let mut clipboard = app.editor_clipboard.clone();
                 let auto_save = app.auto_save;
@@ -198,14 +197,13 @@ pub fn handle_editor_mouse(
     | AppMode::EditorReplace
     | AppMode::EditorGoToLine = app.mode
     {
+        let editor_area = if app.current_view == CurrentView::Commit {
+            commit_editor_area(app)
+        } else {
+            ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2))
+        };
         if let Some(preview) = &mut app.editor_state {
             if let Some(editor) = &mut preview.editor {
-                let editor_area = if app.current_view == CurrentView::Commit {
-                    commit_editor_area(app)
-                } else {
-                    ratatui::layout::Rect::new(1, 1, w.saturating_sub(2), h.saturating_sub(2))
-                };
-
                 // Header buttons
                 if row == 0 {
                     if let MouseEventKind::Down(MouseButton::Left) = me.kind {
