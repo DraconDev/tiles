@@ -137,6 +137,10 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                 }
 
                 match key.code {
+                    KeyCode::F(5) => {
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        return true;
+                    }
                     KeyCode::Char('c') if has_control => {
                         if let Some(fs) = app.current_file_state() {
                             if let Some(idx) = fs.selection.selected {
@@ -214,6 +218,44 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         return true;
                     }
                     KeyCode::Char('y') if has_control => {
+                        if let Some(action) = app.redo_stack.pop() {
+                            match action.clone() {
+                                UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
+                                    let _ = std::fs::rename(&old, &new);
+                                    app.undo_stack.push(action);
+                                }
+                                UndoAction::Copy(src, dest) => {
+                                    let _ = crate::modules::files::copy_recursive(&src, &dest);
+                                    app.undo_stack.push(action);
+                                }
+                                _ => {}
+                            }
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                        }
+                        return true;
+                    }
+                    KeyCode::Char('z')
+                        if has_control && key.modifiers.contains(KeyModifiers::SHIFT) =>
+                    {
+                        if let Some(action) = app.redo_stack.pop() {
+                            match action.clone() {
+                                UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
+                                    let _ = std::fs::rename(&old, &new);
+                                    app.undo_stack.push(action);
+                                }
+                                UndoAction::Copy(src, dest) => {
+                                    let _ = crate::modules::files::copy_recursive(&src, &dest);
+                                    app.undo_stack.push(action);
+                                }
+                                _ => {}
+                            }
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+                        }
+                        return true;
+                    }
+                    KeyCode::Char('Z') if has_control => {
                         if let Some(action) = app.redo_stack.pop() {
                             match action.clone() {
                                 UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
