@@ -2542,9 +2542,9 @@ fn draw_file_view(
                 matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
 
             if is_selected {
-                row_bg_style = row_bg_style.bg(Color::Rgb(0, 150, 255));
+                row_bg_style = row_bg_style.bg(THEME.selection_bg);
             } else if is_multi_selected {
-                row_bg_style = row_bg_style.bg(Color::Rgb(165, 120, 45));
+                row_bg_style = row_bg_style.bg(Color::Rgb(62, 66, 84));
             } else if is_hovered_drop {
                 row_bg_style = row_bg_style.bg(THEME.accent_secondary);
             } else if let Some(&c) = app.path_colors.get(path) {
