@@ -103,9 +103,14 @@ pub fn draw_file_view(
             * 0.5
             + 0.5;
 
-        let r = (255.0 * (0.7 + 0.3 * pulse)) as u8;
-        let g = (0.0 * (0.7 + 0.3 * pulse)) as u8;
-        let b = (85.0 * (0.7 + 0.3 * pulse)) as u8;
+        let (base_r, base_g, base_b) = match THEME.border_active {
+            Color::Rgb(r, g, b) => (r as f32, g as f32, b as f32),
+            _ => (0.0, 150.0, 255.0),
+        };
+        let intensity = 0.7 + 0.3 * pulse;
+        let r = (base_r * intensity) as u8;
+        let g = (base_g * intensity) as u8;
+        let b = (base_b * intensity) as u8;
 
         Style::default()
             .fg(Color::Rgb(r, g, b))
