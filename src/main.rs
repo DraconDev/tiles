@@ -481,10 +481,24 @@ async fn run_tty() -> color_eyre::Result<()> {
                     ));
                 }
                 AppEvent::Rename(old, new) => {
-                    let _ = std::fs::rename(&old, &new);
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(
-                        app.lock().unwrap().focused_pane_index,
-                    ));
+                    match std::fs::rename(&old, &new) {
+                        Ok(_) => {
+                            let mut app_guard = app.lock().unwrap();
+                            // Undo should move the path back to its original location.
+                            app_guard
+                                .undo_stack
+                                .push(crate::app::UndoAction::Move(new.clone(), old.clone()));
+                            app_guard.redo_stack.clear();
+                            let _ = event_tx
+                                .try_send(AppEvent::RefreshFiles(app_guard.focused_pane_index));
+                        }
+                        Err(e) => {
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                "Rename failed: {}",
+                                e
+                            )));
+                        }
+                    }
                 }
                 AppEvent::Delete(path) => {
                     if path.is_dir() {
@@ -500,7 +514,14 @@ async fn run_tty() -> color_eyre::Result<()> {
                     let tx = event_tx.clone();
                     let app_clone = app.clone();
                     tokio::spawn(async move {
-                        let _ = terma::utils::copy_recursive(&src, &dest);
+                        let copied = terma::utils::copy_recursive(&src, &dest).is_ok();
+                        if copied {
+                            let mut app_guard = app_clone.lock().unwrap();
+                            app_guard
+                                .undo_stack
+                                .push(crate::app::UndoAction::Copy(src.clone(), dest.clone()));
+                            app_guard.redo_stack.clear();
+                        }
                         let mut panes_to_refresh = std::collections::HashSet::new();
                         if let Some(parent) = dest.parent() {
                             let app_guard = app_clone.lock().unwrap();
