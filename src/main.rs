@@ -675,6 +675,8 @@ async fn run_tty() -> color_eyre::Result<()> {
                     app_guard.save_current_view_prefs();
                     app_guard.current_view = CurrentView::Editor;
                     app_guard.load_view_prefs(CurrentView::Editor);
+                    // Editor opens single-pane by default for a focused editing flow.
+                    app_guard.apply_split_mode(false);
                     needs_draw = true;
                 }
                 AppEvent::StatusMsg(msg) => {
