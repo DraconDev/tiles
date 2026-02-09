@@ -2863,7 +2863,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
 
         let mut shortcuts = Vec::new();
         if app.current_view == CurrentView::Editor {
-            shortcuts.extend(HotkeyHint::render("Esc", "Back", THEME.accent_primary));
+            shortcuts.extend(HotkeyHint::render("Esc", "Back", Color::Red));
             shortcuts.extend(HotkeyHint::render("^B", "Sidebar", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::render("^P", "Split", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::render("^F", "Find", THEME.accent_secondary));
