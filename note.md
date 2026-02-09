@@ -2,7 +2,7 @@
 
 new file and folder doesnt work 
 
-esc on edit 
+esc on edit page should be in 
 
 ## Maybe
 
