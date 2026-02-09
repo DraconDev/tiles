@@ -307,6 +307,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         mut commit_hash,
         mut author,
         mut date,
+        mut subject,
         mut files_changed,
         mut additions,
         mut deletions,
@@ -315,11 +316,13 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         String::new(),
         String::new(),
         String::new(),
+        String::new(),
         0usize,
         0usize,
         0usize,
         0usize,
     );
+    let mut touched_files: Vec<String> = Vec::new();
 
     if let Some(preview) = &app.editor_state {
         for line in preview.content.lines() {
@@ -335,8 +338,28 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 date = line.trim_start_matches("Date:").trim().to_string();
                 continue;
             }
+            if subject.is_empty() && line.starts_with("    ") {
+                let candidate = line.trim();
+                if !candidate.is_empty() {
+                    subject = candidate.to_string();
+                    continue;
+                }
+            }
             if line.starts_with("diff --git ") {
                 files_changed += 1;
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 4 {
+                    let from = parts[2].trim_start_matches("a/");
+                    let to = parts[3].trim_start_matches("b/");
+                    let display = if from == to {
+                        to.to_string()
+                    } else {
+                        format!("{} -> {}", from, to)
+                    };
+                    if !touched_files.contains(&display) {
+                        touched_files.push(display);
+                    }
+                }
             } else if line.starts_with("@@") {
                 hunks += 1;
             } else if line.starts_with('+') && !line.starts_with("+++") {
@@ -357,6 +380,9 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
     if date.is_empty() {
         date = "unknown date".to_string();
+    }
+    if subject.is_empty() {
+        subject = "(no subject)".to_string();
     }
 
     let layout = Layout::default()
