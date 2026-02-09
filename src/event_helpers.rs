@@ -402,6 +402,44 @@ pub fn handle_context_menu_action(
                 }
             }
         }
+        ContextMenuAction::NewFile | ContextMenuAction::NewFolder => {
+            let mut target_dir = app.current_file_state().map(|fs| fs.current_path.clone());
+            match target {
+                ContextMenuTarget::Folder(idx) => {
+                    if let Some(fs) = app.current_file_state() {
+                        if let Some(p) = fs.files.get(*idx) {
+                            target_dir = Some(p.clone());
+                        }
+                    }
+                }
+                ContextMenuTarget::File(idx) => {
+                    if let Some(fs) = app.current_file_state() {
+                        if let Some(p) = fs.files.get(*idx) {
+                            target_dir = p.parent().map(|pp| pp.to_path_buf());
+                        }
+                    }
+                }
+                ContextMenuTarget::ProjectTree(path) => {
+                    if path.is_dir() {
+                        target_dir = Some(path.clone());
+                    } else {
+                        target_dir = path.parent().map(|pp| pp.to_path_buf());
+                    }
+                }
+                ContextMenuTarget::EmptySpace => {}
+                _ => {}
+            }
+            if let (Some(fs), Some(dir)) = (app.current_file_state_mut(), target_dir) {
+                fs.current_path = dir;
+            }
+            app.mode = if matches!(action, ContextMenuAction::NewFolder) {
+                AppMode::NewFolder
+            } else {
+                AppMode::NewFile
+            };
+            app.input.clear();
+            app.rename_selected = false;
+        }
         _ => {}
     }
 }
