@@ -1100,6 +1100,14 @@ pub fn handle_modal_mouse(
                     app.mode = AppMode::Normal;
                     return true;
                 }
+                if is_hit(24, 10) {
+                    for src in &sources {
+                        let dest = target.join(src.file_name().unwrap_or_default());
+                        let _ = event_tx.try_send(AppEvent::Symlink(src.clone(), dest));
+                    }
+                    app.mode = AppMode::Normal;
+                    return true;
+                }
                 if is_hit(36, 14) {
                     app.mode = AppMode::Normal;
                     return true;
@@ -1109,4 +1117,56 @@ pub fn handle_modal_mouse(
         _ => {}
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::{App, AppMode};
+    use std::path::PathBuf;
+    use std::sync::{Arc, Mutex};
+    use terma::compositor::engine::TilePlacement;
+    use terma::input::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+    use tokio::sync::mpsc;
+
+    fn test_app() -> App {
+        let queue: Arc<Mutex<Vec<TilePlacement>>> = Arc::new(Mutex::new(Vec::new()));
+        App::new(queue)
+    }
+
+    #[test]
+    fn drag_drop_link_click_emits_symlink_and_closes_modal() {
+        let (tx, mut rx) = mpsc::channel(8);
+        let mut app = test_app();
+        app.terminal_size = (100, 40);
+
+        let src = PathBuf::from("/tmp/src-file.txt");
+        let target = PathBuf::from("/tmp/dest-dir");
+        app.mode = AppMode::DragDropMenu {
+            sources: vec![src.clone()],
+            target: target.clone(),
+        };
+
+        let handled = handle_modal_mouse(
+            &MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 46, // Link button region for 100x40 terminal.
+                row: 20,
+                modifiers: KeyModifiers::empty(),
+            },
+            &mut app,
+            &tx,
+        );
+
+        assert!(handled);
+        assert!(matches!(app.mode, AppMode::Normal));
+
+        match rx.try_recv() {
+            Ok(AppEvent::Symlink(from, to)) => {
+                assert_eq!(from, src);
+                assert_eq!(to, target.join("src-file.txt"));
+            }
+            other => panic!("expected Symlink event, got {:?}", other),
+        }
+    }
 }
