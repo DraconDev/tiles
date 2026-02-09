@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use unicode_width::UnicodeWidthStr;
 
 use crate::app::{
-    App, AppMode, CurrentView,
+    App, AppMode, CurrentView, DropTarget,
 };
 use crate::ui::theme::THEME;
 use terma::utils::{
@@ -117,6 +117,14 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
             let mut style = Style::default().fg(fg_color);
             if is_last {
                 style = style.add_modifier(Modifier::BOLD);
+            }
+            if matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == &s_path)
+                && app.is_dragging
+            {
+                style = style
+                    .bg(THEME.accent_secondary)
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD);
             }
 
             let d_name_clipped = if d_name.len() > 15 && !is_last {

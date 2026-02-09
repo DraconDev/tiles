@@ -772,16 +772,32 @@ pub fn handle_file_mouse(
             if app.is_dragging {
                 let prev_target = app.hovered_drop_target.clone();
                 app.hovered_drop_target = None;
-                if row >= 3 && column >= sw {
-                    let idx = crate::event_helpers::fs_mouse_index(row, app);
+                if column >= sw {
                     if let Some(fs) = app.current_file_state() {
-                        if let Some(path) = fs.files.get(idx) {
-                            if path.is_dir() {
-                                // Prevent dropping into itself check?
-                                if let Some(src) = &app.drag_source {
-                                    if src != path {
-                                        app.hovered_drop_target =
-                                            Some(DropTarget::Folder(path.clone()));
+                        // Breadcrumb drop target (e.g., move to parent path quickly).
+                        if let Some((_, crumb_path)) = fs.breadcrumb_bounds.iter().find(|(r, _)| {
+                            r.contains(ratatui::layout::Position { x: column, y: row })
+                        }) {
+                            if let Some(src) = &app.drag_source {
+                                if src != crumb_path {
+                                    app.hovered_drop_target =
+                                        Some(DropTarget::Folder(crumb_path.clone()));
+                                }
+                            }
+                        }
+                    }
+
+                    // File row folder targets.
+                    if app.hovered_drop_target.is_none() && row >= 3 {
+                        let idx = crate::event_helpers::fs_mouse_index(row, app);
+                        if let Some(fs) = app.current_file_state() {
+                            if let Some(path) = fs.files.get(idx) {
+                                if path.is_dir() {
+                                    if let Some(src) = &app.drag_source {
+                                        if src != path {
+                                            app.hovered_drop_target =
+                                                Some(DropTarget::Folder(path.clone()));
+                                        }
                                     }
                                 }
                             }
