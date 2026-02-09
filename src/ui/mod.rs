@@ -2844,7 +2844,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                 left_spans.push(Span::styled(
                     format!(" {} ", target_desc),
                     Style::default()
-                        .fg(Color::Rgb(0, 255, 200))
+                        .fg(THEME.accent_secondary)
                         .add_modifier(Modifier::BOLD),
                 ));
             }
