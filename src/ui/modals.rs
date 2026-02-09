@@ -763,7 +763,7 @@ pub fn draw_confirm_reset_modal(f: &mut Frame, _area: Rect) {
         .title(" Reset Column Widths? ")
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Red));
+        .border_style(Style::default().fg(Color::Yellow));
     f.render_widget(
         Paragraph::new("Reset all columns to defaults? (y/Enter/n)").block(block),
         area,
