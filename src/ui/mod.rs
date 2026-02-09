@@ -2806,6 +2806,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         } else {
             shortcuts.extend(HotkeyHint::render("^P", "Split", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::render("^T", "Tab", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render("F5", "Refresh", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::render("^N", "TermTab", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::render("^K", "TermWin", THEME.accent_secondary));
             shortcuts.extend(HotkeyHint::render(
