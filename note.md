@@ -1,6 +1,6 @@
 ## Do
 
-also probably by default not have a second panel open, o
+also probably by default not have a second panel open, on editor
 
 ## Maybe
 
