@@ -18,7 +18,7 @@ use crate::icons::Icon;
 use crate::ui::theme::THEME;
 
 pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
-    let selection_bg = THEME.accent_primary;
+    let selection_bg = crate::ui::theme::accent_primary();
     let inner = area.inner(ratatui::layout::Margin {
         vertical: 1,
         horizontal: 1,
@@ -83,7 +83,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let is_selected = app.sidebar_index == current_idx;
             let is_drop_target = matches!(app.hovered_drop_target, Some(DropTarget::Favorites));
             let mut style = Style::default()
-                .fg(THEME.accent_secondary)
+                .fg(crate::ui::theme::accent_secondary())
                 .add_modifier(Modifier::BOLD);
             if is_selected || is_drop_target {
                 style = style.bg(selection_bg).fg(Color::Black);
@@ -120,7 +120,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .fg(Color::Black)
                         .add_modifier(Modifier::BOLD);
                 } else if is_hovered && app.is_dragging {
-                    style = style.bg(THEME.accent_secondary).fg(Color::Black);
+                    style = style.bg(crate::ui::theme::accent_secondary()).fg(Color::Black);
                 }
 
                 if app.is_dragging && app.mouse_pos.1 == current_y && app.mouse_pos.0 < area.width {
@@ -255,7 +255,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             current_y += 1;
             let current_header_idx = sidebar_items.len();
             let mut remotes_style = Style::default()
-                .fg(THEME.accent_secondary)
+                .fg(crate::ui::theme::accent_secondary())
                 .add_modifier(Modifier::BOLD);
             if matches!(app.hovered_drop_target, Some(DropTarget::RemotesHeader))
                 || app.sidebar_index == current_header_idx
@@ -300,7 +300,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     spans.push(Span::styled(
                         format!("{}| ", m_str),
                         Style::default()
-                            .fg(THEME.accent_primary)
+                            .fg(crate::ui::theme::accent_primary())
                             .add_modifier(Modifier::BOLD),
                     ));
                 }
@@ -325,9 +325,9 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(if app.sidebar_focus {
-                    Style::default().fg(THEME.border_active)
+                    Style::default().fg(crate::ui::theme::border_active())
                 } else {
-                    Style::default().fg(THEME.border_inactive)
+                    Style::default().fg(crate::ui::theme::border_inactive())
                 });
 
             f.render_widget(List::new(sidebar_items).block(block), area);
@@ -340,7 +340,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
-    let selection_bg = THEME.accent_primary;
+    let selection_bg = crate::ui::theme::accent_primary();
     // Resolve both tree base path and a user-facing title path from focused editor context.
     let (base_path, title_path) = if let Some(pane) = app.panes.get(app.focused_pane_index) {
         if let Some(preview) = &pane.preview {
@@ -400,9 +400,9 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         .border_type(BorderType::Rounded)
         .title(format!(" {} ", title_text))
         .border_style(if app.sidebar_focus {
-            Style::default().fg(THEME.border_active)
+            Style::default().fg(crate::ui::theme::border_active())
         } else {
-            Style::default().fg(THEME.border_inactive)
+            Style::default().fg(crate::ui::theme::border_inactive())
         });
 
     let inner = block.inner(area);
@@ -438,7 +438,7 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 crate::app::FileCategory::Image | crate::app::FileCategory::Video | crate::app::FileCategory::Audio => THEME.file_media,
                 crate::app::FileCategory::Archive => THEME.file_archive,
                 crate::app::FileCategory::Document => THEME.fg,
-                _ if is_dir => THEME.header_fg,
+                _ if is_dir => crate::ui::theme::header_fg(),
                 _ => THEME.fg,
             };
             Style::default().fg(fg)

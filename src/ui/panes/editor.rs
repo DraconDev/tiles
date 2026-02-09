@@ -56,9 +56,9 @@ pub fn draw_pane_editor(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usiz
         .border_type(BorderType::Rounded)
         .title_top(Line::from(title))
         .border_style(if is_focused {
-            Style::default().fg(THEME.border_active)
+            Style::default().fg(crate::ui::theme::border_active())
         } else {
-            Style::default().fg(THEME.border_inactive)
+            Style::default().fg(crate::ui::theme::border_inactive())
         });
 
     let inner = block.inner(area);

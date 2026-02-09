@@ -110,7 +110,7 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
             let is_last = i == total_comps - 1;
 
             let fg_color = if is_last {
-                THEME.accent_secondary
+                crate::ui::theme::accent_secondary()
             } else {
                 Color::Rgb(100, 100, 110)
             };
@@ -122,7 +122,7 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
                 && app.is_dragging
             {
                 style = style
-                    .bg(THEME.accent_secondary)
+                    .bg(crate::ui::theme::accent_secondary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD);
             }

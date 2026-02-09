@@ -19,7 +19,7 @@ pub fn draw_settings_modal(f: &mut Frame, app: &App) {
     f.render_widget(Clear, area);
     let block = Block::default()
         .title_top(Line::from(vec![
-            Span::styled(" SETTINGS ", Style::default().fg(Color::Black).bg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
+            Span::styled(" SETTINGS ", Style::default().fg(Color::Black).bg(crate::ui::theme::accent_primary()).add_modifier(Modifier::BOLD)),
         ]))
         .title_top(Line::from(vec![
             Span::styled(" Esc ", Style::default().fg(Color::Black).bg(Color::Red).add_modifier(Modifier::BOLD)),
@@ -27,7 +27,7 @@ pub fn draw_settings_modal(f: &mut Frame, app: &App) {
         ]).alignment(ratatui::layout::Alignment::Right))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.accent_primary))
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()))
         .style(Style::default().bg(Color::Rgb(0, 0, 0)));
 
     let inner = block.inner(area);
@@ -60,7 +60,7 @@ pub fn draw_settings_modal(f: &mut Frame, app: &App) {
             if i == sel {
                 item.style(
                     Style::default()
-                        .bg(THEME.accent_primary)
+                        .bg(crate::ui::theme::accent_primary())
                         .fg(Color::Black)
                         .add_modifier(Modifier::BOLD),
                 )
@@ -168,7 +168,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             Cell::from(Span::styled(
                 category,
                 Style::default()
-                    .fg(THEME.accent_primary)
+                    .fg(crate::ui::theme::accent_primary())
                     .add_modifier(Modifier::BOLD),
             )),
             Cell::from(""),
@@ -234,7 +234,7 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
             let mut style = Style::default().fg(THEME.fg);
             if i == app.settings_index && app.settings_section == SettingsSection::Columns {
                 style = Style::default()
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD);
             }
@@ -257,7 +257,7 @@ fn draw_tab_settings(f: &mut Frame, area: Rect, app: &App) {
 
     for (p_idx, pane) in app.panes.iter().enumerate() {
         rows.push(Row::new(vec![
-            Cell::from(Span::styled(format!("PANE {}", p_idx + 1), Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD))),
+            Cell::from(Span::styled(format!("PANE {}", p_idx + 1), Style::default().fg(crate::ui::theme::accent_secondary()).add_modifier(Modifier::BOLD))),
             Cell::from(""),
             Cell::from(""),
         ]));
@@ -266,7 +266,7 @@ fn draw_tab_settings(f: &mut Frame, area: Rect, app: &App) {
             let is_selected = tab_counter == app.settings_index && app.settings_section == SettingsSection::Tabs;
             let mut style = Style::default().fg(THEME.fg);
             if is_selected {
-                style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+                style = style.bg(crate::ui::theme::accent_primary()).fg(Color::Black).add_modifier(Modifier::BOLD);
             }
 
             let is_active = t_idx == pane.active_tab_index;
@@ -292,7 +292,7 @@ fn draw_tab_settings(f: &mut Frame, area: Rect, app: &App) {
         ],
     )
     .header(Row::new(vec![" TAB ", " PATH ", " STATUS "])
-        .style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)))
+        .style(Style::default().fg(crate::ui::theme::accent_secondary()).add_modifier(Modifier::BOLD)))
     .block(
         Block::default()
             .title(" OPEN TABS MANAGEMENT ")
@@ -328,8 +328,8 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
             };
 
             if is_selected {
-                style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
-                status_style = status_style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+                style = style.bg(crate::ui::theme::accent_primary()).fg(Color::Black).add_modifier(Modifier::BOLD);
+                status_style = status_style.bg(crate::ui::theme::accent_primary()).fg(Color::Black).add_modifier(Modifier::BOLD);
             }
 
             Row::new(vec![
@@ -364,7 +364,7 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
         let is_selected = i == app.settings_index && app.settings_section == SettingsSection::Remotes;
         let mut style = Style::default().fg(THEME.fg);
         if is_selected {
-            style = style.bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD);
+            style = style.bg(crate::ui::theme::accent_primary()).fg(Color::Black).add_modifier(Modifier::BOLD);
         }
 
         let icon = Icon::Remote.get(app.icon_mode);
@@ -386,7 +386,7 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
         ],
     )
     .header(Row::new(vec![" NAME ", " CONNECTION ", " PORT ", " LAST PATH "])
-        .style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)))
+        .style(Style::default().fg(crate::ui::theme::accent_secondary()).add_modifier(Modifier::BOLD)))
     .block(
         Block::default()
             .title(" REMOTE SERVER BOOKMARKS ")
@@ -399,7 +399,7 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
         Line::from("Manage your remote server bookmarks here."),
         Line::from(vec![
             Span::raw("Tip: Import servers by clicking "),
-            Span::styled(" REMOTES [Import] ", Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)),
+            Span::styled(" REMOTES [Import] ", Style::default().fg(crate::ui::theme::accent_secondary()).add_modifier(Modifier::BOLD)),
             Span::raw(" in the sidebar."),
         ]),
         Line::from(r#"Format (TOML): [[servers]] name="..." host="..." user="..." port=22"#),

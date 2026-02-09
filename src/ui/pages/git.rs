@@ -18,7 +18,7 @@ pub fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         .title(" GIT HISTORY ")
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.accent_primary));
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()));
     
     let (history, pending, current_path, branch) = if let Some(fs) = app.current_file_state() {
         (fs.git_history.clone(), fs.git_pending.clone(), fs.current_path.clone(), fs.git_branch.clone())
@@ -40,10 +40,10 @@ pub fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
 
     // Header Info
     let header = Line::from(vec![
-        Span::styled("Path: ", Style::default().fg(THEME.accent_secondary)),
+        Span::styled("Path: ", Style::default().fg(crate::ui::theme::accent_secondary())),
         Span::raw(current_path.to_string_lossy().to_string()),
         Span::raw("  "),
-        Span::styled("Branch: ", Style::default().fg(THEME.accent_secondary)),
+        Span::styled("Branch: ", Style::default().fg(crate::ui::theme::accent_secondary())),
         Span::styled(format!("({})", branch.unwrap_or_else(|| "HEAD".to_string())), Style::default().fg(Color::Yellow)),
     ]);
     f.render_widget(Paragraph::new(header), chunks[0]);
@@ -87,8 +87,8 @@ pub fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                 Constraint::Fill(1),
             ]
         )
-        .header(Row::new(vec!["HASH", "DATE", "AUTHOR", "MESSAGE"]).style(Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD)))
-        .highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD));
+        .header(Row::new(vec!["HASH", "DATE", "AUTHOR", "MESSAGE"]).style(Style::default().fg(crate::ui::theme::accent_secondary()).add_modifier(Modifier::BOLD)))
+        .highlight_style(Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black).add_modifier(Modifier::BOLD));
 
         if let Some(fs) = app.current_file_state_mut() {
             f.render_stateful_widget(table, chunks[2], &mut fs.git_history_state);

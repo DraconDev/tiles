@@ -17,7 +17,7 @@ use terma::utils::{format_size};
 pub fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
     let block = Block::default()
         .title_top(Line::from(vec![
-            Span::styled(" SYSTEM MONITOR ", Style::default().fg(Color::Black).bg(THEME.accent_primary).add_modifier(Modifier::BOLD)),
+            Span::styled(" SYSTEM MONITOR ", Style::default().fg(Color::Black).bg(crate::ui::theme::accent_primary()).add_modifier(Modifier::BOLD)),
         ]))
         .title_top(Line::from(vec![
             Span::styled(" Esc ", Style::default().fg(Color::Black).bg(Color::Red).add_modifier(Modifier::BOLD)),
@@ -25,7 +25,7 @@ pub fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
         ]).alignment(Alignment::Right))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.accent_primary));
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()));
     
     let inner = block.inner(area);
     f.render_widget(block, area);
@@ -67,7 +67,7 @@ fn draw_subview_tabs(f: &mut Frame, area: Rect, app: &mut App) {
         app.monitor_subview_bounds.push((tab_area, sv));
 
         let style = if app.monitor_subview == sv {
-            Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD)
+            Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black).add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(Color::DarkGray)
         };
@@ -104,10 +104,10 @@ fn draw_overview(f: &mut Frame, area: Rect, app: &App) {
 
     // Right: System Info
     let info = vec![
-        Line::from(vec![Span::styled("Host:     ", Style::default().fg(THEME.accent_secondary)), Span::raw(&sys.hostname)]),
-        Line::from(vec![Span::styled("OS:       ", Style::default().fg(THEME.accent_secondary)), Span::raw(format!("{} {}", sys.os_name, sys.os_version))]),
-        Line::from(vec![Span::styled("Kernel:   ", Style::default().fg(THEME.accent_secondary)), Span::raw(&sys.kernel_version)]),
-        Line::from(vec![Span::styled("Uptime:   ", Style::default().fg(THEME.accent_secondary)), Span::raw(format_uptime(sys.uptime))]),
+        Line::from(vec![Span::styled("Host:     ", Style::default().fg(crate::ui::theme::accent_secondary())), Span::raw(&sys.hostname)]),
+        Line::from(vec![Span::styled("OS:       ", Style::default().fg(crate::ui::theme::accent_secondary())), Span::raw(format!("{} {}", sys.os_name, sys.os_version))]),
+        Line::from(vec![Span::styled("Kernel:   ", Style::default().fg(crate::ui::theme::accent_secondary())), Span::raw(&sys.kernel_version)]),
+        Line::from(vec![Span::styled("Uptime:   ", Style::default().fg(crate::ui::theme::accent_secondary())), Span::raw(format_uptime(sys.uptime))]),
     ];
     f.render_widget(Paragraph::new(info).block(Block::default().title(" System Info ").borders(Borders::LEFT).border_style(Style::default().fg(Color::DarkGray))), chunks[1]);
 }
@@ -126,7 +126,7 @@ fn draw_processes(f: &mut Frame, area: Rect, app: &mut App) {
     
     let header_cells = ["PID", "NAME", "CPU%", "MEM%", "USER", "STATUS"]
         .iter()
-        .map(|h| Cell::from(Span::styled(*h, Style::default().fg(THEME.accent_secondary).add_modifier(Modifier::BOLD))));
+        .map(|h| Cell::from(Span::styled(*h, Style::default().fg(crate::ui::theme::accent_secondary()).add_modifier(Modifier::BOLD))));
     let header = Row::new(header_cells).height(1).bottom_margin(0);
 
     let rows = sys.processes.iter().map(|p| {
@@ -153,7 +153,7 @@ fn draw_processes(f: &mut Frame, area: Rect, app: &mut App) {
         ]
     )
     .header(header)
-    .highlight_style(Style::default().bg(THEME.accent_primary).fg(Color::Black).add_modifier(Modifier::BOLD))
+    .highlight_style(Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black).add_modifier(Modifier::BOLD))
     .column_spacing(1);
 
     f.render_stateful_widget(table, area, &mut app.process_table_state);

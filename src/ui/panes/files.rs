@@ -45,9 +45,9 @@ pub fn draw_file_view(
                 .border_type(BorderType::Rounded)
                 .title(format!(" Preview: {} ", preview.path.display()))
                 .border_style(if is_focused {
-                    Style::default().fg(THEME.border_active)
+                    Style::default().fg(crate::ui::theme::border_active())
                 } else {
-                    Style::default().fg(THEME.border_inactive)
+                    Style::default().fg(crate::ui::theme::border_inactive())
                 });
 
             let lines = if let Some(cached) = &preview.highlighted_lines {
@@ -103,7 +103,7 @@ pub fn draw_file_view(
             * 0.5
             + 0.5;
 
-        let (base_r, base_g, base_b) = match THEME.border_active {
+        let (base_r, base_g, base_b) = match crate::ui::theme::border_active() {
             Color::Rgb(r, g, b) => (r as f32, g as f32, b as f32),
             _ => (0.0, 150.0, 255.0),
         };
@@ -116,7 +116,7 @@ pub fn draw_file_view(
             .fg(Color::Rgb(r, g, b))
             .add_modifier(Modifier::BOLD)
     } else {
-        Style::default().fg(THEME.border_inactive)
+        Style::default().fg(crate::ui::theme::border_inactive())
     };
 
     if matches!(app.hovered_drop_target, Some(DropTarget::Pane(idx)) if idx == pane_idx) {
@@ -212,7 +212,7 @@ pub fn draw_file_view(
                 Line::from(vec![Span::styled(
                     name,
                     Style::default()
-                        .fg(THEME.header_fg)
+                        .fg(crate::ui::theme::header_fg())
                         .add_modifier(Modifier::BOLD),
                 )])
             })
@@ -280,11 +280,11 @@ pub fn draw_file_view(
                 matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
 
             if is_selected {
-                row_bg_style = row_bg_style.bg(THEME.selection_bg);
+                row_bg_style = row_bg_style.bg(crate::ui::theme::selection_bg());
             } else if is_multi_selected {
                 row_bg_style = row_bg_style.bg(Color::Rgb(78, 58, 112));
             } else if is_hovered_drop {
-                row_bg_style = row_bg_style.bg(THEME.accent_secondary);
+                row_bg_style = row_bg_style.bg(crate::ui::theme::accent_secondary());
             } else if let Some(&c) = app.path_colors.get(path) {
                 let color = match c {
                     1 => Color::Red,
@@ -346,7 +346,7 @@ pub fn draw_file_view(
                             if !is_selected && !is_multi_selected && !app.path_colors.contains_key(path) && !is_hovered_drop {
                                 if app.semantic_coloring {
                                     if is_dir {
-                                        cell_style = cell_style.fg(THEME.accent_secondary);
+                                        cell_style = cell_style.fg(crate::ui::theme::accent_secondary());
                                     } else {
                                         let semantic_color = match cat {
                                             crate::app::FileCategory::Script => THEME.file_code,
@@ -359,7 +359,7 @@ pub fn draw_file_view(
                                         cell_style = cell_style.fg(semantic_color);
                                     }
                                 } else if is_dir {
-                                    cell_style = cell_style.fg(THEME.accent_secondary);
+                                    cell_style = cell_style.fg(crate::ui::theme::accent_secondary());
                                 }
                             }
 

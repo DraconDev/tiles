@@ -69,7 +69,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 header_left.push(Span::styled(
                     "SEARCH: ",
                     Style::default()
-                        .fg(THEME.accent_primary)
+                        .fg(crate::ui::theme::accent_primary())
                         .add_modifier(Modifier::BOLD),
                 ));
                 header_left.push(Span::styled(
@@ -81,7 +81,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 header_left.push(Span::styled(
                     "GO TO LINE: ",
                     Style::default()
-                        .fg(THEME.accent_primary)
+                        .fg(crate::ui::theme::accent_primary())
                         .add_modifier(Modifier::BOLD),
                 ));
                 header_left.push(Span::styled(
@@ -115,13 +115,13 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 }
             }
             _ => {
-                header_left.extend(HotkeyHint::render("^F", "Find", THEME.accent_secondary));
+                header_left.extend(HotkeyHint::render("^F", "Find", crate::ui::theme::accent_secondary()));
                 header_left.extend(HotkeyHint::render(
                     "^R/F2",
                     "Replace",
-                    THEME.accent_secondary,
+                    crate::ui::theme::accent_secondary(),
                 ));
-                header_left.extend(HotkeyHint::render("^G", "Line", THEME.accent_secondary));
+                header_left.extend(HotkeyHint::render("^G", "Line", crate::ui::theme::accent_secondary()));
             }
         }
 
@@ -279,12 +279,12 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.border_inactive))
+        .border_style(Style::default().fg(crate::ui::theme::border_inactive()))
         .title_top(Line::from(vec![Span::styled(
             " COMMIT ",
             Style::default()
                 .fg(Color::Black)
-                .bg(THEME.accent_primary)
+                .bg(crate::ui::theme::accent_primary())
                 .add_modifier(Modifier::BOLD),
         )]))
         .title_top(
@@ -402,7 +402,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 format!("{} ", short_hash),
                 Style::default()
                     .fg(Color::Black)
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled("  ", Style::default()),
@@ -454,7 +454,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 format!(" {} files ", files_changed),
                 Style::default()
                     .fg(Color::Black)
-                    .bg(THEME.accent_secondary)
+                    .bg(crate::ui::theme::accent_secondary())
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" "),
@@ -478,7 +478,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 format!(" @@ {} ", hunks),
                 Style::default()
                     .fg(Color::Black)
-                    .bg(THEME.header_fg)
+                    .bg(crate::ui::theme::header_fg())
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
@@ -492,12 +492,12 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     let content_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.border_inactive))
+        .border_style(Style::default().fg(crate::ui::theme::border_inactive()))
         .title_top(Line::from(vec![Span::styled(
             " PATCH ",
             Style::default()
                 .fg(Color::Black)
-                .bg(THEME.accent_primary)
+                .bg(crate::ui::theme::accent_primary())
                 .add_modifier(Modifier::BOLD),
         )]));
     let content_inner = content_block.inner(layout[4]);
@@ -649,7 +649,7 @@ fn draw_hotkeys_modal(f: &mut Frame, _area: Rect) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .title(" KEYBINDINGS ")
-        .border_style(Style::default().fg(THEME.accent_primary));
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()));
     f.render_widget(block.clone(), area);
 
     let chunks = Layout::default()
@@ -730,7 +730,7 @@ fn draw_hotkeys_modal(f: &mut Frame, _area: Rect) {
             Cell::from(Span::styled(
                 section,
                 Style::default()
-                    .fg(THEME.accent_primary)
+                    .fg(crate::ui::theme::accent_primary())
                     .add_modifier(Modifier::BOLD),
             )),
             Cell::from(""),
@@ -782,7 +782,7 @@ fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
     let input_block = Block::default()
         .borders(Borders::ALL)
         .title(" Custom Command ")
-        .border_style(Style::default().fg(THEME.accent_primary));
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()));
     f.render_widget(
         Paragraph::new(app.input.value.as_str()).block(input_block),
         chunks[1],
@@ -814,7 +814,7 @@ fn draw_open_with_modal(f: &mut Frame, app: &App, path: &std::path::Path) {
 
             let style = if is_mouse_hovered || is_selected {
                 Style::default()
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD)
             } else {
@@ -846,7 +846,7 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
             " SYSTEM MONITOR ",
             Style::default()
                 .fg(Color::Black)
-                .bg(THEME.accent_primary)
+                .bg(crate::ui::theme::accent_primary())
                 .add_modifier(Modifier::BOLD),
         )]))
         .title_top(
@@ -864,7 +864,7 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
         )
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.accent_primary));
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()));
 
     let inner = block.inner(area);
     f.render_widget(block, area);
@@ -898,7 +898,7 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
 
         let mut style = if is_active {
             Style::default()
-                .bg(THEME.accent_primary)
+                .bg(crate::ui::theme::accent_primary())
                 .fg(Color::Black)
                 .add_modifier(Modifier::BOLD)
         } else {
@@ -914,7 +914,7 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
         f.render_widget(Paragraph::new(name).style(style), rect);
         if is_active {
             f.render_widget(
-                Paragraph::new("━━━━").style(Style::default().fg(THEME.accent_primary)),
+                Paragraph::new("━━━━").style(Style::default().fg(crate::ui::theme::accent_primary())),
                 Rect::new(rect.x, rect.y + 1, 4, 1),
             );
         }
@@ -927,7 +927,7 @@ fn draw_monitor_page(f: &mut Frame, area: Rect, app: &mut App) {
         let search_style = if app.process_search_filter.is_empty() {
             Style::default().fg(Color::Rgb(40, 45, 55))
         } else {
-            Style::default().fg(THEME.accent_primary)
+            Style::default().fg(crate::ui::theme::accent_primary())
         };
         f.render_widget(
             Paragraph::new(format!(" 󰍉 {}", app.process_search_filter)).style(search_style),
@@ -1017,7 +1017,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
             } else if ratio > 0.5 {
                 Color::Rgb(255, 180, 0)
             } else {
-                THEME.accent_secondary
+                crate::ui::theme::accent_secondary()
             };
 
             f.render_widget(
@@ -1134,7 +1134,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
                     } else if intensity > 0.5 {
                         Color::Rgb(255, 180, 0)
                     } else {
-                        THEME.accent_secondary
+                        crate::ui::theme::accent_secondary()
                     };
 
                     let slot = core_cols[c as usize].inner(ratatui::layout::Margin {
@@ -1243,14 +1243,14 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         )),
         Line::from(""),
         Line::from(vec![
-            Span::styled("RX ▼ ", Style::default().fg(THEME.accent_secondary)),
+            Span::styled("RX ▼ ", Style::default().fg(crate::ui::theme::accent_secondary())),
             Span::styled(
                 format_size(rx),
                 Style::default().add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(vec![
-            Span::styled("TX ▲ ", Style::default().fg(THEME.accent_primary)),
+            Span::styled("TX ▲ ", Style::default().fg(crate::ui::theme::accent_primary())),
             Span::styled(
                 format_size(tx),
                 Style::default().add_modifier(Modifier::BOLD),
@@ -1278,7 +1278,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
             } else if ratio > 0.7 {
                 Color::Rgb(255, 180, 0)
             } else {
-                THEME.accent_secondary
+                crate::ui::theme::accent_secondary()
             };
 
             let track_w: usize = 12;
@@ -1354,7 +1354,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
             && app.monitor_subview == MonitorSubview::Applications
         {
             style = style
-                .bg(THEME.accent_primary)
+                .bg(crate::ui::theme::accent_primary())
                 .fg(Color::Black)
                 .add_modifier(Modifier::BOLD);
             is_selected = true;
@@ -1364,7 +1364,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
         } else if p.cpu > 50.0 {
             Color::Red
         } else {
-            THEME.accent_secondary
+            crate::ui::theme::accent_secondary()
         };
         Row::new(vec![
             Cell::from(format!("  {}", p.name)),
@@ -1423,7 +1423,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
         Cell::from(text).style(
             Style::default()
                 .fg(if app.process_sort_col == *col {
-                    THEME.accent_primary
+                    crate::ui::theme::accent_primary()
                 } else {
                     Color::Rgb(60, 65, 75)
                 })
@@ -1487,7 +1487,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
             Cell::from(text).style(
                 Style::default()
                     .fg(if app.process_sort_col == col {
-                        THEME.accent_primary
+                        crate::ui::theme::accent_primary()
                     } else {
                         Color::Rgb(60, 65, 75)
                     })
@@ -1503,7 +1503,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
         };
         if app.process_selected_idx == Some(i) && app.monitor_subview == MonitorSubview::Processes {
             style = style
-                .bg(THEME.accent_primary)
+                .bg(crate::ui::theme::accent_primary())
                 .fg(Color::Black)
                 .add_modifier(Modifier::BOLD);
             is_selected = true;
@@ -1513,7 +1513,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
         } else if p.cpu > 50.0 {
             Color::Red
         } else {
-            THEME.accent_secondary
+            crate::ui::theme::accent_secondary()
         };
         Row::new(vec![
             Cell::from(format!("  {}", p.pid)).style(Style::default().fg(if is_selected {
@@ -1525,7 +1525,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
             Cell::from(p.user.clone()).style(Style::default().fg(if is_selected {
                 Color::Black
             } else {
-                THEME.accent_primary
+                crate::ui::theme::accent_primary()
             })),
             Cell::from(p.status.clone()),
             Cell::from(format!("{:.1}", p.cpu)).style(Style::default().fg(cpu_color)),
@@ -1578,11 +1578,11 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
             let width = icon.width() as u16;
             let rect = Rect::new(cur_icon_x, area.y, width, 1);
 
-            let mut style = Style::default().fg(THEME.accent_secondary);
+            let mut style = Style::default().fg(crate::ui::theme::accent_secondary());
             if let AppMode::Header(idx) = app.mode {
                 if idx == i {
                     style = style
-                        .bg(THEME.accent_primary)
+                        .bg(crate::ui::theme::accent_primary())
                         .fg(Color::Black)
                         .add_modifier(Modifier::BOLD);
                 }
@@ -1630,10 +1630,10 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                 let is_focused_pane = p_i == app.focused_pane_index && !app.sidebar_focus;
                 let base_style = if is_focused_pane {
                     Style::default()
-                        .fg(THEME.accent_primary)
+                        .fg(crate::ui::theme::accent_primary())
                         .add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(THEME.accent_primary)
+                    Style::default().fg(crate::ui::theme::accent_primary())
                 };
 
                 let mut spans = vec![Span::styled(format!(" {} ", base_name), base_style)];
@@ -1708,10 +1708,10 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
             let mut base_style = if is_active_tab {
                 if is_focused_pane {
                     Style::default()
-                        .fg(THEME.accent_primary)
+                        .fg(crate::ui::theme::accent_primary())
                         .add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(THEME.accent_primary)
+                    Style::default().fg(crate::ui::theme::accent_primary())
                 }
             } else {
                 Style::default().fg(Color::DarkGray)
@@ -1720,7 +1720,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
             if let AppMode::Header(idx) = app.mode {
                 if idx == global_tab_idx {
                     base_style = base_style
-                        .bg(THEME.accent_primary)
+                        .bg(crate::ui::theme::accent_primary())
                         .fg(Color::Black)
                         .add_modifier(Modifier::BOLD);
                 }
@@ -1894,14 +1894,14 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.accent_primary))
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()))
         .style(Style::default().bg(Color::Rgb(0, 0, 0)))
         .title_top(Line::from(vec![
             Span::styled(
                 " GIT HUB ",
                 Style::default()
                     .fg(Color::Black)
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
@@ -1910,7 +1910,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             ),
             Span::styled(
                 format!(" {} ", current_path_label),
-                Style::default().fg(THEME.accent_secondary),
+                Style::default().fg(crate::ui::theme::accent_secondary()),
             ),
         ]))
         .title_bottom(Line::from(format!(" {} ", summary_text)).alignment(Alignment::Right))
@@ -2071,7 +2071,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             info_items.push(ListItem::new(Line::from(vec![Span::styled(
                 " COMMIT DETAILS ",
                 Style::default()
-                    .bg(THEME.accent_secondary)
+                    .bg(crate::ui::theme::accent_secondary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD),
             )])));
@@ -2235,7 +2235,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                             Cell::from(act.date.clone()).style(Style::default().fg(Color::DarkGray)),
                             Cell::from(h_short).style(
                                 Style::default()
-                                    .fg(THEME.accent_secondary)
+                                    .fg(crate::ui::theme::accent_secondary())
                                     .add_modifier(Modifier::BOLD),
                             ),
                             Cell::from(refs_compact),
@@ -2269,7 +2269,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             ])
             .style(
                 Style::default()
-                    .fg(THEME.accent_secondary)
+                    .fg(crate::ui::theme::accent_secondary())
                     .add_modifier(Modifier::BOLD),
             )
             .bottom_margin(1),
@@ -2283,7 +2283,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         .row_highlight_style(
             Style::default()
                 .bg(Color::Rgb(40, 40, 50))
-                .fg(THEME.accent_secondary)
+                .fg(crate::ui::theme::accent_secondary())
                 .add_modifier(Modifier::BOLD),
         );
 
@@ -2310,9 +2310,9 @@ fn draw_file_view(
                 .border_type(BorderType::Rounded)
                 .title(format!(" Preview: {} ", preview.path.display()))
                 .border_style(if is_focused {
-                    Style::default().fg(THEME.border_active)
+                    Style::default().fg(crate::ui::theme::border_active())
                 } else {
-                    Style::default().fg(THEME.border_inactive)
+                    Style::default().fg(crate::ui::theme::border_inactive())
                 });
 
             let lines = if let Some(cached) = &preview.highlighted_lines {
@@ -2381,7 +2381,7 @@ fn draw_file_view(
             * 0.5
             + 0.5;
 
-        let (base_r, base_g, base_b) = match THEME.border_active {
+        let (base_r, base_g, base_b) = match crate::ui::theme::border_active() {
             Color::Rgb(r, g, b) => (r as f32, g as f32, b as f32),
             _ => (0.0, 150.0, 255.0),
         };
@@ -2394,7 +2394,7 @@ fn draw_file_view(
             .fg(Color::Rgb(r, g, b))
             .add_modifier(Modifier::BOLD)
     } else {
-        Style::default().fg(THEME.border_inactive)
+        Style::default().fg(crate::ui::theme::border_inactive())
     };
 
     if matches!(app.hovered_drop_target, Some(DropTarget::Pane(idx)) if idx == pane_idx) {
@@ -2495,7 +2495,7 @@ fn draw_file_view(
                 Line::from(vec![Span::styled(
                     name,
                     Style::default()
-                        .fg(THEME.header_fg)
+                        .fg(crate::ui::theme::header_fg())
                         .add_modifier(Modifier::BOLD),
                 )])
             })
@@ -2542,11 +2542,11 @@ fn draw_file_view(
                 matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
 
             if is_selected {
-                row_bg_style = row_bg_style.bg(THEME.selection_bg);
+                row_bg_style = row_bg_style.bg(crate::ui::theme::selection_bg());
             } else if is_multi_selected {
                 row_bg_style = row_bg_style.bg(Color::Rgb(78, 58, 112));
             } else if is_hovered_drop {
-                row_bg_style = row_bg_style.bg(THEME.accent_secondary);
+                row_bg_style = row_bg_style.bg(crate::ui::theme::accent_secondary());
             } else if let Some(&c) = app.path_colors.get(path) {
                 let color = match c {
                     1 => Color::Red,
@@ -2617,7 +2617,7 @@ fn draw_file_view(
                                 {
                                     if app.semantic_coloring {
                                         if is_dir {
-                                            cell_style = cell_style.fg(THEME.accent_secondary);
+                                            cell_style = cell_style.fg(crate::ui::theme::accent_secondary());
                                         } else {
                                             cell_style = cell_style.fg(cat.cyber_color());
                                         }
@@ -2798,7 +2798,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
             left_spans.push(Span::styled(
                 format!(" [ SYSTEM ] {} ", msg),
                 Style::default()
-                    .fg(THEME.accent_secondary)
+                    .fg(crate::ui::theme::accent_secondary())
                     .bg(Color::Rgb(20, 25, 30)),
             ));
             showing_log = true;
@@ -2812,7 +2812,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                 " DRAGGING ",
                 Style::default()
                     .fg(Color::Black)
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .add_modifier(Modifier::BOLD),
             ));
             left_spans.push(Span::styled(
@@ -2844,7 +2844,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                 left_spans.push(Span::styled(
                     format!(" {} ", target_desc),
                     Style::default()
-                        .fg(THEME.accent_secondary)
+                        .fg(crate::ui::theme::accent_secondary())
                         .add_modifier(Modifier::BOLD),
                 ));
             }
@@ -2864,17 +2864,17 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         let mut shortcuts = Vec::new();
         if app.current_view == CurrentView::Editor {
             shortcuts.extend(HotkeyHint::render("Esc", "Back", Color::Red));
-            shortcuts.extend(HotkeyHint::render("^B", "Sidebar", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::render("^P", "Split", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::render("^F", "Find", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::render("^R", "Replace", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::render("^G", "GoTo", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render("^B", "Sidebar", crate::ui::theme::accent_secondary()));
+            shortcuts.extend(HotkeyHint::render("^P", "Split", crate::ui::theme::accent_secondary()));
+            shortcuts.extend(HotkeyHint::render("^F", "Find", crate::ui::theme::accent_secondary()));
+            shortcuts.extend(HotkeyHint::render("^R", "Replace", crate::ui::theme::accent_secondary()));
+            shortcuts.extend(HotkeyHint::render("^G", "GoTo", crate::ui::theme::accent_secondary()));
         } else {
-            shortcuts.extend(HotkeyHint::render("^P", "Split", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::render("^T", "Tab", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::render("F5", "Refresh", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::render("^N", "TermTab", THEME.accent_secondary));
-            shortcuts.extend(HotkeyHint::render("^K", "TermWin", THEME.accent_secondary));
+            shortcuts.extend(HotkeyHint::render("^P", "Split", crate::ui::theme::accent_secondary()));
+            shortcuts.extend(HotkeyHint::render("^T", "Tab", crate::ui::theme::accent_secondary()));
+            shortcuts.extend(HotkeyHint::render("F5", "Refresh", crate::ui::theme::accent_secondary()));
+            shortcuts.extend(HotkeyHint::render("^N", "TermTab", crate::ui::theme::accent_secondary()));
+            shortcuts.extend(HotkeyHint::render("^K", "TermWin", crate::ui::theme::accent_secondary()));
             shortcuts.extend(HotkeyHint::render(
                 "^H",
                 "Hidden",
@@ -2905,7 +2905,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
             left_spans.push(Span::styled(
                 " REMOTE ",
                 Style::default()
-                    .bg(THEME.accent_secondary)
+                    .bg(crate::ui::theme::accent_secondary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD),
             ));
@@ -2984,7 +2984,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                     .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD)
             };
@@ -3052,7 +3052,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         Span::styled(" PULSE ", Style::default().fg(Color::DarkGray)),
         Span::styled(
             pulse_char.repeat(3),
-            Style::default().fg(THEME.accent_primary),
+            Style::default().fg(crate::ui::theme::accent_primary()),
         ),
     ];
 
@@ -3205,7 +3205,7 @@ fn draw_context_menu(
 
         let style = if Some(i) == selected_idx {
             Style::default()
-                .bg(THEME.accent_primary)
+                .bg(crate::ui::theme::accent_primary())
                 .fg(Color::Black)
                 .add_modifier(Modifier::BOLD)
         } else {
@@ -3251,7 +3251,7 @@ fn draw_context_menu(
         .title(title)
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.accent_secondary));
+        .border_style(Style::default().fg(crate::ui::theme::accent_secondary()));
 
     // Use full width of inner area, just offset X by 1 for padding
     let inner_area = menu_block.inner(area);
@@ -3273,7 +3273,7 @@ fn draw_import_servers_modal(f: &mut Frame, app: &App) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .title(" Import Servers (TOML) ")
-        .border_style(Style::default().fg(THEME.accent_primary));
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()));
     let inner = block.inner(area);
     f.render_widget(block, area);
 
@@ -3294,7 +3294,7 @@ fn draw_import_servers_modal(f: &mut Frame, app: &App) {
 
     let input_area = chunks[1];
     f.render_widget(
-        Paragraph::new("> ").style(Style::default().fg(THEME.accent_secondary)),
+        Paragraph::new("> ").style(Style::default().fg(crate::ui::theme::accent_secondary())),
         Rect::new(input_area.x, input_area.y, 2, 1),
     );
     f.render_widget(
@@ -3391,20 +3391,20 @@ fn draw_rename_modal(f: &mut Frame, app: &App) {
                 Line::from(vec![
                     Span::styled(
                         stem_part,
-                        Style::default().bg(THEME.accent_primary).fg(Color::Black),
+                        Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black),
                     ),
                     Span::raw(ext_part),
                 ])
             } else {
                 Line::from(vec![Span::styled(
                     &app.input.value,
-                    Style::default().bg(THEME.accent_primary).fg(Color::Black),
+                    Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black),
                 )])
             }
         } else {
             Line::from(vec![Span::styled(
                 &app.input.value,
-                Style::default().bg(THEME.accent_primary).fg(Color::Black),
+                Style::default().bg(crate::ui::theme::accent_primary()).fg(Color::Black),
             )])
         };
         f.render_widget(Paragraph::new(text), inner);
@@ -3530,11 +3530,11 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
             .unwrap_or_default();
 
         text.push(Line::from(vec![
-            Span::styled("Name: ", Style::default().fg(THEME.accent_secondary)),
+            Span::styled("Name: ", Style::default().fg(crate::ui::theme::accent_secondary())),
             Span::raw(name),
         ]));
         text.push(Line::from(vec![
-            Span::styled("Location: ", Style::default().fg(THEME.accent_secondary)),
+            Span::styled("Location: ", Style::default().fg(crate::ui::theme::accent_secondary())),
             Span::raw(parent),
         ]));
         text.push(Line::from(""));
@@ -3542,23 +3542,23 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
         if let Some(meta) = fs.metadata.get(target_path) {
             let type_str = if meta.is_dir { "Folder" } else { "File" };
             text.push(Line::from(vec![
-                Span::styled("Type: ", Style::default().fg(THEME.accent_secondary)),
+                Span::styled("Type: ", Style::default().fg(crate::ui::theme::accent_secondary())),
                 Span::raw(type_str),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Size: ", Style::default().fg(THEME.accent_secondary)),
+                Span::styled("Size: ", Style::default().fg(crate::ui::theme::accent_secondary())),
                 Span::raw(format_size(meta.size)),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Modified: ", Style::default().fg(THEME.accent_secondary)),
+                Span::styled("Modified: ", Style::default().fg(crate::ui::theme::accent_secondary())),
                 Span::raw(format_time(meta.modified)),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Created: ", Style::default().fg(THEME.accent_secondary)),
+                Span::styled("Created: ", Style::default().fg(crate::ui::theme::accent_secondary())),
                 Span::raw(format_time(meta.created)),
             ]));
             text.push(Line::from(vec![
-                Span::styled("Permissions: ", Style::default().fg(THEME.accent_secondary)),
+                Span::styled("Permissions: ", Style::default().fg(crate::ui::theme::accent_secondary())),
                 Span::raw(format_permissions(meta.permissions)),
             ]));
         } else {
@@ -3566,16 +3566,16 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
                 if let Ok(m) = std::fs::metadata(target_path) {
                     let is_dir = m.is_dir();
                     text.push(Line::from(vec![
-                        Span::styled("Type: ", Style::default().fg(THEME.accent_secondary)),
+                        Span::styled("Type: ", Style::default().fg(crate::ui::theme::accent_secondary())),
                         Span::raw(if is_dir { "Folder" } else { "File" }),
                     ]));
                     text.push(Line::from(vec![
-                        Span::styled("Size: ", Style::default().fg(THEME.accent_secondary)),
+                        Span::styled("Size: ", Style::default().fg(crate::ui::theme::accent_secondary())),
                         Span::raw(format_size(m.len())),
                     ]));
                     if let Ok(mod_time) = m.modified() {
                         text.push(Line::from(vec![
-                            Span::styled("Modified: ", Style::default().fg(THEME.accent_secondary)),
+                            Span::styled("Modified: ", Style::default().fg(crate::ui::theme::accent_secondary())),
                             Span::raw(format_time(mod_time)),
                         ]));
                     }
@@ -3598,7 +3598,7 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
         .title(" Properties ")
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.accent_primary));
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()));
     f.render_widget(Paragraph::new(text).block(block), area);
 }
 
@@ -3612,7 +3612,7 @@ fn draw_settings_modal(f: &mut Frame, app: &App) {
             " SETTINGS ",
             Style::default()
                 .fg(Color::Black)
-                .bg(THEME.accent_primary)
+                .bg(crate::ui::theme::accent_primary())
                 .add_modifier(Modifier::BOLD),
         )]))
         .title_top(
@@ -3630,7 +3630,7 @@ fn draw_settings_modal(f: &mut Frame, app: &App) {
         )
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.accent_primary))
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()))
         .style(Style::default().bg(Color::Rgb(0, 0, 0)));
 
     let inner = block.inner(area);
@@ -3664,7 +3664,7 @@ fn draw_settings_modal(f: &mut Frame, app: &App) {
             if i == sel {
                 item.style(
                     Style::default()
-                        .bg(THEME.accent_primary)
+                        .bg(crate::ui::theme::accent_primary())
                         .fg(Color::Black)
                         .add_modifier(Modifier::BOLD),
                 )
@@ -3777,7 +3777,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             Cell::from(Span::styled(
                 category,
                 Style::default()
-                    .fg(THEME.accent_primary)
+                    .fg(crate::ui::theme::accent_primary())
                     .add_modifier(Modifier::BOLD),
             )),
             Cell::from(""),
@@ -3843,7 +3843,7 @@ fn draw_column_settings(f: &mut Frame, area: Rect, app: &App) {
             let mut style = Style::default().fg(THEME.fg);
             if i == app.settings_index && app.settings_section == SettingsSection::Columns {
                 style = Style::default()
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD);
             }
@@ -3869,7 +3869,7 @@ fn draw_tab_settings(f: &mut Frame, area: Rect, app: &App) {
             Cell::from(Span::styled(
                 format!("PANE {}", p_idx + 1),
                 Style::default()
-                    .fg(THEME.accent_secondary)
+                    .fg(crate::ui::theme::accent_secondary())
                     .add_modifier(Modifier::BOLD),
             )),
             Cell::from(""),
@@ -3882,7 +3882,7 @@ fn draw_tab_settings(f: &mut Frame, area: Rect, app: &App) {
             let mut style = Style::default().fg(THEME.fg);
             if is_selected {
                 style = style
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD);
             }
@@ -3924,7 +3924,7 @@ fn draw_tab_settings(f: &mut Frame, area: Rect, app: &App) {
     .header(
         Row::new(vec![" TAB ", " PATH ", " STATUS "]).style(
             Style::default()
-                .fg(THEME.accent_secondary)
+                .fg(crate::ui::theme::accent_secondary())
                 .add_modifier(Modifier::BOLD),
         ),
     )
@@ -4026,11 +4026,11 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
 
             if is_selected {
                 style = style
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD);
                 status_style = status_style
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD);
             }
@@ -4077,7 +4077,7 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
             let mut style = Style::default().fg(THEME.fg);
             if is_selected {
                 style = style
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD);
             }
@@ -4104,7 +4104,7 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
     .header(
         Row::new(vec![" NAME ", " CONNECTION ", " PORT ", " LAST PATH "]).style(
             Style::default()
-                .fg(THEME.accent_secondary)
+                .fg(crate::ui::theme::accent_secondary())
                 .add_modifier(Modifier::BOLD),
         ),
     )
@@ -4123,7 +4123,7 @@ fn draw_remote_settings(f: &mut Frame, area: Rect, app: &App) {
             Span::styled(
                 " REMOTES [Import] ",
                 Style::default()
-                    .fg(THEME.accent_secondary)
+                    .fg(crate::ui::theme::accent_secondary())
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" in the sidebar."),
@@ -4251,7 +4251,7 @@ fn draw_highlight_modal(f: &mut Frame, _app: &App) {
         .title(" Highlight ")
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(THEME.accent_primary));
+        .border_style(Style::default().fg(crate::ui::theme::accent_primary()));
     let inner = block.inner(area);
     f.render_widget(block, area);
 
@@ -4330,7 +4330,7 @@ fn draw_drag_ghost(f: &mut Frame, app: &App) {
             Paragraph::new(Span::styled(
                 text,
                 Style::default()
-                    .bg(THEME.accent_primary)
+                    .bg(crate::ui::theme::accent_primary())
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD),
             )),
