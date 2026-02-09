@@ -365,6 +365,90 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         app.move_down(shift);
                         return true;
                     }
+                    KeyCode::Home => {
+                        if let Some(fs) = app.current_file_state_mut() {
+                            if !fs.files.is_empty() {
+                                let mut idx = 0usize;
+                                while idx < fs.files.len()
+                                    && fs.files[idx].to_string_lossy() == "__DIVIDER__"
+                                {
+                                    idx += 1;
+                                }
+                                if idx < fs.files.len() {
+                                    fs.selection.selected = Some(idx);
+                                    fs.selection.anchor = Some(idx);
+                                    fs.table_state.select(Some(idx));
+                                    *fs.table_state.offset_mut() = idx;
+                                }
+                            }
+                        }
+                        return true;
+                    }
+                    KeyCode::End => {
+                        if let Some(fs) = app.current_file_state_mut() {
+                            if !fs.files.is_empty() {
+                                let mut idx = fs.files.len().saturating_sub(1);
+                                while idx > 0 && fs.files[idx].to_string_lossy() == "__DIVIDER__" {
+                                    idx = idx.saturating_sub(1);
+                                }
+                                if fs.files[idx].to_string_lossy() != "__DIVIDER__" {
+                                    fs.selection.selected = Some(idx);
+                                    fs.selection.anchor = Some(idx);
+                                    fs.table_state.select(Some(idx));
+                                    let page = fs.view_height.saturating_sub(3).max(1);
+                                    *fs.table_state.offset_mut() = idx.saturating_sub(page - 1);
+                                }
+                            }
+                        }
+                        return true;
+                    }
+                    KeyCode::PageDown => {
+                        if let Some(fs) = app.current_file_state_mut() {
+                            if !fs.files.is_empty() {
+                                let page = fs.view_height.saturating_sub(3).max(1);
+                                let cur = fs.selection.selected.unwrap_or(0);
+                                let mut idx = (cur + page).min(fs.files.len().saturating_sub(1));
+                                while idx + 1 < fs.files.len()
+                                    && fs.files[idx].to_string_lossy() == "__DIVIDER__"
+                                {
+                                    idx += 1;
+                                }
+                                while idx > 0 && fs.files[idx].to_string_lossy() == "__DIVIDER__" {
+                                    idx = idx.saturating_sub(1);
+                                }
+                                if fs.files[idx].to_string_lossy() != "__DIVIDER__" {
+                                    fs.selection.selected = Some(idx);
+                                    fs.selection.anchor = Some(idx);
+                                    fs.table_state.select(Some(idx));
+                                    if idx >= fs.table_state.offset() + page {
+                                        *fs.table_state.offset_mut() = idx.saturating_sub(page - 1);
+                                    }
+                                }
+                            }
+                        }
+                        return true;
+                    }
+                    KeyCode::PageUp => {
+                        if let Some(fs) = app.current_file_state_mut() {
+                            if !fs.files.is_empty() {
+                                let page = fs.view_height.saturating_sub(3).max(1);
+                                let cur = fs.selection.selected.unwrap_or(0);
+                                let mut idx = cur.saturating_sub(page);
+                                while idx > 0 && fs.files[idx].to_string_lossy() == "__DIVIDER__" {
+                                    idx = idx.saturating_sub(1);
+                                }
+                                if fs.files[idx].to_string_lossy() != "__DIVIDER__" {
+                                    fs.selection.selected = Some(idx);
+                                    fs.selection.anchor = Some(idx);
+                                    fs.table_state.select(Some(idx));
+                                    if idx < fs.table_state.offset() {
+                                        *fs.table_state.offset_mut() = idx;
+                                    }
+                                }
+                            }
+                        }
+                        return true;
+                    }
 
                     KeyCode::Left => {
                         if key.modifiers.contains(KeyModifiers::SHIFT) && !app.sidebar_focus {
