@@ -23,17 +23,17 @@ impl DraconTheme {
         Self {
             bg: Color::Rgb(0, 0, 0),                   // True Color Pure Black
             fg: Color::Rgb(255, 255, 255),             // Pure White
-            accent_primary: Color::Rgb(255, 176, 72),  // Focus Amber
-            accent_secondary: Color::Rgb(120, 170, 255), // Secondary Blue
-            selection_bg: Color::Rgb(255, 176, 72),    // Focus Amber
+            accent_primary: Color::Rgb(168, 118, 255), // Focus Purple
+            accent_secondary: Color::Rgb(120, 186, 255), // Secondary Ice Blue
+            selection_bg: Color::Rgb(168, 118, 255),   // Focus Purple
             selection_fg: Color::Rgb(0, 0, 0),         // Black (for contrast)
-            border_active: Color::Rgb(255, 176, 72),   // Primary Accent
+            border_active: Color::Rgb(168, 118, 255),  // Primary Accent
             border_inactive: Color::Rgb(92, 94, 104),  // Dark Grey
-            header_fg: Color::Rgb(255, 204, 130),      // Warm Header Accent
-            file_code: Color::Rgb(214, 167, 95),       // Sand
-            file_config: Color::Rgb(132, 177, 255),    // Soft Blue
-            file_media: Color::Rgb(188, 145, 240),     // Lilac
-            file_archive: Color::Rgb(220, 130, 160),   // Rose
+            header_fg: Color::Rgb(196, 160, 255),      // Soft Violet
+            file_code: Color::Rgb(176, 152, 230),      // Muted Purple
+            file_config: Color::Rgb(132, 186, 255),    // Soft Blue
+            file_media: Color::Rgb(200, 138, 255),     // Violet
+            file_archive: Color::Rgb(228, 140, 210),   // Pink-Violet
             file_exec: Color::Rgb(116, 198, 130),      // Green
         }
     }
