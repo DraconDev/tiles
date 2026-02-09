@@ -391,6 +391,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
             Constraint::Length(2),
             Constraint::Length(1),
             Constraint::Length(1),
+            Constraint::Length(1),
             Constraint::Min(0),
         ])
         .split(inner);
@@ -417,6 +418,35 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         )])),
         layout[1],
     );
+
+    let subject_text = truncate_to_width(&subject, layout[2].width as usize, "...");
+    f.render_widget(
+        Paragraph::new(Line::from(vec![Span::styled(
+            format!(" {}", subject_text),
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        )])),
+        layout[2],
+    );
+
+    let files_preview = if touched_files.is_empty() {
+        "files: none".to_string()
+    } else {
+        let visible = touched_files
+            .iter()
+            .take(3)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(", ");
+        let extra = touched_files.len().saturating_sub(3);
+        if extra > 0 {
+            format!("files: {} +{}", visible, extra)
+        } else {
+            format!("files: {}", visible)
+        }
+    };
+    let files_preview = truncate_to_width(&files_preview, layout[3].width as usize, "...");
 
     f.render_widget(
         Paragraph::new(Line::from(vec![
@@ -452,11 +482,11 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                "  [Green:+] [Red:-] [Cyan:@@]",
+                format!("  {}", files_preview),
                 Style::default().fg(Color::DarkGray),
             ),
         ])),
-        layout[2],
+        layout[3],
     );
 
     let content_block = Block::default()
@@ -470,8 +500,8 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 .bg(Color::Rgb(90, 170, 255))
                 .add_modifier(Modifier::BOLD),
         )]));
-    let content_inner = content_block.inner(layout[3]);
-    f.render_widget(content_block, layout[3]);
+    let content_inner = content_block.inner(layout[4]);
+    f.render_widget(content_block, layout[4]);
 
     if let Some(preview) = &app.editor_state {
         if let Some(editor) = &preview.editor {
