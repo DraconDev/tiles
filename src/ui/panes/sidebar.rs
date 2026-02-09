@@ -324,6 +324,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
+    let selection_bg = Color::Rgb(0, 150, 255);
     // Resolve both tree base path and a user-facing title path from focused editor context.
     let (base_path, title_path) = if let Some(pane) = app.panes.get(app.focused_pane_index) {
         if let Some(preview) = &pane.preview {
