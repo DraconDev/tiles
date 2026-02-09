@@ -279,12 +279,12 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Rgb(50, 65, 85)))
+        .border_style(Style::default().fg(THEME.border_inactive))
         .title_top(Line::from(vec![Span::styled(
             " COMMIT ",
             Style::default()
                 .fg(Color::Black)
-                .bg(Color::Rgb(90, 170, 255))
+                .bg(THEME.accent_primary)
                 .add_modifier(Modifier::BOLD),
         )]))
         .title_top(
@@ -402,7 +402,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 format!("{} ", short_hash),
                 Style::default()
                     .fg(Color::Black)
-                    .bg(Color::Rgb(90, 170, 255))
+                    .bg(THEME.accent_primary)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled("  ", Style::default()),
@@ -454,7 +454,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 format!(" {} files ", files_changed),
                 Style::default()
                     .fg(Color::Black)
-                    .bg(Color::Rgb(120, 180, 255))
+                    .bg(THEME.accent_secondary)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" "),
@@ -478,7 +478,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 format!(" @@ {} ", hunks),
                 Style::default()
                     .fg(Color::Black)
-                    .bg(Color::Cyan)
+                    .bg(THEME.header_fg)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
@@ -492,12 +492,12 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     let content_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Rgb(60, 80, 105)))
+        .border_style(Style::default().fg(THEME.border_inactive))
         .title_top(Line::from(vec![Span::styled(
             " PATCH ",
             Style::default()
                 .fg(Color::Black)
-                .bg(Color::Rgb(90, 170, 255))
+                .bg(THEME.accent_primary)
                 .add_modifier(Modifier::BOLD),
         )]));
     let content_inner = content_block.inner(layout[4]);
