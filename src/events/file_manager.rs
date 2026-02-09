@@ -193,21 +193,32 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         if has_control && !key.modifiers.contains(KeyModifiers::SHIFT) =>
                     {
                         if let Some(action) = app.undo_stack.pop() {
-                            match action.clone() {
+                            let mut success = true;
+                            let action_name = match action.clone() {
                                 UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                    let _ = std::fs::rename(&old, &new);
-                                    app.redo_stack.push(action);
+                                    success = std::fs::rename(&old, &new).is_ok();
+                                    "move/rename"
                                 }
                                 UndoAction::Copy(src, dest) => {
-                                    let _ = if dest.is_dir() {
+                                    success = if dest.is_dir() {
                                         std::fs::remove_dir_all(&dest)
                                     } else {
                                         std::fs::remove_file(&dest)
-                                    };
-                                    app.redo_stack.push(UndoAction::Copy(src, dest));
+                                    }
+                                    .is_ok();
+                                    let _ = src;
+                                    "copy"
                                 }
-                                _ => {}
+                                _ => "action",
+                            };
+                            if success {
+                                app.redo_stack.push(action);
                             }
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(if success {
+                                format!("Undo OK ({})", action_name)
+                            } else {
+                                format!("Undo failed ({})", action_name)
+                            }));
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
                         } else if let Some(fs) = app.current_file_state_mut() {
@@ -221,17 +232,27 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     }
                     KeyCode::Char('y') if has_control => {
                         if let Some(action) = app.redo_stack.pop() {
-                            match action.clone() {
+                            let mut success = true;
+                            let action_name = match action.clone() {
                                 UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                    let _ = std::fs::rename(&old, &new);
-                                    app.undo_stack.push(action);
+                                    success = std::fs::rename(&old, &new).is_ok();
+                                    "move/rename"
                                 }
                                 UndoAction::Copy(src, dest) => {
-                                    let _ = crate::modules::files::copy_recursive(&src, &dest);
-                                    app.undo_stack.push(action);
+                                    success =
+                                        crate::modules::files::copy_recursive(&src, &dest).is_ok();
+                                    "copy"
                                 }
-                                _ => {}
+                                _ => "action",
+                            };
+                            if success {
+                                app.undo_stack.push(action);
                             }
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(if success {
+                                format!("Redo OK ({})", action_name)
+                            } else {
+                                format!("Redo failed ({})", action_name)
+                            }));
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
                         }
@@ -241,17 +262,27 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         if has_control && key.modifiers.contains(KeyModifiers::SHIFT) =>
                     {
                         if let Some(action) = app.redo_stack.pop() {
-                            match action.clone() {
+                            let mut success = true;
+                            let action_name = match action.clone() {
                                 UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                    let _ = std::fs::rename(&old, &new);
-                                    app.undo_stack.push(action);
+                                    success = std::fs::rename(&old, &new).is_ok();
+                                    "move/rename"
                                 }
                                 UndoAction::Copy(src, dest) => {
-                                    let _ = crate::modules::files::copy_recursive(&src, &dest);
-                                    app.undo_stack.push(action);
+                                    success =
+                                        crate::modules::files::copy_recursive(&src, &dest).is_ok();
+                                    "copy"
                                 }
-                                _ => {}
+                                _ => "action",
+                            };
+                            if success {
+                                app.undo_stack.push(action);
                             }
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(if success {
+                                format!("Redo OK ({})", action_name)
+                            } else {
+                                format!("Redo failed ({})", action_name)
+                            }));
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
                         }
@@ -259,17 +290,27 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     }
                     KeyCode::Char('Z') if has_control => {
                         if let Some(action) = app.redo_stack.pop() {
-                            match action.clone() {
+                            let mut success = true;
+                            let action_name = match action.clone() {
                                 UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                    let _ = std::fs::rename(&old, &new);
-                                    app.undo_stack.push(action);
+                                    success = std::fs::rename(&old, &new).is_ok();
+                                    "move/rename"
                                 }
                                 UndoAction::Copy(src, dest) => {
-                                    let _ = crate::modules::files::copy_recursive(&src, &dest);
-                                    app.undo_stack.push(action);
+                                    success =
+                                        crate::modules::files::copy_recursive(&src, &dest).is_ok();
+                                    "copy"
                                 }
-                                _ => {}
+                                _ => "action",
+                            };
+                            if success {
+                                app.undo_stack.push(action);
                             }
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(if success {
+                                format!("Redo OK ({})", action_name)
+                            } else {
+                                format!("Redo failed ({})", action_name)
+                            }));
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                             let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
                         }
