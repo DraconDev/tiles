@@ -18,7 +18,7 @@ use crate::icons::Icon;
 use crate::ui::theme::THEME;
 
 pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
-    let selection_bg = Color::Rgb(0, 150, 255);
+    let selection_bg = THEME.accent_primary;
     let inner = area.inner(ratatui::layout::Margin {
         vertical: 1,
         horizontal: 1,
@@ -324,7 +324,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
-    let selection_bg = Color::Rgb(0, 150, 255);
+    let selection_bg = THEME.accent_primary;
     // Resolve both tree base path and a user-facing title path from focused editor context.
     let (base_path, title_path) = if let Some(pane) = app.panes.get(app.focused_pane_index) {
         if let Some(preview) = &pane.preview {
