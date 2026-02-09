@@ -386,10 +386,7 @@ fn handle_general_mouse(
     // 5. Sidebar vs Panes
     let sw = app.sidebar_width();
     if app.current_view == CurrentView::Editor
-        && matches!(
-            me.kind,
-            MouseEventKind::Down(_) | MouseEventKind::Up(_) | MouseEventKind::Drag(_)
-        )
+        && matches!(me.kind, MouseEventKind::Down(_))
         && column >= sw
     {
         let pane_count = app.panes.len();
@@ -403,9 +400,7 @@ fn handle_general_mouse(
                 }
                 app.focused_pane_index = pane_idx;
                 app.sidebar_focus = false;
-                if matches!(me.kind, MouseEventKind::Down(_)) {
-                    app.mouse_click_pos = (column, row);
-                }
+                app.mouse_click_pos = (column, row);
             }
         }
     }
