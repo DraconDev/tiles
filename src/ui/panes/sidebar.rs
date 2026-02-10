@@ -106,12 +106,13 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let is_drop_target =
                     matches!(app.hovered_drop_target, Some(DropTarget::Favorites));
                 let mut style = Style::default()
-                    .fg(crate::ui::theme::accent_secondary())
+                    .fg(Color::Black)
+                    .bg(Color::Rgb(46, 62, 58))
                     .add_modifier(Modifier::BOLD);
                 if is_selected || is_drop_target {
                     style = style.bg(selection_bg).fg(Color::Black);
                 }
-                sidebar_items.push(ListItem::new(format!("{}FAVORITES", icon)).style(style));
+                sidebar_items.push(ListItem::new(format!(" {} FAVORITES ", icon)).style(style));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     index: current_idx,
@@ -157,7 +158,9 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let cat = crate::modules::files::get_file_category(path);
                 let icon = Icon::get_for_path(path, cat, path.is_dir(), app.icon_mode);
 
-                sidebar_items.push(ListItem::new(format!("{}{}", icon, name)).style(style));
+                sidebar_items.push(
+                    ListItem::new(format!("{}• {}", icon, name)).style(style),
+                );
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     index: current_idx,
@@ -172,12 +175,13 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 current_y += 1;
                 let idx = sidebar_items.len();
                 let mut recent_style = Style::default()
-                    .fg(Color::Yellow)
+                    .fg(Color::Black)
+                    .bg(Color::Rgb(68, 64, 46))
                     .add_modifier(Modifier::BOLD);
                 if app.sidebar_index == idx {
                     recent_style = recent_style.bg(selection_bg).fg(Color::Black);
                 }
-                sidebar_items.push(ListItem::new("  RECENT").style(recent_style));
+                sidebar_items.push(ListItem::new(" RECENT ").style(recent_style));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     index: idx,
@@ -206,7 +210,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                             .add_modifier(Modifier::BOLD);
                     }
                     let icon = Icon::Folder.get(app.icon_mode);
-                    sidebar_items.push(ListItem::new(format!("{}{}", icon, name)).style(style));
+                    sidebar_items.push(ListItem::new(format!("{}◦ {}", icon, name)).style(style));
                     app.sidebar_bounds.push(SidebarBounds {
                         y: current_y,
                         index: current_idx,
@@ -223,13 +227,14 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let current_storage_header_idx = sidebar_items.len();
                 let storage_icon = Icon::Storage.get(app.icon_mode);
                 let mut storage_style = Style::default()
-                    .fg(Color::Rgb(230, 205, 150))
+                    .fg(Color::Black)
+                    .bg(Color::Rgb(70, 62, 46))
                     .add_modifier(Modifier::BOLD);
                 if app.sidebar_index == current_storage_header_idx {
                     storage_style = storage_style.bg(selection_bg).fg(Color::Black);
                 }
                 sidebar_items
-                    .push(ListItem::new(format!("{}STORAGES", storage_icon)).style(storage_style));
+                    .push(ListItem::new(format!(" {} STORAGES ", storage_icon)).style(storage_style));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     index: current_storage_header_idx,
@@ -312,13 +317,13 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         free_style = free_style.fg(Color::Black).add_modifier(Modifier::BOLD);
                     }
                     spans.push(Span::styled(
-                        format!("{}{}: ", disk_icon, display_name),
+                        format!("{}{} ", disk_icon, display_name),
                         name_style,
                     ));
-                    spans.push(Span::styled(format!("{}G Free", available), free_style));
+                    spans.push(Span::styled(format!("[{}G]", available), free_style));
                 } else {
                     spans.push(Span::styled(
-                        format!("{}{}(Not mounted)", disk_icon, disk.name),
+                        format!("{}{} [off]", disk_icon, disk.name),
                         name_style,
                     ));
                 };
@@ -338,7 +343,8 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 current_y += 1;
                 let current_header_idx = sidebar_items.len();
                 let mut remotes_style = Style::default()
-                    .fg(crate::ui::theme::accent_secondary())
+                    .fg(Color::Black)
+                    .bg(Color::Rgb(44, 52, 70))
                     .add_modifier(Modifier::BOLD);
                 if matches!(app.hovered_drop_target, Some(DropTarget::RemotesHeader))
                     || app.sidebar_index == current_header_idx
@@ -347,7 +353,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 }
                 let remote_icon = Icon::Remote.get(app.icon_mode);
                 sidebar_items.push(
-                    ListItem::new(format!("{}REMOTES [Import]", remote_icon)).style(remotes_style),
+                    ListItem::new(format!(" {} REMOTES [Import] ", remote_icon)).style(remotes_style),
                 );
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
@@ -392,7 +398,18 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     ));
                 }
                 let icon = Icon::Remote.get(app.icon_mode);
-                spans.push(Span::styled(format!("{}{}", icon, bookmark.name), style));
+                spans.push(Span::styled(format!("{}{} ", icon, bookmark.name), style));
+                spans.push(Span::styled(
+                    "[ssh]",
+                    if is_selected {
+                        Style::default()
+                            .bg(selection_bg)
+                            .fg(Color::Black)
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default().fg(Color::DarkGray)
+                    },
+                ));
 
                 sidebar_items.push(ListItem::new(Line::from(spans)));
                 app.sidebar_bounds.push(SidebarBounds {
