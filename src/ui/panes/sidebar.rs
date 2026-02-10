@@ -107,10 +107,10 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     matches!(app.hovered_drop_target, Some(DropTarget::Favorites));
                 let mut style = Style::default()
                     .fg(Color::Black)
-                    .bg(Color::Rgb(46, 62, 58))
+                    .bg(crate::ui::theme::accent_primary())
                     .add_modifier(Modifier::BOLD);
                 if is_selected || is_drop_target {
-                    style = style.bg(selection_bg).fg(Color::Black);
+                    style = style.bg(crate::ui::theme::border_active()).fg(Color::Black);
                 }
                 sidebar_items.push(ListItem::new(format!(" {} FAVORITES ", icon)).style(style));
                 app.sidebar_bounds.push(SidebarBounds {
@@ -176,10 +176,12 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let idx = sidebar_items.len();
                 let mut recent_style = Style::default()
                     .fg(Color::Black)
-                    .bg(Color::Rgb(68, 64, 46))
+                    .bg(crate::ui::theme::accent_primary())
                     .add_modifier(Modifier::BOLD);
                 if app.sidebar_index == idx {
-                    recent_style = recent_style.bg(selection_bg).fg(Color::Black);
+                    recent_style = recent_style
+                        .bg(crate::ui::theme::border_active())
+                        .fg(Color::Black);
                 }
                 sidebar_items.push(ListItem::new(" RECENT ").style(recent_style));
                 app.sidebar_bounds.push(SidebarBounds {
@@ -228,10 +230,12 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let storage_icon = Icon::Storage.get(app.icon_mode);
                 let mut storage_style = Style::default()
                     .fg(Color::Black)
-                    .bg(Color::Rgb(70, 62, 46))
+                    .bg(crate::ui::theme::accent_primary())
                     .add_modifier(Modifier::BOLD);
                 if app.sidebar_index == current_storage_header_idx {
-                    storage_style = storage_style.bg(selection_bg).fg(Color::Black);
+                    storage_style = storage_style
+                        .bg(crate::ui::theme::border_active())
+                        .fg(Color::Black);
                 }
                 sidebar_items
                     .push(ListItem::new(format!(" {} STORAGES ", storage_icon)).style(storage_style));
@@ -344,12 +348,14 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let current_header_idx = sidebar_items.len();
                 let mut remotes_style = Style::default()
                     .fg(Color::Black)
-                    .bg(Color::Rgb(44, 52, 70))
+                    .bg(crate::ui::theme::accent_primary())
                     .add_modifier(Modifier::BOLD);
                 if matches!(app.hovered_drop_target, Some(DropTarget::RemotesHeader))
                     || app.sidebar_index == current_header_idx
                 {
-                    remotes_style = remotes_style.bg(selection_bg).fg(Color::Black);
+                    remotes_style = remotes_style
+                        .bg(crate::ui::theme::border_active())
+                        .fg(Color::Black);
                 }
                 let remote_icon = Icon::Remote.get(app.icon_mode);
                 sidebar_items.push(
