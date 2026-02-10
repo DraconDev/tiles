@@ -82,37 +82,11 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             let show_storage = true;
             let show_remotes = true;
 
-            if show_favorites {
-                let current_idx = sidebar_items.len();
-                let icon = Icon::Star.get(app.icon_mode);
-                let is_selected = app.sidebar_index == current_idx;
-                let is_drop_target =
-                    matches!(app.hovered_drop_target, Some(DropTarget::Favorites));
-                let mut line_style = Style::default().fg(Color::DarkGray);
-                let mut label_style = Style::default()
-                    .fg(crate::ui::theme::accent_primary())
-                    .add_modifier(Modifier::BOLD);
-                if is_selected || is_drop_target {
-                    line_style = line_style.fg(crate::ui::theme::border_active());
-                    label_style = label_style
-                        .fg(crate::ui::theme::border_active())
-                        .add_modifier(Modifier::UNDERLINED);
-                }
-                let label = format!("{} FAVORITES", icon);
-                let row_w = area.width.saturating_sub(4) as usize;
-                sidebar_items.push(ListItem::new(section_header_line(
-                    &label,
-                    row_w,
-                    line_style,
-                    label_style,
-                )));
-                app.sidebar_bounds.push(SidebarBounds {
-                    y: current_y,
-                    index: current_idx,
-                    target: SidebarTarget::Header("FAVORITES".to_string()),
-                });
-                current_y += 1;
-            }
+            app.sidebar_bounds.push(SidebarBounds {
+                y: area.y,
+                index: usize::MAX - 2,
+                target: SidebarTarget::Header("FAVORITES".to_string()),
+            });
 
             // Render Starred Folders (Favorites - NO markers as requested)
             if show_favorites {
@@ -449,7 +423,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .title_top(Line::from(vec![Span::styled(
-                    " FAVORITES ",
+                    format!(" {} FAVORITES ", Icon::Star.get(app.icon_mode)),
                     Style::default()
                         .fg(crate::ui::theme::accent_primary())
                         .add_modifier(Modifier::BOLD),
