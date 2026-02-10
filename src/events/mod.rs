@@ -452,6 +452,9 @@ fn handle_sidebar_mouse(
 
     match me.kind {
         MouseEventKind::Down(button) => {
+            app.is_dragging = false;
+            app.hovered_drop_target = None;
+            app.drag_source = None;
             app.sidebar_focus = true;
             if button == MouseButton::Left {
                 app.drag_start_pos = Some((column, row));
@@ -599,11 +602,11 @@ fn handle_sidebar_mouse(
             app.hovered_drop_target = None;
             true
         }
-        MouseEventKind::Drag(_) | MouseEventKind::Moved => {
+        MouseEventKind::Drag(_) => {
             if let Some((sx, sy)) = app.drag_start_pos {
                 let dist_sq =
                     (column as f32 - sx as f32).powi(2) + (row as f32 - sy as f32).powi(2);
-                if dist_sq >= 1.0 {
+                if dist_sq >= 4.0 {
                     if !app.is_dragging {
                         app.is_dragging = true;
                     }
@@ -647,6 +650,7 @@ fn handle_sidebar_mouse(
             }
             false
         }
+        MouseEventKind::Moved => false,
         _ => false,
     }
 }

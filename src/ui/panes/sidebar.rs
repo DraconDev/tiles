@@ -152,9 +152,11 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .fg(crate::ui::theme::border_active())
                         .add_modifier(Modifier::UNDERLINED);
                 }
-                let row_w = area.width.saturating_sub(4) as usize;
+                let row_w = area.width.saturating_sub(2) as usize;
+                let recent_icon = Icon::Folder.get(app.icon_mode);
+                let recent_label = format!("{} RECENT", recent_icon);
                 sidebar_items.push(ListItem::new(section_header_line(
-                    "RECENT",
+                    &recent_label,
                     row_w,
                     line_style,
                     recent_style,
@@ -214,7 +216,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .add_modifier(Modifier::UNDERLINED);
                 }
                 let label = format!("{} STORAGES", storage_icon);
-                let row_w = area.width.saturating_sub(4) as usize;
+                let row_w = area.width.saturating_sub(2) as usize;
                 sidebar_items.push(ListItem::new(section_header_line(
                     &label,
                     row_w,
@@ -342,7 +344,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 }
                 let remote_icon = Icon::Remote.get(app.icon_mode);
                 let label = format!("{} REMOTES [Import]", remote_icon);
-                let row_w = area.width.saturating_sub(4) as usize;
+                let row_w = area.width.saturating_sub(2) as usize;
                 sidebar_items.push(ListItem::new(section_header_line(
                     &label,
                     row_w,
