@@ -39,23 +39,39 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 crate::state::SidebarScope::Remotes => "Remotes",
             };
             let scope_idx = sidebar_items.len();
-            let mut scope_style = Style::default().fg(Color::DarkGray);
-            if app.sidebar_index == scope_idx && app.sidebar_focus {
-                scope_style = scope_style
-                    .bg(selection_bg)
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD);
+            let scope_selected = app.sidebar_index == scope_idx && app.sidebar_focus;
+            let mut scope_spans = vec![Span::styled(
+                " Scope: ",
+                Style::default().fg(Color::DarkGray),
+            )];
+            let sections = [
+                ("All", crate::state::SidebarScope::All),
+                ("Favorites", crate::state::SidebarScope::Favorites),
+                ("Remotes", crate::state::SidebarScope::Remotes),
+            ];
+            for (i, (label, variant)) in sections.iter().enumerate() {
+                if i > 0 {
+                    scope_spans.push(Span::styled(" | ", Style::default().fg(Color::DarkGray)));
+                }
+                let active = app.sidebar_scope == *variant;
+                let mut style = if active {
+                    Style::default()
+                        .fg(crate::ui::theme::accent_secondary())
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(Color::Gray)
+                };
+                if scope_selected {
+                    style = style.bg(selection_bg).fg(Color::Black);
+                }
+                scope_spans.push(Span::styled(*label, style));
             }
-            sidebar_items.push(
-                ListItem::new(format!(" Scope: {} ", scope_label)).style(scope_style),
-            );
+            sidebar_items.push(ListItem::new(Line::from(scope_spans)));
             app.sidebar_bounds.push(SidebarBounds {
                 y: current_y,
                 index: scope_idx,
                 target: SidebarTarget::ScopeToggle,
             });
-            current_y += 1;
-            sidebar_items.push(ListItem::new(""));
             current_y += 1;
 
             // 1. Collect markers ONLY for the active (visible) tab of each PANE
