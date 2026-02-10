@@ -38,41 +38,11 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 crate::state::SidebarScope::Favorites => "Favorites",
                 crate::state::SidebarScope::Remotes => "Remotes",
             };
-            let scope_idx = sidebar_items.len();
-            let scope_selected = app.sidebar_index == scope_idx && app.sidebar_focus;
-            let mut scope_spans = vec![Span::styled(
-                " Scope: ",
-                Style::default().fg(Color::DarkGray),
-            )];
-            let sections = [
-                ("All", crate::state::SidebarScope::All),
-                ("Favorites", crate::state::SidebarScope::Favorites),
-                ("Remotes", crate::state::SidebarScope::Remotes),
-            ];
-            for (i, (label, variant)) in sections.iter().enumerate() {
-                if i > 0 {
-                    scope_spans.push(Span::styled(" | ", Style::default().fg(Color::DarkGray)));
-                }
-                let active = app.sidebar_scope == *variant;
-                let mut style = if active {
-                    Style::default()
-                        .fg(crate::ui::theme::accent_secondary())
-                        .add_modifier(Modifier::BOLD)
-                } else {
-                    Style::default().fg(Color::Gray)
-                };
-                if scope_selected {
-                    style = style.bg(selection_bg).fg(Color::Black);
-                }
-                scope_spans.push(Span::styled(*label, style));
-            }
-            sidebar_items.push(ListItem::new(Line::from(scope_spans)));
             app.sidebar_bounds.push(SidebarBounds {
-                y: current_y,
-                index: scope_idx,
+                y: area.y,
+                index: usize::MAX - 1,
                 target: SidebarTarget::ScopeToggle,
             });
-            current_y += 1;
 
             // 1. Collect markers ONLY for the active (visible) tab of each PANE
             let mut active_storage_markers: HashMap<String, Vec<usize>> = HashMap::new();
@@ -438,9 +408,20 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 );
             }
 
+            let scope_title_spans = vec![
+                Span::styled(" Scope: ", Style::default().fg(Color::DarkGray)),
+                Span::styled(
+                    scope_label,
+                    Style::default()
+                        .fg(crate::ui::theme::accent_secondary())
+                        .add_modifier(Modifier::BOLD),
+                ),
+            ];
+
             let block = Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
+                .title_top(Line::from(scope_title_spans))
                 .border_style(if app.sidebar_focus {
                     Style::default().fg(crate::ui::theme::border_active())
                 } else {
