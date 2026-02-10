@@ -116,7 +116,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 
             // Render Starred Folders (Favorites - NO markers as requested)
             if show_favorites {
-                for path in &app.starred {
+                for (starred_idx, path) in app.starred.iter().enumerate() {
                 let name = path
                     .file_name()
                     .map(|n| n.to_string_lossy().to_string())
@@ -144,8 +144,9 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .fg(Color::Black);
                 }
 
-                if app.is_dragging && app.mouse_pos.1 == current_y && app.mouse_pos.0 < area.width {
-                    app.hovered_drop_target = Some(DropTarget::ReorderFavorite(current_idx));
+                if app.is_dragging && app.mouse_pos.1 == current_y && app.mouse_pos.0 < area.width
+                {
+                    app.hovered_drop_target = Some(DropTarget::ReorderFavorite(starred_idx));
                 }
 
                 let cat = crate::modules::files::get_file_category(path);
@@ -450,7 +451,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 .title_top(Line::from(vec![Span::styled(
                     " FAVORITES ",
                     Style::default()
-                        .fg(crate::ui::theme::accent_secondary())
+                        .fg(crate::ui::theme::accent_primary())
                         .add_modifier(Modifier::BOLD),
                 )]))
                 .border_style(if app.sidebar_focus {
