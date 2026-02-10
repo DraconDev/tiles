@@ -214,7 +214,6 @@ pub struct CommandItem {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SidebarTarget {
-    ScopeToggle,
     Favorite(PathBuf),
     Remote(usize),
     Storage(usize),

@@ -33,17 +33,6 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
 
-            let scope_label = match app.sidebar_scope {
-                crate::state::SidebarScope::All => "All",
-                crate::state::SidebarScope::Favorites => "Favorites",
-                crate::state::SidebarScope::Remotes => "Remotes",
-            };
-            app.sidebar_bounds.push(SidebarBounds {
-                y: area.y,
-                index: usize::MAX - 1,
-                target: SidebarTarget::ScopeToggle,
-            });
-
             // 1. Collect markers ONLY for the active (visible) tab of each PANE
             let mut active_storage_markers: HashMap<String, Vec<usize>> = HashMap::new();
             let mut active_remote_markers: HashMap<String, Vec<usize>> = HashMap::new();
@@ -89,15 +78,9 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 name.to_lowercase().contains(&search_filter.to_lowercase())
             };
 
-            let show_favorites = matches!(
-                app.sidebar_scope,
-                crate::state::SidebarScope::All | crate::state::SidebarScope::Favorites
-            );
-            let show_storage = matches!(app.sidebar_scope, crate::state::SidebarScope::All);
-            let show_remotes = matches!(
-                app.sidebar_scope,
-                crate::state::SidebarScope::All | crate::state::SidebarScope::Remotes
-            );
+            let show_favorites = true;
+            let show_storage = true;
+            let show_remotes = true;
 
             if show_favorites {
                 let current_idx = sidebar_items.len();
@@ -115,11 +98,14 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .fg(crate::ui::theme::border_active())
                         .add_modifier(Modifier::UNDERLINED);
                 }
-                sidebar_items.push(ListItem::new(Line::from(vec![
-                    Span::styled("── ", line_style),
-                    Span::styled(format!("{} FAVORITES", icon), label_style),
-                    Span::styled(" ──", line_style),
-                ])));
+                let label = format!("{} FAVORITES", icon);
+                let row_w = area.width.saturating_sub(4) as usize;
+                sidebar_items.push(ListItem::new(section_header_line(
+                    &label,
+                    row_w,
+                    line_style,
+                    label_style,
+                )));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     index: current_idx,
@@ -191,11 +177,13 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .fg(crate::ui::theme::border_active())
                         .add_modifier(Modifier::UNDERLINED);
                 }
-                sidebar_items.push(ListItem::new(Line::from(vec![
-                    Span::styled("── ", line_style),
-                    Span::styled("RECENT", recent_style),
-                    Span::styled(" ──", line_style),
-                ])));
+                let row_w = area.width.saturating_sub(4) as usize;
+                sidebar_items.push(ListItem::new(section_header_line(
+                    "RECENT",
+                    row_w,
+                    line_style,
+                    recent_style,
+                )));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     index: idx,
@@ -250,11 +238,14 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .fg(crate::ui::theme::border_active())
                         .add_modifier(Modifier::UNDERLINED);
                 }
-                sidebar_items.push(ListItem::new(Line::from(vec![
-                    Span::styled("── ", line_style),
-                    Span::styled(format!("{} STORAGES", storage_icon), storage_style),
-                    Span::styled(" ──", line_style),
-                ])));
+                let label = format!("{} STORAGES", storage_icon);
+                let row_w = area.width.saturating_sub(4) as usize;
+                sidebar_items.push(ListItem::new(section_header_line(
+                    &label,
+                    row_w,
+                    line_style,
+                    storage_style,
+                )));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     index: current_storage_header_idx,
@@ -375,11 +366,14 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .add_modifier(Modifier::UNDERLINED);
                 }
                 let remote_icon = Icon::Remote.get(app.icon_mode);
-                sidebar_items.push(ListItem::new(Line::from(vec![
-                    Span::styled("── ", line_style),
-                    Span::styled(format!("{} REMOTES [Import]", remote_icon), remotes_style),
-                    Span::styled(" ──", line_style),
-                ])));
+                let label = format!("{} REMOTES [Import]", remote_icon);
+                let row_w = area.width.saturating_sub(4) as usize;
+                sidebar_items.push(ListItem::new(section_header_line(
+                    &label,
+                    row_w,
+                    line_style,
+                    remotes_style,
+                )));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     index: current_header_idx,
@@ -450,20 +444,15 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 );
             }
 
-            let scope_title_spans = vec![
-                Span::styled(" Scope: ", Style::default().fg(Color::DarkGray)),
-                Span::styled(
-                    scope_label,
-                    Style::default()
-                        .fg(crate::ui::theme::accent_secondary())
-                        .add_modifier(Modifier::BOLD),
-                ),
-            ];
-
             let block = Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .title_top(Line::from(scope_title_spans))
+                .title_top(Line::from(vec![Span::styled(
+                    " FAVORITES ",
+                    Style::default()
+                        .fg(crate::ui::theme::accent_secondary())
+                        .add_modifier(Modifier::BOLD),
+                )]))
                 .border_style(if app.sidebar_focus {
                     Style::default().fg(crate::ui::theme::border_active())
                 } else {
@@ -495,7 +484,6 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .get(*idx)
                         .map(|d| d.name.clone())
                         .unwrap_or_default(),
-                    SidebarTarget::ScopeToggle => format!("Scope: {}", scope_label),
                     SidebarTarget::Header(name) => name.clone(),
                 };
                 if !hint.is_empty() && list_inner.height > 0 {
@@ -520,6 +508,21 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         }
         _ => {}
     }
+}
+
+fn section_header_line(label: &str, row_width: usize, line_style: Style, label_style: Style) -> Line<'static> {
+    let label_w = label.width();
+    if row_width <= label_w + 2 {
+        return Line::from(vec![Span::styled(label.to_string(), label_style)]);
+    }
+    let dashes = row_width.saturating_sub(label_w + 2);
+    let left = dashes / 2;
+    let right = dashes.saturating_sub(left);
+    Line::from(vec![
+        Span::styled(format!("{} ", "─".repeat(left)), line_style),
+        Span::styled(label.to_string(), label_style),
+        Span::styled(format!(" {}", "─".repeat(right)), line_style),
+    ])
 }
 
 pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
