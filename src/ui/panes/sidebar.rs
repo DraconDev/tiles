@@ -126,9 +126,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let cat = crate::modules::files::get_file_category(path);
                 let icon = Icon::get_for_path(path, cat, path.is_dir(), app.icon_mode);
 
-                sidebar_items.push(
-                    ListItem::new(format!("{}• {}", icon, name)).style(style),
-                );
+                sidebar_items.push(ListItem::new(format!("{}{}", icon, name)).style(style));
                 app.sidebar_bounds.push(SidebarBounds {
                     y: current_y,
                     index: current_idx,
@@ -189,7 +187,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                             .add_modifier(Modifier::BOLD);
                     }
                     let icon = Icon::Folder.get(app.icon_mode);
-                    sidebar_items.push(ListItem::new(format!("{}◦ {}", icon, name)).style(style));
+                    sidebar_items.push(ListItem::new(format!("{}{}", icon, name)).style(style));
                     app.sidebar_bounds.push(SidebarBounds {
                         y: current_y,
                         index: current_idx,
