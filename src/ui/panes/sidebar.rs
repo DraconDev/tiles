@@ -1,5 +1,5 @@
 use ratatui::{
-    layout::Rect,
+    layout::{Alignment, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, List, ListItem, Paragraph},
@@ -428,6 +428,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                         .fg(crate::ui::theme::accent_primary())
                         .add_modifier(Modifier::BOLD),
                 )]))
+                .title_alignment(Alignment::Center)
                 .border_style(if app.sidebar_focus {
                     Style::default().fg(crate::ui::theme::border_active())
                 } else {
