@@ -10,7 +10,7 @@ pub use crate::state::{
     ContextMenuTarget, CurrentView, DropTarget, FileCategory, FileColumn, FileMetadata, FileState,
     GitPendingChange, LicenseStatus, MonitorSubview, Pane, PreviewState, ProcessColumn,
     RemoteBookmark, SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget, SystemState,
-    UndoAction, ViewPreferences, ViewStatePersistence,
+    SidebarScope, UndoAction, ViewPreferences, ViewStatePersistence,
 };
 
 pub struct BackgroundTask {
@@ -37,7 +37,9 @@ pub struct App {
     pub license: LicenseStatus,
     pub sidebar_focus: bool,
     pub sidebar_index: usize,
+    pub sidebar_scope: SidebarScope,
     pub starred: Vec<PathBuf>,
+    pub recent_folders: Vec<PathBuf>,
     pub remote_bookmarks: Vec<RemoteBookmark>,
     pub pending_remote: RemoteBookmark,
     pub external_tools: HashMap<String, Vec<crate::config::ExternalTool>>,
@@ -161,6 +163,7 @@ impl App {
             license: LicenseStatus::FreeMode,
             sidebar_focus: false,
             sidebar_index: 0,
+            sidebar_scope: SidebarScope::All,
             starred: vec![
                 dirs::home_dir(),
                 dirs::desktop_dir(),
@@ -174,6 +177,7 @@ impl App {
             .into_iter()
             .flatten()
             .collect(),
+            recent_folders: Vec::new(),
             remote_bookmarks: Vec::new(),
             pending_remote: RemoteBookmark {
                 name: String::new(),
@@ -255,6 +259,18 @@ impl App {
             background_tasks: Vec::new(),
             tile_queue,
             saved_pane: None,
+        }
+    }
+
+    pub fn push_recent_folder(&mut self, path: PathBuf) {
+        if !path.is_dir() {
+            return;
+        }
+        self.recent_folders.retain(|p| p != &path);
+        self.recent_folders.insert(0, path);
+        const MAX_RECENT: usize = 10;
+        if self.recent_folders.len() > MAX_RECENT {
+            self.recent_folders.truncate(MAX_RECENT);
         }
     }
 

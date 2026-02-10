@@ -1135,6 +1135,16 @@ fn handle_enter_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
             .map(|b| b.target.clone());
         if let Some(target) = target_opt {
             match target {
+                SidebarTarget::ScopeToggle => {
+                    app.sidebar_scope = match app.sidebar_scope {
+                        crate::state::SidebarScope::All => crate::state::SidebarScope::Favorites,
+                        crate::state::SidebarScope::Favorites => {
+                            crate::state::SidebarScope::Remotes
+                        }
+                        crate::state::SidebarScope::Remotes => crate::state::SidebarScope::All,
+                    };
+                    crate::config::save_state_quiet(app);
+                }
                 SidebarTarget::Favorite(path) => {
                     if let Some(fs) = app.current_file_state_mut() {
                         fs.current_path = path.clone();

@@ -241,6 +241,21 @@ async fn run_tty() -> color_eyre::Result<()> {
                     needs_draw = true;
                 }
                 AppEvent::RefreshFiles(pane_idx) => {
+                    let current_path = {
+                        let mut app_guard = app.lock().unwrap();
+                        let path = app_guard
+                            .panes
+                            .get(pane_idx)
+                            .and_then(|pane| pane.current_state())
+                            .map(|fs| fs.current_path.clone());
+                        if let Some(ref p) = path {
+                            app_guard.push_recent_folder(p.clone());
+                        }
+                        path
+                    };
+                    if current_path.is_none() {
+                        continue;
+                    }
                     panes_needing_refresh.insert(pane_idx);
                 }
                 AppEvent::FilesChangedOnDisk(path) => {
@@ -1172,6 +1187,8 @@ fn setup_app(
         app.show_side_panel = state.show_side_panel;
         app.default_show_hidden = state.default_show_hidden;
         app.preview_max_mb = state.preview_max_mb.max(1);
+        app.sidebar_scope = state.sidebar_scope;
+        app.recent_folders = state.recent_folders;
         if let Some(theme_style) = state.theme_style {
             // Migration: users who had the previous default "Cool" should move to
             // the new default "Legacy Red", while preserving custom themes.

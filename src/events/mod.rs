@@ -460,6 +460,20 @@ fn handle_sidebar_mouse(
                 app.sidebar_index = b.index;
                 match button {
                     MouseButton::Left => match &b.target {
+                        SidebarTarget::ScopeToggle => {
+                            app.sidebar_scope = match app.sidebar_scope {
+                                crate::state::SidebarScope::All => {
+                                    crate::state::SidebarScope::Favorites
+                                }
+                                crate::state::SidebarScope::Favorites => {
+                                    crate::state::SidebarScope::Remotes
+                                }
+                                crate::state::SidebarScope::Remotes => {
+                                    crate::state::SidebarScope::All
+                                }
+                            };
+                            crate::config::save_state_quiet(app);
+                        }
                         SidebarTarget::Header(name) if name == "REMOTES" => {
                             app.mode = AppMode::ImportServers;
                             app.input.clear();

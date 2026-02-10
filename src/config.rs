@@ -42,6 +42,10 @@ pub struct PersistentState {
     pub preview_max_mb: u16,
     #[serde(default)]
     pub theme_style: Option<crate::ui::theme::ThemeStyle>,
+    #[serde(default)]
+    pub sidebar_scope: crate::state::SidebarScope,
+    #[serde(default)]
+    pub recent_folders: Vec<PathBuf>,
 }
 
 fn default_true() -> bool {
@@ -95,6 +99,8 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
         default_show_hidden: app.default_show_hidden,
         preview_max_mb: app.preview_max_mb,
         theme_style: Some(crate::ui::theme::style_settings()),
+        sidebar_scope: app.sidebar_scope.clone(),
+        recent_folders: app.recent_folders.clone(),
     };
 
     let config_dir = dirs::config_dir()

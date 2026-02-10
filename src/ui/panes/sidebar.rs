@@ -2,7 +2,7 @@ use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, List, ListItem},
+    widgets::{Block, BorderType, Borders, List, ListItem, Paragraph},
     Frame,
 };
 use std::collections::HashMap;
@@ -12,6 +12,7 @@ use unicode_width::UnicodeWidthStr;
 use crate::app::{App, CurrentView, DropTarget, SidebarBounds, SidebarTarget};
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
+use terma::utils::truncate_to_width;
 
 pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let selection_bg = crate::ui::theme::accent_primary();
@@ -31,6 +32,31 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             };
             app.sidebar_bounds.clear();
             let mut current_y = inner.y;
+
+            let scope_label = match app.sidebar_scope {
+                crate::state::SidebarScope::All => "All",
+                crate::state::SidebarScope::Favorites => "Favorites",
+                crate::state::SidebarScope::Remotes => "Remotes",
+            };
+            let scope_idx = sidebar_items.len();
+            let mut scope_style = Style::default().fg(Color::DarkGray);
+            if app.sidebar_index == scope_idx && app.sidebar_focus {
+                scope_style = scope_style
+                    .bg(selection_bg)
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD);
+            }
+            sidebar_items.push(
+                ListItem::new(format!(" Scope: {} ", scope_label)).style(scope_style),
+            );
+            app.sidebar_bounds.push(SidebarBounds {
+                y: current_y,
+                index: scope_idx,
+                target: SidebarTarget::ScopeToggle,
+            });
+            current_y += 1;
+            sidebar_items.push(ListItem::new(""));
+            current_y += 1;
 
             // 1. Collect markers ONLY for the active (visible) tab of each PANE
             let mut active_storage_markers: HashMap<String, Vec<usize>> = HashMap::new();
@@ -77,26 +103,40 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 name.to_lowercase().contains(&search_filter.to_lowercase())
             };
 
-            let current_idx = sidebar_items.len();
-            let icon = Icon::Star.get(app.icon_mode);
-            let is_selected = app.sidebar_index == current_idx;
-            let is_drop_target = matches!(app.hovered_drop_target, Some(DropTarget::Favorites));
-            let mut style = Style::default()
-                .fg(crate::ui::theme::accent_secondary())
-                .add_modifier(Modifier::BOLD);
-            if is_selected || is_drop_target {
-                style = style.bg(selection_bg).fg(Color::Black);
+            let show_favorites = matches!(
+                app.sidebar_scope,
+                crate::state::SidebarScope::All | crate::state::SidebarScope::Favorites
+            );
+            let show_storage = matches!(app.sidebar_scope, crate::state::SidebarScope::All);
+            let show_remotes = matches!(
+                app.sidebar_scope,
+                crate::state::SidebarScope::All | crate::state::SidebarScope::Remotes
+            );
+
+            if show_favorites {
+                let current_idx = sidebar_items.len();
+                let icon = Icon::Star.get(app.icon_mode);
+                let is_selected = app.sidebar_index == current_idx;
+                let is_drop_target =
+                    matches!(app.hovered_drop_target, Some(DropTarget::Favorites));
+                let mut style = Style::default()
+                    .fg(crate::ui::theme::accent_secondary())
+                    .add_modifier(Modifier::BOLD);
+                if is_selected || is_drop_target {
+                    style = style.bg(selection_bg).fg(Color::Black);
+                }
+                sidebar_items.push(ListItem::new(format!("{}FAVORITES", icon)).style(style));
+                app.sidebar_bounds.push(SidebarBounds {
+                    y: current_y,
+                    index: current_idx,
+                    target: SidebarTarget::Header("FAVORITES".to_string()),
+                });
+                current_y += 1;
             }
-            sidebar_items.push(ListItem::new(format!("{}FAVORITES", icon)).style(style));
-            app.sidebar_bounds.push(SidebarBounds {
-                y: current_y,
-                index: current_idx,
-                target: SidebarTarget::Header("FAVORITES".to_string()),
-            });
-            current_y += 1;
 
             // Render Starred Folders (Favorites - NO markers as requested)
-            for path in &app.starred {
+            if show_favorites {
+                for path in &app.starred {
                 let name = path
                     .file_name()
                     .map(|n| n.to_string_lossy().to_string())
@@ -139,28 +179,83 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 });
                 current_y += 1;
             }
+            }
+
+            if show_favorites && !app.recent_folders.is_empty() {
+                sidebar_items.push(ListItem::new(""));
+                current_y += 1;
+                let idx = sidebar_items.len();
+                let mut recent_style = Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD);
+                if app.sidebar_index == idx {
+                    recent_style = recent_style.bg(selection_bg).fg(Color::Black);
+                }
+                sidebar_items.push(ListItem::new("  RECENT").style(recent_style));
+                app.sidebar_bounds.push(SidebarBounds {
+                    y: current_y,
+                    index: idx,
+                    target: SidebarTarget::Header("RECENT".to_string()),
+                });
+                current_y += 1;
+
+                for path in app.recent_folders.iter().take(8) {
+                    if app.starred.contains(path) {
+                        continue;
+                    }
+                    let name = path
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| path.to_string_lossy().to_string());
+                    if !matches_filter(&name) {
+                        continue;
+                    }
+                    let current_idx = sidebar_items.len();
+                    let is_selected = app.sidebar_index == current_idx;
+                    let mut style = Style::default().fg(Color::Gray);
+                    if is_selected {
+                        style = style
+                            .bg(selection_bg)
+                            .fg(Color::Black)
+                            .add_modifier(Modifier::BOLD);
+                    }
+                    let icon = Icon::Folder.get(app.icon_mode);
+                    sidebar_items.push(ListItem::new(format!("{}{}", icon, name)).style(style));
+                    app.sidebar_bounds.push(SidebarBounds {
+                        y: current_y,
+                        index: current_idx,
+                        target: SidebarTarget::Favorite(path.clone()),
+                    });
+                    current_y += 1;
+                }
+            }
 
             // STORAGE Section
-            sidebar_items.push(ListItem::new(""));
-            current_y += 1;
-            let current_storage_header_idx = sidebar_items.len();
-            let storage_icon = Icon::Storage.get(app.icon_mode);
-            let mut storage_style = Style::default()
-                .fg(Color::Rgb(230, 205, 150))
-                .add_modifier(Modifier::BOLD);
-            if app.sidebar_index == current_storage_header_idx {
-                storage_style = storage_style.bg(selection_bg).fg(Color::Black);
+            if show_storage {
+                sidebar_items.push(ListItem::new(""));
+                current_y += 1;
+                let current_storage_header_idx = sidebar_items.len();
+                let storage_icon = Icon::Storage.get(app.icon_mode);
+                let mut storage_style = Style::default()
+                    .fg(Color::Rgb(230, 205, 150))
+                    .add_modifier(Modifier::BOLD);
+                if app.sidebar_index == current_storage_header_idx {
+                    storage_style = storage_style.bg(selection_bg).fg(Color::Black);
+                }
+                sidebar_items
+                    .push(ListItem::new(format!("{}STORAGES", storage_icon)).style(storage_style));
+                app.sidebar_bounds.push(SidebarBounds {
+                    y: current_y,
+                    index: current_storage_header_idx,
+                    target: SidebarTarget::Header("STORAGES".to_string()),
+                });
+                current_y += 1;
             }
-            sidebar_items
-                .push(ListItem::new(format!("{}STORAGES", storage_icon)).style(storage_style));
-            app.sidebar_bounds.push(SidebarBounds {
-                y: current_y,
-                index: current_storage_header_idx,
-                target: SidebarTarget::Header("STORAGES".to_string()),
-            });
-            current_y += 1;
 
             for (i, disk) in app.system_state.disks.iter().enumerate() {
+                if !show_storage {
+                    break;
+                }
                 let mut display_name = if disk.name == "/" {
                     "Root (/)".to_string()
                 } else {
@@ -252,28 +347,33 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             }
 
             // REMOTE Section
-            sidebar_items.push(ListItem::new(""));
-            current_y += 1;
-            let current_header_idx = sidebar_items.len();
-            let mut remotes_style = Style::default()
-                .fg(crate::ui::theme::accent_secondary())
-                .add_modifier(Modifier::BOLD);
-            if matches!(app.hovered_drop_target, Some(DropTarget::RemotesHeader))
-                || app.sidebar_index == current_header_idx
-            {
-                remotes_style = remotes_style.bg(selection_bg).fg(Color::Black);
+            if show_remotes {
+                sidebar_items.push(ListItem::new(""));
+                current_y += 1;
+                let current_header_idx = sidebar_items.len();
+                let mut remotes_style = Style::default()
+                    .fg(crate::ui::theme::accent_secondary())
+                    .add_modifier(Modifier::BOLD);
+                if matches!(app.hovered_drop_target, Some(DropTarget::RemotesHeader))
+                    || app.sidebar_index == current_header_idx
+                {
+                    remotes_style = remotes_style.bg(selection_bg).fg(Color::Black);
+                }
+                let remote_icon = Icon::Remote.get(app.icon_mode);
+                sidebar_items.push(
+                    ListItem::new(format!("{}REMOTES [Import]", remote_icon)).style(remotes_style),
+                );
+                app.sidebar_bounds.push(SidebarBounds {
+                    y: current_y,
+                    index: current_header_idx,
+                    target: SidebarTarget::Header("REMOTES".to_string()),
+                });
+                current_y += 1;
             }
-            let remote_icon = Icon::Remote.get(app.icon_mode);
-            sidebar_items.push(
-                ListItem::new(format!("{}REMOTES [Import]", remote_icon)).style(remotes_style),
-            );
-            app.sidebar_bounds.push(SidebarBounds {
-                y: current_y,
-                index: current_header_idx,
-                target: SidebarTarget::Header("REMOTES".to_string()),
-            });
-            current_y += 1;
             for (i, bookmark) in app.remote_bookmarks.iter().enumerate() {
+                if !show_remotes {
+                    break;
+                }
                 if !matches_filter(&bookmark.name) {
                     continue;
                 }
@@ -331,7 +431,50 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     Style::default().fg(crate::ui::theme::border_inactive())
                 });
 
-            f.render_widget(List::new(sidebar_items).block(block), area);
+            let list_block = block.clone();
+            let list_inner = list_block.inner(area);
+            f.render_widget(List::new(sidebar_items).block(list_block), area);
+
+            let hint_target = app
+                .sidebar_bounds
+                .iter()
+                .find(|b| b.y == app.mouse_pos.1)
+                .or_else(|| app.sidebar_bounds.iter().find(|b| b.index == app.sidebar_index));
+            if let Some(bound) = hint_target {
+                let hint = match &bound.target {
+                    SidebarTarget::Favorite(path) | SidebarTarget::Project(path) => {
+                        path.to_string_lossy().to_string()
+                    }
+                    SidebarTarget::Remote(idx) => app
+                        .remote_bookmarks
+                        .get(*idx)
+                        .map(|r| format!("{}@{}:{}", r.user, r.host, r.port))
+                        .unwrap_or_default(),
+                    SidebarTarget::Storage(idx) => app
+                        .system_state
+                        .disks
+                        .get(*idx)
+                        .map(|d| d.name.clone())
+                        .unwrap_or_default(),
+                    SidebarTarget::ScopeToggle => format!("Scope: {}", scope_label),
+                    SidebarTarget::Header(name) => name.clone(),
+                };
+                if !hint.is_empty() && list_inner.height > 0 {
+                    let text = truncate_to_width(&hint, list_inner.width.saturating_sub(1) as usize, "..");
+                    f.render_widget(
+                        Paragraph::new(Span::styled(
+                            text,
+                            Style::default().fg(Color::DarkGray),
+                        )),
+                        Rect::new(
+                            list_inner.x,
+                            list_inner.y + list_inner.height.saturating_sub(1),
+                            list_inner.width,
+                            1,
+                        ),
+                    );
+                }
+            }
         }
         CurrentView::Editor => {
             draw_project_sidebar(f, area, app);

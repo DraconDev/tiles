@@ -140,6 +140,14 @@ pub enum SettingsTarget {
     SplitMode,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum SidebarScope {
+    #[default]
+    All,
+    Favorites,
+    Remotes,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum AppMode {
     Normal,
@@ -206,6 +214,7 @@ pub struct CommandItem {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SidebarTarget {
+    ScopeToggle,
     Favorite(PathBuf),
     Remote(usize),
     Storage(usize),
