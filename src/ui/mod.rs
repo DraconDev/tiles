@@ -3040,56 +3040,18 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
             } else {
                 0
             };
-            let pane_label = if let Some(home) = dirs::home_dir() {
-                if fs.current_path == home {
-                    "~".to_string()
-                } else {
-                    fs.current_path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .map(|s| s.to_string())
-                        .unwrap_or_else(|| fs.current_path.to_string_lossy().to_string())
-                }
-            } else {
-                fs.current_path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| fs.current_path.to_string_lossy().to_string())
-            };
-            let focus_label = if app.sidebar_focus {
-                "SIDEBAR"
-            } else {
-                "FILES"
-            };
             let summary_w = top_chunks[1].width as usize;
             let size_tag = if sel_count > 1 {
                 format!(" {}", format_size(selected_bytes))
             } else {
                 String::new()
             };
-            let full_summary = format!(
-                " {} {}  SEL: {} / {} ",
-                pane_label, focus_label, sel_count, total_count
-            );
-            let full_with_size = format!("{}{} ", full_summary.trim_end(), size_tag.trim_end());
-            let medium_summary = format!(
-                " {} {}  {} / {} ",
-                pane_label, focus_label, sel_count, total_count
-            );
-            let compact_focus = if app.sidebar_focus { "SB" } else { "F" };
-            let compact_summary = format!(
-                " {} {} {}/{} ",
-                pane_label, compact_focus, sel_count, total_count
-            );
-            let summary = if !size_tag.is_empty() && full_with_size.width() <= summary_w {
-                full_with_size
-            } else if full_summary.width() <= summary_w {
-                full_summary
-            } else if medium_summary.width() <= summary_w {
-                medium_summary
+            let summary_plain = format!(" {}/{} ", sel_count, total_count);
+            let summary_with_size = format!(" {}/{}{} ", sel_count, total_count, size_tag);
+            let summary = if !size_tag.is_empty() && summary_with_size.width() <= summary_w {
+                summary_with_size
             } else {
-                compact_summary
+                summary_plain
             };
             let summary_style = if app.sidebar_focus {
                 Style::default()
