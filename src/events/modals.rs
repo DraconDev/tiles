@@ -3,7 +3,13 @@ use crate::state::IconMode;
 use dracon_tui_contracts::{
     InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind,
 };
+use serde::Deserialize;
 use tokio::sync::mpsc;
+
+const STYLE_PRESET_COUNT: usize = 6;
+const STYLE_COLOR_FIELD_COUNT: usize = 6;
+const STYLE_COLOR_START_INDEX: usize = 1 + STYLE_PRESET_COUNT;
+const STYLE_MAX_INDEX: usize = STYLE_COLOR_START_INDEX + STYLE_COLOR_FIELD_COUNT - 1;
 
 pub fn handle_modal_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     match evt {
@@ -24,7 +30,7 @@ fn cycle_preview_max_mb(current: u16) -> u16 {
 }
 
 fn open_style_color_input(app: &mut App) {
-    if app.settings_index < 3 {
+    if app.settings_index < STYLE_COLOR_START_INDEX {
         return;
     }
     let style = crate::ui::theme::style_settings();
@@ -34,8 +40,20 @@ fn open_style_color_input(app: &mut App) {
     app.mode = AppMode::StyleColorInput;
 }
 
+fn style_preset_for_index(index: usize) -> Option<crate::ui::theme::ThemeStyle> {
+    match index {
+        1 => Some(crate::ui::theme::ThemeStyle::preset_warm()),
+        2 => Some(crate::ui::theme::ThemeStyle::preset_cool()),
+        3 => Some(crate::ui::theme::ThemeStyle::preset_forest()),
+        4 => Some(crate::ui::theme::ThemeStyle::preset_sunset()),
+        5 => Some(crate::ui::theme::ThemeStyle::preset_mono()),
+        6 => Some(crate::ui::theme::ThemeStyle::preset_legacy_red()),
+        _ => None,
+    }
+}
+
 fn style_field_name(index: usize) -> &'static str {
-    let idx = index.saturating_sub(3);
+    let idx = index.saturating_sub(STYLE_COLOR_START_INDEX);
     match idx {
         0 => "accent_primary",
         1 => "accent_secondary",
@@ -51,7 +69,7 @@ fn style_field_color(
     index: usize,
     style: &crate::ui::theme::ThemeStyle,
 ) -> crate::ui::theme::RgbColor {
-    let idx = index.saturating_sub(3);
+    let idx = index.saturating_sub(STYLE_COLOR_START_INDEX);
     match idx {
         0 => style.accent_primary,
         1 => style.accent_secondary,
@@ -68,7 +86,7 @@ fn set_style_field_color(
     style: &mut crate::ui::theme::ThemeStyle,
     color: crate::ui::theme::RgbColor,
 ) {
-    let idx = index.saturating_sub(3);
+    let idx = index.saturating_sub(STYLE_COLOR_START_INDEX);
     match idx {
         0 => style.accent_primary = color,
         1 => style.accent_secondary = color,
@@ -117,7 +135,7 @@ fn handle_style_color_input_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut
                 let mut style = crate::ui::theme::style_settings();
                 set_style_field_color(app.settings_index, &mut style, color);
                 crate::ui::theme::set_style_settings(style);
-                let _ = crate::config::save_state(app);
+                crate::config::save_state_quiet(app);
                 app.mode = AppMode::Settings;
                 app.input.clear();
             } else {
@@ -162,7 +180,7 @@ fn reset_all_settings_to_defaults(app: &mut App) {
     app.view_prefs.editor.is_split_mode = false;
     app.settings_section = SettingsSection::General;
     app.settings_index = 0;
-    crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_warm());
+    crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_legacy_red());
 
     for pane in &mut app.panes {
         for tab in &mut pane.tabs {
@@ -181,7 +199,7 @@ fn handle_reset_settings_confirm_keys(key: &dracon_tui_contracts::KeyEvent, app:
         KeyCode::Enter => {
             if app.input.value.trim().eq_ignore_ascii_case("RESET") {
                 reset_all_settings_to_defaults(app);
-                let _ = crate::config::save_state(app);
+                crate::config::save_state_quiet(app);
                 app.last_action_msg = Some((
                     "Settings reset to defaults".to_string(),
                     std::time::Instant::now(),
@@ -225,6 +243,7 @@ fn handle_modal_keys(
         AppMode::EditorGoToLine => handle_editor_goto_keys(key, app, event_tx, evt),
         AppMode::CommandPalette => handle_command_palette_keys(key, app, event_tx, evt),
         AppMode::AddRemote(idx) => handle_add_remote_keys(key, app, event_tx, idx, evt),
+        AppMode::ImportServers => handle_import_servers_keys(key, app, event_tx, evt),
         AppMode::Highlight => handle_highlight_keys(key, app),
         AppMode::StyleColorInput => handle_style_color_input_keys(key, app),
         AppMode::ResetSettingsConfirm => handle_reset_settings_confirm_keys(key, app),
@@ -720,9 +739,101 @@ fn handle_add_remote_keys(
                 app.input.set_value(String::new());
             } else {
                 app.remote_bookmarks.push(app.pending_remote.clone());
-                let _ = crate::config::save_state(app);
+                crate::config::save_state_quiet(app);
                 app.mode = AppMode::Normal;
                 app.input.clear();
+            }
+            true
+        }
+        _ => app
+            .input
+            .handle_event(&dracon_tui_input::to_runtime_event(evt)),
+    }
+}
+
+#[derive(Deserialize)]
+struct ImportServersToml {
+    servers: Vec<ImportServerEntry>,
+}
+
+#[derive(Deserialize)]
+struct ImportServerEntry {
+    name: String,
+    host: String,
+    user: String,
+    #[serde(default = "default_ssh_port")]
+    port: u16,
+    #[serde(default)]
+    key_path: Option<std::path::PathBuf>,
+}
+
+const fn default_ssh_port() -> u16 {
+    22
+}
+
+fn handle_import_servers_keys(
+    key: &dracon_tui_contracts::KeyEvent,
+    app: &mut App,
+    _event_tx: &mpsc::Sender<AppEvent>,
+    evt: &Event,
+) -> bool {
+    match key.code {
+        KeyCode::Esc => {
+            app.mode = AppMode::Normal;
+            app.input.clear();
+            true
+        }
+        KeyCode::Enter => {
+            let path = app.input.value.trim().to_string();
+            if path.is_empty() {
+                app.last_action_msg = Some((
+                    "Import path is empty".to_string(),
+                    std::time::Instant::now(),
+                ));
+                return true;
+            }
+
+            let parsed = std::fs::read_to_string(&path)
+                .map_err(|e| format!("Failed reading {}: {}", path, e))
+                .and_then(|content| {
+                    toml::from_str::<ImportServersToml>(&content)
+                        .map_err(|e| format!("Invalid TOML: {}", e))
+                });
+
+            match parsed {
+                Ok(data) => {
+                    let mut imported = 0usize;
+                    for s in data.servers {
+                        let candidate = crate::state::RemoteBookmark {
+                            name: s.name,
+                            host: s.host,
+                            user: s.user,
+                            port: s.port,
+                            last_path: std::path::PathBuf::from("/"),
+                            key_path: s.key_path,
+                        };
+                        let exists = app.remote_bookmarks.iter().any(|b| {
+                            b.name == candidate.name
+                                && b.host == candidate.host
+                                && b.user == candidate.user
+                                && b.port == candidate.port
+                        });
+                        if !exists {
+                            app.remote_bookmarks.push(candidate);
+                            imported += 1;
+                        }
+                    }
+                    crate::config::save_state_quiet(app);
+                    app.last_action_msg = Some((
+                        format!("Imported {} server(s)", imported),
+                        std::time::Instant::now(),
+                    ));
+                    app.mode = AppMode::Normal;
+                    app.input.clear();
+                }
+                Err(msg) => {
+                    app.last_action_msg = Some((msg, std::time::Instant::now()));
+                }
             }
             true
         }
@@ -757,7 +868,7 @@ fn handle_highlight_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) ->
                             app.path_colors.remove(&p);
                         }
                     }
-                    let _ = crate::config::save_state(app);
+                    crate::config::save_state_quiet(app);
                 }
                 app.mode = AppMode::Normal;
                 true
@@ -925,22 +1036,21 @@ fn handle_settings_keys(
         KeyCode::Char('r') | KeyCode::Char('R')
             if app.settings_section == SettingsSection::Style =>
         {
-            crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_warm());
-            let _ = crate::config::save_state(app);
+            crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_legacy_red());
+            crate::config::save_state_quiet(app);
             true
         }
         KeyCode::Char('e') | KeyCode::Char('E')
             if app.settings_section == SettingsSection::Style =>
         {
             if app.settings_index == 0 {
-                crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_warm());
-                let _ = crate::config::save_state(app);
-            } else if app.settings_index == 1 {
-                crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_warm());
-                let _ = crate::config::save_state(app);
-            } else if app.settings_index == 2 {
-                crate::ui::theme::set_style_settings(crate::ui::theme::ThemeStyle::preset_cool());
-                let _ = crate::config::save_state(app);
+                crate::ui::theme::set_style_settings(
+                    crate::ui::theme::ThemeStyle::preset_legacy_red(),
+                );
+                crate::config::save_state_quiet(app);
+            } else if let Some(preset) = style_preset_for_index(app.settings_index) {
+                crate::ui::theme::set_style_settings(preset);
+                crate::config::save_state_quiet(app);
             } else {
                 open_style_color_input(app);
             }
@@ -954,7 +1064,7 @@ fn handle_settings_keys(
             let max = match app.settings_section {
                 SettingsSection::General => 7,
                 SettingsSection::Columns => 3,
-                SettingsSection::Style => 8,
+                SettingsSection::Style => STYLE_MAX_INDEX,
                 _ => 0,
             };
             if app.settings_index < max {
@@ -986,7 +1096,7 @@ fn handle_settings_keys(
                         _ => {}
                     }
                     if app.settings_index != 7 {
-                        let _ = crate::config::save_state(app);
+                        crate::config::save_state_quiet(app);
                     }
                 }
                 SettingsSection::Columns => {
@@ -1006,24 +1116,17 @@ fn handle_settings_keys(
                     } else {
                         target_set.push(col);
                     }
-                    let _ = crate::config::save_state(app);
+                    crate::config::save_state_quiet(app);
                 }
                 SettingsSection::Style => {
                     if app.settings_index == 0 {
                         crate::ui::theme::set_style_settings(
-                            crate::ui::theme::ThemeStyle::preset_warm(),
+                            crate::ui::theme::ThemeStyle::preset_legacy_red(),
                         );
-                        let _ = crate::config::save_state(app);
-                    } else if app.settings_index == 1 {
-                        crate::ui::theme::set_style_settings(
-                            crate::ui::theme::ThemeStyle::preset_warm(),
-                        );
-                        let _ = crate::config::save_state(app);
-                    } else if app.settings_index == 2 {
-                        crate::ui::theme::set_style_settings(
-                            crate::ui::theme::ThemeStyle::preset_cool(),
-                        );
-                        let _ = crate::config::save_state(app);
+                        crate::config::save_state_quiet(app);
+                    } else if let Some(preset) = style_preset_for_index(app.settings_index) {
+                        crate::ui::theme::set_style_settings(preset);
+                        crate::config::save_state_quiet(app);
                     } else {
                         open_style_color_input(app);
                     }
@@ -1053,6 +1156,7 @@ pub fn handle_modal_mouse(
                 | AppMode::NewFile
                 | AppMode::NewFolder
                 | AppMode::AddRemote(_)
+                | AppMode::ImportServers
                 | AppMode::EditorSearch
                 | AppMode::EditorReplace
                 | AppMode::EditorGoToLine
@@ -1114,7 +1218,7 @@ pub fn handle_modal_mouse(
                                         app.path_colors.remove(&p);
                                     }
                                 }
-                                let _ = crate::config::save_state(app);
+                                crate::config::save_state_quiet(app);
                             }
                             app.mode = AppMode::Normal;
                         }
@@ -1142,18 +1246,10 @@ pub fn handle_modal_mouse(
             }
 
             if let MouseEventKind::Down(_) = me.kind {
-                crate::app::log_debug(&format!(
-                    "DEBUG: ContextMenu click at ({}, {}) area: ({}, {}, {}, {})",
-                    column, row, dx, dy, mw, mh
-                ));
                 if column >= dx && column < dx + mw && row >= dy && row < dy + mh {
                     let rel_y = row.saturating_sub(dy + 1);
                     if row > dy && row < dy + mh - 1 {
                         if let Some(action) = actions.get(rel_y as usize) {
-                            crate::app::log_debug(&format!(
-                                "DEBUG: ContextMenu action selected: {:?}",
-                                action
-                            ));
                             if *action != ContextMenuAction::Separator {
                                 crate::event_helpers::handle_context_menu_action(
                                     action,
@@ -1166,7 +1262,6 @@ pub fn handle_modal_mouse(
                         }
                     }
                 } else {
-                    crate::app::log_debug("DEBUG: ContextMenu clicked outside, closing");
                     app.mode = AppMode::Normal;
                 }
                 return true;
@@ -1260,7 +1355,7 @@ pub fn handle_modal_mouse(
                                     _ => {}
                                 }
                                 if app.settings_index != 7 {
-                                    let _ = crate::config::save_state(app);
+                                    crate::config::save_state_quiet(app);
                                 }
                             }
                         }
@@ -1296,28 +1391,23 @@ pub fn handle_modal_mouse(
                                     } else {
                                         target_set.push(col);
                                     }
-                                    let _ = crate::config::save_state(app);
+                                    crate::config::save_state_quiet(app);
                                 }
                             }
                         }
                         SettingsSection::Style => {
-                            if rel_y < 9 {
+                            if rel_y < (STYLE_MAX_INDEX as u16 + 1) {
                                 app.settings_index = rel_y as usize;
                                 if app.settings_index == 0 {
                                     crate::ui::theme::set_style_settings(
-                                        crate::ui::theme::ThemeStyle::preset_warm(),
+                                        crate::ui::theme::ThemeStyle::preset_legacy_red(),
                                     );
-                                    let _ = crate::config::save_state(app);
-                                } else if app.settings_index == 1 {
-                                    crate::ui::theme::set_style_settings(
-                                        crate::ui::theme::ThemeStyle::preset_warm(),
-                                    );
-                                    let _ = crate::config::save_state(app);
-                                } else if app.settings_index == 2 {
-                                    crate::ui::theme::set_style_settings(
-                                        crate::ui::theme::ThemeStyle::preset_cool(),
-                                    );
-                                    let _ = crate::config::save_state(app);
+                                    crate::config::save_state_quiet(app);
+                                } else if let Some(preset) =
+                                    style_preset_for_index(app.settings_index)
+                                {
+                                    crate::ui::theme::set_style_settings(preset);
+                                    crate::config::save_state_quiet(app);
                                 } else {
                                     open_style_color_input(app);
                                 }
@@ -1450,7 +1540,9 @@ pub fn handle_modal_mouse(
 mod tests {
     use super::*;
     use crate::app::{App, AppMode};
-    use dracon_tui_contracts::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+    use dracon_tui_contracts::{
+        KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+    };
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
     use terma::compositor::engine::TilePlacement;
@@ -1495,5 +1587,53 @@ mod tests {
             }
             other => panic!("expected Symlink event, got {:?}", other),
         }
+    }
+
+    #[test]
+    fn style_preset_and_custom_color_apply() {
+        let (tx, _rx) = mpsc::channel(8);
+        let mut app = test_app();
+        app.mode = AppMode::Settings;
+        app.settings_section = SettingsSection::Style;
+
+        // Apply Cool preset row.
+        app.settings_index = 2;
+        let _ = handle_settings_keys(
+            &KeyEvent {
+                code: KeyCode::Enter,
+                modifiers: KeyModifiers::empty(),
+                kind: KeyEventKind::Press,
+            },
+            &mut app,
+            &tx,
+        );
+        let style_after_preset = crate::ui::theme::style_settings();
+        assert_eq!(style_after_preset.accent_primary.r, 160);
+
+        // Open first custom color row and apply explicit color.
+        app.settings_index = STYLE_COLOR_START_INDEX;
+        let _ = handle_settings_keys(
+            &KeyEvent {
+                code: KeyCode::Enter,
+                modifiers: KeyModifiers::empty(),
+                kind: KeyEventKind::Press,
+            },
+            &mut app,
+            &tx,
+        );
+        assert!(matches!(app.mode, AppMode::StyleColorInput));
+        app.input.set_value("#112233".to_string());
+        let _ = handle_style_color_input_keys(
+            &KeyEvent {
+                code: KeyCode::Enter,
+                modifiers: KeyModifiers::empty(),
+                kind: KeyEventKind::Press,
+            },
+            &mut app,
+        );
+        let style_after_custom = crate::ui::theme::style_settings();
+        assert_eq!(style_after_custom.accent_primary.r, 0x11);
+        assert_eq!(style_after_custom.accent_primary.g, 0x22);
+        assert_eq!(style_after_custom.accent_primary.b, 0x33);
     }
 }

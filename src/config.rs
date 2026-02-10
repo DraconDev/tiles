@@ -127,6 +127,12 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+pub fn save_state_quiet(app: &App) {
+    if let Err(e) = save_state(app) {
+        crate::app::log_debug(&format!("save_state failed: {}", e));
+    }
+}
+
 pub fn load_state() -> Option<PersistentState> {
     let config_dir = dirs::config_dir()?.join("tiles");
     let state_path = config_dir.join("state.json");

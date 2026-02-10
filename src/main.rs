@@ -787,9 +787,7 @@ async fn run_tty() -> color_eyre::Result<()> {
                     if path.exists() && !app_guard.starred.contains(&path) {
                         app_guard.starred.push(path.clone());
                         // Wrap save_state to prevent crash if serialization fails
-                        if let Err(e) = crate::config::save_state(&app_guard) {
-                            crate::app::log_debug(&format!("Failed to save state: {}", e));
-                        }
+                        crate::config::save_state_quiet(&app_guard);
                         let display_name = path
                             .file_name()
                             .map(|n| n.to_string_lossy().to_string())
@@ -827,30 +825,46 @@ async fn run_tty() -> color_eyre::Result<()> {
             let tx = event_tx.clone();
             let app_clone = app.clone();
             tokio::spawn(async move {
-                let (files, mut metadata) = if let Some(session) = &remote {
-                    crate::modules::remote::read_dir_with_metadata(session, &path)
-                        .unwrap_or_else(|_| (Vec::new(), std::collections::HashMap::new()))
-                } else {
-                    crate::modules::files::read_dir_with_metadata(&path)
-                };
+                let list_path = path.clone();
+                let list_remote = remote.clone();
+                let list_filter = current_filter.clone();
+                let (files, mut metadata, g_files, g_meta) =
+                    tokio::task::spawn_blocking(move || {
+                        let (files, metadata) = if let Some(session) = &list_remote {
+                            crate::modules::remote::read_dir_with_metadata(session, &list_path)
+                                .unwrap_or_else(|_| (Vec::new(), std::collections::HashMap::new()))
+                        } else {
+                            crate::modules::files::read_dir_with_metadata(&list_path)
+                        };
 
-                let git_data = if let Some(session) = &remote {
-                    crate::modules::remote::fetch_git_data(session, &path)
-                } else {
-                    crate::modules::files::fetch_git_data(&path)
-                };
+                        let trimmed_filter = list_filter.trim();
+                        let (g_files, g_meta) = if trimmed_filter.len() > 3 {
+                            if let Some(session) = &list_remote {
+                                crate::modules::remote::global_search(
+                                    session,
+                                    &list_path,
+                                    trimmed_filter,
+                                )
+                            } else {
+                                let search_root =
+                                    dirs::home_dir().unwrap_or_else(|| list_path.clone());
+                                crate::modules::files::global_search(&search_root, trimmed_filter)
+                            }
+                        } else {
+                            (Vec::new(), std::collections::HashMap::new())
+                        };
 
-                let trimmed_filter = current_filter.trim();
-                let (g_files, g_meta) = if trimmed_filter.len() > 3 {
-                    if let Some(session) = &remote {
-                        crate::modules::remote::global_search(session, &path, trimmed_filter)
-                    } else {
-                        let search_root = dirs::home_dir().unwrap_or_else(|| path.clone());
-                        crate::modules::files::global_search(&search_root, trimmed_filter)
-                    }
-                } else {
-                    (Vec::new(), std::collections::HashMap::new())
-                };
+                        (files, metadata, g_files, g_meta)
+                    })
+                    .await
+                    .unwrap_or_else(|_| {
+                        (
+                            Vec::new(),
+                            std::collections::HashMap::new(),
+                            Vec::new(),
+                            std::collections::HashMap::new(),
+                        )
+                    });
 
                 {
                     let mut app_guard = app_clone.lock().unwrap();
@@ -965,7 +979,9 @@ async fn run_tty() -> color_eyre::Result<()> {
                             fs.local_count = filtered_files.len();
 
                             if !g_files.is_empty() {
+                                if !filtered_files.is_empty() {
                                 filtered_files.push(PathBuf::from("__DIVIDER__"));
+                                }
                                 for gf in g_files {
                                     if !filtered_files.contains(&gf) {
                                         filtered_files.push(gf);
@@ -989,24 +1005,73 @@ async fn run_tty() -> color_eyre::Result<()> {
                     }
                 }
                 let _ = tx.send(AppEvent::Tick).await;
-                if let Some((history, pending, branch, ahead, behind, summary, remotes, stashes)) =
-                    git_data
-                {
-                    let _ = tx
+
+                let git_path = path.clone();
+                let git_remote = remote.clone();
+                let app_for_git = app_clone.clone();
+                let tx_for_git = tx.clone();
+                tokio::spawn(async move {
+                    let git_fetch_path = git_path.clone();
+                    let git_data = tokio::task::spawn_blocking(move || {
+                        if let Some(session) = &git_remote {
+                            crate::modules::remote::fetch_git_data(session, &git_fetch_path)
+                        } else {
+                            crate::modules::files::fetch_git_data(&git_fetch_path)
+                        }
+                    })
+                    .await
+                    .ok()
+                    .flatten();
+
+                    let path_still_active = {
+                        let app_guard = app_for_git.lock().unwrap();
+                        app_guard
+                            .panes
+                            .get(pane_idx)
+                            .and_then(|pane| pane.current_state())
+                            .map(|fs| fs.current_path == git_path)
+                            .unwrap_or(false)
+                    };
+                    if !path_still_active {
+                        return;
+                    }
+
+                    let (history, pending, branch, ahead, behind, summary, remotes, stashes) =
+                        git_data.unwrap_or_else(|| {
+                            (
+                                Vec::new(),
+                                Vec::new(),
+                                String::new(),
+                                0,
+                                0,
+                                String::new(),
+                                Vec::new(),
+                                Vec::new(),
+                            )
+                        });
+
+                    let branch_opt = if branch.is_empty() { None } else { Some(branch) };
+                    let summary_opt = if summary.is_empty() {
+                        None
+                    } else {
+                        Some(summary)
+                    };
+
+                    let _ = tx_for_git
                         .send(AppEvent::GitHistoryUpdated(
                             pane_idx,
                             0,
                             history,
                             pending,
-                            Some(branch),
+                            branch_opt,
                             ahead,
                             behind,
-                            Some(summary),
+                            summary_opt,
                             remotes,
                             stashes,
                         ))
                         .await;
-                }
+                });
             });
         }
 
@@ -1108,7 +1173,15 @@ fn setup_app(
         app.default_show_hidden = state.default_show_hidden;
         app.preview_max_mb = state.preview_max_mb.max(1);
         if let Some(theme_style) = state.theme_style {
-            crate::ui::theme::set_style_settings(theme_style);
+            // Migration: users who had the previous default "Cool" should move to
+            // the new default "Legacy Red", while preserving custom themes.
+            if theme_style == crate::ui::theme::ThemeStyle::preset_cool() {
+                crate::ui::theme::set_style_settings(
+                    crate::ui::theme::ThemeStyle::preset_legacy_red(),
+                );
+            } else {
+                crate::ui::theme::set_style_settings(theme_style);
+            }
         }
     }
 

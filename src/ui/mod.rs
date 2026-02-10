@@ -49,27 +49,27 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         let border_color = if let Some(preview) = &app.editor_state {
             if let Some(last_saved) = preview.last_saved {
                 if last_saved.elapsed().as_secs() < 2 {
-                    Color::Green
+                    crate::ui::theme::accent_secondary()
                 } else if let Some(editor) = &preview.editor {
                     if editor.modified {
-                        Color::Yellow
+                        crate::ui::theme::accent_primary()
                     } else {
-                        Color::White
+                        crate::ui::theme::border_active()
                     }
                 } else {
-                    Color::White
+                    crate::ui::theme::border_active()
                 }
             } else if let Some(editor) = &preview.editor {
                 if editor.modified {
-                    Color::Yellow
+                    crate::ui::theme::accent_primary()
                 } else {
-                    Color::White
+                    crate::ui::theme::border_active()
                 }
             } else {
-                Color::White
+                crate::ui::theme::border_active()
             }
         } else {
-            Color::White
+            crate::ui::theme::border_active()
         };
 
         match app.mode {
@@ -82,7 +82,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 ));
                 header_left.push(Span::styled(
                     &app.input.value,
-                    Style::default().fg(Color::White),
+                    Style::default().fg(THEME.fg),
                 ));
             }
             AppMode::EditorGoToLine => {
@@ -94,7 +94,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 ));
                 header_left.push(Span::styled(
                     &app.input.value,
-                    Style::default().fg(Color::White),
+                    Style::default().fg(THEME.fg),
                 ));
             }
             AppMode::EditorReplace => {
@@ -102,23 +102,23 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                     header_left.push(Span::styled(
                         "REPLACE [FIND]: ",
                         Style::default()
-                            .fg(Color::Magenta)
+                            .fg(crate::ui::theme::accent_secondary())
                             .add_modifier(Modifier::BOLD),
                     ));
                     header_left.push(Span::styled(
                         &app.input.value,
-                        Style::default().fg(Color::White),
+                        Style::default().fg(THEME.fg),
                     ));
                 } else {
                     header_left.push(Span::styled(
                         "REPLACE [WITH]: ",
                         Style::default()
-                            .fg(Color::Magenta)
+                            .fg(crate::ui::theme::accent_secondary())
                             .add_modifier(Modifier::BOLD),
                     ));
                     header_left.push(Span::styled(
                         &app.input.value,
-                        Style::default().fg(Color::White),
+                        Style::default().fg(THEME.fg),
                     ));
                 }
             }
@@ -1699,7 +1699,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 
                             if pending > 0 {
                                 spans.push(Span::styled(
-                                    format!("+{}", pending),
+                                    format!(" +{}", pending),
                                     Style::default().fg(Color::Red),
                                 ));
                             }
@@ -1787,7 +1787,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 
                     if pending > 0 {
                         spans.push(Span::styled(
-                            format!("+{}", pending),
+                            format!(" +{}", pending),
                             Style::default().fg(Color::Red),
                         ));
                     }
@@ -2954,11 +2954,6 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                 crate::ui::theme::accent_secondary(),
             ));
             shortcuts.extend(HotkeyHint::render(
-                "F5",
-                "Refresh",
-                crate::ui::theme::accent_secondary(),
-            ));
-            shortcuts.extend(HotkeyHint::render(
                 "^N",
                 "TermTab",
                 crate::ui::theme::accent_secondary(),
@@ -3045,7 +3040,23 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
             } else {
                 0
             };
-            let pane_label = format!("P{}", app.focused_pane_index + 1);
+            let pane_label = if let Some(home) = dirs::home_dir() {
+                if fs.current_path == home {
+                    "~".to_string()
+                } else {
+                    fs.current_path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| fs.current_path.to_string_lossy().to_string())
+                }
+            } else {
+                fs.current_path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| fs.current_path.to_string_lossy().to_string())
+            };
             let focus_label = if app.sidebar_focus {
                 "SIDEBAR"
             } else {
@@ -3867,7 +3878,6 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
                 ("Ctrl + t", "New Duplicate Tab"),
                 ("Ctrl + h", "Toggle Hidden Files"),
                 ("Ctrl + b", "Toggle Sidebar"),
-                ("F5", "Refresh Current Pane"),
                 ("Ctrl + u / Ctrl + w", "Clear Search / Delete Search Word"),
                 ("Ctrl + z / Ctrl + y", "Undo / Redo (File Operations)"),
                 ("Ctrl + Shift + z", "Redo Alternative"),
@@ -4217,6 +4227,8 @@ fn draw_general_settings(f: &mut Frame, area: Rect, app: &App) {
 
 fn draw_style_settings(f: &mut Frame, area: Rect, app: &App) {
     let style = crate::ui::theme::style_settings();
+    const STYLE_PRESET_ROWS: usize = 6;
+    const STYLE_COLOR_START_INDEX: usize = 1 + STYLE_PRESET_ROWS;
     let color_rows = vec![
         ("Accent Primary", style.accent_primary),
         ("Accent Secondary", style.accent_secondary),
@@ -4244,42 +4256,39 @@ fn draw_style_settings(f: &mut Frame, area: Rect, app: &App) {
         Cell::from("restore baseline").style(reset_style),
     ]));
 
-    let warm_selected = app.settings_index == 1 && app.settings_section == SettingsSection::Style;
-    let warm_style = if warm_selected {
-        Style::default()
-            .bg(crate::ui::theme::accent_primary())
-            .fg(Color::Black)
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(Color::Yellow)
-    };
-    rows.push(Row::new(vec![
-        Cell::from("  Preset: Warm").style(warm_style),
-        Cell::from("●").style(warm_style),
-        Cell::from("amber + mint").style(warm_style),
-    ]));
-
-    let cool_selected = app.settings_index == 2 && app.settings_section == SettingsSection::Style;
-    let cool_style = if cool_selected {
-        Style::default()
-            .bg(crate::ui::theme::accent_primary())
-            .fg(Color::Black)
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(Color::Cyan)
-    };
-    rows.push(Row::new(vec![
-        Cell::from("  Preset: Cool").style(cool_style),
-        Cell::from("●").style(cool_style),
-        Cell::from("violet + ice").style(cool_style),
-    ]));
+    let preset_rows = vec![
+        ("Warm", "amber + mint", Color::Yellow),
+        ("Cool", "violet + ice", Color::Cyan),
+        ("Forest", "moss + pine", Color::Green),
+        ("Sunset", "coral + plum", Color::LightRed),
+        ("Mono", "steel grayscale", Color::Gray),
+        ("Legacy Red", "classic red accent", Color::Red),
+    ];
+    for (i, (name, desc, color)) in preset_rows.iter().enumerate() {
+        let row_idx = i + 1;
+        let is_selected =
+            row_idx == app.settings_index && app.settings_section == SettingsSection::Style;
+        let row_style = if is_selected {
+            Style::default()
+                .bg(crate::ui::theme::accent_primary())
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(*color)
+        };
+        rows.push(Row::new(vec![
+            Cell::from(format!("  Preset: {}", name)).style(row_style),
+            Cell::from("●").style(row_style),
+            Cell::from(*desc).style(row_style),
+        ]));
+    }
 
     rows.extend(
         color_rows
             .iter()
             .enumerate()
             .map(|(i, (label, rgb))| {
-                let row_idx = i + 3;
+                let row_idx = i + STYLE_COLOR_START_INDEX;
                 let is_selected =
                     row_idx == app.settings_index && app.settings_section == SettingsSection::Style;
                 let mut left_style = Style::default().fg(THEME.fg);
@@ -4313,7 +4322,7 @@ fn draw_style_settings(f: &mut Frame, area: Rect, app: &App) {
     )
     .block(
         Block::default()
-            .title(" STYLE (Warm/Cool presets + custom colors) ")
+            .title(" STYLE (Preset themes + custom colors) ")
             .borders(Borders::TOP)
             .border_style(Style::default().fg(Color::Rgb(40, 45, 55))),
     )
@@ -4326,7 +4335,8 @@ fn draw_style_color_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(64, 9, f.area());
     f.render_widget(Clear, area);
 
-    let field_name = match app.settings_index.saturating_sub(3) {
+    const STYLE_COLOR_START_INDEX: usize = 7;
+    let field_name = match app.settings_index.saturating_sub(STYLE_COLOR_START_INDEX) {
         0 => "Accent Primary",
         1 => "Accent Secondary",
         2 => "Selection Background",
@@ -4338,7 +4348,7 @@ fn draw_style_color_modal(f: &mut Frame, app: &App) {
 
     let color = {
         let style = crate::ui::theme::style_settings();
-        match app.settings_index.saturating_sub(3) {
+        match app.settings_index.saturating_sub(STYLE_COLOR_START_INDEX) {
             0 => style.accent_primary,
             1 => style.accent_secondary,
             2 => style.selection_bg,

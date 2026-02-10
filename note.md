@@ -1,9 +1,7 @@
 ## Do
 
-also probably by default not have a second panel open, on editor
+we dont need refresh on the footer we should be jsut refreshing
 
 ## Maybe
-
-
 
 ## Done

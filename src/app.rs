@@ -166,8 +166,10 @@ impl App {
                 dirs::desktop_dir(),
                 dirs::document_dir(),
                 dirs::download_dir(),
+                dirs::audio_dir(),
                 dirs::picture_dir(),
                 dirs::video_dir(),
+                dirs::public_dir(),
             ]
             .into_iter()
             .flatten()

@@ -102,6 +102,7 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
             vec![
                 ("Ctrl + q", "Quit Application"),
                 ("Ctrl + g", "Open Settings"),
+                ("Ctrl + d", "Open/Close Debug Screen"),
                 ("Ctrl + Space", "Open Command Palette"),
                 ("Ctrl + b", "Toggle Sidebar"),
                 ("Ctrl + m", "Toggle Main Stage"),
@@ -124,14 +125,17 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
         (
             "View & Tabs",
             vec![
-                ("Ctrl + s", "Toggle Split View"),
+                ("Ctrl + p", "Toggle Split View"),
                 ("Ctrl + t", "New Duplicate Tab"),
                 ("Ctrl + h", "Toggle Hidden Files"),
                 ("Ctrl + b", "Toggle Sidebar"),
-                ("Ctrl + l / u", "Clear Search Filter"),
-                ("Ctrl + z / y", "Undo / Redo (Rename/Move)"),
+                ("Ctrl + u / Ctrl + w", "Clear Search / Delete Search Word"),
+                ("Ctrl + z / Ctrl + y", "Undo / Redo (File Operations)"),
+                ("Ctrl + Shift + z", "Redo Alternative"),
                 ("?", "Show this Help"),
                 ("Esc / Ctrl + [", "Back / Exit Mode"),
+                ("Style: Theme Presets", "Warm/Cool/Forest/Sunset/Mono/Legacy Red + custom"),
+                ("General: Reset All Settings", "Type RESET to confirm"),
             ],
         ),
         (
@@ -156,6 +160,8 @@ fn draw_shortcuts_settings(f: &mut Frame, area: Rect, _app: &App) {
                 ("Ctrl + G", "Go to Line"),
                 ("Ctrl + F", "Find in File"),
                 ("Ctrl + R / F2", "Replace"),
+                ("Ctrl + Z / Ctrl + Y", "Undo / Redo"),
+                ("Ctrl + Shift + Z", "Redo Alternative"),
                 ("Double Click", "Select Word"),
                 ("Triple Click", "Select Line"),
                 ("Drag Selection", "Move Text Block"),

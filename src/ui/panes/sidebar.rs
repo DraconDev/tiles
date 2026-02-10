@@ -341,7 +341,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
-    let selection_bg = crate::ui::theme::accent_primary();
+    let selection_bg = crate::ui::theme::selection_bg();
     // Resolve both tree base path and a user-facing title path from focused editor context.
     let (base_path, title_path) = if let Some(pane) = app.panes.get(app.focused_pane_index) {
         if let Some(preview) = &pane.preview {
@@ -424,14 +424,8 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             .unwrap_or("?".to_string());
         let current_idx = sidebar_items.len();
         let is_selected = app.sidebar_focus && app.sidebar_index == current_idx;
-
-        let mut style = Style::default().fg(THEME.fg);
-        if is_selected {
-            style = style
-                .bg(selection_bg)
-                .fg(Color::Black)
-                .add_modifier(Modifier::BOLD);
-        }
+        let is_hovered_drop =
+            matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == &path);
 
         let cat = crate::modules::files::get_file_category(&path);
         let icon_mode = app.icon_mode;
@@ -441,17 +435,20 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 .bg(selection_bg)
                 .fg(Color::Black)
                 .add_modifier(Modifier::BOLD)
+        } else if is_hovered_drop {
+            Style::default()
+                .bg(crate::ui::theme::accent_secondary())
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD)
         } else {
-            let fg = match cat {
-                crate::app::FileCategory::Script => THEME.file_code,
-                crate::app::FileCategory::Text => THEME.file_config,
-                crate::app::FileCategory::Image
-                | crate::app::FileCategory::Video
-                | crate::app::FileCategory::Audio => THEME.file_media,
-                crate::app::FileCategory::Archive => THEME.file_archive,
-                crate::app::FileCategory::Document => THEME.fg,
-                _ if is_dir => crate::ui::theme::header_fg(),
-                _ => THEME.fg,
+            let fg = if app.semantic_coloring {
+                if is_dir {
+                    crate::ui::theme::accent_secondary()
+                } else {
+                    cat.cyber_color()
+                }
+            } else {
+                THEME.fg
             };
             Style::default().fg(fg)
         };

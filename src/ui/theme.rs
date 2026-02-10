@@ -20,7 +20,7 @@ pub struct DraconTheme {
     pub file_exec: Color,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RgbColor {
     pub r: u8,
     pub g: u8,
@@ -37,7 +37,7 @@ impl RgbColor {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ThemeStyle {
     pub accent_primary: RgbColor,
     pub accent_secondary: RgbColor,
@@ -70,8 +70,52 @@ impl ThemeStyle {
         }
     }
 
+    pub fn preset_forest() -> Self {
+        Self {
+            accent_primary: RgbColor::new(126, 196, 102),   // Moss green
+            accent_secondary: RgbColor::new(86, 168, 142),  // Pine teal
+            selection_bg: RgbColor::new(66, 116, 84),       // Deep fern
+            border_active: RgbColor::new(126, 196, 102),    // Moss green
+            border_inactive: RgbColor::new(76, 88, 82),     // Bark slate
+            header_fg: RgbColor::new(182, 226, 164),        // Pale leaf
+        }
+    }
+
+    pub fn preset_sunset() -> Self {
+        Self {
+            accent_primary: RgbColor::new(236, 146, 98),    // Orange coral
+            accent_secondary: RgbColor::new(236, 99, 141),  // Pink coral
+            selection_bg: RgbColor::new(142, 74, 92),       // Plum dusk
+            border_active: RgbColor::new(236, 146, 98),     // Orange coral
+            border_inactive: RgbColor::new(94, 78, 92),     // Dusk slate
+            header_fg: RgbColor::new(255, 198, 156),        // Peach light
+        }
+    }
+
+    pub fn preset_mono() -> Self {
+        Self {
+            accent_primary: RgbColor::new(210, 214, 224),   // Soft silver
+            accent_secondary: RgbColor::new(162, 172, 188), // Steel blue-gray
+            selection_bg: RgbColor::new(82, 90, 108),       // Graphite
+            border_active: RgbColor::new(210, 214, 224),    // Soft silver
+            border_inactive: RgbColor::new(72, 78, 92),     // Slate dark
+            header_fg: RgbColor::new(228, 232, 240),        // Light silver
+        }
+    }
+
+    pub fn preset_legacy_red() -> Self {
+        Self {
+            accent_primary: RgbColor::new(226, 78, 86),    // Legacy red
+            accent_secondary: RgbColor::new(72, 190, 182), // Legacy teal
+            selection_bg: RgbColor::new(226, 78, 86),      // Legacy red highlight
+            border_active: RgbColor::new(226, 78, 86),     // Legacy red
+            border_inactive: RgbColor::new(70, 88, 104),   // Blue-gray slate
+            header_fg: RgbColor::new(156, 214, 206),       // Pale teal
+        }
+    }
+
     pub fn default_purple() -> Self {
-        Self::preset_warm()
+        Self::preset_legacy_red()
     }
 
     fn apply_to_theme(&self, theme: &mut DraconTheme) {

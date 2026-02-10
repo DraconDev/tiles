@@ -1,7 +1,7 @@
 use ratatui::{
     layout::Rect,
     style::Style,
-    text::Line,
+    text::{Line, Span},
     widgets::{Block, BorderType, Borders},
     Frame,
 };
@@ -40,19 +40,27 @@ pub fn draw_pane_editor(
 ) {
     let title = if let Some(pane) = app.panes.get(pane_idx) {
         if let Some(preview) = &pane.preview {
-            let route = preview.path.to_string_lossy().to_string();
-            format!(" P{} {} ", pane_idx + 1, route)
+            Line::from(vec![Span::styled(
+                format!(" {} ", preview.path.to_string_lossy()),
+                Style::default().fg(crate::ui::theme::accent_secondary()),
+            )])
         } else {
-            format!(" P{} (no file) ", pane_idx + 1)
+            Line::from(vec![Span::styled(
+                " (no file) ",
+                Style::default().fg(crate::ui::theme::border_inactive()),
+            )])
         }
     } else {
-        format!(" P{} ", pane_idx + 1)
+        Line::from(vec![Span::styled(
+            " (no file) ",
+            Style::default().fg(crate::ui::theme::border_inactive()),
+        )])
     };
 
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title_top(Line::from(title))
+        .title_top(title)
         .border_style(if is_focused {
             Style::default().fg(crate::ui::theme::border_active())
         } else {

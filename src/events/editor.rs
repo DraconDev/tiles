@@ -67,10 +67,6 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
 
     // 1. View-Specific Esc Handling
     if key.code == KeyCode::Esc {
-        crate::app::log_debug(&format!(
-            "DEBUG: Esc pressed in Editor View (Mode: {:?})",
-            app.mode
-        ));
         if matches!(app.mode, AppMode::Normal) {
             if let CurrentView::Editor = app.current_view {
                 app.save_current_view_prefs();
@@ -184,13 +180,6 @@ pub fn handle_editor_mouse(
     let (w, h) = app.terminal_size;
     let column = me.column;
     let row = me.row;
-
-    if let MouseEventKind::Down(MouseButton::Middle) = me.kind {
-        crate::app::log_debug(&format!(
-            "DEBUG: Middle Click in handle_editor_mouse at ({}, {})",
-            column, row
-        ));
-    }
 
     // A. Check for Full-Screen Editor
     if let AppMode::Editor
@@ -524,7 +513,6 @@ fn handle_generic_editor_shortcuts(
     }
 
     if key.code == KeyCode::F(2) {
-        crate::app::log_debug("DEBUG: F2 pressed in Editor - triggering Rename");
         let name = path
             .file_name()
             .unwrap_or_else(|| std::ffi::OsStr::new("root"))

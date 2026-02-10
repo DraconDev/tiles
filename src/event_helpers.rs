@@ -2,7 +2,6 @@ use crate::app::{
     App, AppEvent, AppMode, CommandAction, CommandItem, ContextMenuAction, ContextMenuTarget,
     CurrentView, FileState,
 };
-use crate::config::save_state;
 use std::path::PathBuf;
 use tokio::sync::mpsc;
 
@@ -180,7 +179,6 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
             }
             actions.extend(vec![
                 ContextMenuAction::Separator,
-                ContextMenuAction::Refresh,
                 ContextMenuAction::ToggleHidden,
                 ContextMenuAction::Separator,
                 ContextMenuAction::TerminalTab,
@@ -260,32 +258,16 @@ pub fn handle_context_menu_action(
             }
         }
         ContextMenuAction::AddToFavorites => {
-            crate::app::log_debug(&format!(
-                "DEBUG: AddToFavorites action triggered with target {:?}",
-                target
-            ));
             if let ContextMenuTarget::Folder(idx) | ContextMenuTarget::File(idx) = target {
                 let path_opt = app
                     .current_file_state()
                     .and_then(|fs| fs.files.get(*idx).cloned());
                 if let Some(path) = path_opt {
-                    crate::app::log_debug(&format!("DEBUG: Adding path to favorites: {:?}", path));
                     if !app.starred.contains(&path) {
                         app.starred.push(path);
-                        if let Err(e) = save_state(app) {
-                            crate::app::log_debug(&format!(
-                                "DEBUG: Failed to save state after adding favorite: {}",
-                                e
-                            ));
-                        } else {
-                            crate::app::log_debug(
-                                "DEBUG: State saved successfully after adding favorite",
-                            );
-                        }
+                        crate::config::save_state_quiet(app);
                         // Refresh to update sidebar
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                    } else {
-                        crate::app::log_debug("DEBUG: Path already in favorites");
                     }
                 }
             }
@@ -312,7 +294,7 @@ pub fn handle_context_menu_action(
                 _ => {}
             }
             if removed {
-                let _ = save_state(app);
+                crate::config::save_state_quiet(app);
                 let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
             }
         }

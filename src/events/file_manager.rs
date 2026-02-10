@@ -12,6 +12,21 @@ use crate::app::{
 use crate::events::input::delete_word_backwards;
 use crate::state::DropTarget;
 
+fn is_double_click(
+    last_click_pos: (u16, u16),
+    last_click_time: std::time::Instant,
+    column: u16,
+    row: u16,
+) -> bool {
+    let (last_x, last_y) = last_click_pos;
+    let close_enough = last_x.abs_diff(column) <= 1 && last_y.abs_diff(row) <= 1;
+    close_enough && last_click_time.elapsed() < Duration::from_millis(500)
+}
+
+fn is_virtual_divider(path: &std::path::Path) -> bool {
+    path.to_string_lossy() == "__DIVIDER__"
+}
+
 pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     if let Event::Key(key) = evt {
         let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
@@ -34,7 +49,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         if let Some(fs) = app.panes.get(idx).and_then(|p| p.current_state()) {
                             app.default_show_hidden = fs.show_hidden;
                         }
-                        let _ = crate::config::save_state(app);
+                        crate::config::save_state_quiet(app);
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(idx));
                         return true;
                     }
@@ -139,10 +154,6 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                 }
 
                 match key.code {
-                    KeyCode::F(5) => {
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                        return true;
-                    }
                     KeyCode::Char('c') if has_control => {
                         if let Some(fs) = app.current_file_state() {
                             if let Some(idx) = fs.selection.selected {
@@ -386,7 +397,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                             }
                         }
                         if should_save {
-                            let _ = crate::config::save_state(app);
+                            crate::config::save_state_quiet(app);
                         }
                         return true;
                     }
@@ -410,7 +421,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                                         if starred_idx > 0 {
                                             app.starred.swap(starred_idx, starred_idx - 1);
                                             app.sidebar_index = app.sidebar_index.saturating_sub(1);
-                                            let _ = crate::config::save_state(app);
+                                            crate::config::save_state_quiet(app);
                                             let _ = event_tx.try_send(AppEvent::RefreshFiles(
                                                 app.focused_pane_index,
                                             ));
@@ -439,7 +450,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                                         if starred_idx < app.starred.len().saturating_sub(1) {
                                             app.starred.swap(starred_idx, starred_idx + 1);
                                             app.sidebar_index += 1;
-                                            let _ = crate::config::save_state(app);
+                                            crate::config::save_state_quiet(app);
                                             let _ = event_tx.try_send(AppEvent::RefreshFiles(
                                                 app.focused_pane_index,
                                             ));
@@ -820,7 +831,7 @@ pub fn handle_file_mouse(
                 let sel_mode = app.selection_mode;
                 if let Some(fs) = app.current_file_state_mut() {
                     if idx < fs.files.len() {
-                        let is_divider = fs.files[idx].to_string_lossy() == "__DIVIDER__";
+                        let is_divider = is_virtual_divider(&fs.files[idx]);
                         if is_divider {
                             return true;
                         }
@@ -897,11 +908,8 @@ pub fn handle_file_mouse(
                     app.drag_start_pos = Some((column, row));
 
                     // Double Click
-                    let (last_x, last_y) = app.mouse_click_pos;
-                    let close_enough = last_x.abs_diff(column) <= 1 && last_y.abs_diff(row) <= 1;
                     if button == MouseButton::Left
-                        && app.mouse_last_click.elapsed() < Duration::from_millis(500)
-                        && close_enough
+                        && is_double_click(app.mouse_click_pos, app.mouse_last_click, column, row)
                     {
                         if path.is_dir() {
                             if let Some(fs) = app.current_file_state_mut() {
@@ -959,6 +967,9 @@ pub fn handle_file_mouse(
                 let idx = crate::event_helpers::fs_mouse_index(row, app);
                 if let Some(fs) = app.current_file_state_mut() {
                     if idx < fs.files.len() {
+                        if is_virtual_divider(&fs.files[idx]) {
+                            return true;
+                        }
                         fs.selection.clear();
                         fs.selection.selected = Some(idx);
                         fs.table_state.select(Some(idx));
@@ -1091,6 +1102,9 @@ fn handle_space_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
 
         if let Some(idx) = fs.selection.selected {
             if let Some(path) = fs.files.get(idx).cloned() {
+                if is_virtual_divider(&path) {
+                    return;
+                }
                 let target_pane = app
                     .focused_pane_index
                     .min(app.panes.len().saturating_sub(1));
@@ -1165,6 +1179,9 @@ fn handle_enter_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
     if let Some(fs) = app.current_file_state() {
         if let Some(idx) = fs.selection.selected {
             if let Some(path) = fs.files.get(idx) {
+                if is_virtual_divider(path) {
+                    return;
+                }
                 if path.is_dir() {
                     navigate_to = Some(path.clone());
                 } else {
@@ -1281,4 +1298,18 @@ fn handle_quick_copy(app: &mut App, event_tx: &mpsc::Sender<AppEvent>, _to_left:
 
 fn path_join(base: &PathBuf, name: &std::ffi::OsStr) -> PathBuf {
     base.join(name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn double_click_allows_small_pointer_drift() {
+        let now = std::time::Instant::now();
+        assert!(is_double_click((10, 10), now, 11, 10));
+        assert!(is_double_click((10, 10), now, 9, 11));
+        assert!(!is_double_click((10, 10), now, 13, 10));
+        assert!(!is_double_click((10, 10), now - Duration::from_millis(700), 10, 10));
+    }
 }

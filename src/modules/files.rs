@@ -1,11 +1,12 @@
 use crate::app::{CommitInfo, FileMetadata, GitPendingChange};
 use dracon_files::{
-    DirectoryCatalogContract, FileCategory as LibFileCategory, FileCopyContract,
-    FileInspectContract, FileSearchContract, FsCatalog,
+    FileCategory as LibFileCategory, FileCopyContract, FileInspectContract, FileSearchContract,
+    FsCatalog,
 };
 use dracon_git::{CliGitSnapshotProvider, GitPreviewContract, GitSnapshotContract};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 fn map_metadata(meta: dracon_files::contracts::EntryMetadata) -> FileMetadata {
     FileMetadata {
@@ -18,16 +19,56 @@ fn map_metadata(meta: dracon_files::contracts::EntryMetadata) -> FileMetadata {
 }
 
 pub fn read_dir_with_metadata(path: &Path) -> (Vec<PathBuf>, HashMap<PathBuf, FileMetadata>) {
-    let catalog = FsCatalog;
-    match catalog.read_dir_with_metadata(path) {
-        Ok((files, metadata)) => (
-            files,
-            metadata
-                .into_iter()
-                .map(|(k, v)| (k, map_metadata(v)))
-                .collect(),
-        ),
-        Err(_) => (Vec::new(), HashMap::new()),
+    let mut files = Vec::new();
+    let mut metadata = HashMap::new();
+
+    let Ok(entries) = std::fs::read_dir(path) else {
+        return (files, metadata);
+    };
+
+    for entry in entries.flatten() {
+        let p = entry.path();
+        let symlink_meta = std::fs::symlink_metadata(&p).ok();
+        let target_meta = std::fs::metadata(&p).ok();
+        let meta = target_meta.as_ref().or(symlink_meta.as_ref());
+
+        files.push(p.clone());
+
+        if let Some(m) = meta {
+            let is_dir = target_meta
+                .as_ref()
+                .map(|tm| tm.is_dir())
+                .or_else(|| symlink_meta.as_ref().map(|sm| sm.file_type().is_dir()))
+                .unwrap_or(false);
+            metadata.insert(
+                p,
+                FileMetadata {
+                    size: m.len(),
+                    modified: m.modified().unwrap_or(SystemTime::UNIX_EPOCH),
+                    created: m.created().unwrap_or(SystemTime::UNIX_EPOCH),
+                    permissions: permissions_bits(m),
+                    is_dir,
+                },
+            );
+        }
+    }
+
+    (files, metadata)
+}
+
+fn permissions_bits(meta: &std::fs::Metadata) -> u32 {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        meta.permissions().mode()
+    }
+    #[cfg(not(unix))]
+    {
+        if meta.permissions().readonly() {
+            0o444
+        } else {
+            0o666
+        }
     }
 }
 
@@ -131,4 +172,38 @@ pub fn show_commit_patch(repo_path: &Path, hash: &str) -> std::io::Result<String
 pub fn show_file_diff(repo_path: &Path, file_path: &str) -> std::io::Result<String> {
     let provider = CliGitSnapshotProvider;
     provider.show_file_diff(repo_path, file_path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn read_dir_includes_symlink_entries() {
+        use std::os::unix::fs::symlink;
+        use std::time::{SystemTime, UNIX_EPOCH};
+
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("tiles-symlink-test-{unique}"));
+        let target = root.join("real_ssh_dir");
+        std::fs::create_dir_all(&target).expect("create target dir");
+        let link = root.join(".ssh");
+        symlink(&target, &link).expect("create symlink");
+
+        let (files, metadata) = read_dir_with_metadata(&root);
+        assert!(files.iter().any(|p| p == &link), "symlink should be listed");
+        assert!(metadata.contains_key(&link), "symlink should have metadata");
+        assert_eq!(
+            metadata.get(&link).map(|m| m.is_dir),
+            Some(true),
+            "symlink to dir should behave as directory"
+        );
+
+        let _ = std::fs::remove_file(&link);
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }

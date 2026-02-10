@@ -38,10 +38,6 @@ pub fn handle_event(
 
     // 3. Mode-specific logic (Modals, Overlays)
     if !matches!(app.mode, AppMode::Normal) {
-        crate::app::log_debug(&format!(
-            "DEBUG: Dispatching to modals::handle_modal_events (Mode: {:?})",
-            app.mode
-        ));
         if modals::handle_modal_events(&evt, app, &event_tx) {
             return true;
         }
@@ -102,7 +98,7 @@ pub fn handle_event(
                     KeyCode::Char('p') | KeyCode::Char('P') => {
                         app.toggle_split();
                         app.save_current_view_prefs();
-                        let _ = crate::config::save_state(app);
+                        crate::config::save_state_quiet(app);
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
                         return true;
@@ -279,7 +275,6 @@ fn handle_general_mouse(
     app.mouse_pos = (column, row);
 
     if let MouseEventKind::Down(MouseButton::Middle) = me.kind {
-        crate::app::log_debug("DEBUG: Middle Button Down detected in handle_general_mouse");
     }
 
     // 1. Sidebar Resizing
@@ -292,7 +287,7 @@ fn handle_general_mouse(
             }
             MouseEventKind::Up(_) => {
                 app.is_resizing_sidebar = false;
-                let _ = crate::config::save_state(app);
+                crate::config::save_state_quiet(app);
                 return true;
             }
             _ => {}
@@ -330,7 +325,7 @@ fn handle_general_mouse(
                     "split" => {
                         app.toggle_split();
                         app.save_current_view_prefs();
-                        let _ = crate::config::save_state(app);
+                        crate::config::save_state_quiet(app);
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
                     }
@@ -465,6 +460,10 @@ fn handle_sidebar_mouse(
                 app.sidebar_index = b.index;
                 match button {
                     MouseButton::Left => match &b.target {
+                        SidebarTarget::Header(name) if name == "REMOTES" => {
+                            app.mode = AppMode::ImportServers;
+                            app.input.clear();
+                        }
                         SidebarTarget::Favorite(path) => {
                             if let Some(fs) = app.current_file_state_mut() {
                                 fs.current_path = path.clone();
@@ -569,7 +568,7 @@ fn handle_sidebar_mouse(
                                     // Ensure we don't exceed bounds
                                     let insert_idx = insert_idx.min(app.starred.len());
                                     app.starred.insert(insert_idx, item);
-                                    let _ = crate::config::save_state(app);
+                                    crate::config::save_state_quiet(app);
                                     let _ = event_tx
                                         .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                 }
@@ -579,7 +578,7 @@ fn handle_sidebar_mouse(
                             // Add folder to favorites when dropped on FAVORITES header
                             if source_path.is_dir() && !app.starred.contains(&source_path) {
                                 app.starred.push(source_path.clone());
-                                let _ = crate::config::save_state(app);
+                                crate::config::save_state_quiet(app);
                                 let _ = event_tx
                                     .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                                 let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
@@ -756,5 +755,45 @@ mod tests {
 
         assert!(changed);
         assert_eq!(app.current_view, CurrentView::Git);
+    }
+
+    #[test]
+    fn sidebar_project_directory_click_opens_folder() {
+        let (tx, mut rx) = mpsc::channel(8);
+        let mut app = test_app();
+        app.current_view = CurrentView::Files;
+        app.mode = AppMode::Normal;
+        app.terminal_size = (120, 40);
+        app.show_sidebar = true;
+        app.sidebar_focus = true;
+        let project_dir = std::env::temp_dir().join("tiles-sidebar-open-test");
+        let _ = std::fs::create_dir_all(&project_dir);
+        app.sidebar_bounds.push(SidebarBounds {
+            y: 4,
+            index: 0,
+            target: SidebarTarget::Project(project_dir.clone()),
+        });
+
+        let handled = handle_sidebar_mouse(
+            &dracon_tui_contracts::MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Left),
+                column: 2,
+                row: 4,
+                modifiers: KeyModifiers::empty(),
+            },
+            &mut app,
+            &tx,
+        );
+
+        assert!(handled);
+        assert_eq!(
+            app.current_file_state().map(|fs| fs.current_path.clone()),
+            Some(project_dir.clone())
+        );
+
+        match rx.try_recv() {
+            Ok(AppEvent::RefreshFiles(_)) => {}
+            other => panic!("expected RefreshFiles event, got {:?}", other),
+        }
     }
 }
