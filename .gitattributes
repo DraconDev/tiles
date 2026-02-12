@@ -17,15 +17,15 @@
 # --- END DEMON MANAGED BLOCK ---
 # --- BEGIN DRACON MANAGED BLOCK ---
 # managed by dracon-warden
+*.age filter=dracon diff=dracon merge=dracon
 *.env filter=dracon diff=dracon merge=dracon
+*.key filter=dracon diff=dracon merge=dracon
+*.pem filter=dracon diff=dracon merge=dracon
 .env filter=dracon diff=dracon merge=dracon
 .env.* filter=dracon diff=dracon merge=dracon
 config.json filter=dracon diff=dracon merge=dracon
-*.pem filter=dracon diff=dracon merge=dracon
-*.key filter=dracon diff=dracon merge=dracon
-*.age filter=dracon diff=dracon merge=dracon
-test_secret.txt filter=dracon diff=dracon merge=dracon
 secrets/** filter=dracon diff=dracon merge=dracon
+test_secret.txt filter=dracon diff=dracon merge=dracon
 *.pub -filter -diff -merge
 .cargo/config.toml -filter -diff -merge
 .dracon/data/ -filter -diff -merge

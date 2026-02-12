@@ -97,17 +97,18 @@ build/
 !*.age
 !test_secret.txt
 !secrets/**
-!Cargo.lock
-!Cargo.toml
-!rust-toolchain.toml
-!rustfmt.toml
-!clippy.toml
-!deny.toml
+!*.pub
 !.cargo/config.toml
-!flake.nix
-!flake.lock
 !.dracon/data/
 !.dracon/data/keys/
 !.dracon/data/keys/*.pub
-!*.pub
+!Cargo.lock
+!Cargo.toml
+!clippy.toml
+!config/envs/*.env
+!deny.toml
+!flake.lock
+!flake.nix
+!rust-toolchain.toml
+!rustfmt.toml
 # --- END DRACON MANAGED BLOCK ---
