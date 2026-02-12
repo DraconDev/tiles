@@ -1,20 +1,3 @@
-# --- BEGIN DEMON MANAGED BLOCK ---
-# DANGER: Managed by Demon. Manual changes inside this block will be overwritten.
-# Purpose: settings for filters and binary files
-*.env filter=demon diff=demon
-*.gif binary
-*.ico binary
-*.jpg binary
-*.json filter=demon diff=demon
-*.lock binary
-*.mp4 binary
-*.png binary
-*.toml filter=demon diff=demon
-*.woff binary
-*.woff2 binary
-*.yaml filter=demon diff=demon
-*.yml filter=demon diff=demon
-# --- END DEMON MANAGED BLOCK ---
 # --- BEGIN DRACON MANAGED BLOCK ---
 # managed by dracon-warden
 *.age filter=dracon diff=dracon merge=dracon
@@ -34,7 +17,6 @@ test_secret.txt filter=dracon diff=dracon merge=dracon
 Cargo.lock -filter -diff -merge
 Cargo.toml -filter -diff -merge
 clippy.toml -filter -diff -merge
-config/envs/*.env -filter -diff -merge
 deny.toml -filter -diff -merge
 flake.lock -filter -diff -merge
 flake.nix -filter -diff -merge

@@ -105,7 +105,6 @@ build/
 !Cargo.lock
 !Cargo.toml
 !clippy.toml
-!config/envs/*.env
 !deny.toml
 !flake.lock
 !flake.nix
