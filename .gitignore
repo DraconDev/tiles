@@ -1,80 +1,3 @@
-.env
-.env.*
-.demon/
-*.key
-*.age
-*.pem
-*.p12
-.arcane/keys/
-.arcane/shadow/
-*.log
-npm-debug.log*
-yarn-error.log*
-.DS_Store
-
-# Standard Ignores
-target/
-**/target/
-node_modules/
-.vscode/
-.idea/
-*.swp
-*.swo
-dist/
-build/
-.next/
-__pycache__/
-*.pyc
-
-# --- BEGIN DEMON MANAGED BLOCK ---
-# DANGER: Managed by Demon. Manual changes inside this block will be overwritten.
-# Purpose: patterns for secrets protection, hygiene & build artifacts
-!*.env
-!.env
-!.env.*
-!.gitattributes
-!demon.toml
-*.age
-*.cache
-*.dll
-*.exe
-*.key
-*.log
-*.p12
-*.pem
-*.pyc
-*.swo
-*.swp
-*.temp
-*.tmp
-*~
-.DS_Store
-.demon/
-.demon/backups/
-.demon/keys/
-.demon/shadow/
-.idea/**
-.next/
-.npm/
-.nuxt/
-.venv/
-.vs/**
-.vscode
-.wxt
-Thumbs.db
-__pycache__/
-build/
-build/**
-dist/
-dist/**
-node_modules/
-node_modules/**
-npm-debug.log*
-target/
-venv/
-yarn-debug.log*
-yarn-error.log*
-# --- END DEMON MANAGED BLOCK ---
 # --- BEGIN DRACON MANAGED BLOCK ---
 # managed by dracon-warden
 target/
@@ -105,9 +28,15 @@ build/
 !Cargo.lock
 !Cargo.toml
 !clippy.toml
+!config/licenses.json
+!config/licenses.test.json
+!config/services.json
+!config/services.test.json
 !deny.toml
 !flake.lock
 !flake.nix
+!plan/pages/snapshots/*.json
+!plan/pages/templates/*.json
 !rust-toolchain.toml
 !rustfmt.toml
 # --- END DRACON MANAGED BLOCK ---

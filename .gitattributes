@@ -17,9 +17,15 @@ test_secret.txt filter=dracon diff=dracon merge=dracon
 Cargo.lock -filter -diff -merge
 Cargo.toml -filter -diff -merge
 clippy.toml -filter -diff -merge
+config/licenses.json -filter -diff -merge
+config/licenses.test.json -filter -diff -merge
+config/services.json -filter -diff -merge
+config/services.test.json -filter -diff -merge
 deny.toml -filter -diff -merge
 flake.lock -filter -diff -merge
 flake.nix -filter -diff -merge
+plan/pages/snapshots/*.json -filter -diff -merge
+plan/pages/templates/*.json -filter -diff -merge
 rust-toolchain.toml -filter -diff -merge
 rustfmt.toml -filter -diff -merge
 # --- END DRACON MANAGED BLOCK ---
