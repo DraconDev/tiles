@@ -17,9 +17,9 @@ terma = { package = "dracon-tui", path = "../dracon-libs/tools/tui/dracon-tui-ru
 dracon-tui-contracts = { path = "../dracon-libs/domains/crates/dracon-tui-contracts" }
 dracon-tui-input = { path = "../dracon-libs/tools/tui/dracon-tui-input" }
 dracon-tui-ratatui-adapter = { path = "../dracon-libs/tools/tui/dracon-tui-ratatui-adapter" }
-dracon-files = { path = "../dracon-libs/tools/crates/dracon-files" }
-dracon-git = { path = "../dracon-libs/tools/crates/dracon-git" }
-dracon-system = { path = "../dracon-libs/tools/crates/dracon-system" }
+dracon-files = { path = "../dracon-libs/tools/files/dracon-files" }
+dracon-git = { path = "../dracon-libs/tools/sync/dracon-git" }
+dracon-system = { path = "../dracon-libs/tools/system/dracon-system" }
 tokio = { version = "1.0", features = ["full"] }
 openssl = { version = "0.10", features = ["vendored"] }
 toml = "0.9.11"
