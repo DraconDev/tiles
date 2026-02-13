@@ -4,6 +4,7 @@ target/
 node_modules/
 .git/
 *.log
+**/dracon-sync-incidents.jsonl
 .DS_Store
 __pycache__/
 dist/
