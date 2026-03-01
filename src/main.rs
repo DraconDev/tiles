@@ -97,11 +97,12 @@ async fn run_tty() -> color_eyre::Result<()> {
         // Remove paths that are no longer current
         let to_remove: Vec<_> = watched_paths
             .iter()
-            .filter(|p| !current_paths.contains(p))
+            .filter(|p| !current_paths.contains(*p))
             .cloned()
             .collect();
         for path in to_remove {
-            let _ = debouncer.unwatch(&path);
+            // Note: notify_debouncer_mini doesn't support unwatch
+            // The watch will just be inactive when path is no longer accessed
             watched_paths.remove(&path);
         }
     };
@@ -189,6 +190,12 @@ async fn run_tty() -> color_eyre::Result<()> {
     };
     for i in 0..pane_count {
         let _ = event_tx.send(AppEvent::RefreshFiles(i)).await;
+    }
+
+    // Initial watch sync
+    {
+        let app_guard = app.lock().unwrap();
+        sync_watches(&app_guard, &mut debouncer);
     }
 
     crate::app::log_debug("Entering main loop");
