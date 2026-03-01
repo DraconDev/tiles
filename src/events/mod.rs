@@ -274,8 +274,7 @@ fn handle_general_mouse(
     let (w, _) = app.terminal_size;
     app.mouse_pos = (column, row);
 
-    if let MouseEventKind::Down(MouseButton::Middle) = me.kind {
-    }
+    if let MouseEventKind::Down(MouseButton::Middle) = me.kind {}
 
     // 1. Sidebar Resizing
     if app.is_resizing_sidebar {
@@ -482,15 +481,22 @@ fn handle_sidebar_mouse(
                         }
                         SidebarTarget::Project(path) => {
                             if path.is_dir() {
-                                app.expanded_folders.insert(path.clone());
-                                if let Some(fs) = app.current_file_state_mut() {
-                                    fs.current_path = path.clone();
-                                    fs.selection.selected = Some(0);
-                                    fs.selection.anchor = Some(0);
-                                    fs.selection.clear_multi();
-                                    crate::event_helpers::push_history(fs, path.clone());
-                                    let _ = event_tx
-                                        .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                                // Toggle folder expansion
+                                if app.expanded_folders.contains(path) {
+                                    app.expanded_folders.remove(path);
+                                } else {
+                                    app.expanded_folders.insert(path.clone());
+                                    // Only navigate and refresh when expanding
+                                    if let Some(fs) = app.current_file_state_mut() {
+                                        fs.current_path = path.clone();
+                                        fs.selection.selected = Some(0);
+                                        fs.selection.anchor = Some(0);
+                                        fs.selection.clear_multi();
+                                        crate::event_helpers::push_history(fs, path.clone());
+                                        let _ = event_tx.try_send(AppEvent::RefreshFiles(
+                                            app.focused_pane_index,
+                                        ));
+                                    }
                                 }
                                 app.sidebar_focus = false;
                             } else {

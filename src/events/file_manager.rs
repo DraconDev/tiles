@@ -1310,6 +1310,11 @@ mod tests {
         assert!(is_double_click((10, 10), now, 11, 10));
         assert!(is_double_click((10, 10), now, 9, 11));
         assert!(!is_double_click((10, 10), now, 13, 10));
-        assert!(!is_double_click((10, 10), now - Duration::from_millis(700), 10, 10));
+        assert!(!is_double_click(
+            (10, 10),
+            now - Duration::from_millis(700),
+            10,
+            10
+        ));
     }
 }

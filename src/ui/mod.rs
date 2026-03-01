@@ -1808,12 +1808,37 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
             }
 
             let line = Line::from(spans);
-            let width = line.width() as u16;
-            if current_x + width > chunk.x + chunk.width {
+            let total_width = line.width() as u16;
+
+            // Calculate max available width for this tab
+            let max_available = chunk.x + chunk.width - current_x;
+
+            // If tab is too wide, truncate it
+            let (final_line, width) = if total_width > max_available && max_available > 3 {
+                // Create a truncated version
+                let mut truncated_spans = vec![];
+                let mut current_width = 0;
+
+                // Always include the base name
+                truncated_spans.push(Span::styled(format!(" {} ", base_name), base_style));
+                current_width = base_name.len() as u16 + 2;
+
+                // Add ellipsis if we have room
+                if current_width + 3 <= max_available {
+                    truncated_spans.push(Span::styled("…", Style::default().fg(Color::DarkGray)));
+                    current_width += 1;
+                }
+
+                (Line::from(truncated_spans), current_width)
+            } else {
+                (line, total_width)
+            };
+
+            if width == 0 || current_x + width > chunk.x + chunk.width {
                 break;
             }
             let rect = Rect::new(current_x, area.y, width, 1);
-            f.render_widget(Paragraph::new(line), rect);
+            f.render_widget(Paragraph::new(final_line), rect);
             app.tab_bounds.push((rect, p_i, t_i));
             current_x += width + 1;
             global_tab_idx += 1;

@@ -91,49 +91,50 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
             // Render Starred Folders (Favorites - NO markers as requested)
             if show_favorites {
                 for (starred_idx, path) in app.starred.iter().enumerate() {
-                let name = path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or("?".to_string());
+                    let name = path
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or("?".to_string());
 
-                if !matches_filter(&name) {
-                    continue;
+                    if !matches_filter(&name) {
+                        continue;
+                    }
+
+                    let current_idx = sidebar_items.len();
+                    let is_selected = app.sidebar_index == current_idx;
+                    let is_hovered = matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
+
+                    // Active highlighting for favorites
+                    let mut style = Style::default().fg(THEME.fg);
+                    if is_selected {
+                        style = style
+                            .bg(selection_bg)
+                            .fg(Color::Black)
+                            .add_modifier(Modifier::BOLD);
+                    } else if is_hovered && app.is_dragging {
+                        style = style
+                            .bg(crate::ui::theme::accent_secondary())
+                            .fg(Color::Black);
+                    }
+
+                    if app.is_dragging
+                        && app.mouse_pos.1 == current_y
+                        && app.mouse_pos.0 < area.width
+                    {
+                        app.hovered_drop_target = Some(DropTarget::ReorderFavorite(starred_idx));
+                    }
+
+                    let cat = crate::modules::files::get_file_category(path);
+                    let icon = Icon::get_for_path(path, cat, path.is_dir(), app.icon_mode);
+
+                    sidebar_items.push(ListItem::new(format!("{}{}", icon, name)).style(style));
+                    app.sidebar_bounds.push(SidebarBounds {
+                        y: current_y,
+                        index: current_idx,
+                        target: SidebarTarget::Favorite(path.clone()),
+                    });
+                    current_y += 1;
                 }
-
-                let current_idx = sidebar_items.len();
-                let is_selected = app.sidebar_index == current_idx;
-                let is_hovered =
-                    matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == path);
-
-                // Active highlighting for favorites
-                let mut style = Style::default().fg(THEME.fg);
-                if is_selected {
-                    style = style
-                        .bg(selection_bg)
-                        .fg(Color::Black)
-                        .add_modifier(Modifier::BOLD);
-                } else if is_hovered && app.is_dragging {
-                    style = style
-                        .bg(crate::ui::theme::accent_secondary())
-                        .fg(Color::Black);
-                }
-
-                if app.is_dragging && app.mouse_pos.1 == current_y && app.mouse_pos.0 < area.width
-                {
-                    app.hovered_drop_target = Some(DropTarget::ReorderFavorite(starred_idx));
-                }
-
-                let cat = crate::modules::files::get_file_category(path);
-                let icon = Icon::get_for_path(path, cat, path.is_dir(), app.icon_mode);
-
-                sidebar_items.push(ListItem::new(format!("{}{}", icon, name)).style(style));
-                app.sidebar_bounds.push(SidebarBounds {
-                    y: current_y,
-                    index: current_idx,
-                    target: SidebarTarget::Favorite(path.clone()),
-                });
-                current_y += 1;
-            }
             }
 
             if show_favorites && !app.recent_folders.is_empty() {
@@ -443,7 +444,11 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 .sidebar_bounds
                 .iter()
                 .find(|b| b.y == app.mouse_pos.1)
-                .or_else(|| app.sidebar_bounds.iter().find(|b| b.index == app.sidebar_index));
+                .or_else(|| {
+                    app.sidebar_bounds
+                        .iter()
+                        .find(|b| b.index == app.sidebar_index)
+                });
             if let Some(bound) = hint_target {
                 let hint = match &bound.target {
                     SidebarTarget::Favorite(path) | SidebarTarget::Project(path) => {
@@ -463,12 +468,10 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                     SidebarTarget::Header(name) => name.clone(),
                 };
                 if !hint.is_empty() && list_inner.height > 0 {
-                    let text = truncate_to_width(&hint, list_inner.width.saturating_sub(1) as usize, "..");
+                    let text =
+                        truncate_to_width(&hint, list_inner.width.saturating_sub(1) as usize, "..");
                     f.render_widget(
-                        Paragraph::new(Span::styled(
-                            text,
-                            Style::default().fg(Color::DarkGray),
-                        )),
+                        Paragraph::new(Span::styled(text, Style::default().fg(Color::DarkGray))),
                         Rect::new(
                             list_inner.x,
                             list_inner.y + list_inner.height.saturating_sub(1),
@@ -486,7 +489,12 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
-fn section_header_line(label: &str, row_width: usize, line_style: Style, label_style: Style) -> Line<'static> {
+fn section_header_line(
+    label: &str,
+    row_width: usize,
+    line_style: Style,
+    label_style: Style,
+) -> Line<'static> {
     let label_w = label.width();
     if row_width <= label_w + 2 {
         return Line::from(vec![Span::styled(label.to_string(), label_style)]);
