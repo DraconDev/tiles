@@ -54,8 +54,8 @@ async fn run_tty() -> color_eyre::Result<()> {
 
     // Watcher Setup
     let tx_clone = event_tx.clone();
-    let _debouncer = notify_debouncer_mini::new_debouncer(
-        Duration::from_millis(500),
+    let mut debouncer = notify_debouncer_mini::new_debouncer(
+        Duration::from_millis(300),
         move |res: notify_debouncer_mini::DebounceEventResult| {
             if let Ok(events) = res {
                 for event in events {
@@ -64,8 +64,47 @@ async fn run_tty() -> color_eyre::Result<()> {
             }
         },
     )?;
-    let _watched_paths: std::collections::HashMap<usize, PathBuf> =
-        std::collections::HashMap::new();
+    let mut watched_paths: std::collections::HashSet<PathBuf> =
+        std::collections::HashSet::new();
+
+    // Helper to sync watched paths with current pane paths
+    let mut sync_watches = |app: &App, debouncer: &mut notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>| {
+        let mut current_paths = std::collections::HashSet::new();
+        
+        // Collect all paths from panes
+        for pane in &app.panes {
+            for tab in &pane.tabs {
+                current_paths.insert(tab.current_path.clone());
+            }
+        }
+        
+        // Also watch expanded folders in sidebar for editor view
+        for path in &app.expanded_folders {
+            if path.is_dir() {
+                current_paths.insert(path.clone());
+            }
+        }
+
+        // Add paths that aren't being watched yet
+        for path in &current_paths {
+            if !watched_paths.contains(path) {
+                if let Ok(()) = debouncer.watch(path, notify::RecursiveMode::NonRecursive) {
+                    watched_paths.insert(path.clone());
+                }
+            }
+        }
+
+        // Remove paths that are no longer current
+        let to_remove: Vec<_> = watched_paths
+            .iter()
+            .filter(|p| !current_paths.contains(p))
+            .cloned()
+            .collect();
+        for path in to_remove {
+            let _ = debouncer.unwatch(&path);
+            watched_paths.remove(&path);
+        }
+    };
 
     // 1. Input Loop (Thread)
     {
@@ -164,6 +203,9 @@ async fn run_tty() -> color_eyre::Result<()> {
         while let Ok(event) = event_rx.try_recv() {
             match event {
                 AppEvent::Tick => {
+                    // Periodically sync file watches with current paths
+                    let app_guard = app.lock().unwrap();
+                    sync_watches(&app_guard, &mut debouncer);
                     needs_draw = true;
                 }
                 AppEvent::Raw(raw) => {
@@ -251,6 +293,8 @@ async fn run_tty() -> color_eyre::Result<()> {
                         if let Some(ref p) = path {
                             app_guard.push_recent_folder(p.clone());
                         }
+                        // Sync file watches when paths change
+                        sync_watches(&app_guard, &mut debouncer);
                         path
                     };
                     if current_path.is_none() {
