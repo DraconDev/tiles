@@ -483,7 +483,7 @@ fn handle_sidebar_mouse(
                             if path.is_dir() {
                                 // Toggle folder expansion
                                 if app.expanded_folders.contains(path) {
-                                    app.expanded_folders.remove(&path);
+                                    app.expanded_folders.remove(path);
                                 } else {
                                     app.expanded_folders.insert(path.clone());
                                     // Only navigate and refresh when expanding

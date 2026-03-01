@@ -1817,11 +1817,10 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
             let (final_line, width) = if total_width > max_available && max_available > 3 {
                 // Create a truncated version
                 let mut truncated_spans = vec![];
-                let mut current_width = 0;
 
                 // Always include the base name
                 truncated_spans.push(Span::styled(format!(" {} ", base_name), base_style));
-                current_width = base_name.len() as u16 + 2;
+                let mut current_width = base_name.len() as u16 + 2;
 
                 // Add ellipsis if we have room
                 if current_width + 3 <= max_available {
