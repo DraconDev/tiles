@@ -1641,6 +1641,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
     let pane_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(vec![Constraint::Fill(1); pane_count])
+        .spacing(1) // Add spacing between panes to prevent tab bleeding
         .split(Rect::new(
             start_x,
             area.y,
