@@ -1154,7 +1154,7 @@ fn handle_enter_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
                     if path.is_dir() {
                         // Toggle folder expansion
                         if app.expanded_folders.contains(&path) {
-                            app.expanded_folders.remove(&path);
+                            app.expanded_folders.remove(&path.clone());
                         } else {
                             app.expanded_folders.insert(path);
                             // Only navigate and refresh when expanding
