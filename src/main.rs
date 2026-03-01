@@ -88,7 +88,7 @@ async fn run_tty() -> color_eyre::Result<()> {
         // Add paths that aren't being watched yet
         for path in &current_paths {
             if !watched_paths.contains(path) {
-                if let Ok(()) = debouncer.watch(path, notify::RecursiveMode::NonRecursive) {
+                if let Ok(()) = debouncer.watcher().watch(path, notify::RecursiveMode::NonRecursive) {
                     watched_paths.insert(path.clone());
                 }
             }
