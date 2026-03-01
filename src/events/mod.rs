@@ -482,10 +482,10 @@ fn handle_sidebar_mouse(
                         SidebarTarget::Project(path) => {
                             if path.is_dir() {
                                 // Toggle folder expansion
-                                if app.expanded_folders.contains(path) {
-                                    app.expanded_folders.remove(path);
+                                if app.expanded_folders.contains(&path) {
+                                    app.expanded_folders.remove(&path.clone());
                                 } else {
-                                    app.expanded_folders.insert(path.clone());
+                                    app.expanded_folders.insert(path);
                                     // Only navigate and refresh when expanding
                                     if let Some(fs) = app.current_file_state_mut() {
                                         fs.current_path = path.clone();
