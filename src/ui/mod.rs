@@ -1721,11 +1721,18 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                 }
 
                 let line = Line::from(spans);
-                let width = line.width() as u16;
-                let rect = Rect::new(current_x, area.y, width, 1);
-                f.render_widget(Paragraph::new(line), rect);
-                // We'll still register it as a 'tab' so header-mode can highlight it
-                app.tab_bounds.push((rect, p_i, pane.active_tab_index));
+                let total_width = line.width() as u16;
+
+                // Respect pane chunk boundary
+                let max_width = chunk.x + chunk.width - current_x;
+                let width = total_width.min(max_width);
+
+                if width > 0 {
+                    let rect = Rect::new(current_x, area.y, width, 1);
+                    f.render_widget(Paragraph::new(line), rect);
+                    // We'll still register it as a 'tab' so header-mode can highlight it
+                    app.tab_bounds.push((rect, p_i, pane.active_tab_index));
+                }
             }
             continue;
         }
