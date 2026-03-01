@@ -1153,10 +1153,12 @@ fn handle_enter_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
                 SidebarTarget::Project(path) => {
                     if path.is_dir() {
                         // Toggle folder expansion
-                        if app.expanded_folders.contains(&path) {
-                            app.expanded_folders.remove(&path.clone());
+                        let path_ref = path.clone();
+                        let was_expanded = app.expanded_folders.contains(&path_ref);
+                        if was_expanded {
+                            app.expanded_folders.remove(&path_ref);
                         } else {
-                            app.expanded_folders.insert(path);
+                            app.expanded_folders.insert(path.clone());
                             // Only navigate and refresh when expanding
                             if let Some(fs) = app.current_file_state_mut() {
                                 fs.current_path = path.clone();
