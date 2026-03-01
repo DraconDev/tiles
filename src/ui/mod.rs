@@ -1836,32 +1836,33 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                 }
             }
 
-            let line = Line::from(spans);
+            let line = Line::from(spans.clone());
             let total_width = line.width() as u16;
 
             // Calculate max available width for this tab
             let max_available = chunk.x + chunk.width - current_x;
 
-            // If tab is too wide, truncate it
-            let (final_line, width) = if total_width > max_available && max_available > 3 {
-                // Create a truncated version
-                let mut truncated_spans = vec![];
-
-                // Always include the base name
-                truncated_spans.push(Span::styled(format!(" {} ", base_name), base_style));
-                let mut current_width = base_name.len() as u16 + 2;
-
-                // Add ellipsis if we have room
-                if current_width + 3 <= max_available {
-                    truncated_spans.push(Span::styled("…", Style::default().fg(Color::DarkGray)));
-                    current_width += 1;
+            // Actually truncate the line content if too wide
+            let final_line = if total_width > max_available && max_available > 3 {
+                // Build truncated spans
+                let mut truncated = vec![];
+                let mut current_w = 0;
+                for span in spans {
+                    let span_w = span.content.width() as u16;
+                    if current_w + span_w > max_available - 1 {
+                        // Add ellipsis and stop
+                        truncated.push(Span::styled("…", Style::default().fg(Color::DarkGray)));
+                        break;
+                    }
+                    truncated.push(span);
+                    current_w += span_w;
                 }
-
-                (Line::from(truncated_spans), current_width)
+                Line::from(truncated)
             } else {
-                (line, total_width)
+                line
             };
 
+            let width = total_width.min(max_available);
             if width == 0 || current_x + width > chunk.x + chunk.width {
                 break;
             }
