@@ -1721,16 +1721,37 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                     }
                 }
 
-                let line = Line::from(spans);
+                let line = Line::from(spans.clone());
                 let total_width = line.width() as u16;
 
                 // Respect pane chunk boundary
                 let max_width = chunk.x + chunk.width - current_x;
+
+                // Actually truncate the line content if too wide
+                let final_line = if total_width > max_width && max_width > 3 {
+                    // Build truncated spans
+                    let mut truncated = vec![];
+                    let mut current_w = 0;
+                    for span in spans {
+                        let span_w = span.content.width() as u16;
+                        if current_w + span_w > max_width - 1 {
+                            // Add ellipsis and stop
+                            truncated.push(Span::styled("…", Style::default().fg(Color::DarkGray)));
+                            break;
+                        }
+                        truncated.push(span);
+                        current_w += span_w;
+                    }
+                    Line::from(truncated)
+                } else {
+                    line
+                };
+
                 let width = total_width.min(max_width);
 
                 if width > 0 {
                     let rect = Rect::new(current_x, area.y, width, 1);
-                    f.render_widget(Paragraph::new(line), rect);
+                    f.render_widget(Paragraph::new(final_line), rect);
                     // We'll still register it as a 'tab' so header-mode can highlight it
                     app.tab_bounds.push((rect, p_i, pane.active_tab_index));
                 }
