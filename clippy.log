@@ -1,0 +1,440 @@
+    Checking terma v1.1.0 (/home/dracon/Dev/tiles/terma)
+error: redundant field names in struct initialization
+   --> terma/src/visuals/slicer.rs:244:13
+    |
+244 |             x: x,
+    |             ^^^^ help: replace it with: `x`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#redundant_field_names
+    = note: `-D clippy::redundant-field-names` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::redundant_field_names)]`
+
+error: redundant field names in struct initialization
+   --> terma/src/visuals/slicer.rs:245:13
+    |
+245 |             y: y,
+    |             ^^^^ help: replace it with: `y`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#redundant_field_names
+
+error: redundant field names in struct initialization
+   --> terma/src/visuals/slicer.rs:253:13
+    |
+253 |             y: y,
+    |             ^^^^ help: replace it with: `y`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#redundant_field_names
+
+error: redundant field names in struct initialization
+   --> terma/src/visuals/slicer.rs:260:13
+    |
+260 |             x: x,
+    |             ^^^^ help: replace it with: `x`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#redundant_field_names
+
+error: redundant field names in struct initialization
+   --> terma/src/visuals/slicer.rs:280:17
+    |
+280 |                 y: y,
+    |                 ^^^^ help: replace it with: `y`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#redundant_field_names
+
+error: redundant field names in struct initialization
+   --> terma/src/visuals/slicer.rs:299:17
+    |
+299 |                 x: x,
+    |                 ^^^^ help: replace it with: `x`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#redundant_field_names
+
+error: this function has too many arguments (9/7)
+   --> terma/src/compositor/engine.rs:163:5
+    |
+163 |     pub fn draw_rect(&mut self, x: u16, y: u16, width: u16, height: u16, char: char, fg: Color, bg: Color, style: Styles) {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#too_many_arguments
+    = note: `-D clippy::too-many-arguments` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::too_many_arguments)]`
+
+error: this `else { if .. }` block can be collapsed
+   --> terma/src/compositor/engine.rs:389:28
+    |
+389 |                       } else {
+    |  ____________________________^
+390 | |                         if let Some(asset) = self.tile_assets.get(&placement.asset_id) {
+391 | |                             let target_w = placement.cols.unwrap_or(asset.width);
+392 | |                             let target_h = placement.rows.unwrap_or(asset.height);
+...   |
+414 | |                     }
+    | |_____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#collapsible_else_if
+    = note: `-D clippy::collapsible-else-if` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::collapsible_else_if)]`
+help: collapse nested if block
+    |
+389 ~                     } else if let Some(asset) = self.tile_assets.get(&placement.asset_id) {
+390 +                         let target_w = placement.cols.unwrap_or(asset.width);
+391 +                         let target_h = placement.rows.unwrap_or(asset.height);
+392 + 
+393 +                         for ty in 0..target_h {
+394 +                             for tx in 0..target_w {
+395 +                                 let abs_x = placement.x + tx;
+396 +                                 let abs_y = placement.y + ty;
+397 +                                 if abs_x >= self.width || abs_y >= self.height {
+398 +                                     continue;
+399 +                                 }
+400 + 
+401 +                                 let src_x =
+402 +                                     (tx as f32 / target_w as f32 * asset.width as f32) as u16;
+403 +                                 let src_y =
+404 +                                     (ty as f32 / target_h as f32 * asset.height as f32) as u16;
+405 +                                 let src_idx = (src_y * asset.width + src_x) as usize;
+406 +                                 let dest_idx = (abs_y * self.width + abs_x) as usize;
+407 + 
+408 +                                 let src_cell = &asset.cells[src_idx];
+409 +                                 blend_cells(&mut final_buffer[dest_idx], src_cell, placement.opacity);
+410 +                             }
+411 +                         }
+412 +                     }
+    |
+
+error: manual `RangeInclusive::contains` implementation
+   --> terma/src/compositor/engine.rs:603:5
+    |
+603 |     u >= 0x2800 && u <= 0x28FF
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `(0x2800..=0x28FF).contains(&u)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#manual_range_contains
+    = note: `-D clippy::manual-range-contains` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_range_contains)]`
+
+error: manual implementation of `.is_multiple_of()`
+  --> terma/src/compositor/filter.rs:57:12
+   |
+57 |         if y % 2 == 0 {
+   |            ^^^^^^^^^^ help: replace with: `y.is_multiple_of(2)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#manual_is_multiple_of
+   = note: `-D clippy::manual-is-multiple-of` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::manual_is_multiple_of)]`
+
+error: closure called just once immediately after it was declared
+  --> terma/src/compositor/filter.rs:84:9
+   |
+84 |         cell.fg = dim(cell.fg);
+   |         ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#redundant_closure_call
+   = note: `-D clippy::redundant-closure-call` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::redundant_closure_call)]`
+
+error: float has excessive precision
+  --> terma/src/compositor/filter.rs:93:76
+   |
+93 |         let seed = (x as f32 * 12.9898 + y as f32 * 78.233 + time).sin() * 43758.5453;
+   |                                                                            ^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#excessive_precision
+   = note: `-D clippy::excessive-precision` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::excessive_precision)]`
+help: consider changing the type or truncating it to
+   |
+93 -         let seed = (x as f32 * 12.9898 + y as f32 * 78.233 + time).sin() * 43758.5453;
+93 +         let seed = (x as f32 * 12.9898 + y as f32 * 78.233 + time).sin() * 43_758.547;
+   |
+
+error: manual `RangeInclusive::contains` implementation
+  --> terma/src/input/kitty_key.rs:40:23
+   |
+40 |     let key_code = if code_val >= 57344 && code_val <= 63743 {
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `(57344..=63743).contains(&code_val)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#manual_range_contains
+
+error: casting to the same type is unnecessary (`u8` -> `u8`)
+   --> terma/src/input/parser.rs:242:41
+    |
+242 |                 _ => MouseButton::Other(b as u8),
+    |                                         ^^^^^^^ help: try: `b`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#unnecessary_cast
+    = note: `-D clippy::unnecessary-cast` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unnecessary_cast)]`
+
+error: accessing first element with `parts.get(0)`
+   --> terma/src/input/parser.rs:335:24
+    |
+335 |             let code = parts.get(0)?.parse::<u16>().ok()?;
+    |                        ^^^^^^^^^^^^ help: try: `parts.first()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#get_first
+    = note: `-D clippy::get-first` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::get_first)]`
+
+error: the borrowed expression implements the required traits
+  --> terma/src/input/reader.rs:23:44
+   |
+23 |             let mut signals = Signals::new(&[SIGWINCH]).expect("Failed to register signals");
+   |                                            ^^^^^^^^^^^ help: change this to: `[SIGWINCH]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#needless_borrows_for_generic_args
+   = note: `-D clippy::needless-borrows-for-generic-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::needless_borrows_for_generic_args)]`
+
+error: the loop variable `i` is only used to index `buffer`
+  --> terma/src/input/reader.rs:45:42
+   |
+45 | ...                   for i in 0..n {
+   |                                ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#needless_range_loop
+   = note: `-D clippy::needless-range-loop` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+45 -                                 for i in 0..n {
+45 +                                 for <item> in buffer.iter().take(n) {
+   |
+
+error: you should consider adding a `Default` implementation for `SystemMonitor`
+  --> terma/src/system.rs:51:5
+   |
+51 | /     pub fn new() -> Self {
+52 | |         let mut sys = System::new_all();
+53 | |         sys.refresh_all();
+54 | |         let disks = Disks::new_with_refreshed_list();
+...  |
+57 | |         Self { sys, disks, networks, users }
+58 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#new_without_default
+   = note: `-D clippy::new-without-default` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::new_without_default)]`
+help: try adding this
+   |
+50 + impl Default for SystemMonitor {
+51 +     fn default() -> Self {
+52 +         Self::new()
+53 +     }
+54 + }
+   |
+
+error: called `unwrap` on `command` after checking its variant with `is_some`
+   --> terma/src/utils.rs:829:37
+    |
+821 |                         if !session_id.is_empty() && command.is_some() {
+    |                                                      ----------------- the check is happening here
+...
+829 |                                     command.unwrap(),
+    |                                     ^^^^^^^^^^^^^^^^
+    |
+    = help: try using `match`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#unnecessary_unwrap
+    = note: `-D clippy::unnecessary-unwrap` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unnecessary_unwrap)]`
+
+error: the borrowed expression implements the required traits
+   --> terma/src/utils.rs:824:39
+    |
+824 |   ...                   .args(&[
+    |  _____________________________^
+825 | | ...                       "--session",
+826 | | ...                       &service,
+827 | | ...                       &session_path,
+828 | | ...                       "org.kde.konsole.Session.runCommand",
+829 | | ...                       command.unwrap(),
+830 | | ...                   ])
+    | |_______________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#needless_borrows_for_generic_args
+help: change this to
+    |
+824 ~                                 .args([
+825 +                                     "--session",
+826 +                                     &service,
+827 +                                     &session_path,
+828 +                                     "org.kde.konsole.Session.runCommand",
+829 +                                     command.unwrap(),
+830 ~                                 ])
+    |
+
+error: the borrowed expression implements the required traits
+   --> terma/src/utils.rs:837:35
+    |
+837 |   ...                   .args(&[
+    |  _____________________________^
+838 | | ...                       "--session",
+839 | | ...                       &service,
+840 | | ...                       main_win,
+841 | | ...                       "org.qtproject.Qt.QWidget.raise",
+842 | | ...                   ])
+    | |_______________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#needless_borrows_for_generic_args
+help: change this to
+    |
+837 ~                             .args([
+838 +                                 "--session",
+839 +                                 &service,
+840 +                                 main_win,
+841 +                                 "org.qtproject.Qt.QWidget.raise",
+842 ~                             ])
+    |
+
+error: this `impl` can be derived
+  --> terma/src/visuals/image.rs:13:1
+   |
+13 | / impl Default for ImageOptions {
+14 | |     fn default() -> Self {
+15 | |         Self {
+16 | |             x: None,
+...  |
+24 | | }
+   | |_^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#derivable_impls
+   = note: `-D clippy::derivable-impls` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::derivable_impls)]`
+help: replace the manual implementation with a derive attribute
+   |
+ 4 + #[derive(Default)]
+ 5 | pub struct ImageOptions {
+   |
+
+error: this function has too many arguments (8/7)
+   --> terma/src/visuals/slicer.rs:149:5
+    |
+149 | /     pub fn render(
+150 | |         &self,
+151 | |         compositor: &mut crate::compositor::engine::Compositor,
+152 | |         x: u16,
+...   |
+157 | |         use_graphics: bool,
+158 | |     ) {
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#too_many_arguments
+
+error: you should consider adding a `Default` implementation for `TileSet`
+  --> terma/src/visuals/tiles.rs:52:5
+   |
+52 | /     pub fn new() -> Self {
+53 | |         Self { tiles: Vec::new() }
+54 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#new_without_default
+help: try adding this
+   |
+51 + impl Default for TileSet {
+52 +     fn default() -> Self {
+53 +         Self::new()
+54 +     }
+55 + }
+   |
+
+error: you seem to be trying to use `match` for destructuring a single pattern. Consider using `if let`
+   --> terma/src/widgets/editor.rs:229:14
+    |
+229 | /              match event {
+230 | |                 Event::Key(key) => {
+231 | |                     if key.kind != KeyEventKind::Press { return false; }
+232 | |                     let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
+...   |
+277 | |                 _ => {}
+278 | |              }
+    | |______________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#single_match
+    = note: `-D clippy::single-match` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::single_match)]`
+help: try
+    |
+229 ~              if let Event::Key(key) = event {
+230 +                  if key.kind != KeyEventKind::Press { return false; }
+231 +                  let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
+232 +                  
+233 +                  let has_shift = key.modifiers.contains(KeyModifiers::SHIFT);
+234 +                  
+235 +                  match key.code {
+236 +                      KeyCode::Up | KeyCode::Char('p') if has_control => { if has_shift { self.maybe_start_selection(); } self.move_cursor_up(); if has_shift { self.update_selection_end(); } else { self.clear_selection(); } self.ensure_cursor_visible(area); return true; }
+237 +                      KeyCode::Down | KeyCode::Char('n') if has_control => { if has_shift { self.maybe_start_selection(); } self.move_cursor_down(); if has_shift { self.update_selection_end(); } else { self.clear_selection(); } self.ensure_cursor_visible(area); return true; }
+238 +                      KeyCode::Up => { if has_shift { self.maybe_start_selection(); } self.move_cursor_up(); if has_shift { self.update_selection_end(); } else { self.clear_selection(); } self.ensure_cursor_visible(area); return true; }
+239 +                      KeyCode::Down => { if has_shift { self.maybe_start_selection(); } self.move_cursor_down(); if has_shift { self.update_selection_end(); } else { self.clear_selection(); } self.ensure_cursor_visible(area); return true; }
+240 +                      KeyCode::Left => { if has_shift { self.maybe_start_selection(); } self.move_cursor_left(); if has_shift { self.update_selection_end(); } else { self.clear_selection(); } self.ensure_cursor_visible(area); return true; }
+241 +                      KeyCode::Right => { if has_shift { self.maybe_start_selection(); } self.move_cursor_right(); if has_shift { self.update_selection_end(); } else { self.clear_selection(); } self.ensure_cursor_visible(area); return true; }
+242 +                      KeyCode::PageUp => {
+243 +                          if has_shift { self.maybe_start_selection(); }
+244 +                          self.cursor_row = self.cursor_row.saturating_sub(area.height as usize);
+245 +                          if has_shift { self.update_selection_end(); } else { self.clear_selection(); }
+246 +                          self.ensure_cursor_visible(area);
+247 +                          return true;
+248 +                      }
+249 +                      KeyCode::PageDown => {
+250 +                          if has_shift { self.maybe_start_selection(); }
+251 +                          self.cursor_row = std::cmp::min(self.effective_len().saturating_sub(1), self.cursor_row + area.height as usize);
+252 +                          if has_shift { self.update_selection_end(); } else { self.clear_selection(); }
+253 +                          self.ensure_cursor_visible(area);
+254 +                          return true;
+255 +                      }
+256 +                      KeyCode::Home => {
+257 +                          if has_shift { self.maybe_start_selection(); }
+258 +                          let line = self.get_effective_line(self.cursor_row);
+259 +                          let first_non_whitespace = line.chars().enumerate()
+260 +                              .find(|(_, c)| !c.is_whitespace())
+261 +                              .map(|(i, _)| i).unwrap_or(0);
+262 +                          if self.cursor_col == first_non_whitespace { self.cursor_col = 0; }
+263 +                          else { self.cursor_col = first_non_whitespace; }
+264 +                          if has_shift { self.update_selection_end(); } else { self.clear_selection(); }
+265 +                          self.ensure_cursor_visible(area); return true;
+266 +                      }
+267 +                      KeyCode::End => {
+268 +                          if has_shift { self.maybe_start_selection(); }
+269 +                          self.cursor_col = self.get_effective_line(self.cursor_row).len();
+270 +                          if has_shift { self.update_selection_end(); } else { self.clear_selection(); }
+271 +                          self.ensure_cursor_visible(area); return true;
+272 +                      }
+273 +                      _ => {}
+274 +                  }
+275 +              }
+    |
+
+error: manual implementation of `.is_multiple_of()`
+    --> terma/src/widgets/editor.rs:1027:40
+     |
+1027 |             if self.cursor_col >= 4 && self.cursor_col % 4 == 0 && prefix.chars().all(|c| c == ' ') {
+     |                                        ^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `self.cursor_col.is_multiple_of(4)`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#manual_is_multiple_of
+
+error: the variable `current_screen_row` is used as a loop counter
+    --> terma/src/widgets/editor.rs:1612:13
+     |
+1612 |             for (line_idx, (src_idx, line)) in screen_lines.iter().enumerate() {
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `for (current_screen_row, (line_idx, (src_idx, line))) in screen_lines.iter().enumerate().enumerate()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#explicit_counter_loop
+     = note: `-D clippy::explicit-counter-loop` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::explicit_counter_loop)]`
+
+error: methods called `new` usually return `Self`
+  --> terma/src/widgets/hotkey.rs:7:5
+   |
+ 7 | /     pub fn new<'a>(key: &'a str, label: &'a str, color: Color) -> Vec<Span<'a>> {
+ 8 | |         vec![
+ 9 | |             Span::styled(
+10 | |                 format!(" {} ", key),
+...  |
+22 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#new_ret_no_self
+   = note: `-D clippy::new-ret-no-self` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::new_ret_no_self)]`
+
+error: could not compile `terma` (lib) due to 28 previous errors
