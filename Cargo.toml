@@ -1,6 +1,6 @@
 [package]
 name = "tiles"
-version = "0.1.14425"
+version = "0.1.14426"
 edition = "2021"
 
 [dependencies]

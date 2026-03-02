@@ -331,6 +331,8 @@ async fn run_tty() -> color_eyre::Result<()> {
                     panes_needing_refresh.insert(pane_idx);
                 }
                 AppEvent::FilesChangedOnDisk(path) => {
+                    crate::app::log_debug(&format!("FilesChangedOnDisk: {:?}", path));
+                    
                     // Check if this was a self-save
                     if let Some(saved_content) = last_self_save.get(&path) {
                         if let Ok(current_content) = std::fs::read_to_string(&path) {
@@ -347,7 +349,18 @@ async fn run_tty() -> color_eyre::Result<()> {
 
                     for (i, pane) in app_guard.panes.iter().enumerate() {
                         if let Some(fs) = pane.current_state() {
-                            if path.starts_with(&fs.current_path) {
+                            // Check if the changed path is in or under the current directory
+                            let current_path = &fs.current_path;
+                            let should_refresh = if let Some(parent) = path.parent() {
+                                // File changed - check if parent is current dir or path is in current dir
+                                parent == current_path || path.starts_with(current_path)
+                            } else {
+                                // Directory changed
+                                path == *current_path || path.starts_with(current_path)
+                            };
+                            
+                            if should_refresh {
+                                crate::app::log_debug(&format!("Refreshing pane {} for path {:?}", i, path));
                                 panes_needing_refresh.insert(i);
                             }
                         }
