@@ -1983,8 +1983,6 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     let current_path_label = tab.current_path.to_string_lossy().to_string();
     let history_len = tab.git_history.len();
     let pending_len = tab.git_pending.len();
-    let remotes_len = tab.git_remotes.len();
-    let stashes_len = tab.git_stashes.len();
 
     let block = Block::default()
         .borders(Borders::ALL)
