@@ -55,11 +55,28 @@ async fn run_tty() -> color_eyre::Result<()> {
     // Watcher Setup
     let tx_clone = event_tx.clone();
     let mut debouncer = notify_debouncer_mini::new_debouncer(
-        Duration::from_millis(300),
+        Duration::from_millis(200),
         move |res: notify_debouncer_mini::DebounceEventResult| {
-            if let Ok(events) = res {
-                for event in events {
-                    let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(event.path));
+            match res {
+                Ok(events) => {
+                    for event in events {
+                        crate::app::log_debug(&format!("File watch event: {:?}", event));
+                        // Try multiple path sources - the event path or the paths list
+                        let paths: Vec<_> = if !event.paths.is_empty() {
+                            event.paths.clone()
+                        } else if let Some(p) = &event.path {
+                            vec![p.clone()]
+                        } else {
+                            vec![]
+                        };
+                        
+                        for path in paths {
+                            let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(path));
+                        }
+                    }
+                }
+                Err(e) => {
+                    crate::app::log_debug(&format!("File watch error: {:?}", e));
                 }
             }
         },
@@ -88,8 +105,12 @@ async fn run_tty() -> color_eyre::Result<()> {
         // Add paths that aren't being watched yet
         for path in &current_paths {
             if !watched_paths.contains(path) {
-                if let Ok(()) = debouncer.watcher().watch(path, notify::RecursiveMode::NonRecursive) {
+                crate::app::log_debug(&format!("Starting file watch for: {:?}", path));
+                if let Ok(()) = debouncer.watcher().watch(path, notify::RecursiveMode::Recursive) {
                     watched_paths.insert(path.clone());
+                    crate::app::log_debug(&format!("Now watching: {:?}", path));
+                } else {
+                    crate::app::log_debug(&format!("Failed to watch: {:?}", path));
                 }
             }
         }
