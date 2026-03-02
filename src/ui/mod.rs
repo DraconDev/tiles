@@ -1913,17 +1913,6 @@ fn parse_commit_refs(decorations: &str) -> Vec<String> {
         .collect()
 }
 
-fn likely_branch_from_refs(refs: &[String]) -> Option<String> {
-    for r in refs {
-        if let Some(head_target) = r.strip_prefix("HEAD -> ") {
-            return Some(head_target.to_string());
-        }
-    }
-    refs.iter()
-        .find(|r| !r.starts_with("origin/") && !r.starts_with("tag: "))
-        .cloned()
-}
-
 fn style_for_ref_label(label: &str) -> Style {
     if label.starts_with("HEAD -> ") {
         Style::default()
@@ -2123,8 +2112,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
                 }
             }
         }
-
-
+    }
 
     if history_len == 0 {
         f.render_widget(
