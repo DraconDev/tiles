@@ -353,10 +353,10 @@ async fn run_tty() -> color_eyre::Result<()> {
                             let current_path = &fs.current_path;
                             let should_refresh = if let Some(parent) = path.parent() {
                                 // File changed - check if parent is current dir or path is in current dir
-                                parent == current_path || path.starts_with(current_path)
+                                parent == current_path.as_path() || path.starts_with(current_path)
                             } else {
                                 // Directory changed
-                                path == *current_path || path.starts_with(current_path)
+                                path == current_path.as_path() || path.starts_with(current_path)
                             };
                             
                             if should_refresh {
