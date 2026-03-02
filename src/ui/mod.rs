@@ -2028,20 +2028,11 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    let top_h = if pending_len == 0 && remotes_len == 0 && stashes_len == 0 {
+    // Only show ACTIVE (pending) changes at top, no INFO panel
+    let top_h = if pending_len == 0 {
         0
     } else {
-        let p_len = if pending_len == 0 {
-            0
-        } else {
-            pending_len as u16 + 2
-        };
-        let i_len = if remotes_len == 0 && stashes_len == 0 {
-            0
-        } else {
-            6
-        };
-        p_len.max(i_len).min(inner.height / 3)
+        (pending_len as u16 + 2).min(inner.height / 3)
     };
 
     let main_chunks = Layout::default()
@@ -2053,15 +2044,8 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
     let history_area = main_chunks[1];
 
     if top_h > 0 {
-        let top_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Fill(6), Constraint::Fill(4)])
-            .split(top_area);
-
-        let active_area = top_chunks[0];
-        let info_area = top_chunks[1];
+        let active_area = top_area;
         f.render_widget(Clear, active_area);
-        f.render_widget(Clear, info_area);
 
         if pending_len > 0 {
             let active_title = format!(" ACTIVE ({} Affected) ", pending_len);
@@ -2142,160 +2126,7 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
             }
         }
 
-        let mut info_items = Vec::new();
-        let (selected_history_item, selected_active_item, remotes, stashes) =
-            if let Some(pane) = app.panes.get(pane_idx) {
-                if let Some(tab) = pane.tabs.get(tab_idx) {
-                    let selected_history_item = tab
-                        .git_history_state
-                        .selected()
-                        .and_then(|idx| tab.git_history.get(idx))
-                        .cloned();
-                    let selected_active_item = tab
-                        .git_pending_state
-                        .selected()
-                        .and_then(|idx| tab.git_pending.get(idx))
-                        .cloned();
-                    (
-                        selected_history_item,
-                        selected_active_item,
-                        tab.git_remotes.clone(),
-                        tab.git_stashes.clone(),
-                    )
-                } else {
-                    (None, None, Vec::new(), Vec::new())
-                }
-            } else {
-                (None, None, Vec::new(), Vec::new())
-            };
 
-        if let Some(commit) = selected_history_item.as_ref() {
-            let refs = parse_commit_refs(&commit.decorations);
-            let likely_branch =
-                likely_branch_from_refs(&refs).unwrap_or_else(|| "Unknown".to_string());
-            info_items.push(ListItem::new(Line::from(vec![Span::styled(
-                " COMMIT DETAILS ",
-                Style::default()
-                    .bg(crate::ui::theme::accent_secondary())
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD),
-            )])));
-            info_items.push(ListItem::new(format!("  Hash: {}", commit.hash)));
-            info_items.push(ListItem::new(format!("  Author: {}", commit.author)));
-            info_items.push(ListItem::new(format!("  Date: {}", commit.date)));
-            info_items.push(ListItem::new(format!("  Likely Branch: {}", likely_branch)));
-            info_items.push(ListItem::new("  Refs:"));
-            let mut refs_spans = vec![Span::raw("   ")];
-            refs_spans.extend(refs_line(&refs, 4).spans);
-            info_items.push(ListItem::new(Line::from(refs_spans)));
-            info_items.push(ListItem::new(""));
-            info_items.push(ListItem::new(Span::styled(
-                format!("  {}", commit.message),
-                Style::default().fg(Color::White),
-            )));
-            info_items.push(ListItem::new(""));
-            info_items.push(ListItem::new(vec![
-                Line::from(vec![
-                    Span::raw("  Files: "),
-                    Span::styled(
-                        format!("{}", commit.files_changed),
-                        Style::default().fg(Color::Cyan),
-                    ),
-                ]),
-                Line::from(vec![
-                    Span::raw("  Additions: "),
-                    Span::styled(
-                        format!("+{}", commit.insertions),
-                        Style::default().fg(Color::Green),
-                    ),
-                ]),
-                Line::from(vec![
-                    Span::raw("  Deletions: "),
-                    Span::styled(
-                        format!("-{}", commit.deletions),
-                        Style::default().fg(Color::Red),
-                    ),
-                ]),
-            ]));
-        } else if let Some(change) = selected_active_item.as_ref() {
-            info_items.push(ListItem::new(Line::from(vec![Span::styled(
-                " CHANGE DETAILS ",
-                Style::default()
-                    .bg(Color::Yellow)
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD),
-            )])));
-            info_items.push(ListItem::new(format!("  Path: {}", change.path)));
-            info_items.push(ListItem::new(format!("  Status: {}", change.status)));
-            info_items.push(ListItem::new(""));
-            info_items.push(ListItem::new(vec![
-                Line::from(vec![
-                    Span::raw("  Additions: "),
-                    Span::styled(
-                        format!("+{}", change.insertions),
-                        Style::default().fg(Color::Green),
-                    ),
-                ]),
-                Line::from(vec![
-                    Span::raw("  Deletions: "),
-                    Span::styled(
-                        format!("-{}", change.deletions),
-                        Style::default().fg(Color::Red),
-                    ),
-                ]),
-            ]));
-        } else {
-            if !remotes.is_empty() {
-                info_items.push(ListItem::new(Line::from(vec![Span::styled(
-                    " REMOTES ",
-                    Style::default()
-                        .bg(Color::Rgb(40, 45, 55))
-                        .fg(Color::White)
-                        .add_modifier(Modifier::BOLD),
-                )])));
-                for r in remotes.iter().take(8) {
-                    info_items.push(ListItem::new(Span::styled(
-                        format!("  {}", r),
-                        Style::default().fg(THEME.fg),
-                    )));
-                }
-                info_items.push(ListItem::new(""));
-            }
-
-            if !stashes.is_empty() {
-                info_items.push(ListItem::new(Line::from(vec![Span::styled(
-                    " STASHES ",
-                    Style::default()
-                        .bg(Color::Rgb(40, 45, 55))
-                        .fg(Color::White)
-                        .add_modifier(Modifier::BOLD),
-                )])));
-                for s in stashes.iter().take(8) {
-                    info_items.push(ListItem::new(Span::styled(
-                        format!("  {}", s),
-                        Style::default().fg(THEME.fg),
-                    )));
-                }
-            }
-
-            if info_items.is_empty() {
-                info_items.push(ListItem::new(Span::styled(
-                    "  (No remotes or stashes)",
-                    Style::default().fg(Color::DarkGray),
-                )));
-            }
-        }
-
-        f.render_widget(
-            List::new(info_items).block(
-                Block::default()
-                    .title(" INFO ")
-                    .border_style(Style::default().fg(Color::Rgb(40, 45, 55)))
-                    .borders(Borders::NONE),
-            ),
-            info_area,
-        );
-    }
 
     if history_len == 0 {
         f.render_widget(
