@@ -61,18 +61,8 @@ async fn run_tty() -> color_eyre::Result<()> {
                 Ok(events) => {
                     for event in events {
                         crate::app::log_debug(&format!("File watch event: {:?}", event));
-                        // Try multiple path sources - the event path or the paths list
-                        let paths: Vec<_> = if !event.paths.is_empty() {
-                            event.paths.clone()
-                        } else if let Some(p) = &event.path {
-                            vec![p.clone()]
-                        } else {
-                            vec![]
-                        };
-                        
-                        for path in paths {
-                            let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(path));
-                        }
+                        // Send the path from the event
+                        let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(event.path));
                     }
                 }
                 Err(e) => {
