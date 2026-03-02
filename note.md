@@ -1,6 +1,5 @@
 ## Do
 
-style is still getting bled through to the git screen from the second panel, the red background color
 
 ## later
 
