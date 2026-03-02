@@ -1887,7 +1887,7 @@ fn draw_main_stage(f: &mut Frame, area: Rect, app: &mut App) {
             let chunks = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints(constraints)
-                .spacing(0)
+                .spacing(1) // Add 1-column gap between panes to prevent bleed-through
                 .split(area);
             for i in 0..pane_count {
                 let is_focused = i == app.focused_pane_index && !app.sidebar_focus;
