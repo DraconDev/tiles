@@ -3,6 +3,7 @@ use crate::app::{
     CurrentView, FileState,
 };
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 use tokio::sync::mpsc;
 
 pub fn update_commands(app: &mut App) {
@@ -322,6 +323,28 @@ pub fn handle_context_menu_action(
                 }
             }
         }
+        ContextMenuAction::CopyPath | ContextMenuAction::CopyName => {
+            match copy_target_text(action, target, app) {
+                Ok(text) => match copy_text_to_clipboard(&text) {
+                    Ok(()) => {
+                        let label = if matches!(action, ContextMenuAction::CopyName) {
+                            "name"
+                        } else {
+                            "path"
+                        };
+                        let _ =
+                            event_tx.try_send(AppEvent::StatusMsg(format!("Copied {} to clipboard", label)));
+                    }
+                    Err(err) => {
+                        let _ =
+                            event_tx.try_send(AppEvent::StatusMsg(format!("Clipboard failed: {}", err)));
+                    }
+                },
+                Err(err) => {
+                    let _ = event_tx.try_send(AppEvent::StatusMsg(err));
+                }
+            }
+        }
         ContextMenuAction::Refresh => {
             let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
         }
@@ -478,5 +501,206 @@ pub fn navigate_up(app: &mut App) {
             fs.pending_select_path = Some(old_folder);
             push_history(fs, parent);
         }
+    }
+}
+
+pub fn open_path_input(app: &mut App) {
+    let value = app
+        .current_file_state()
+        .map(|fs| fs.current_path.to_string_lossy().to_string())
+        .unwrap_or_default();
+    app.input.set_value(value);
+    app.input.cursor_position = app.input.value.len();
+    app.mode = AppMode::PathInput;
+}
+
+pub fn submit_path_input(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> Result<(), String> {
+    let input = app.input.value.trim().to_string();
+    if input.is_empty() {
+        return Err("Path is empty".to_string());
+    }
+
+    let focused = app.focused_pane_index;
+    let Some(fs) = app.current_file_state_mut() else {
+        return Err("No active file pane".to_string());
+    };
+
+    let remote = fs.remote_session.is_some();
+    let target = resolve_path_input(&input, &fs.current_path, remote);
+
+    if !remote {
+        if !target.exists() {
+            return Err(format!("Path not found: {}", target.display()));
+        }
+
+        if target.is_file() {
+            let Some(parent) = target.parent() else {
+                return Err(format!("Cannot open parent for {}", target.display()));
+            };
+            let parent = parent.to_path_buf();
+            fs.current_path = parent.clone();
+            fs.pending_select_path = Some(target.clone());
+            fs.selection.clear();
+            fs.search_filter.clear();
+            *fs.table_state.offset_mut() = 0;
+            push_history(fs, parent);
+        } else {
+            fs.current_path = target.clone();
+            fs.pending_select_path = None;
+            fs.selection.clear();
+            fs.search_filter.clear();
+            *fs.table_state.offset_mut() = 0;
+            push_history(fs, target);
+        }
+    } else {
+        fs.current_path = target.clone();
+        fs.pending_select_path = None;
+        fs.selection.clear();
+        fs.search_filter.clear();
+        *fs.table_state.offset_mut() = 0;
+        push_history(fs, target);
+    }
+
+    let _ = event_tx.try_send(AppEvent::RefreshFiles(focused));
+    Ok(())
+}
+
+pub fn copy_selected_path(app: &App) -> Result<String, String> {
+    let fs = app
+        .current_file_state()
+        .ok_or_else(|| "No active file pane".to_string())?;
+    let idx = fs
+        .selection
+        .selected
+        .ok_or_else(|| "No file selected".to_string())?;
+    let path = fs
+        .files
+        .get(idx)
+        .ok_or_else(|| "Selected file is out of range".to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+pub fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
+    let attempts: [(&str, &[&str]); 4] = [
+        ("wl-copy", &[]),
+        ("xclip", &["-selection", "clipboard"]),
+        ("xsel", &["--clipboard", "--input"]),
+        ("pbcopy", &[]),
+    ];
+
+    let mut last_err = None;
+    for (cmd, args) in attempts {
+        match Command::new(cmd)
+            .args(args)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+        {
+            Ok(mut child) => {
+                if let Some(stdin) = child.stdin.as_mut() {
+                    use std::io::Write;
+                    if stdin.write_all(text.as_bytes()).is_err() {
+                        last_err = Some(format!("{} rejected clipboard data", cmd));
+                        let _ = child.kill();
+                        continue;
+                    }
+                }
+
+                match child.wait() {
+                    Ok(status) if status.success() => return Ok(()),
+                    Ok(_) => last_err = Some(format!("{} exited unsuccessfully", cmd)),
+                    Err(err) => last_err = Some(format!("{} failed: {}", cmd, err)),
+                }
+            }
+            Err(err) => {
+                if err.kind() != std::io::ErrorKind::NotFound {
+                    last_err = Some(format!("{} failed: {}", cmd, err));
+                }
+            }
+        }
+    }
+
+    Err(last_err.unwrap_or_else(|| {
+        "No clipboard helper found (tried wl-copy, xclip, xsel, pbcopy)".to_string()
+    }))
+}
+
+fn copy_target_text(
+    action: &ContextMenuAction,
+    target: &ContextMenuTarget,
+    app: &App,
+) -> Result<String, String> {
+    let path = match target {
+        ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) => app
+            .current_file_state()
+            .and_then(|fs| fs.files.get(*idx))
+            .cloned()
+            .ok_or_else(|| "No file selected".to_string())?,
+        ContextMenuTarget::SidebarFavorite(path) | ContextMenuTarget::ProjectTree(path) => {
+            path.clone()
+        }
+        _ => return Err("Nothing here supports path copy".to_string()),
+    };
+
+    if matches!(action, ContextMenuAction::CopyName) {
+        Ok(path
+            .file_name()
+            .map(|name| name.to_string_lossy().to_string())
+            .unwrap_or_else(|| path.to_string_lossy().to_string()))
+    } else {
+        Ok(path.to_string_lossy().to_string())
+    }
+}
+
+fn resolve_path_input(input: &str, current_path: &std::path::Path, remote: bool) -> PathBuf {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return current_path.to_path_buf();
+    }
+
+    if !remote && trimmed == "~" {
+        if let Some(home) = dirs::home_dir() {
+            return home;
+        }
+    }
+
+    if !remote {
+        if let Some(rest) = trimmed.strip_prefix("~/") {
+            if let Some(home) = dirs::home_dir() {
+                return home.join(rest);
+            }
+        }
+    }
+
+    let typed = PathBuf::from(trimmed);
+    if typed.is_absolute() {
+        typed
+    } else {
+        current_path.join(typed)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_path_input;
+    use std::path::PathBuf;
+
+    #[test]
+    fn resolve_path_input_joins_relative_paths() {
+        let base = PathBuf::from("/tmp/project");
+        assert_eq!(
+            resolve_path_input("notes/todo.md", &base, false),
+            PathBuf::from("/tmp/project/notes/todo.md")
+        );
+    }
+
+    #[test]
+    fn resolve_path_input_keeps_absolute_paths() {
+        let base = PathBuf::from("/tmp/project");
+        assert_eq!(
+            resolve_path_input("/var/log", &base, false),
+            PathBuf::from("/var/log")
+        );
     }
 }

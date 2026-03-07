@@ -75,6 +75,18 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
         tab.breadcrumb_bounds.clear();
     }
 
+    if _is_focused && app.current_view == CurrentView::Files && matches!(app.mode, AppMode::PathInput)
+    {
+        let input_rect = Rect::new(
+            area.x.saturating_add(1),
+            area.y,
+            area.width.saturating_sub(2),
+            1,
+        );
+        f.render_widget(&app.input, input_rect);
+        return;
+    }
+
     let mut cur_p = PathBuf::new();
     let breadcrumb_y = area.y;
     let mut cur_x = area.x + 2;

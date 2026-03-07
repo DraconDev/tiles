@@ -63,6 +63,10 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         app.settings_scroll = 0;
                         return true;
                     }
+                    KeyCode::Char('l') | KeyCode::Char('L') if has_alt => {
+                        crate::event_helpers::open_path_input(app);
+                        return true;
+                    }
                     KeyCode::Char('n') | KeyCode::Char('N') if has_control => {
                         if let Some(fs) = app.current_file_state() {
                             let _ = event_tx.try_send(AppEvent::SpawnTerminal {
@@ -154,6 +158,29 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                 }
 
                 match key.code {
+                    KeyCode::Char('c')
+                        if has_alt && key.modifiers.contains(KeyModifiers::SHIFT) =>
+                    {
+                        match crate::event_helpers::copy_selected_path(app) {
+                            Ok(path) => match crate::event_helpers::copy_text_to_clipboard(&path) {
+                                Ok(()) => {
+                                    let _ = event_tx.try_send(AppEvent::StatusMsg(
+                                        "Copied path to clipboard".to_string(),
+                                    ));
+                                }
+                                Err(err) => {
+                                    let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                        "Clipboard failed: {}",
+                                        err
+                                    )));
+                                }
+                            },
+                            Err(err) => {
+                                let _ = event_tx.try_send(AppEvent::StatusMsg(err));
+                            }
+                        }
+                        return true;
+                    }
                     KeyCode::Char('c') if has_control => {
                         if let Some(fs) = app.current_file_state() {
                             if let Some(idx) = fs.selection.selected {

@@ -587,7 +587,7 @@ dependencies = [
 
 [[package]]
 name = "dracon-git"
-version = "0.1.878"
+version = "0.1.1014"
 dependencies = [
  "anyhow",
  "git2",
@@ -635,14 +635,14 @@ dependencies = [
 
 [[package]]
 name = "dracon-tui-contracts"
-version = "0.1.878"
+version = "0.1.1014"
 dependencies = [
  "bitflags 2.10.0",
 ]
 
 [[package]]
 name = "dracon-tui-input"
-version = "0.1.878"
+version = "0.1.1014"
 dependencies = [
  "dracon-tui",
  "dracon-tui-contracts",
@@ -650,7 +650,7 @@ dependencies = [
 
 [[package]]
 name = "dracon-tui-ratatui-adapter"
-version = "0.1.878"
+version = "0.1.1014"
 dependencies = [
  "dracon-tui",
 ]
@@ -2678,7 +2678,7 @@ dependencies = [
 
 [[package]]
 name = "tiles"
-version = "0.1.14429"
+version = "0.1.14430"
 dependencies = [
  "anyhow",
  "chrono",
