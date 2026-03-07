@@ -163,7 +163,6 @@ pub enum AppMode {
     Delete,
     DeleteFile(PathBuf),
     Search,
-    PathInput,
     CommandPalette,
     StyleColorInput,
     ResetSettingsConfirm,
@@ -300,6 +299,8 @@ pub struct FileState {
     #[serde(skip)]
     pub breadcrumb_bounds: Vec<(ratatui::layout::Rect, PathBuf)>,
     #[serde(skip)]
+    pub breadcrumb_copy_bounds: Option<ratatui::layout::Rect>,
+    #[serde(skip)]
     pub local_count: usize,
     #[serde(skip)]
     pub pending_select_path: Option<PathBuf>,
@@ -353,6 +354,7 @@ impl FileState {
             table_state: ratatui::widgets::TableState::default(),
             column_bounds: Vec::new(),
             breadcrumb_bounds: Vec::new(),
+            breadcrumb_copy_bounds: None,
             local_count: 0,
             pending_select_path: None,
             git_history: Vec::new(),

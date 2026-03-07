@@ -252,7 +252,6 @@ fn handle_modal_keys(
         | AppMode::Rename
         | AppMode::Delete
         | AppMode::DeleteFile(_) => handle_input_modals_keys(key, app, event_tx),
-        AppMode::PathInput => handle_path_input_keys(key, app, event_tx),
         AppMode::Header(idx) => handle_header_keys(key, app, event_tx, idx),
         AppMode::Hotkeys => {
             if let KeyCode::Esc | KeyCode::Enter | KeyCode::F(1) = key.code {
@@ -319,35 +318,6 @@ fn handle_search_keys(
             }
             handled
         }
-    }
-}
-
-fn handle_path_input_keys(
-    key: &dracon_tui_contracts::KeyEvent,
-    app: &mut App,
-    event_tx: &mpsc::Sender<AppEvent>,
-) -> bool {
-    match key.code {
-        KeyCode::Esc => {
-            app.mode = AppMode::Normal;
-            app.input.clear();
-            true
-        }
-        KeyCode::Enter => {
-            match crate::event_helpers::submit_path_input(app, event_tx) {
-                Ok(()) => {
-                    app.mode = AppMode::Normal;
-                    app.input.clear();
-                }
-                Err(err) => {
-                    let _ = event_tx.try_send(AppEvent::StatusMsg(err));
-                }
-            }
-            true
-        }
-        _ => app
-            .input
-            .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(*key))),
     }
 }
 
