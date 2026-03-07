@@ -329,7 +329,28 @@ fn handle_path_input_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) -
             app.input.clear();
             true
         }
-        _ => true,
+        KeyCode::Char('c') | KeyCode::Char('C')
+            if key.modifiers.contains(KeyModifiers::CONTROL) =>
+        {
+            match crate::event_helpers::copy_text_to_clipboard(&app.input.value) {
+                Ok(()) => {
+                    app.last_action_msg = Some((
+                        "Copied current path to clipboard".to_string(),
+                        std::time::Instant::now(),
+                    ));
+                }
+                Err(err) => {
+                    app.last_action_msg = Some((
+                        format!("Clipboard failed: {}", err),
+                        std::time::Instant::now(),
+                    ));
+                }
+            }
+            true
+        }
+        _ => app
+            .input
+            .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(*key))),
     }
 }
 

@@ -78,22 +78,7 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
 
     if _is_focused && app.current_view == CurrentView::Files && matches!(app.mode, AppMode::PathInput)
     {
-        let path_text = path.to_string_lossy().to_string();
-        let display = if path_text.width() > area.width as usize {
-            truncate_to_width(&path_text, area.width as usize, "...")
-        } else {
-            path_text
-        };
-        f.render_widget(
-            Paragraph::new(Span::styled(
-                format!(" {} ", display),
-                Style::default()
-                    .bg(crate::ui::theme::accent_primary())
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD),
-            )),
-            area,
-        );
+        f.render_widget(&app.input, area);
         return;
     }
 
