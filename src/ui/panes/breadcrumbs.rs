@@ -8,7 +8,7 @@ use ratatui::{
 use std::path::PathBuf;
 use unicode_width::UnicodeWidthStr;
 
-use crate::app::{App, CurrentView, DropTarget};
+use crate::app::{App, AppMode, CurrentView, DropTarget};
 use crate::icons::Icon;
 use terma::utils::{get_visual_width, squarify, truncate_to_width};
 
