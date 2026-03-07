@@ -63,7 +63,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         app.settings_scroll = 0;
                         return true;
                     }
-                    KeyCode::Char('l') | KeyCode::Char('L') if has_alt => {
+                    KeyCode::Char(':') => {
                         crate::event_helpers::open_path_input(app);
                         return true;
                     }
@@ -158,9 +158,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                 }
 
                 match key.code {
-                    KeyCode::Char('c')
-                        if has_alt && key.modifiers.contains(KeyModifiers::SHIFT) =>
-                    {
+                    KeyCode::Char('Y') => {
                         match crate::event_helpers::copy_selected_path(app) {
                             Ok(path) => match crate::event_helpers::copy_text_to_clipboard(&path) {
                                 Ok(()) => {
