@@ -252,6 +252,7 @@ fn handle_modal_keys(
         | AppMode::Rename
         | AppMode::Delete
         | AppMode::DeleteFile(_) => handle_input_modals_keys(key, app, event_tx),
+        AppMode::PathInput => handle_path_input_keys(key, app),
         AppMode::Header(idx) => handle_header_keys(key, app, event_tx, idx),
         AppMode::Hotkeys => {
             if let KeyCode::Esc | KeyCode::Enter | KeyCode::F(1) = key.code {
@@ -318,6 +319,17 @@ fn handle_search_keys(
             }
             handled
         }
+    }
+}
+
+fn handle_path_input_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) -> bool {
+    match key.code {
+        KeyCode::Esc | KeyCode::Enter => {
+            app.mode = AppMode::Normal;
+            app.input.clear();
+            true
+        }
+        _ => true,
     }
 }
 

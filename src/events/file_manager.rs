@@ -751,11 +751,25 @@ pub fn handle_file_mouse(
 
     match me.kind {
         MouseEventKind::Down(button) => {
+            if matches!(app.mode, AppMode::PathInput) {
+                let keep_open = app
+                    .current_file_state()
+                    .and_then(|fs| fs.breadcrumb_header_bounds)
+                    .map(|rect| rect.contains(ratatui::layout::Position { x: column, y: row }))
+                    .unwrap_or(false);
+                if keep_open {
+                    return true;
+                }
+                app.mode = AppMode::Normal;
+                app.input.clear();
+            }
+
             // 1. Breadcrumb Click
             if let Some(fs) = app.current_file_state_mut() {
-                if let Some(rect) = fs.breadcrumb_copy_bounds {
+                if let Some(rect) = fs.breadcrumb_header_bounds {
                     if rect.contains(ratatui::layout::Position { x: column, y: row }) {
                         let path = fs.current_path.to_string_lossy().to_string();
+                        crate::event_helpers::open_path_input(app);
                         match crate::event_helpers::copy_text_to_clipboard(&path) {
                             Ok(()) => {
                                 let _ = event_tx.try_send(AppEvent::StatusMsg(

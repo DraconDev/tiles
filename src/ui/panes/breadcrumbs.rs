@@ -9,7 +9,6 @@ use std::path::PathBuf;
 use unicode_width::UnicodeWidthStr;
 
 use crate::app::{App, AppMode, CurrentView, DropTarget};
-use crate::icons::Icon;
 use terma::utils::{get_visual_width, squarify, truncate_to_width};
 
 pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize) {
@@ -74,34 +73,33 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
 
     if let Some(tab) = app.panes[pane_idx].tabs.get_mut(active_tab_idx) {
         tab.breadcrumb_bounds.clear();
-        tab.breadcrumb_copy_bounds = None;
+        tab.breadcrumb_header_bounds = Some(area);
     }
 
-    let copy_label = format!(" {} ", Icon::Copy.get(app.icon_mode));
-    let copy_width = copy_label
-        .chars()
-        .map(get_visual_width)
-        .sum::<usize>() as u16;
-    let copy_rect = Rect::new(area.x, area.y, copy_width, 1);
-
-    f.render_widget(
-        Paragraph::new(Span::styled(
-            copy_label,
-            Style::default()
-                .fg(Color::Black)
-                .bg(crate::ui::theme::accent_primary())
-                .add_modifier(Modifier::BOLD),
-        )),
-        copy_rect,
-    );
-
-    if let Some(tab) = app.panes[pane_idx].tabs.get_mut(active_tab_idx) {
-        tab.breadcrumb_copy_bounds = Some(copy_rect);
+    if _is_focused && app.current_view == CurrentView::Files && matches!(app.mode, AppMode::PathInput)
+    {
+        let path_text = path.to_string_lossy().to_string();
+        let display = if path_text.width() > area.width as usize {
+            truncate_to_width(&path_text, area.width as usize, "...")
+        } else {
+            path_text
+        };
+        f.render_widget(
+            Paragraph::new(Span::styled(
+                format!(" {} ", display),
+                Style::default()
+                    .bg(crate::ui::theme::accent_primary())
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD),
+            )),
+            area,
+        );
+        return;
     }
 
     let mut cur_p = PathBuf::new();
     let breadcrumb_y = area.y;
-    let mut cur_x = copy_rect.right().saturating_add(1);
+    let mut cur_x = area.x + 2;
 
     let components: Vec<_> = path.components().collect();
     let total_comps = components.len();
@@ -115,9 +113,7 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
         .chars()
         .map(get_visual_width)
         .sum::<usize>() as u16;
-    let max_header_width = area
-        .width
-        .saturating_sub(search_filter_width + copy_width + 11);
+    let max_header_width = area.width.saturating_sub(search_filter_width + 10);
 
     let mut accumulated_width = 0;
 

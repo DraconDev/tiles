@@ -504,6 +504,16 @@ pub fn navigate_up(app: &mut App) {
     }
 }
 
+pub fn open_path_input(app: &mut App) {
+    let value = app
+        .current_file_state()
+        .map(|fs| fs.current_path.to_string_lossy().to_string())
+        .unwrap_or_default();
+    app.input.set_value(value);
+    app.input.cursor_position = app.input.value.len();
+    app.mode = AppMode::PathInput;
+}
+
 pub fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
     let attempts: [(&str, &[&str]); 4] = [
         ("wl-copy", &[]),
