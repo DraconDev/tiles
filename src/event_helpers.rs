@@ -514,6 +514,57 @@ pub fn open_path_input(app: &mut App) {
     app.mode = AppMode::PathInput;
 }
 
+pub fn submit_path_input(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> Result<(), String> {
+    let input = app.input.value.trim().to_string();
+    if input.is_empty() {
+        return Err("Path is empty".to_string());
+    }
+
+    let focused = app.focused_pane_index;
+    let Some(fs) = app.current_file_state_mut() else {
+        return Err("No active file pane".to_string());
+    };
+
+    let remote = fs.remote_session.is_some();
+    let target = resolve_path_input(&input, &fs.current_path, remote);
+
+    if !remote {
+        if !target.exists() {
+            return Err(format!("Path not found: {}", target.display()));
+        }
+
+        if target.is_file() {
+            let Some(parent) = target.parent() else {
+                return Err(format!("Cannot open parent for {}", target.display()));
+            };
+            let parent = parent.to_path_buf();
+            fs.current_path = parent.clone();
+            fs.pending_select_path = Some(target.clone());
+            fs.selection.clear();
+            fs.search_filter.clear();
+            *fs.table_state.offset_mut() = 0;
+            push_history(fs, parent);
+        } else {
+            fs.current_path = target.clone();
+            fs.pending_select_path = None;
+            fs.selection.clear();
+            fs.search_filter.clear();
+            *fs.table_state.offset_mut() = 0;
+            push_history(fs, target);
+        }
+    } else {
+        fs.current_path = target.clone();
+        fs.pending_select_path = None;
+        fs.selection.clear();
+        fs.search_filter.clear();
+        *fs.table_state.offset_mut() = 0;
+        push_history(fs, target);
+    }
+
+    let _ = event_tx.try_send(AppEvent::RefreshFiles(focused));
+    Ok(())
+}
+
 pub fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
     let attempts: [(&str, &[&str]); 4] = [
         ("wl-copy", &[]),
@@ -584,5 +635,33 @@ fn copy_target_text(
             .unwrap_or_else(|| path.to_string_lossy().to_string()))
     } else {
         Ok(path.to_string_lossy().to_string())
+    }
+}
+
+fn resolve_path_input(input: &str, current_path: &std::path::Path, remote: bool) -> PathBuf {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return current_path.to_path_buf();
+    }
+
+    if !remote && trimmed == "~" {
+        if let Some(home) = dirs::home_dir() {
+            return home;
+        }
+    }
+
+    if !remote {
+        if let Some(rest) = trimmed.strip_prefix("~/") {
+            if let Some(home) = dirs::home_dir() {
+                return home.join(rest);
+            }
+        }
+    }
+
+    let typed = PathBuf::from(trimmed);
+    if typed.is_absolute() {
+        typed
+    } else {
+        current_path.join(typed)
     }
 }
