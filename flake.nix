@@ -38,11 +38,23 @@
           nativeBuildInputs = with pkgs; [
             pkg-config
             perl
+            makeWrapper
           ];
 
           buildInputs = with pkgs; [
             openssl
           ];
+
+          postInstall = ''
+            wrapProgram "$out/bin/tiles" \
+              --prefix PATH : ${
+                pkgs.lib.makeBinPath [
+                  pkgs.wl-clipboard
+                  pkgs.xclip
+                  pkgs.xsel
+                ]
+              }
+          '';
 
           # Disable check because tests might require TTY/network
           doCheck = false;
@@ -63,6 +75,9 @@
             rustVersion
             pkgs.pkg-config
             pkgs.openssl
+            pkgs.wl-clipboard
+            pkgs.xclip
+            pkgs.xsel
           ];
         };
       }
