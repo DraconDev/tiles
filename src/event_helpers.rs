@@ -611,6 +611,12 @@ pub fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
     }))
 }
 
+pub fn copy_text_to_clipboard_async(text: String) {
+    std::thread::spawn(move || {
+        let _ = copy_text_to_clipboard(&text);
+    });
+}
+
 fn copy_target_text(
     action: &ContextMenuAction,
     target: &ContextMenuTarget,

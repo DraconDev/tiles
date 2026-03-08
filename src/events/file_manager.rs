@@ -770,19 +770,10 @@ pub fn handle_file_mouse(
                     if rect.contains(ratatui::layout::Position { x: column, y: row }) {
                         let path = fs.current_path.to_string_lossy().to_string();
                         crate::event_helpers::open_path_input(app);
-                        match crate::event_helpers::copy_text_to_clipboard(&path) {
-                            Ok(()) => {
-                                let _ = event_tx.try_send(AppEvent::StatusMsg(
-                                    "Copied current path to clipboard".to_string(),
-                                ));
-                            }
-                            Err(err) => {
-                                let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                                    "Clipboard failed: {}",
-                                    err
-                                )));
-                            }
-                        }
+                        crate::event_helpers::copy_text_to_clipboard_async(path);
+                        let _ = event_tx.try_send(AppEvent::StatusMsg(
+                            "Copied current path to clipboard".to_string(),
+                        ));
                         return true;
                     }
                 }
