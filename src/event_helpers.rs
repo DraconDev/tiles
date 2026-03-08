@@ -2,6 +2,7 @@ use crate::app::{
     App, AppEvent, AppMode, CommandAction, CommandItem, ContextMenuAction, ContextMenuTarget,
     CurrentView, FileState,
 };
+use base64::Engine;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use tokio::sync::mpsc;
@@ -606,15 +607,39 @@ pub fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
         }
     }
 
-    Err(last_err.unwrap_or_else(|| {
-        "No clipboard helper found (tried wl-copy, xclip, xsel, pbcopy)".to_string()
-    }))
+    copy_text_to_clipboard_via_osc52(text).map_err(|osc_err| {
+        let fallback = last_err.unwrap_or_else(|| {
+            "No clipboard helper found (tried wl-copy, xclip, xsel, pbcopy)".to_string()
+        });
+        format!("{}; OSC 52 fallback failed: {}", fallback, osc_err)
+    })
 }
 
 pub fn copy_text_to_clipboard_async(text: String) {
     std::thread::spawn(move || {
         let _ = copy_text_to_clipboard(&text);
     });
+}
+
+fn copy_text_to_clipboard_via_osc52(text: &str) -> Result<(), String> {
+    use std::io::Write;
+
+    let term = std::env::var("TERM").unwrap_or_default();
+    if term == "dumb" {
+        return Err("terminal does not support clipboard escape sequences".to_string());
+    }
+
+    let encoded = base64::engine::general_purpose::STANDARD.encode(text.as_bytes());
+    let sequence = format!("\u{1b}]52;c;{}\u{07}", encoded);
+
+    let mut stdout = std::io::stdout();
+    stdout
+        .write_all(sequence.as_bytes())
+        .map_err(|err| format!("write failed: {}", err))?;
+    stdout
+        .flush()
+        .map_err(|err| format!("flush failed: {}", err))?;
+    Ok(())
 }
 
 fn copy_target_text(

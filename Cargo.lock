@@ -2678,9 +2678,10 @@ dependencies = [
 
 [[package]]
 name = "tiles"
-version = "0.1.14439"
+version = "0.1.14440"
 dependencies = [
  "anyhow",
+ "base64",
  "chrono",
  "color-eyre",
  "dirs 5.0.1",
