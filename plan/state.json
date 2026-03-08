@@ -1,8 +1,8 @@
 {
   "phase": "planning",
   "execution_enabled": false,
-  "trigger": "none",
-  "trigger_reason": null,
+  "trigger": "BLOCKED",
+  "trigger_reason": "blueprint load error: read /home/dracon/Dev/tiles/plan/blueprint.toml",
   "active_slice": null,
   "active_slice_started_at": null,
   "completed_slices": [],
@@ -13,5 +13,5 @@
   "stall_recovery_count": 0,
   "last_report_at": null,
   "last_heartbeat_at": null,
-  "updated_at": 1772428814
+  "updated_at": 1772948192
 }
