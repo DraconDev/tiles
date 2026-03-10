@@ -1,0 +1,2 @@
+{"ts":1772944358,"kind":"blueprint_blocked","message":"blueprint load error: read /home/dracon/Dev/tiles/plan/blueprint.toml","slice_id":null,"status":null}
+{"ts":1772944358,"kind":"trigger_transition","message":"none -> BLOCKED (prev_reason=None, next_reason=Some(\"blueprint load error: read /home/dracon/Dev/tiles/plan/blueprint.toml\"))","slice_id":null,"status":null}
