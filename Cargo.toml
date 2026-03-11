@@ -1,7 +1,8 @@
 [package]
 name = "tiles"
-version = "0.1.14444"
+version = "0.1.14445"
 edition = "2021"
+license-file = "LICENSE"
 
 [dependencies]
 

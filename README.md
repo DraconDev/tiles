@@ -54,3 +54,7 @@ cargo run --release
 ---
 
 _Built for the Agent Director Era. Owned by you._
+
+---
+
+Dracon License v1.0 - this project is covered by the umbrella Dracon License; see [LICENSE](LICENSE) for details and https://dracon.uk/licensing for current terms.

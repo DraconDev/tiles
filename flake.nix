@@ -62,7 +62,7 @@
           meta = with nixpkgs.lib; {
             description = "High-performance modular data commander";
             homepage = "https://github.com/DraconDev/tiles";
-            license = licenses.mit;
+            license = licenses.unfree;
             maintainers = [ ];
           };
         };

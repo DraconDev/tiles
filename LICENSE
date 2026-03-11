@@ -1,0 +1,67 @@
+# Dracon License v1.0
+
+Copyright (c) 2024-2025 Dracon
+
+## Summary
+
+-   This software is an included non-service product under the umbrella **Dracon License**.
+-   **Free** where the current Dracon License free tier allows it.
+-   **Free** for everyone for evaluation, development, and testing.
+-   **Paid Commercial License** required for production use outside the current free tier.
+-   **Forbidden** to build competing products.
+
+The current included-products list, tier thresholds, pricing, and public commercial terms
+are published at:
+
+**https://dracon.uk/licensing**
+
+---
+
+## 1. License Grants
+
+### 1.1 Free Use
+
+You may use, copy, modify, and distribute commercial or non-commercial applications built with this software for **FREE** if:
+
+-   You are an individual or sole proprietor.
+-   You are an organization that falls within the current **Dracon License** free tier published at `https://dracon.uk/licensing`.
+-   You are a non-profit organization or educational institution.
+-   You are using the software only for evaluation, development, testing, or other non-production purposes.
+
+### 1.2 Commercial License Required
+
+A Commercial License is required **ONLY** if:
+
+-   You are an organization that does **not** fall within the current free tier published at `https://dracon.uk/licensing`, AND
+-   You are using the software for **Production** purposes.
+
+This software is covered through the umbrella **Dracon License**, not a separate product-specific commercial license.
+
+**Purchase a License:** https://dracon.uk/licensing
+
+## 2. Restrictions
+
+### 2.1 Competitive Use
+
+You may **not** use this software to build, develop, or distribute a product that competes directly with the core functionality of this software.
+
+### 2.2 Proprietary Software
+
+This software is **not Open Source**. Dracon retains all ownership and intellectual property rights. You may not sublicense the source code itself.
+
+## 3. Contributions
+
+By submitting contributions (Pull Requests, bug fixes, etc.) to this project, you grant Dracon a perpetual, irrevocable, worldwide license to use, modify, and distribute those contributions under any terms, including commercial terms, without compensation to you.
+
+## 4. Termination
+
+Your rights under this license terminate automatically if you fail to comply with its terms.
+
+## 5. No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+
+---
+
+**Contact:** license@dracon.uk  
+**Website:** https://dracon.uk
