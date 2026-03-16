@@ -70,8 +70,6 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(event.path));
                     }
                 }
-                crate::app::log_debug(&format!("file listing task total {:?}", t_spawn.elapsed()));
-
                 let _ = tx.send(AppEvent::Tick).await;
                 tokio::time::sleep(Duration::from_millis(250)).await;
             }
