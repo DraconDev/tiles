@@ -535,8 +535,8 @@ pub fn open_path_input(app: &mut App) {
         .bg(crate::ui::theme::accent_secondary())
         .fg(ratatui::style::Color::Black);
     app.mode = AppMode::PathInput;
-    // Shield input briefly to drain any pending mouse escape sequences
-    app.input_shield_until = Some(std::time::Instant::now() + std::time::Duration::from_millis(80));
+    // No input shield — mouse escape sequences from the click that opened
+    // PathInput are already consumed by the time the user starts typing.
 }
 
 pub fn submit_path_input(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> Result<(), String> {
