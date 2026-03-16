@@ -62,18 +62,14 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
     let mut debouncer = notify_debouncer_mini::new_debouncer(
         Duration::from_millis(200),
         move |res: notify_debouncer_mini::DebounceEventResult| {
-            match res {
-                Ok(events) => {
-                    for event in events {
-                        crate::app::log_debug(&format!("File watch event: {:?}", event));
-                        // Send the path from the event
-                        let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(event.path));
-                    }
+            if let Ok(events) = res {
+                for event in events {
+                    crate::app::log_debug(&format!("File watch event: {:?}", event));
+                    let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(event.path));
                 }
-                let _ = tx.send(AppEvent::Tick).await;
-                tokio::time::sleep(Duration::from_millis(250)).await;
             }
-        });
+        },
+    );
     }
 
     // Initial State Setup
