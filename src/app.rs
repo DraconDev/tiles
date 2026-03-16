@@ -263,9 +263,8 @@ impl App {
     }
 
     pub fn push_recent_folder(&mut self, path: PathBuf) {
-        if !path.is_dir() {
-            return;
-        }
+        // Don't call is_dir() here — it blocks on slow filesystems.
+        // Trust that paths coming from navigation are valid directories.
         self.recent_folders.retain(|p| p != &path);
         self.recent_folders.insert(0, path);
         const MAX_RECENT: usize = 10;
