@@ -558,7 +558,11 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     match save_res {
                         Ok(_) => {
                             if remote_for_save.is_none() {
-                                last_self_save.insert(path.clone(), content);
+                                if let Ok(meta) = std::fs::metadata(&path) {
+                                    if let Ok(mtime) = meta.modified() {
+                                        last_self_save.insert(path.clone(), mtime);
+                                    }
+                                }
                             }
                             let mut app_guard = app.lock().unwrap();
                             if let Some(ref mut preview) = app_guard.editor_state {
