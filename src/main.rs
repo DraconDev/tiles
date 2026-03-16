@@ -80,6 +80,8 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         std::collections::HashSet::new();
 
     // Helper to sync watched paths with current pane paths
+    let mut last_synced_paths: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
+
     let mut sync_watches = |app: &App, debouncer: &mut notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>| {
         let mut current_paths = std::collections::HashSet::new();
         
@@ -94,6 +96,12 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         for path in &app.expanded_folders {
             current_paths.insert(path.clone());
         }
+
+        // Fast bail-out: skip if nothing changed since last sync
+        if current_paths == last_synced_paths {
+            return;
+        }
+        last_synced_paths = current_paths.clone();
 
         // Add paths that aren't being watched yet
         for path in &current_paths {
