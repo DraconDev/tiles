@@ -307,9 +307,7 @@ fn handle_search_keys(
             // Live Update
             let handled = app
                 .input
-                .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(
-                    *key,
-                )));
+                .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(*key)));
             if handled {
                 let filter = app.input.value.clone();
                 if let Some(fs) = app.current_file_state_mut() {
@@ -331,6 +329,10 @@ fn handle_path_input_keys(
         KeyCode::Esc => {
             app.mode = AppMode::Normal;
             app.input.clear();
+            app.input.style = ratatui::style::Style::default().fg(ratatui::style::Color::White);
+            app.input.cursor_style = ratatui::style::Style::default()
+                .bg(ratatui::style::Color::White)
+                .fg(ratatui::style::Color::Black);
             true
         }
         KeyCode::Enter => {
@@ -338,6 +340,11 @@ fn handle_path_input_keys(
                 Ok(()) => {
                     app.mode = AppMode::Normal;
                     app.input.clear();
+                    app.input.style =
+                        ratatui::style::Style::default().fg(ratatui::style::Color::White);
+                    app.input.cursor_style = ratatui::style::Style::default()
+                        .bg(ratatui::style::Color::White)
+                        .fg(ratatui::style::Color::Black);
                 }
                 Err(err) => {
                     app.last_action_msg = Some((err, std::time::Instant::now()));
