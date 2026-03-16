@@ -171,7 +171,8 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         });
     }
 
-    // 2. System Stats Loop (Tokio)
+    // 2. System Stats Loop (Tokio) — polls every 3s; fast enough for the Monitor view
+    //    without burning CPU when the user is in Files/Editor/Git.
     {
         let tx = event_tx.clone();
         tokio::spawn(async move {
@@ -180,7 +181,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 if let Ok(data) = sys_mod.get_data() {
                     let _ = tx.send(AppEvent::SystemUpdated(data)).await;
                 }
-                tokio::time::sleep(Duration::from_millis(1000)).await;
+                tokio::time::sleep(Duration::from_secs(3)).await;
             }
         });
     }
