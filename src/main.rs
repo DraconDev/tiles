@@ -1174,6 +1174,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         if needs_draw {
             let mut app_guard = app.lock().unwrap();
             if !app_guard.running {
+                shutdown.store(true, Ordering::Release);
                 break;
             }
             terminal.draw(|f| ui::draw(f, &mut app_guard))?;
