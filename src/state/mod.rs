@@ -302,6 +302,8 @@ pub struct FileState {
     #[serde(skip)]
     pub breadcrumb_header_bounds: Option<ratatui::layout::Rect>,
     #[serde(skip)]
+    pub breadcrumb_border_bounds: Option<ratatui::layout::Rect>,
+    #[serde(skip)]
     pub local_count: usize,
     #[serde(skip)]
     pub pending_select_path: Option<PathBuf>,
