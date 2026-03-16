@@ -696,3 +696,155 @@ fn resolve_path_input(input: &str, current_path: &std::path::Path, remote: bool)
         current_path.join(typed)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::FileState;
+    use std::path::PathBuf;
+
+    fn make_fs(path: &str) -> FileState {
+        let mut fs = FileState::default();
+        fs.current_path = PathBuf::from(path);
+        fs
+    }
+
+    // ── resolve_path_input ──────────────────────────────────────
+
+    #[test]
+    fn resolve_empty_returns_current() {
+        let current = PathBuf::from("/home/user");
+        let result = resolve_path_input("", &current, false);
+        assert_eq!(result, current);
+    }
+
+    #[test]
+    fn resolve_whitespace_returns_current() {
+        let current = PathBuf::from("/home/user");
+        let result = resolve_path_input("   ", &current, false);
+        assert_eq!(result, current);
+    }
+
+    #[test]
+    fn resolve_absolute_path() {
+        let current = PathBuf::from("/home/user");
+        let result = resolve_path_input("/etc/config", &current, false);
+        assert_eq!(result, PathBuf::from("/etc/config"));
+    }
+
+    #[test]
+    fn resolve_relative_path() {
+        let current = PathBuf::from("/home/user");
+        let result = resolve_path_input("projects/tiles", &current, false);
+        assert_eq!(result, PathBuf::from("/home/user/projects/tiles"));
+    }
+
+    #[test]
+    fn resolve_parent_dotdot() {
+        let current = PathBuf::from("/home/user/projects");
+        let result = resolve_path_input("..", &current, false);
+        assert_eq!(result, PathBuf::from("/home/user"));
+    }
+
+    #[test]
+    fn resolve_absolute_ignores_remote_flag() {
+        let current = PathBuf::from("/home/user");
+        let result = resolve_path_input("/var/log", &current, true);
+        assert_eq!(result, PathBuf::from("/var/log"));
+    }
+
+    // ── push_history ────────────────────────────────────────────
+
+    #[test]
+    fn push_history_basic() {
+        let mut fs = make_fs("/home");
+        push_history(&mut fs, PathBuf::from("/home"));
+        assert_eq!(fs.history.len(), 1);
+        assert_eq!(fs.history_index, 0);
+    }
+
+    #[test]
+    fn push_history_deduplicates_consecutive() {
+        let mut fs = make_fs("/home");
+        push_history(&mut fs, PathBuf::from("/home"));
+        push_history(&mut fs, PathBuf::from("/home"));
+        assert_eq!(fs.history.len(), 1);
+    }
+
+    #[test]
+    fn push_history_allows_different_paths() {
+        let mut fs = make_fs("/home");
+        push_history(&mut fs, PathBuf::from("/home"));
+        push_history(&mut fs, PathBuf::from("/etc"));
+        push_history(&mut fs, PathBuf::from("/var"));
+        assert_eq!(fs.history.len(), 3);
+        assert_eq!(fs.history_index, 2);
+    }
+
+    #[test]
+    fn push_history_caps_at_50() {
+        let mut fs = make_fs("/");
+        for i in 0..60 {
+            push_history(&mut fs, PathBuf::from(format!("/dir{}", i)));
+        }
+        assert_eq!(fs.history.len(), 50);
+        // Most recent entries should be preserved
+        assert_eq!(fs.history.last().unwrap(), &PathBuf::from("/dir59"));
+    }
+
+    #[test]
+    fn push_history_index_stays_valid_after_cap() {
+        let mut fs = make_fs("/");
+        for i in 0..55 {
+            push_history(&mut fs, PathBuf::from(format!("/dir{}", i)));
+        }
+        assert!(fs.history_index < fs.history.len());
+    }
+
+    #[test]
+    fn push_history_truncates_future_on_new_entry() {
+        let mut fs = make_fs("/");
+        push_history(&mut fs, PathBuf::from("/a"));
+        push_history(&mut fs, PathBuf::from("/b"));
+        push_history(&mut fs, PathBuf::from("/c"));
+        // Simulate going back
+        fs.history_index = 1;
+        // Push new entry should truncate "/c"
+        push_history(&mut fs, PathBuf::from("/d"));
+        assert_eq!(fs.history.len(), 3);
+        assert_eq!(fs.history[0], PathBuf::from("/a"));
+        assert_eq!(fs.history[1], PathBuf::from("/b"));
+        assert_eq!(fs.history[2], PathBuf::from("/d"));
+    }
+
+    // ── push_recent_folder ──────────────────────────────────────
+
+    #[test]
+    fn push_recent_folder_adds_to_front() {
+        let mut app = crate::app::App::new(std::sync::Arc::new(std::sync::Mutex::new(Vec::new())));
+        app.push_recent_folder(PathBuf::from("/home/user"));
+        app.push_recent_folder(PathBuf::from("/etc"));
+        assert_eq!(app.recent_folders[0], PathBuf::from("/etc"));
+        assert_eq!(app.recent_folders[1], PathBuf::from("/home/user"));
+    }
+
+    #[test]
+    fn push_recent_folder_deduplicates() {
+        let mut app = crate::app::App::new(std::sync::Arc::new(std::sync::Mutex::new(Vec::new())));
+        app.push_recent_folder(PathBuf::from("/home"));
+        app.push_recent_folder(PathBuf::from("/etc"));
+        app.push_recent_folder(PathBuf::from("/home")); // Move to front
+        assert_eq!(app.recent_folders.len(), 2);
+        assert_eq!(app.recent_folders[0], PathBuf::from("/home"));
+    }
+
+    #[test]
+    fn push_recent_folder_caps_at_10() {
+        let mut app = crate::app::App::new(std::sync::Arc::new(std::sync::Mutex::new(Vec::new())));
+        for i in 0..15 {
+            app.push_recent_folder(PathBuf::from(format!("/dir{}", i)));
+        }
+        assert_eq!(app.recent_folders.len(), 10);
+        assert_eq!(app.recent_folders[0], PathBuf::from("/dir14"));
+    }
+}
