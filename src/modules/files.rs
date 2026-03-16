@@ -98,18 +98,7 @@ pub fn get_file_category(path: &Path) -> crate::app::FileCategory {
     }
 }
 
-pub fn fetch_git_data(
-    path: &Path,
-) -> Option<(
-    Vec<CommitInfo>,
-    Vec<GitPendingChange>,
-    String,
-    usize,
-    usize,
-    String,
-    Vec<String>,
-    Vec<String>,
-)> {
+pub fn fetch_git_data(path: &Path) -> Option<GitData> {
     let provider = CliGitSnapshotProvider;
     let snapshot = provider.fetch_snapshot(path).ok().flatten()?;
 
