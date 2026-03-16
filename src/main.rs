@@ -814,10 +814,9 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 ) => {
                     let mut app_guard = app.lock().unwrap();
                     if let Some(pane) = app_guard.panes.get_mut(p_idx) {
-                        // Store git data in the correct tab, falling back to active tab
-                        let tab = pane.tabs.get_mut(t_idx)
-                            .or_else(|| pane.tabs.get_mut(pane.active_tab_index));
-                        if let Some(fs) = tab {
+                        // Store git data in the specified tab, or active tab as fallback
+                        let tab_idx = if t_idx < pane.tabs.len() { t_idx } else { pane.active_tab_index };
+                        if let Some(fs) = pane.tabs.get_mut(tab_idx) {
                             fs.git_history = history;
                             fs.git_pending = pending;
                             fs.git_branch = branch;
