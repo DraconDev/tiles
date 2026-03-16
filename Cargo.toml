@@ -1,6 +1,6 @@
 [package]
 name = "tiles"
-version = "0.1.14450"
+version = "0.1.14451"
 edition = "2021"
 license-file = "LICENSE"
 
@@ -18,7 +18,7 @@ ratatui = "0.29.0"
 terma = { package = "dracon-tui", path = "../dracon-libs/tools/tui/dracon-tui-runtime" }
 dracon-tui-contracts = { path = "../dracon-libs/contracts/crates/dracon-tui-contracts" }
 dracon-tui-input = { path = "../dracon-libs/tools/tui/dracon-tui-input" }
-dracon-tui-ratatui-adapter = { path = "../dracon-libs/tools/tui/dracon-tui-ratatui-adapter" }
+
 dracon-files = { path = "../dracon-libs/tools/files/dracon-files" }
 dracon-git = { path = "../dracon-libs/tools/sync/dracon-git" }
 dracon-system = { path = "../dracon-libs/tools/system/dracon-system" }
