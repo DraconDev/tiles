@@ -49,7 +49,7 @@ async fn main() -> color_eyre::Result<()> {
     result
 }
 
-async fn run_tty() -> color_eyre::Result<()> {
+async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
     crate::app::log_debug("run_tty start");
     let backend = TermaBackend::new(std::io::stdout())?;
     let tile_queue = backend.tile_queue();
