@@ -704,9 +704,14 @@ mod tests {
     use std::path::PathBuf;
 
     fn make_fs(path: &str) -> FileState {
-        let mut fs = FileState::default();
-        fs.current_path = PathBuf::from(path);
-        fs
+        FileState::new(
+            PathBuf::from(path),
+            None,
+            false,
+            vec![crate::state::FileColumn::Name],
+            crate::state::FileColumn::Name,
+            true,
+        )
     }
 
     // ── resolve_path_input ──────────────────────────────────────
