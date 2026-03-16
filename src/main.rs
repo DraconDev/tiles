@@ -314,8 +314,11 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     needs_draw = true;
                 }
                 AppEvent::RefreshFiles(pane_idx) => {
+                    let t_refresh = std::time::Instant::now();
                     let current_path = {
+                        let t_lock = std::time::Instant::now();
                         let mut app_guard = app.lock().unwrap();
+                        crate::app::log_debug(&format!("RefreshFiles lock took {:?}", t_lock.elapsed()));
                         let path = app_guard
                             .panes
                             .get(pane_idx)
@@ -325,9 +328,12 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             app_guard.push_recent_folder(p.clone());
                         }
                         // Sync watches (fast bail-out if paths unchanged)
+                        let t_watch = std::time::Instant::now();
                         sync_watches(&app_guard, &mut debouncer);
+                        crate::app::log_debug(&format!("sync_watches took {:?}", t_watch.elapsed()));
                         path
                     };
+                    crate::app::log_debug(&format!("RefreshFiles handler total {:?}", t_refresh.elapsed()));
                     if current_path.is_none() {
                         continue;
                     }
