@@ -802,7 +802,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 }
                 AppEvent::GitHistoryUpdated(
                     p_idx,
-                    _t_idx,
+                    t_idx,
                     history,
                     pending,
                     branch,
@@ -814,7 +814,10 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 ) => {
                     let mut app_guard = app.lock().unwrap();
                     if let Some(pane) = app_guard.panes.get_mut(p_idx) {
-                        if let Some(fs) = pane.current_state_mut() {
+                        // Store git data in the correct tab, falling back to active tab
+                        let tab = pane.tabs.get_mut(t_idx)
+                            .or_else(|| pane.tabs.get_mut(pane.active_tab_index));
+                        if let Some(fs) = tab {
                             fs.git_history = history;
                             fs.git_pending = pending;
                             fs.git_branch = branch;
