@@ -9,8 +9,8 @@ pub use crate::state::{
     AppEvent, AppMode, ClipboardOp, CommandAction, CommandItem, CommitInfo, ContextMenuAction,
     ContextMenuTarget, CurrentView, DropTarget, FileCategory, FileColumn, FileMetadata, FileState,
     GitPendingChange, LicenseStatus, MonitorSubview, Pane, PreviewState, ProcessColumn,
-    RemoteBookmark, SettingsSection, SettingsTarget, SidebarBounds, SidebarTarget, SystemState,
-    SidebarScope, UndoAction, ViewPreferences, ViewStatePersistence,
+    RemoteBookmark, SettingsSection, SettingsTarget, SidebarBounds, SidebarScope, SidebarTarget,
+    SystemState, UndoAction, ViewPreferences, ViewStatePersistence,
 };
 
 pub struct BackgroundTask {
@@ -447,12 +447,22 @@ pub fn log_debug(msg: &str) {
     }
 
     use std::io::Write;
-    if let Ok(mut file) = std::fs::OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open("debug.log")
-    {
-        let _ = writeln!(file, "[{}] DEBUG: {}", chrono::Utc::now(), msg);
+    static LOG_FILE: std::sync::LazyLock<
+        std::sync::Mutex<Option<std::io::BufWriter<std::fs::File>>>,
+    > = std::sync::LazyLock::new(|| {
+        let file = std::fs::OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open("debug.log")
+            .ok();
+        std::sync::Mutex::new(file.map(std::io::BufWriter::new))
+    });
+
+    if let Ok(mut guard) = LOG_FILE.lock() {
+        if let Some(ref mut w) = *guard {
+            let _ = writeln!(w, "[{}] DEBUG: {}", chrono::Utc::now(), msg);
+            let _ = w.flush();
+        }
     }
 }
 
