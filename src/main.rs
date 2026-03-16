@@ -988,7 +988,9 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     });
 
                 {
+                    let t_apply = std::time::Instant::now();
                     let mut app_guard = app_clone.lock().unwrap();
+                    crate::app::log_debug(&format!("apply lock took {:?}", t_apply.elapsed()));
                     if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
                         if let Some(fs) = pane.current_state_mut() {
                             // RACE CONDITION CHECK:
