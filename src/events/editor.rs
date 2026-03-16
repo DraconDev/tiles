@@ -386,6 +386,7 @@ fn handle_text_editor_mouse(
     true
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_generic_editor_shortcuts(
     key: &dracon_tui_contracts::KeyEvent,
     editor: &mut terma::widgets::TextEditor,
@@ -396,7 +397,7 @@ fn handle_generic_editor_shortcuts(
     input: &mut terma::widgets::TextInput,
     replace_buffer: &mut String,
     event_tx: &mpsc::Sender<AppEvent>,
-    path: &std::path::PathBuf,
+    path: &std::path::Path,
     evt: &Event,
     area: ratatui::layout::Rect,
 ) -> bool {
