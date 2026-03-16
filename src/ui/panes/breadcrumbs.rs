@@ -74,9 +74,14 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
     if let Some(tab) = app.panes[pane_idx].tabs.get_mut(active_tab_idx) {
         tab.breadcrumb_bounds.clear();
         tab.breadcrumb_header_bounds = Some(area);
+        // Track the top border row separately for "copy path" click detection.
+        // The border is one row above the inner area where breadcrumbs render.
+        tab.breadcrumb_border_bounds = Some(Rect::new(area.x, area.y, area.width, 1));
     }
 
-    if _is_focused && app.current_view == CurrentView::Files && matches!(app.mode, AppMode::PathInput)
+    if _is_focused
+        && app.current_view == CurrentView::Files
+        && matches!(app.mode, AppMode::PathInput)
     {
         f.render_widget(&app.input, area);
         return;
