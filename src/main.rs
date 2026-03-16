@@ -537,7 +537,8 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                 app_guard.sidebar_focus = false;
                             }
                         }
-                        let _ = tx.send(AppEvent::Tick).await;
+                crate::app::log_debug(&format!("file listing task total {:?}", t_spawn.elapsed()));
+                let _ = tx.send(AppEvent::Tick).await;
                     });
                 }
                 AppEvent::SaveFile(path, content) => {
