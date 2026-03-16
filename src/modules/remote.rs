@@ -8,6 +8,18 @@ use dracon_system::{
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+/// Git data: (history, pending, branch, ahead, behind, summary, remotes, stashes)
+type GitData = (
+    Vec<CommitInfo>,
+    Vec<GitPendingChange>,
+    String,
+    usize,
+    usize,
+    String,
+    Vec<String>,
+    Vec<String>,
+);
+
 pub fn connect_remote(bookmark: &RemoteBookmark) -> anyhow::Result<RemoteSession> {
     let connector = SshRemoteConnector;
     let request = RemoteConnectRequest {
@@ -104,19 +116,7 @@ pub fn global_search(
     (files, HashMap::new())
 }
 
-pub fn fetch_git_data(
-    remote: &RemoteSession,
-    path: &Path,
-) -> Option<(
-    Vec<CommitInfo>,
-    Vec<GitPendingChange>,
-    String,
-    usize,
-    usize,
-    String,
-    Vec<String>,
-    Vec<String>,
-)> {
+pub fn fetch_git_data(remote: &RemoteSession, path: &Path) -> Option<GitData> {
     let base = format!("cd {} && ", shell_quote_path(path));
     let branch = run_command(remote, &(base.clone() + "git rev-parse --abbrev-ref HEAD"))
         .ok()?
