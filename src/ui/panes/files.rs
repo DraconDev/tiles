@@ -328,11 +328,7 @@ pub fn draw_file_view(
                         Style::default()
                             .fg(Color::White)
                             .add_modifier(Modifier::BOLD)
-                    } else if is_hovered_drop {
-                        Style::default()
-                            .fg(Color::Black)
-                            .add_modifier(Modifier::BOLD)
-                    } else if app.path_colors.contains_key(path) {
+                    } else if is_hovered_drop || app.path_colors.contains_key(path) {
                         Style::default()
                             .fg(Color::Black)
                             .add_modifier(Modifier::BOLD)
