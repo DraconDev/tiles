@@ -809,18 +809,19 @@ mod tests {
 
     #[test]
     fn push_history_truncates_future_on_new_entry() {
-        let mut fs = make_fs("/");
-        push_history(&mut fs, PathBuf::from("/a"));
-        push_history(&mut fs, PathBuf::from("/b"));
-        push_history(&mut fs, PathBuf::from("/c"));
-        // Simulate going back
-        fs.history_index = 1;
+        let mut fs = make_fs("/"); // history starts with ["/"]
+        push_history(&mut fs, PathBuf::from("/a")); // ["/", "/a"]
+        push_history(&mut fs, PathBuf::from("/b")); // ["/", "/a", "/b"]
+        push_history(&mut fs, PathBuf::from("/c")); // ["/", "/a", "/b", "/c"]
+                                                    // Simulate going back to "/b"
+        fs.history_index = 2;
         // Push new entry should truncate "/c"
         push_history(&mut fs, PathBuf::from("/d"));
-        assert_eq!(fs.history.len(), 3);
-        assert_eq!(fs.history[0], PathBuf::from("/a"));
-        assert_eq!(fs.history[1], PathBuf::from("/b"));
-        assert_eq!(fs.history[2], PathBuf::from("/d"));
+        assert_eq!(fs.history.len(), 4);
+        assert_eq!(fs.history[0], PathBuf::from("/"));
+        assert_eq!(fs.history[1], PathBuf::from("/a"));
+        assert_eq!(fs.history[2], PathBuf::from("/b"));
+        assert_eq!(fs.history[3], PathBuf::from("/d"));
     }
 
     // ── push_recent_folder ──────────────────────────────────────
