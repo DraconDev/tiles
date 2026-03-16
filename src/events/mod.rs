@@ -37,11 +37,10 @@ pub fn handle_event(
     }
 
     // 3. Mode-specific logic (Modals, Overlays)
-    if !matches!(app.mode, AppMode::Normal) {
-        if modals::handle_modal_events(&evt, app, &event_tx) {
+    if !matches!(app.mode, AppMode::Normal)
+        && modals::handle_modal_events(&evt, app, &event_tx) {
             return true;
         }
-    }
 
     // 4. View-specific logic (Keyboard)
     match &evt {
@@ -614,11 +613,10 @@ fn handle_sidebar_mouse(
             if let Some((sx, sy)) = app.drag_start_pos {
                 let dist_sq =
                     (column as f32 - sx as f32).powi(2) + (row as f32 - sy as f32).powi(2);
-                if dist_sq >= 4.0 {
-                    if !app.is_dragging {
+                if dist_sq >= 4.0
+                    && !app.is_dragging {
                         app.is_dragging = true;
                     }
-                }
             }
             // Update hovered drop target during drag for visual feedback
             if app.is_dragging {

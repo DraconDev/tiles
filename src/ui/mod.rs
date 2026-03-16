@@ -1308,7 +1308,7 @@ fn draw_monitor_overview(f: &mut Frame, area: Rect, app: &mut App) {
         .disks
         .iter()
         .map(|disk| {
-            let ratio = (disk.used_space as f64 / disk.total_space as f64).clamp(0.0, 1.0);
+            let ratio = (disk.used_space / disk.total_space).clamp(0.0, 1.0);
             let color = if ratio > 0.9 {
                 Color::Rgb(255, 60, 60)
             } else if ratio > 0.7 {
@@ -1429,7 +1429,7 @@ fn draw_monitor_applications(f: &mut Frame, area: Rect, app: &mut App) {
 
     let header_rects = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints(column_constraints.clone())
+        .constraints(column_constraints)
         .split(Rect::new(area.x, area.y, effective_width, 1));
 
     app.process_column_bounds.clear();
@@ -1492,7 +1492,7 @@ fn draw_processes_view(f: &mut Frame, area: Rect, app: &mut App) {
     app.process_column_bounds.clear();
     let header_rects = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints(column_constraints.clone())
+        .constraints(column_constraints)
         .split(Rect::new(area.x, area.y, effective_width, 1));
     let mut current_col_x = area.x;
     let header_cells = ["PID", "NAME", "USER", "STATUS", "CPU%", "MEM%"]
@@ -2537,8 +2537,7 @@ fn draw_file_view(
                                     && !is_multi_selected
                                     && !app.path_colors.contains_key(path)
                                     && !is_hovered_drop
-                                {
-                                    if app.semantic_coloring {
+                                    && app.semantic_coloring {
                                         if is_dir {
                                             cell_style =
                                                 cell_style.fg(crate::ui::theme::accent_secondary());
@@ -2546,7 +2545,6 @@ fn draw_file_view(
                                             cell_style = cell_style.fg(cat.cyber_color());
                                         }
                                     }
-                                }
                                 let icon_w = icon_str.chars().map(get_visual_width).sum::<usize>();
                                 // Super-Aggressive Hard-Cut: reservers generous safety for icons/status
                                 let available_width =
@@ -2953,7 +2951,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         Color::DarkGray,
     );
     let mem_usage =
-        (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) as f32 * 100.0;
+        (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) * 100.0;
     let mem_bar = draw_stat_bar(
         "MEM",
         mem_usage,
@@ -3532,45 +3530,43 @@ fn draw_properties_modal(f: &mut Frame, app: &App) {
                 ),
                 Span::raw(format_permissions(meta.permissions)),
             ]));
-        } else {
-            if fs.remote_session.is_none() {
-                if let Ok(m) = std::fs::metadata(target_path) {
-                    let is_dir = m.is_dir();
+        } else if fs.remote_session.is_none() {
+            if let Ok(m) = std::fs::metadata(target_path) {
+                let is_dir = m.is_dir();
+                text.push(Line::from(vec![
+                    Span::styled(
+                        "Type: ",
+                        Style::default().fg(crate::ui::theme::accent_secondary()),
+                    ),
+                    Span::raw(if is_dir { "Folder" } else { "File" }),
+                ]));
+                text.push(Line::from(vec![
+                    Span::styled(
+                        "Size: ",
+                        Style::default().fg(crate::ui::theme::accent_secondary()),
+                    ),
+                    Span::raw(format_size(m.len())),
+                ]));
+                if let Ok(mod_time) = m.modified() {
                     text.push(Line::from(vec![
                         Span::styled(
-                            "Type: ",
+                            "Modified: ",
                             Style::default().fg(crate::ui::theme::accent_secondary()),
                         ),
-                        Span::raw(if is_dir { "Folder" } else { "File" }),
+                        Span::raw(format_time(mod_time)),
                     ]));
-                    text.push(Line::from(vec![
-                        Span::styled(
-                            "Size: ",
-                            Style::default().fg(crate::ui::theme::accent_secondary()),
-                        ),
-                        Span::raw(format_size(m.len())),
-                    ]));
-                    if let Ok(mod_time) = m.modified() {
-                        text.push(Line::from(vec![
-                            Span::styled(
-                                "Modified: ",
-                                Style::default().fg(crate::ui::theme::accent_secondary()),
-                            ),
-                            Span::raw(format_time(mod_time)),
-                        ]));
-                    }
-                } else {
-                    text.push(Line::from(Span::styled(
-                        "No metadata available",
-                        Style::default().fg(Color::DarkGray),
-                    )));
                 }
             } else {
                 text.push(Line::from(Span::styled(
-                    "No metadata available (Remote)",
+                    "No metadata available",
                     Style::default().fg(Color::DarkGray),
                 )));
             }
+        } else {
+            text.push(Line::from(Span::styled(
+                "No metadata available (Remote)",
+                Style::default().fg(Color::DarkGray),
+            )));
         }
     }
 
@@ -4062,14 +4058,12 @@ fn draw_style_settings(f: &mut Frame, area: Rect, app: &App) {
     let style = crate::ui::theme::style_settings();
     const STYLE_PRESET_ROWS: usize = 6;
     const STYLE_COLOR_START_INDEX: usize = 1 + STYLE_PRESET_ROWS;
-    let color_rows = vec![
-        ("Accent Primary", style.accent_primary),
+    let color_rows = [("Accent Primary", style.accent_primary),
         ("Accent Secondary", style.accent_secondary),
         ("Selection Background", style.selection_bg),
         ("Border Active", style.border_active),
         ("Border Inactive", style.border_inactive),
-        ("Header Accent", style.header_fg),
-    ];
+        ("Header Accent", style.header_fg)];
 
     let mut rows: Vec<Row> = Vec::new();
     let reset_selected = app.settings_index == 0 && app.settings_section == SettingsSection::Style;
@@ -4089,14 +4083,12 @@ fn draw_style_settings(f: &mut Frame, area: Rect, app: &App) {
         Cell::from("restore baseline").style(reset_style),
     ]));
 
-    let preset_rows = vec![
-        ("Warm", "amber + mint", Color::Yellow),
+    let preset_rows = [("Warm", "amber + mint", Color::Yellow),
         ("Cool", "violet + ice", Color::Cyan),
         ("Forest", "moss + pine", Color::Green),
         ("Sunset", "coral + plum", Color::LightRed),
         ("Mono", "steel grayscale", Color::Gray),
-        ("Legacy Red", "classic red accent", Color::Red),
-    ];
+        ("Legacy Red", "classic red accent", Color::Red)];
     for (i, (name, desc, color)) in preset_rows.iter().enumerate() {
         let row_idx = i + 1;
         let is_selected =

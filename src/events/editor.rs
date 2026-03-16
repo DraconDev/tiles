@@ -66,8 +66,8 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
     };
 
     // 1. View-Specific Esc Handling
-    if key.code == KeyCode::Esc {
-        if matches!(app.mode, AppMode::Normal) {
+    if key.code == KeyCode::Esc
+        && matches!(app.mode, AppMode::Normal) {
             if let CurrentView::Editor = app.current_view {
                 app.save_current_view_prefs();
                 app.current_view = CurrentView::Files;
@@ -81,7 +81,6 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
                 return true;
             }
         }
-    }
 
     // 2. IDE/Editor Mode Key Handling (Pane Editor)
     if app.current_view == CurrentView::Editor
@@ -350,7 +349,7 @@ fn handle_text_editor_mouse(
         }
         MouseEventKind::ScrollDown => {
             if me.modifiers.contains(KeyModifiers::CONTROL) {
-                if editor.lines.len() > 0 {
+                if !editor.lines.is_empty() {
                     editor.scroll_row =
                         (editor.scroll_row + 5).min(editor.lines.len().saturating_sub(1));
                 }
@@ -458,7 +457,7 @@ fn handle_generic_editor_shortcuts(
     {
         let text_to_paste = clipboard
             .clone()
-            .or_else(|| terma::utils::get_clipboard_text());
+            .or_else(terma::utils::get_clipboard_text);
         if let Some(text) = text_to_paste {
             editor.insert_string(&text);
             editor.modified = true;

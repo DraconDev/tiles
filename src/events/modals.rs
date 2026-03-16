@@ -308,7 +308,7 @@ fn handle_search_keys(
             let handled = app
                 .input
                 .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(
-                    key.clone(),
+                    *key,
                 )));
             if handled {
                 let filter = app.input.value.clone();
@@ -405,9 +405,7 @@ fn handle_context_menu_keys(
                 None => actions.len().saturating_sub(1),
             };
             if let Some(ContextMenuAction::Separator) = actions.get(new_idx) {
-                if new_idx > 0 {
-                    new_idx -= 1;
-                }
+                new_idx = new_idx.saturating_sub(1);
             }
             if let AppMode::ContextMenu {
                 selected_index: ref mut si,

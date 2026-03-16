@@ -675,12 +675,10 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     };
                     if let Some(remote) = remote {
                         let _ = crate::modules::remote::remove_path(&remote, &path);
+                    } else if path.is_dir() {
+                        let _ = std::fs::remove_dir_all(&path);
                     } else {
-                        if path.is_dir() {
-                            let _ = std::fs::remove_dir_all(&path);
-                        } else {
-                            let _ = std::fs::remove_file(&path);
-                        }
+                        let _ = std::fs::remove_file(&path);
                     }
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(
                         app.lock().unwrap().focused_pane_index,
