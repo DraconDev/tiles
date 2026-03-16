@@ -306,7 +306,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     needs_draw = true;
                 }
                 AppEvent::RefreshFiles(pane_idx) => {
-                    let current_path = {
+                    let (current_path, app_clone_for_watches) = {
                         let mut app_guard = app.lock().unwrap();
                         let path = app_guard
                             .panes
@@ -316,11 +316,11 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         if let Some(ref p) = path {
                             app_guard.push_recent_folder(p.clone());
                         }
-                        path
+                        (path, app.clone())
                     };
                     // Sync watches outside the lock to avoid blocking the UI
                     {
-                        let app_guard = app.lock().unwrap();
+                        let app_guard = app_clone_for_watches.lock().unwrap();
                         sync_watches(&app_guard, &mut debouncer);
                     }
                     if current_path.is_none() {
