@@ -356,7 +356,6 @@ impl FileState {
             column_bounds: Vec::new(),
             breadcrumb_bounds: Vec::new(),
             breadcrumb_header_bounds: None,
-            breadcrumb_border_bounds: None,
             local_count: 0,
             pending_select_path: None,
             git_history: Vec::new(),
