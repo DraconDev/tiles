@@ -82,7 +82,33 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
         && app.current_view == CurrentView::Files
         && matches!(app.mode, AppMode::PathInput)
     {
-        f.render_widget(&app.input, area);
+        // Render editable path input styled like the breadcrumb bar
+        use ratatui::text::Line;
+        use ratatui::widgets::Block;
+        let input_widget = Paragraph::new(Line::from(vec![
+            Span::styled(" ", Style::default().fg(Color::Rgb(100, 100, 110))),
+            Span::styled(
+                app.input.value.as_str(),
+                Style::default()
+                    .fg(crate::ui::theme::accent_secondary())
+                    .add_modifier(Modifier::BOLD),
+            ),
+        ]))
+        .block(Block::default());
+        f.render_widget(input_widget, area);
+        // Render cursor
+        let cursor_x = area.x
+            + 1
+            + app
+                .input
+                .cursor_position
+                .min(area.width.saturating_sub(2) as usize) as u16;
+        if cursor_x < area.x + area.width {
+            f.set_cursor_position(ratatui::layout::Position {
+                x: cursor_x,
+                y: area.y,
+            });
+        }
         return;
     }
 
