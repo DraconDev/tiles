@@ -566,28 +566,6 @@ pub fn submit_path_input(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> Re
     Ok(())
 }
 
-    let focused = app.focused_pane_index;
-    let Some(fs) = app.current_file_state_mut() else {
-        return Err("No active file pane".to_string());
-    };
-
-    let remote = fs.remote_session.is_some();
-    let target = resolve_path_input(&input, &fs.current_path, remote);
-
-    // Set path immediately — zero synchronous filesystem calls.
-    // RefreshFiles validates and reads the directory asynchronously.
-    fs.current_path = target.clone();
-    fs.pending_select_path = None;
-    fs.selection.clear();
-    fs.search_filter.clear();
-    *fs.table_state.offset_mut() = 0;
-    push_history(fs, target);
-
-    let _ = event_tx.try_send(AppEvent::RefreshFiles(focused));
-    crate::app::log_debug(&format!("submit_path_input took {:?}", t0.elapsed()));
-    Ok(())
-}
-
 pub fn copy_text_to_clipboard(text: &str) -> Result<(), String> {
     let attempts: [(&str, &[&str]); 4] = [
         ("wl-copy", &[]),
