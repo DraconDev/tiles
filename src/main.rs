@@ -1142,6 +1142,16 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         return;
                     }
 
+                    // Get the active tab index for this pane so git data lands in the right place
+                    let active_tab_idx = {
+                        let app_guard = app_for_git.lock().unwrap();
+                        app_guard
+                            .panes
+                            .get(pane_idx)
+                            .map(|p| p.active_tab_index)
+                            .unwrap_or(0)
+                    };
+
                     let (history, pending, branch, ahead, behind, summary, remotes, stashes) =
                         git_data.unwrap_or_else(|| {
                             (
