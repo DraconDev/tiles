@@ -974,6 +974,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             (Vec::new(), std::collections::HashMap::new())
                         };
 
+                        crate::app::log_debug(&format!("read_dir+search took {:?} for {:?}", t_dir.elapsed(), list_path));
                         (files, metadata, g_files, g_meta)
                     })
                     .await
