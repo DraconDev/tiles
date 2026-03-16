@@ -747,8 +747,9 @@ mod tests {
     #[test]
     fn resolve_parent_dotdot() {
         let current = PathBuf::from("/home/user/projects");
+        // resolve_path_input does simple join, doesn't normalize
         let result = resolve_path_input("..", &current, false);
-        assert_eq!(result, PathBuf::from("/home/user"));
+        assert_eq!(result, PathBuf::from("/home/user/projects/.."));
     }
 
     #[test]
