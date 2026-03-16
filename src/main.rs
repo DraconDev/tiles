@@ -1176,7 +1176,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     let _ = tx_for_git
                         .send(AppEvent::GitHistoryUpdated(
                             pane_idx,
-                            0,
+                            active_tab_idx,
                             history,
                             pending,
                             branch_opt,
