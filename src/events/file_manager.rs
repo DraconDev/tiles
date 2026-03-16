@@ -766,7 +766,8 @@ pub fn handle_file_mouse(
 
             // 1. Breadcrumb Click
             if let Some(fs) = app.current_file_state_mut() {
-                if let Some(rect) = fs.breadcrumb_header_bounds {
+                // Top border click: copy path to clipboard and open path input
+                if let Some(rect) = fs.breadcrumb_border_bounds {
                     if rect.contains(ratatui::layout::Position { x: column, y: row }) {
                         let path = fs.current_path.to_string_lossy().to_string();
                         crate::event_helpers::open_path_input(app);
@@ -774,6 +775,18 @@ pub fn handle_file_mouse(
                         let _ = event_tx.try_send(AppEvent::StatusMsg(
                             "Copied current path to clipboard".to_string(),
                         ));
+                        return true;
+                    }
+                }
+                // Breadcrumb content area: open path input without copying
+                if let Some(rect) = fs.breadcrumb_header_bounds {
+                    if rect.contains(ratatui::layout::Position { x: column, y: row })
+                        && fs
+                            .breadcrumb_border_bounds
+                            .map(|r| !r.contains(ratatui::layout::Position { x: column, y: row }))
+                            .unwrap_or(true)
+                    {
+                        crate::event_helpers::open_path_input(app);
                         return true;
                     }
                 }
