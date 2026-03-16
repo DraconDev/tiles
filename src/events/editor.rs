@@ -408,8 +408,10 @@ fn handle_generic_editor_shortcuts(
         return true;
     }
 
-    if (has_control && (key.code == KeyCode::Char('c') || key.code == KeyCode::Char('C')))
-        || (has_control && key.code == KeyCode::Insert)
+    if has_control
+        && (key.code == KeyCode::Char('c')
+            || key.code == KeyCode::Char('C')
+            || key.code == KeyCode::Insert)
     {
         let content = if let Some(selected) = editor.get_selected_text() {
             selected
