@@ -92,9 +92,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         
         // Also watch expanded folders in sidebar for editor view
         for path in &app.expanded_folders {
-            if path.is_dir() {
-                current_paths.insert(path.clone());
-            }
+            current_paths.insert(path.clone());
         }
 
         // Add paths that aren't being watched yet
