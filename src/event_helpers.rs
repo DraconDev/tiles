@@ -553,38 +553,27 @@ pub fn submit_path_input(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> Re
     let remote = fs.remote_session.is_some();
     let target = resolve_path_input(&input, &fs.current_path, remote);
 
-    if !remote {
-        if !target.exists() {
-            return Err(format!("Path not found: {}", target.display()));
-        }
-
-        if target.is_file() {
-            let Some(parent) = target.parent() else {
-                return Err(format!("Cannot open parent for {}", target.display()));
-            };
+    // Set the path immediately — RefreshFiles will validate asynchronously.
+    // This avoids blocking the UI on slow filesystems (NFS, SSHFS, etc).
+    if !remote && target.is_file() {
+        if let Some(parent) = target.parent() {
             let parent = parent.to_path_buf();
             fs.current_path = parent.clone();
             fs.pending_select_path = Some(target.clone());
-            fs.selection.clear();
-            fs.search_filter.clear();
-            *fs.table_state.offset_mut() = 0;
             push_history(fs, parent);
         } else {
             fs.current_path = target.clone();
             fs.pending_select_path = None;
-            fs.selection.clear();
-            fs.search_filter.clear();
-            *fs.table_state.offset_mut() = 0;
             push_history(fs, target);
         }
     } else {
         fs.current_path = target.clone();
         fs.pending_select_path = None;
-        fs.selection.clear();
-        fs.search_filter.clear();
-        *fs.table_state.offset_mut() = 0;
         push_history(fs, target);
     }
+    fs.selection.clear();
+    fs.search_filter.clear();
+    *fs.table_state.offset_mut() = 0;
 
     let _ = event_tx.try_send(AppEvent::RefreshFiles(focused));
     Ok(())
