@@ -329,12 +329,14 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 AppEvent::FilesChangedOnDisk(path) => {
                     crate::app::log_debug(&format!("FilesChangedOnDisk: {:?}", path));
                     
-                    // Check if this was a self-save
-                    if let Some(saved_content) = last_self_save.get(&path) {
-                        if let Ok(current_content) = std::fs::read_to_string(&path) {
-                            if &current_content == saved_content {
-                                last_self_save.remove(&path);
-                                continue; // Skip refreshing/reloading for our own saves
+                    // Check if this was a self-save by comparing file mtime
+                    if let Some(&saved_mtime) = last_self_save.get(&path) {
+                        if let Ok(meta) = std::fs::metadata(&path) {
+                            if let Ok(mtime) = meta.modified() {
+                                if mtime == saved_mtime {
+                                    last_self_save.remove(&path);
+                                    continue; // Skip refreshing/reloading for our own saves
+                                }
                             }
                         }
                         last_self_save.remove(&path);
