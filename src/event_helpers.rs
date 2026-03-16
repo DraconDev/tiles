@@ -484,6 +484,12 @@ pub fn push_history(fs: &mut FileState, path: PathBuf) {
         fs.history.push(path);
         fs.history_index = fs.history.len() - 1;
     }
+    const MAX_HISTORY: usize = 50;
+    if fs.history.len() > MAX_HISTORY {
+        let excess = fs.history.len() - MAX_HISTORY;
+        fs.history.drain(0..excess);
+        fs.history_index = fs.history_index.saturating_sub(excess);
+    }
 }
 
 pub fn fs_mouse_index(row: u16, app: &App) -> usize {
