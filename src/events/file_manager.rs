@@ -753,57 +753,51 @@ pub fn handle_file_mouse(
 
             // 1. Breadcrumb Click
             if let Some(fs) = app.current_file_state_mut() {
-                // Top border click: copy path to clipboard and open path input
-                if let Some(rect) = fs.breadcrumb_border_bounds {
-                    if rect.contains(ratatui::layout::Position { x: column, y: row }) {
-                        let path = fs.current_path.to_string_lossy().to_string();
-                        crate::event_helpers::open_path_input(app);
-                        crate::event_helpers::copy_text_to_clipboard_async(path);
-                        let _ = event_tx.try_send(AppEvent::StatusMsg(
-                            "Copied current path to clipboard".to_string(),
-                        ));
-                        return true;
-                    }
-                }
-                // Check breadcrumb segments first: clicking a segment navigates
-                let clicked_segment = fs
-                    .breadcrumb_bounds
-                    .iter()
-                    .find(|(r, _)| r.contains(ratatui::layout::Position { x: column, y: row }))
-                    .map(|(_, p)| p.clone());
-                if let Some(target_path) = clicked_segment {
-                    let current_path = fs.current_path.clone();
+                let in_breadcrumb_row = fs
+                    .breadcrumb_header_bounds
+                    .map(|r| r.contains(ratatui::layout::Position { x: column, y: row }))
+                    .unwrap_or(false);
 
-                    // Smart Selection
-                    if current_path.starts_with(&target_path) && current_path != target_path {
-                        if let Ok(prefix) = current_path.strip_prefix(&target_path) {
-                            if let Some(component) = prefix.components().next() {
-                                let child_name = component.as_os_str();
-                                fs.pending_select_path = Some(target_path.join(child_name));
+                if in_breadcrumb_row {
+                    // Check breadcrumb segments first: clicking a segment navigates
+                    let clicked_segment = fs
+                        .breadcrumb_bounds
+                        .iter()
+                        .find(|(r, _)| r.contains(ratatui::layout::Position { x: column, y: row }))
+                        .map(|(_, p)| p.clone());
+
+                    if let Some(target_path) = clicked_segment {
+                        let current_path = fs.current_path.clone();
+
+                        // Smart Selection
+                        if current_path.starts_with(&target_path) && current_path != target_path {
+                            if let Ok(prefix) = current_path.strip_prefix(&target_path) {
+                                if let Some(component) = prefix.components().next() {
+                                    let child_name = component.as_os_str();
+                                    fs.pending_select_path = Some(target_path.join(child_name));
+                                }
                             }
                         }
-                    }
 
-                    fs.current_path = target_path.clone();
-                    fs.selection.clear();
-                    fs.search_filter.clear();
-                    *fs.table_state.offset_mut() = 0;
-                    crate::event_helpers::push_history(fs, target_path);
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
-                    app.sidebar_focus = false;
-                    return true;
-                }
-                // Breadcrumb content area (empty space or last segment): open path input
-                if let Some(rect) = fs.breadcrumb_header_bounds {
-                    if rect.contains(ratatui::layout::Position { x: column, y: row })
-                        && fs
-                            .breadcrumb_border_bounds
-                            .map(|r| !r.contains(ratatui::layout::Position { x: column, y: row }))
-                            .unwrap_or(true)
-                    {
-                        crate::event_helpers::open_path_input(app);
+                        fs.current_path = target_path.clone();
+                        fs.selection.clear();
+                        fs.search_filter.clear();
+                        *fs.table_state.offset_mut() = 0;
+                        crate::event_helpers::push_history(fs, target_path);
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        app.sidebar_focus = false;
                         return true;
                     }
+
+                    // Clicked breadcrumb row but not on a segment:
+                    // copy path to clipboard and open path input
+                    let path = fs.current_path.to_string_lossy().to_string();
+                    crate::event_helpers::open_path_input(app);
+                    crate::event_helpers::copy_text_to_clipboard_async(path);
+                    let _ = event_tx.try_send(AppEvent::StatusMsg(
+                        "Copied current path to clipboard".to_string(),
+                    ));
+                    return true;
                 }
             }
 
