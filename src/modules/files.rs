@@ -8,6 +8,18 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
+/// Git data: (history, pending, branch, ahead, behind, summary, remotes, stashes)
+type GitData = (
+    Vec<CommitInfo>,
+    Vec<GitPendingChange>,
+    String,
+    usize,
+    usize,
+    String,
+    Vec<String>,
+    Vec<String>,
+);
+
 fn map_metadata(meta: dracon_files::contracts::EntryMetadata) -> FileMetadata {
     FileMetadata {
         size: meta.size,
