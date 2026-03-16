@@ -527,7 +527,16 @@ pub fn open_path_input(app: &mut App) {
         .unwrap_or_default();
     app.input.set_value(value);
     app.input.cursor_position = app.input.value.len();
+    // Style input to match breadcrumb look
+    app.input.style = ratatui::style::Style::default()
+        .fg(crate::ui::theme::accent_secondary())
+        .add_modifier(ratatui::style::Modifier::BOLD);
+    app.input.cursor_style = ratatui::style::Style::default()
+        .bg(crate::ui::theme::accent_secondary())
+        .fg(ratatui::style::Color::Black);
     app.mode = AppMode::PathInput;
+    // Shield input briefly to drain any pending mouse escape sequences
+    app.input_shield_until = Some(std::time::Instant::now() + std::time::Duration::from_millis(80));
 }
 
 pub fn submit_path_input(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> Result<(), String> {
