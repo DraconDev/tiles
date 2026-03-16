@@ -42,7 +42,11 @@ async fn main() -> color_eyre::Result<()> {
         crate::app::log_debug(&format!("PANIC at {}: {}", location, msg));
     }));
 
-    run_tty().await
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let shutdown_clone = shutdown.clone();
+    let result = run_tty(shutdown_clone).await;
+    shutdown.store(true, Ordering::Release);
+    result
 }
 
 async fn run_tty() -> color_eyre::Result<()> {
