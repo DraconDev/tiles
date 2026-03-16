@@ -66,21 +66,20 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
     };
 
     // 1. View-Specific Esc Handling
-    if key.code == KeyCode::Esc
-        && matches!(app.mode, AppMode::Normal) {
-            if let CurrentView::Editor = app.current_view {
-                app.save_current_view_prefs();
-                app.current_view = CurrentView::Files;
-                app.load_view_prefs(CurrentView::Files);
-                app.editor_state = None;
-                for pane in &mut app.panes {
-                    pane.preview = None;
-                }
-                app.input_shield_until =
-                    Some(std::time::Instant::now() + std::time::Duration::from_millis(50));
-                return true;
+    if key.code == KeyCode::Esc && matches!(app.mode, AppMode::Normal) {
+        if let CurrentView::Editor = app.current_view {
+            app.save_current_view_prefs();
+            app.current_view = CurrentView::Files;
+            app.load_view_prefs(CurrentView::Files);
+            app.editor_state = None;
+            for pane in &mut app.panes {
+                pane.preview = None;
             }
+            app.input_shield_until =
+                Some(std::time::Instant::now() + std::time::Duration::from_millis(50));
+            return true;
         }
+    }
 
     // 2. IDE/Editor Mode Key Handling (Pane Editor)
     if app.current_view == CurrentView::Editor
@@ -282,6 +281,7 @@ pub fn handle_editor_mouse(
     false
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_text_editor_mouse(
     me: &MouseEvent,
     editor: &mut terma::widgets::TextEditor,
@@ -292,7 +292,7 @@ fn handle_text_editor_mouse(
     auto_save: bool,
     area: ratatui::layout::Rect,
     event_tx: &mpsc::Sender<AppEvent>,
-    path: &std::path::PathBuf,
+    path: &std::path::Path,
 ) -> bool {
     let to_runtime_mouse = |mouse: MouseEvent| -> dracon_tui_input::input::event::MouseEvent {
         match dracon_tui_input::to_runtime_event(&Event::Mouse(mouse)) {
@@ -455,9 +455,7 @@ fn handle_generic_editor_shortcuts(
     if (has_control && (key.code == KeyCode::Char('v') || key.code == KeyCode::Char('V')))
         || (key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::Insert)
     {
-        let text_to_paste = clipboard
-            .clone()
-            .or_else(terma::utils::get_clipboard_text);
+        let text_to_paste = clipboard.clone().or_else(terma::utils::get_clipboard_text);
         if let Some(text) = text_to_paste {
             editor.insert_string(&text);
             editor.modified = true;
