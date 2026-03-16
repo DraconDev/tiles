@@ -866,7 +866,10 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     let mut app_guard = app.lock().unwrap();
                     app_guard.save_current_view_prefs();
                     app_guard.current_view = CurrentView::Git;
+                    let pane_idx = app_guard.focused_pane_index;
                     needs_draw = true;
+                    drop(app_guard);
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
                 }
                 AppEvent::Editor => {
                     let mut app_guard = app.lock().unwrap();
