@@ -539,7 +539,6 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         }
                     }
                 }
-                crate::app::log_debug(&format!("file listing task total {:?}", t_spawn.elapsed()));
                 let _ = tx.send(AppEvent::Tick).await;
                     });
                 }
