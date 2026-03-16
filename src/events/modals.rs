@@ -972,10 +972,16 @@ fn handle_input_modals_keys(
                     AppMode::Rename => {
                         if let Some(idx) = fs.selection.selected {
                             if let Some(old) = fs.files.get(idx) {
-                                let _ = event_tx.try_send(AppEvent::Rename(
-                                    old.clone(),
-                                    old.parent().unwrap().join(&input),
-                                ));
+                                if let Some(parent) = old.parent() {
+                                    let _ = event_tx.try_send(AppEvent::Rename(
+                                        old.clone(),
+                                        parent.join(&input),
+                                    ));
+                                } else {
+                                    let _ = event_tx.try_send(AppEvent::StatusMsg(
+                                        "Cannot rename root path".to_string(),
+                                    ));
+                                }
                             }
                         }
                     }
