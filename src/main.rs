@@ -218,7 +218,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
     crate::app::log_debug("Entering main loop");
 
     let mut panes_needing_refresh = std::collections::HashSet::new();
-    let mut last_self_save: std::collections::HashMap<PathBuf, String> =
+    let mut last_self_save: std::collections::HashMap<PathBuf, std::time::SystemTime> =
         std::collections::HashMap::new();
 
     loop {
