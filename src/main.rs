@@ -413,10 +413,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             }
                         }
                     }
-                }
-                let _ = tx.send(AppEvent::Tick).await;
-                    });
-                }
+                });
                 AppEvent::SaveFile(path, content) => {
                     let remote_for_save = {
                         let app_guard = app.lock().unwrap();
