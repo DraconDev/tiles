@@ -943,11 +943,13 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
             let tx = event_tx.clone();
             let app_clone = app.clone();
             tokio::spawn(async move {
+                let t_spawn = std::time::Instant::now();
                 let list_path = path.clone();
                 let list_remote = remote.clone();
                 let list_filter = current_filter.clone();
                 let (files, mut metadata, g_files, g_meta) =
                     tokio::task::spawn_blocking(move || {
+                        let t_dir = std::time::Instant::now();
                         let (files, metadata) = if let Some(session) = &list_remote {
                             crate::modules::remote::read_dir_with_metadata(session, &list_path)
                                 .unwrap_or_else(|_| (Vec::new(), std::collections::HashMap::new()))
