@@ -379,7 +379,7 @@ fn handle_text_editor_mouse(
 
     // Auto-save on modification
     if auto_save && editor.modified {
-        let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
+        let _ = event_tx.try_send(AppEvent::SaveFile(path.to_path_buf(), editor.get_content()));
         editor.modified = false;
     }
 
@@ -404,7 +404,7 @@ fn handle_generic_editor_shortcuts(
     let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
 
     if has_control && (key.code == KeyCode::Char('s') || key.code == KeyCode::Char('S')) {
-        let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
+        let _ = event_tx.try_send(AppEvent::SaveFile(path.to_path_buf(), editor.get_content()));
         return true;
     }
 
@@ -450,7 +450,7 @@ fn handle_generic_editor_shortcuts(
         }
         let _ = event_tx.try_send(AppEvent::StatusMsg("Cut to clipboard".to_string()));
         if auto_save {
-            let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
+            let _ = event_tx.try_send(AppEvent::SaveFile(path.to_path_buf(), editor.get_content()));
         }
         return true;
     }
@@ -463,7 +463,8 @@ fn handle_generic_editor_shortcuts(
             editor.insert_string(&text);
             editor.modified = true;
             if auto_save {
-                let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
+                let _ =
+                    event_tx.try_send(AppEvent::SaveFile(path.to_path_buf(), editor.get_content()));
                 editor.modified = false;
             }
         }
@@ -531,7 +532,7 @@ fn handle_generic_editor_shortcuts(
 
     if editor.handle_event(&dracon_tui_input::to_runtime_event(evt), area) {
         if auto_save && editor.modified {
-            let _ = event_tx.try_send(AppEvent::SaveFile(path.clone(), editor.get_content()));
+            let _ = event_tx.try_send(AppEvent::SaveFile(path.to_path_buf(), editor.get_content()));
             editor.modified = false;
         }
         return true;
