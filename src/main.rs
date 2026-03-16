@@ -70,7 +70,6 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
             }
         },
     );
-    }
 
     // Initial State Setup
     let pane_count = {
