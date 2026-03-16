@@ -749,6 +749,10 @@ pub fn handle_file_mouse(
                 }
                 app.mode = AppMode::Normal;
                 app.input.clear();
+                app.input.style = ratatui::style::Style::default().fg(ratatui::style::Color::White);
+                app.input.cursor_style = ratatui::style::Style::default()
+                    .bg(ratatui::style::Color::White)
+                    .fg(ratatui::style::Color::Black);
             }
 
             // 1. Breadcrumb Click
