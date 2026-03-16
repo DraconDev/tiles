@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -6,7 +7,7 @@ use tokio::sync::mpsc;
 use dracon_tui_contracts::InputEvent as Event;
 use dracon_tui_input::input::parser::Parser as TuiParser;
 use dracon_tui_input::to_ui_event;
-use terma::integration::ratatui::TermaBackend;
+use dracon_tui_ratatui_adapter::TermaBackend;
 
 // Ratatui Imports
 use ratatui::Terminal;
