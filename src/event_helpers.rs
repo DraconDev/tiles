@@ -540,6 +540,7 @@ pub fn open_path_input(app: &mut App) {
 }
 
 pub fn submit_path_input(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> Result<(), String> {
+    let t0 = std::time::Instant::now();
     let input = app.input.value.trim().to_string();
     if input.is_empty() {
         return Err("Path is empty".to_string());
@@ -563,6 +564,7 @@ pub fn submit_path_input(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> Re
     push_history(fs, target);
 
     let _ = event_tx.try_send(AppEvent::RefreshFiles(focused));
+    crate::app::log_debug(&format!("submit_path_input took {:?}", t0.elapsed()));
     Ok(())
 }
 
