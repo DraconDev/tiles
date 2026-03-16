@@ -778,24 +778,13 @@ pub fn handle_file_mouse(
                         return true;
                     }
                 }
-                // Breadcrumb content area: open path input without copying
-                if let Some(rect) = fs.breadcrumb_header_bounds {
-                    if rect.contains(ratatui::layout::Position { x: column, y: row })
-                        && fs
-                            .breadcrumb_border_bounds
-                            .map(|r| !r.contains(ratatui::layout::Position { x: column, y: row }))
-                            .unwrap_or(true)
-                    {
-                        crate::event_helpers::open_path_input(app);
-                        return true;
-                    }
-                }
-                if let Some((_, path)) = fs
+                // Check breadcrumb segments first: clicking a segment navigates
+                let clicked_segment = fs
                     .breadcrumb_bounds
                     .iter()
                     .find(|(r, _)| r.contains(ratatui::layout::Position { x: column, y: row }))
-                {
-                    let target_path = path.clone();
+                    .map(|(_, p)| p.clone());
+                if let Some(target_path) = clicked_segment {
                     let current_path = fs.current_path.clone();
 
                     // Smart Selection
@@ -816,6 +805,18 @@ pub fn handle_file_mouse(
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     app.sidebar_focus = false;
                     return true;
+                }
+                // Breadcrumb content area (empty space or last segment): open path input
+                if let Some(rect) = fs.breadcrumb_header_bounds {
+                    if rect.contains(ratatui::layout::Position { x: column, y: row })
+                        && fs
+                            .breadcrumb_border_bounds
+                            .map(|r| !r.contains(ratatui::layout::Position { x: column, y: row }))
+                            .unwrap_or(true)
+                    {
+                        crate::event_helpers::open_path_input(app);
+                        return true;
+                    }
                 }
             }
 
