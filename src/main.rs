@@ -126,6 +126,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
     // 1. Input Loop (Thread)
     {
         let tx = event_tx.clone();
+        let shutdown_input = shutdown.clone();
         std::thread::spawn(move || {
             use std::io::Read;
             use std::os::fd::AsRawFd;
@@ -133,7 +134,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
             let mut stdin = std::io::stdin();
             let fd = stdin.as_raw_fd();
             let mut buffer = [0; 1024];
-            loop {
+            while !shutdown_input.load(Ordering::Relaxed) {
                 let polled = unsafe {
                     terma::backend::tty::poll_input(std::os::fd::BorrowedFd::borrow_raw(fd), 20)
                 };
