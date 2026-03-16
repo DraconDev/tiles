@@ -2503,11 +2503,7 @@ fn draw_file_view(
                         Style::default()
                             .fg(Color::White)
                             .add_modifier(Modifier::BOLD)
-                    } else if is_hovered_drop {
-                        Style::default()
-                            .fg(Color::Black)
-                            .add_modifier(Modifier::BOLD)
-                    } else if app.path_colors.contains_key(path) {
+                    } else if is_hovered_drop || app.path_colors.contains_key(path) {
                         Style::default()
                             .fg(Color::Black)
                             .add_modifier(Modifier::BOLD)
@@ -2537,14 +2533,15 @@ fn draw_file_view(
                                     && !is_multi_selected
                                     && !app.path_colors.contains_key(path)
                                     && !is_hovered_drop
-                                    && app.semantic_coloring {
-                                        if is_dir {
-                                            cell_style =
-                                                cell_style.fg(crate::ui::theme::accent_secondary());
-                                        } else {
-                                            cell_style = cell_style.fg(cat.cyber_color());
-                                        }
+                                    && app.semantic_coloring
+                                {
+                                    if is_dir {
+                                        cell_style =
+                                            cell_style.fg(crate::ui::theme::accent_secondary());
+                                    } else {
+                                        cell_style = cell_style.fg(cat.cyber_color());
                                     }
+                                }
                                 let icon_w = icon_str.chars().map(get_visual_width).sum::<usize>();
                                 // Super-Aggressive Hard-Cut: reservers generous safety for icons/status
                                 let available_width =
@@ -2950,8 +2947,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
         Color::Yellow,
         Color::DarkGray,
     );
-    let mem_usage =
-        (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) * 100.0;
+    let mem_usage = (app.system_state.mem_usage / app.system_state.total_mem.max(1.0)) * 100.0;
     let mem_bar = draw_stat_bar(
         "MEM",
         mem_usage,
@@ -4058,12 +4054,14 @@ fn draw_style_settings(f: &mut Frame, area: Rect, app: &App) {
     let style = crate::ui::theme::style_settings();
     const STYLE_PRESET_ROWS: usize = 6;
     const STYLE_COLOR_START_INDEX: usize = 1 + STYLE_PRESET_ROWS;
-    let color_rows = [("Accent Primary", style.accent_primary),
+    let color_rows = [
+        ("Accent Primary", style.accent_primary),
         ("Accent Secondary", style.accent_secondary),
         ("Selection Background", style.selection_bg),
         ("Border Active", style.border_active),
         ("Border Inactive", style.border_inactive),
-        ("Header Accent", style.header_fg)];
+        ("Header Accent", style.header_fg),
+    ];
 
     let mut rows: Vec<Row> = Vec::new();
     let reset_selected = app.settings_index == 0 && app.settings_section == SettingsSection::Style;
@@ -4083,12 +4081,14 @@ fn draw_style_settings(f: &mut Frame, area: Rect, app: &App) {
         Cell::from("restore baseline").style(reset_style),
     ]));
 
-    let preset_rows = [("Warm", "amber + mint", Color::Yellow),
+    let preset_rows = [
+        ("Warm", "amber + mint", Color::Yellow),
         ("Cool", "violet + ice", Color::Cyan),
         ("Forest", "moss + pine", Color::Green),
         ("Sunset", "coral + plum", Color::LightRed),
         ("Mono", "steel grayscale", Color::Gray),
-        ("Legacy Red", "classic red accent", Color::Red)];
+        ("Legacy Red", "classic red accent", Color::Red),
+    ];
     for (i, (name, desc, color)) in preset_rows.iter().enumerate() {
         let row_idx = i + 1;
         let is_selected =
