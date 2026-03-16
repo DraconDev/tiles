@@ -324,6 +324,8 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         if let Some(ref p) = path {
                             app_guard.push_recent_folder(p.clone());
                         }
+                        // Sync watches (fast bail-out if paths unchanged)
+                        sync_watches(&app_guard, &mut debouncer);
                         path
                     };
                     if current_path.is_none() {
