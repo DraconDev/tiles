@@ -89,8 +89,8 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         if let Some(fs) = pane.current_state() {
                             let new_fs = fs.clone();
                             pane.open_tab(new_fs);
-                            let _ = event_tx
-                                .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                            let _ =
+                                event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                         }
                     }
                     return true;
@@ -145,8 +145,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         fs.search_filter.clear();
                         fs.selection.selected = Some(0);
                         *fs.table_state.offset_mut() = 0;
-                        let _ =
-                            event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                 }
                 return true;
@@ -157,8 +156,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     if let Some(fs) = app.current_file_state() {
                         if let Some(idx) = fs.selection.selected {
                             if let Some(path) = fs.files.get(idx) {
-                                app.clipboard =
-                                    Some((path.clone(), crate::app::ClipboardOp::Copy));
+                                app.clipboard = Some((path.clone(), crate::app::ClipboardOp::Copy));
                             }
                         }
                     }
@@ -168,8 +166,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     if let Some(fs) = app.current_file_state() {
                         if let Some(idx) = fs.selection.selected {
                             if let Some(path) = fs.files.get(idx) {
-                                app.clipboard =
-                                    Some((path.clone(), crate::app::ClipboardOp::Cut));
+                                app.clipboard = Some((path.clone(), crate::app::ClipboardOp::Cut));
                             }
                         }
                     }
@@ -247,8 +244,8 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     } else if let Some(fs) = app.current_file_state_mut() {
                         if !fs.search_filter.is_empty() {
                             fs.search_filter.clear();
-                            let _ = event_tx
-                                .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                            let _ =
+                                event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                         }
                     }
                     return true;
@@ -566,9 +563,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     }
                     if app.sidebar_focus {
                         app.sidebar_focus = false;
-                    } else if app.panes.len() > 1
-                        && app.focused_pane_index < app.panes.len() - 1
-                    {
+                    } else if app.panes.len() > 1 && app.focused_pane_index < app.panes.len() - 1 {
                         app.focused_pane_index += 1;
                     }
                     return true;
@@ -603,8 +598,8 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                             fs.selection.clear_multi();
                             *fs.table_state.offset_mut() = 0;
                             crate::event_helpers::push_history(fs, home);
-                            let _ = event_tx
-                                .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                            let _ =
+                                event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             return true;
                         }
                     }
@@ -629,8 +624,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         } else {
                             app.sidebar_index = 0;
                         }
-                        let _ =
-                            event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                     return true;
                 }
@@ -647,16 +641,15 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                             } else {
                                 app.sidebar_index = 0;
                             }
-                            let _ = event_tx
-                                .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                            let _ =
+                                event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             handled_search = true;
                         }
                     }
 
                     if !handled_search {
                         crate::event_helpers::navigate_up(app);
-                        let _ =
-                            event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                     return true;
                 }
@@ -673,8 +666,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         } else {
                             app.sidebar_index = 0;
                         }
-                        let _ =
-                            event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                     return true;
                 }
@@ -688,8 +680,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         } else {
                             app.sidebar_index = 0;
                         }
-                        let _ =
-                            event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                     return true;
                 }
@@ -704,8 +695,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         } else {
                             app.sidebar_index = 0;
                         }
-                        let _ =
-                            event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                     return true;
                 }
@@ -979,15 +969,13 @@ pub fn handle_file_mouse(
         MouseEventKind::Up(_) => {
             if app.is_dragging {
                 // Drop Logic
-                if let Some(target) = app.hovered_drop_target.take() {
-                    if let DropTarget::Folder(target_path) = target {
-                        if let Some(source_path) = app.drag_source.take() {
-                            if source_path != target_path {
-                                app.mode = AppMode::DragDropMenu {
-                                    sources: vec![source_path],
-                                    target: target_path,
-                                };
-                            }
+                if let Some(DropTarget::Folder(target_path)) = app.hovered_drop_target.take() {
+                    if let Some(source_path) = app.drag_source.take() {
+                        if source_path != target_path {
+                            app.mode = AppMode::DragDropMenu {
+                                sources: vec![source_path],
+                                target: target_path,
+                            };
                         }
                     }
                 }
@@ -1022,11 +1010,13 @@ pub fn handle_file_mouse(
                 let dist_sq =
                     (column as f32 - sx as f32).powi(2) + (row as f32 - sy as f32).powi(2);
                 if dist_sq >= 1.0
-                    && !me.modifiers.contains(KeyModifiers::SHIFT) && !app.selection_mode
-                        && !app.is_dragging {
-                            app.is_dragging = true;
-                            changed = true;
-                        }
+                    && !me.modifiers.contains(KeyModifiers::SHIFT)
+                    && !app.selection_mode
+                    && !app.is_dragging
+                {
+                    app.is_dragging = true;
+                    changed = true;
+                }
             }
 
             // Update drop target if dragging
@@ -1337,7 +1327,7 @@ fn handle_quick_copy(app: &mut App, event_tx: &mpsc::Sender<AppEvent>, _to_left:
     }
 }
 
-fn path_join(base: &PathBuf, name: &std::ffi::OsStr) -> PathBuf {
+fn path_join(base: &std::path::Path, name: &std::ffi::OsStr) -> PathBuf {
     base.join(name)
 }
 
