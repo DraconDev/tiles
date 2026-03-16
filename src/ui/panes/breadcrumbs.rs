@@ -76,9 +76,6 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
         // Only the breadcrumb text row (not the full pane area).
         // File rows start at area.y+3 and must NOT match this rect.
         tab.breadcrumb_header_bounds = Some(Rect::new(area.x, area.y, area.width, 1));
-        // Track the top border row separately for "copy path" click detection.
-        // The border and breadcrumb text share the same row (area.y).
-        tab.breadcrumb_border_bounds = Some(Rect::new(area.x, area.y, area.width, 1));
     }
 
     if _is_focused
