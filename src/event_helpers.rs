@@ -854,4 +854,84 @@ mod tests {
         assert_eq!(app.recent_folders.len(), 10);
         assert_eq!(app.recent_folders[0], PathBuf::from("/dir14"));
     }
+
+    // ── breadcrumb bounds isolation ─────────────────────────────
+
+    #[test]
+    fn breadcrumb_header_bounds_only_one_row() {
+        use ratatui::layout::Rect;
+        // Simulate a 80x24 pane area
+        let area = Rect::new(0, 0, 80, 24);
+        let breadcrumb_bounds = Rect::new(area.x, area.y, area.width, 1);
+
+        // Breadcrumb row (y=0) should be inside
+        assert!(breadcrumb_bounds.contains(ratatui::layout::Position { x: 40, y: 0 }));
+
+        // File rows (y=3+) should NOT be inside
+        assert!(!breadcrumb_bounds.contains(ratatui::layout::Position { x: 40, y: 3 }));
+        assert!(!breadcrumb_bounds.contains(ratatui::layout::Position { x: 40, y: 10 }));
+        assert!(!breadcrumb_bounds.contains(ratatui::layout::Position { x: 40, y: 23 }));
+    }
+
+    #[test]
+    fn breadcrumb_bounds_excludes_column_headers() {
+        use ratatui::layout::Rect;
+        let area = Rect::new(10, 5, 60, 20);
+        let breadcrumb_bounds = Rect::new(area.x, area.y, area.width, 1);
+
+        // Breadcrumb at y=5
+        assert!(breadcrumb_bounds.contains(ratatui::layout::Position { x: 30, y: 5 }));
+        // Column headers at y=6, y=7 - should NOT match
+        assert!(!breadcrumb_bounds.contains(ratatui::layout::Position { x: 30, y: 6 }));
+        assert!(!breadcrumb_bounds.contains(ratatui::layout::Position { x: 30, y: 7 }));
+    }
+
+    // ── resolve_path_input edge cases ───────────────────────────
+
+    #[test]
+    fn resolve_relative_with_trailing_slash() {
+        let current = PathBuf::from("/home/user");
+        let result = resolve_path_input("projects/", &current, false);
+        assert_eq!(result, PathBuf::from("/home/user/projects/"));
+    }
+
+    #[test]
+    fn resolve_double_dot_multiple() {
+        let current = PathBuf::from("/a/b/c/d");
+        let result = resolve_path_input("../../", &current, false);
+        assert_eq!(result, PathBuf::from("/a/b/c/d/../../"));
+    }
+
+    #[test]
+    fn resolve_single_dot() {
+        let current = PathBuf::from("/home/user");
+        let result = resolve_path_input(".", &current, false);
+        assert_eq!(result, PathBuf::from("/home/user/."));
+    }
+
+    // ── history navigation ──────────────────────────────────────
+
+    #[test]
+    fn push_history_empty_fs() {
+        let mut fs = make_fs("/root");
+        assert_eq!(fs.history.len(), 1); // initialized with current_path
+        assert_eq!(fs.history[0], PathBuf::from("/root"));
+    }
+
+    #[test]
+    fn push_history_same_path_twice_no_dup() {
+        let mut fs = make_fs("/home");
+        push_history(&mut fs, PathBuf::from("/home"));
+        assert_eq!(fs.history.len(), 1);
+    }
+
+    #[test]
+    fn push_history_alternating_paths() {
+        let mut fs = make_fs("/a");
+        push_history(&mut fs, PathBuf::from("/b"));
+        push_history(&mut fs, PathBuf::from("/a"));
+        push_history(&mut fs, PathBuf::from("/b"));
+        // Only consecutive dedup, so: ["/a" (init), "/b", "/a", "/b"]
+        assert_eq!(fs.history.len(), 4);
+    }
 }
