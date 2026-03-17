@@ -7,13 +7,6 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use tokio::sync::mpsc;
 
-#[allow(dead_code)]
-pub fn try_send_event(tx: &mpsc::Sender<AppEvent>, event: AppEvent) {
-    if let Err(e) = tx.try_send(event) {
-        crate::app::log_debug(&format!("event channel full, dropped: {:?}", e));
-    }
-}
-
 pub fn update_commands(app: &mut App) {
     let mut commands = vec![
         CommandItem {
