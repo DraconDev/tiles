@@ -294,9 +294,9 @@ fn handle_text_editor_mouse(
     event_tx: &mpsc::Sender<AppEvent>,
     path: &std::path::Path,
 ) -> bool {
-    let to_runtime_mouse = |mouse: MouseEvent| -> dracon_terminal_engine::input::input::event::MouseEvent {
+    let to_runtime_mouse = |mouse: MouseEvent| -> dracon_terminal_engine::input::event::MouseEvent {
         match dracon_terminal_engine::input::mapping::to_runtime_event(&Event::Mouse(mouse)) {
-            dracon_terminal_engine::input::input::event::Event::Mouse(m) => m,
+            dracon_terminal_engine::input::event::Event::Mouse(m) => m,
             _ => unreachable!(),
         }
     };
