@@ -1,11 +1,11 @@
-use dracon_tui_contracts::UiEvent;
+use dracon_terminal_engine::contracts::UiEvent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use terma::widgets::TextEditor;
+use dracon_terminal_engine::widgets::TextEditor;
 
-pub use terma::system::{DiskInfo, ProcessInfo};
-pub use terma::utils::{FileCategory, FileColumn, IconMode, SelectionState};
+pub use dracon_terminal_engine::system::{DiskInfo, ProcessInfo};
+pub use dracon_terminal_engine::utils::{FileCategory, FileColumn, IconMode, SelectionState};
 
 #[allow(dead_code)]
 #[derive(Clone, Debug)]
@@ -57,7 +57,7 @@ pub enum AppEvent {
     },
     Editor,
     Ui(UiEvent),
-    Raw(dracon_tui_contracts::InputEvent),
+    Raw(dracon_terminal_engine::contracts::InputEvent),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

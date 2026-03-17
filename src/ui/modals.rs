@@ -10,9 +10,9 @@ use crate::app::{App, AppMode};
 use crate::event_helpers::get_open_with_suggestions;
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
-use terma::layout::centered_rect;
-use terma::utils::{format_permissions, format_size, format_time, truncate_to_width};
-use terma::widgets::HotkeyHint;
+use dracon_terminal_engine::layout::centered_rect;
+use dracon_terminal_engine::utils::{format_permissions, format_size, format_time, truncate_to_width};
+use dracon_terminal_engine::widgets::HotkeyHint;
 
 #[allow(dead_code)]
 pub fn draw_drag_drop_modal(

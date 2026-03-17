@@ -1,5 +1,5 @@
 use crate::app::{App, AppEvent, AppMode, CurrentView};
-use dracon_tui_contracts::{InputEvent as Event, KeyCode, MouseButton, MouseEventKind};
+use dracon_terminal_engine::contracts::{InputEvent as Event, KeyCode, MouseButton, MouseEventKind};
 use tokio::sync::mpsc;
 
 pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
@@ -50,7 +50,7 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
 }
 
 pub fn handle_git_mouse(
-    me: &dracon_tui_contracts::MouseEvent,
+    me: &dracon_terminal_engine::contracts::MouseEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {

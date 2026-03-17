@@ -16,11 +16,11 @@ use crate::app::{
 };
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
-use terma::layout::centered_rect;
-use terma::utils::{
+use dracon_terminal_engine::layout::centered_rect;
+use dracon_terminal_engine::utils::{
     format_permissions, format_size, format_time, get_visual_width, squarify, truncate_to_width,
 };
-use terma::widgets::HotkeyHint;
+use dracon_terminal_engine::widgets::HotkeyHint;
 use unicode_width::UnicodeWidthStr;
 
 pub mod modals;
@@ -2260,7 +2260,7 @@ fn draw_file_view(
                     preview.content.clone()
                 };
 
-                let highlighted = terma::utils::highlight_code(&content_to_highlight, language);
+                let highlighted = dracon_terminal_engine::utils::highlight_code(&content_to_highlight, language);
                 let mut lines = Vec::new();
                 for (i, line) in highlighted.iter().enumerate() {
                     let mut spans = line

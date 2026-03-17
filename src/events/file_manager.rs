@@ -1,4 +1,4 @@
-use dracon_tui_contracts::{
+use dracon_terminal_engine::contracts::{
     InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind,
 };
 use std::collections::HashSet;
@@ -707,7 +707,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
 }
 
 pub fn handle_file_mouse(
-    me: &dracon_tui_contracts::MouseEvent,
+    me: &dracon_terminal_engine::contracts::MouseEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     _panes_needing_refresh: &mut HashSet<usize>,
@@ -943,7 +943,7 @@ pub fn handle_file_mouse(
                                     .try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             }
                         } else {
-                            terma::utils::spawn_detached(
+                            dracon_terminal_engine::utils::spawn_detached(
                                 "xdg-open",
                                 vec![path.to_string_lossy().to_string()],
                             );
@@ -955,7 +955,7 @@ pub fn handle_file_mouse(
             }
 
             if button == MouseButton::Middle {
-                if let Some(text) = terma::utils::get_primary_selection_text() {
+                if let Some(text) = dracon_terminal_engine::utils::get_primary_selection_text() {
                     if let Some(fs) = app.current_file_state_mut() {
                         fs.search_filter.push_str(&text);
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
@@ -1214,7 +1214,7 @@ fn handle_enter_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
                 if path.is_dir() {
                     navigate_to = Some(path.clone());
                 } else {
-                    terma::utils::spawn_detached(
+                    dracon_terminal_engine::utils::spawn_detached(
                         "xdg-open",
                         vec![path.to_string_lossy().to_string()],
                     );

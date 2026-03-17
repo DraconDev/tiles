@@ -1,5 +1,5 @@
 use crate::app::{App, AppEvent, AppMode, CurrentView};
-use dracon_tui_contracts::{
+use dracon_terminal_engine::contracts::{
     InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 use tokio::sync::mpsc;
@@ -284,7 +284,7 @@ pub fn handle_editor_mouse(
 #[allow(clippy::too_many_arguments)]
 fn handle_text_editor_mouse(
     me: &MouseEvent,
-    editor: &mut terma::widgets::TextEditor,
+    editor: &mut dracon_terminal_engine::widgets::TextEditor,
     clipboard: &mut Option<String>,
     mouse_last_click: &mut std::time::Instant,
     mouse_click_pos: &mut (u16, u16),
@@ -294,9 +294,9 @@ fn handle_text_editor_mouse(
     event_tx: &mpsc::Sender<AppEvent>,
     path: &std::path::Path,
 ) -> bool {
-    let to_runtime_mouse = |mouse: MouseEvent| -> dracon_tui_input::input::event::MouseEvent {
-        match dracon_tui_input::to_runtime_event(&Event::Mouse(mouse)) {
-            dracon_tui_input::input::event::Event::Mouse(m) => m,
+    let to_runtime_mouse = |mouse: MouseEvent| -> dracon_terminal_engine::input::input::event::MouseEvent {
+        match dracon_terminal_engine::input::to_runtime_event(&Event::Mouse(mouse)) {
+            dracon_terminal_engine::input::input::event::Event::Mouse(m) => m,
             _ => unreachable!(),
         }
     };
@@ -342,7 +342,7 @@ fn handle_text_editor_mouse(
             *mouse_click_pos = (me.column, me.row);
         }
         MouseEventKind::Down(MouseButton::Middle) => {
-            if let Some(text) = terma::utils::get_primary_selection_text() {
+            if let Some(text) = dracon_terminal_engine::utils::get_primary_selection_text() {
                 editor.insert_string(&text);
                 editor.modified = true;
             }
@@ -373,7 +373,7 @@ fn handle_text_editor_mouse(
     if let Some(selected_text) = editor.get_selected_text() {
         if selected_text.width() > 1 {
             *clipboard = Some(selected_text.clone());
-            terma::utils::set_clipboard_text(&selected_text);
+            dracon_terminal_engine::utils::set_clipboard_text(&selected_text);
         }
     }
 
@@ -388,13 +388,13 @@ fn handle_text_editor_mouse(
 
 #[allow(clippy::too_many_arguments)]
 fn handle_generic_editor_shortcuts(
-    key: &dracon_tui_contracts::KeyEvent,
-    editor: &mut terma::widgets::TextEditor,
+    key: &dracon_terminal_engine::contracts::KeyEvent,
+    editor: &mut dracon_terminal_engine::widgets::TextEditor,
     clipboard: &mut Option<String>,
     auto_save: bool,
     mode: &mut AppMode,
     prev_mode: &mut AppMode,
-    input: &mut terma::widgets::TextInput,
+    input: &mut dracon_terminal_engine::widgets::TextInput,
     replace_buffer: &mut String,
     event_tx: &mpsc::Sender<AppEvent>,
     path: &std::path::Path,
@@ -423,7 +423,7 @@ fn handle_generic_editor_shortcuts(
                 .unwrap_or_default()
         };
         *clipboard = Some(content.clone());
-        terma::utils::set_clipboard_text(&content);
+        dracon_terminal_engine::utils::set_clipboard_text(&content);
         let _ = event_tx.try_send(AppEvent::StatusMsg("Copied to clipboard".to_string()));
         return true;
     }
@@ -441,7 +441,7 @@ fn handle_generic_editor_shortcuts(
                 .unwrap_or_default()
         };
         *clipboard = Some(content.clone());
-        terma::utils::set_clipboard_text(&content);
+        dracon_terminal_engine::utils::set_clipboard_text(&content);
         if editor.get_selection_range().is_some() {
             editor.push_history();
             editor.delete_selection();
@@ -458,7 +458,7 @@ fn handle_generic_editor_shortcuts(
     if (has_control && (key.code == KeyCode::Char('v') || key.code == KeyCode::Char('V')))
         || (key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::Insert)
     {
-        let text_to_paste = clipboard.clone().or_else(terma::utils::get_clipboard_text);
+        let text_to_paste = clipboard.clone().or_else(dracon_terminal_engine::utils::get_clipboard_text);
         if let Some(text) = text_to_paste {
             editor.insert_string(&text);
             editor.modified = true;
@@ -473,7 +473,7 @@ fn handle_generic_editor_shortcuts(
 
     if has_control && !key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::Char('z')
     {
-        editor.handle_event(&dracon_tui_input::to_runtime_event(evt), area);
+        editor.handle_event(&dracon_terminal_engine::input::to_runtime_event(evt), area);
         return true;
     }
     if has_control
@@ -481,7 +481,7 @@ fn handle_generic_editor_shortcuts(
             || key.code == KeyCode::Char('Y')
             || key.code == KeyCode::Char('Z'))
     {
-        editor.handle_event(&dracon_tui_input::to_runtime_event(evt), area);
+        editor.handle_event(&dracon_terminal_engine::input::to_runtime_event(evt), area);
         return true;
     }
 
@@ -530,7 +530,7 @@ fn handle_generic_editor_shortcuts(
         return true;
     }
 
-    if editor.handle_event(&dracon_tui_input::to_runtime_event(evt), area) {
+    if editor.handle_event(&dracon_terminal_engine::input::to_runtime_event(evt), area) {
         if auto_save && editor.modified {
             let _ = event_tx.try_send(AppEvent::SaveFile(path.to_path_buf(), editor.get_content()));
             editor.modified = false;

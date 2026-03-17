@@ -12,7 +12,7 @@ use unicode_width::UnicodeWidthStr;
 use crate::app::{App, CurrentView, DropTarget, SidebarBounds, SidebarTarget};
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
-use terma::utils::truncate_to_width;
+use dracon_terminal_engine::utils::truncate_to_width;
 
 pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let selection_bg = crate::ui::theme::accent_primary();

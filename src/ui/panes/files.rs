@@ -10,7 +10,7 @@ use std::time::SystemTime;
 use crate::app::{App, DropTarget, FileColumn};
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
-use terma::utils::{format_permissions, format_size};
+use dracon_terminal_engine::utils::{format_permissions, format_size};
 
 #[allow(dead_code)]
 pub fn draw_pane(f: &mut Frame, area: Rect, pane_idx: usize, app: &mut App) {
@@ -68,7 +68,7 @@ pub fn draw_file_view(
                     preview.content.clone()
                 };
 
-                let highlighted = terma::utils::highlight_code(&content_to_highlight, language);
+                let highlighted = dracon_terminal_engine::utils::highlight_code(&content_to_highlight, language);
                 let mut lines = Vec::new();
                 for (i, line) in highlighted.iter().enumerate() {
                     let mut spans = line

@@ -1,7 +1,7 @@
 use crate::app::{
     App, AppEvent, AppMode, ContextMenuTarget, CurrentView, DropTarget, SidebarTarget,
 };
-use dracon_tui_contracts::{
+use dracon_terminal_engine::contracts::{
     InputEvent as Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind,
 };
 use std::collections::HashSet;
@@ -263,7 +263,7 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
 }
 
 fn handle_general_mouse(
-    me: &dracon_tui_contracts::MouseEvent,
+    me: &dracon_terminal_engine::contracts::MouseEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     panes_needing_refresh: &mut HashSet<usize>,
@@ -441,7 +441,7 @@ fn handle_general_mouse(
 }
 
 fn handle_sidebar_mouse(
-    me: &dracon_tui_contracts::MouseEvent,
+    me: &dracon_terminal_engine::contracts::MouseEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -665,11 +665,11 @@ fn handle_sidebar_mouse(
 mod tests {
     use super::*;
     use crate::app::{CurrentView, SidebarBounds, SidebarTarget};
-    use dracon_tui_contracts::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton};
+    use dracon_terminal_engine::contracts::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton};
     use std::collections::HashSet;
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
-    use terma::compositor::engine::TilePlacement;
+    use dracon_terminal_engine::compositor::engine::TilePlacement;
     use tokio::sync::mpsc;
 
     fn test_app() -> App {
@@ -722,7 +722,7 @@ mod tests {
         });
 
         let handled = handle_sidebar_mouse(
-            &dracon_tui_contracts::MouseEvent {
+            &dracon_terminal_engine::contracts::MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: 2,
                 row: 5,
@@ -785,7 +785,7 @@ mod tests {
         });
 
         let handled = handle_sidebar_mouse(
-            &dracon_tui_contracts::MouseEvent {
+            &dracon_terminal_engine::contracts::MouseEvent {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: 2,
                 row: 4,

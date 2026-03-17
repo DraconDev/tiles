@@ -4,10 +4,10 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
-use dracon_tui_contracts::InputEvent as Event;
-use dracon_tui_input::input::parser::Parser as TuiParser;
-use dracon_tui_input::to_ui_event;
-use terma::integration::ratatui::TermaBackend;
+use dracon_terminal_engine::contracts::InputEvent as Event;
+use dracon_terminal_engine::input::input::parser::Parser as TuiParser;
+use dracon_terminal_engine::input::to_ui_event;
+use dracon_terminal_engine::integration::ratatui::TermaBackend;
 
 // Ratatui Imports
 use ratatui::Terminal;
@@ -142,7 +142,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
             let mut buffer = [0; 1024];
             while !shutdown_input.load(Ordering::Relaxed) {
                 let polled = unsafe {
-                    terma::backend::tty::poll_input(std::os::fd::BorrowedFd::borrow_raw(fd), 20)
+                    dracon_terminal_engine::backend::tty::poll_input(std::os::fd::BorrowedFd::borrow_raw(fd), 20)
                 };
                 match polled {
                     Ok(true) => match stdin.read(&mut buffer) {
@@ -492,7 +492,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             }
                         };
 
-                        let mut editor = terma::widgets::TextEditor::with_content(&content);
+                        let mut editor = dracon_terminal_engine::widgets::TextEditor::with_content(&content);
                         if path_str.starts_with("git://") || path_str.starts_with("git-diff://") {
                             editor.language = "diff".to_string();
                             editor.read_only = true;
@@ -709,7 +709,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         let copied = if let Some(remote) = &remote {
                             crate::modules::remote::copy_recursive(remote, &src, &dest).is_ok()
                         } else {
-                            terma::utils::copy_recursive(&src, &dest).is_ok()
+                            dracon_terminal_engine::utils::copy_recursive(&src, &dest).is_ok()
                         };
                         if copied {
                             let mut app_guard = app_clone.lock().unwrap();
@@ -804,10 +804,10 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         )
                     });
                     let cmd_str = remote_cmd.as_deref().or(command.as_deref());
-                    terma::utils::spawn_terminal_at(&path, new_tab, cmd_str);
+                    dracon_terminal_engine::utils::spawn_terminal_at(&path, new_tab, cmd_str);
                 }
                 AppEvent::SpawnDetached { cmd, args } => {
-                    terma::utils::spawn_detached(&cmd, args);
+                    dracon_terminal_engine::utils::spawn_detached(&cmd, args);
                 }
                 AppEvent::KillProcess(pid) => {
                     let _ = crate::modules::system::SystemModule::kill_process(pid);
@@ -1223,7 +1223,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
 }
 
 fn setup_app(
-    tile_queue: Arc<Mutex<Vec<terma::compositor::engine::TilePlacement>>>,
+    tile_queue: Arc<Mutex<Vec<dracon_terminal_engine::compositor::engine::TilePlacement>>>,
 ) -> (
     Arc<Mutex<App>>,
     mpsc::Sender<AppEvent>,
@@ -1439,7 +1439,7 @@ fn prime_local_file_state(fs: &mut crate::state::FileState) {
 mod tests {
     use super::*;
     use std::sync::{Arc, Mutex};
-    use terma::compositor::engine::TilePlacement;
+    use dracon_terminal_engine::compositor::engine::TilePlacement;
 
     #[test]
     fn startup_prime_populates_first_pane_listing() {

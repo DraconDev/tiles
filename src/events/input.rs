@@ -1,3 +1,3 @@
 pub fn delete_word_backwards(s: &mut String) {
-    terma::utils::delete_word_backwards(s);
+    dracon_terminal_engine::utils::delete_word_backwards(s);
 }

@@ -497,7 +497,7 @@ pub fn fs_mouse_index(row: u16, app: &App) -> usize {
 }
 
 pub fn get_open_with_suggestions(_app: &App, ext: &str) -> Vec<String> {
-    terma::utils::get_open_with_suggestions(ext)
+    dracon_terminal_engine::utils::get_open_with_suggestions(ext)
 }
 
 pub fn navigate_up(app: &mut App) {

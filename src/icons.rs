@@ -1,2 +1,2 @@
-pub use terma::utils::IconMode;
-pub use terma::visuals::icons::Icon;
+pub use dracon_terminal_engine::utils::IconMode;
+pub use dracon_terminal_engine::visuals::icons::Icon;

@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use unicode_width::UnicodeWidthStr;
 
 use crate::app::{App, AppMode, CurrentView, DropTarget};
-use terma::utils::{get_visual_width, squarify, truncate_to_width};
+use dracon_terminal_engine::utils::{get_visual_width, squarify, truncate_to_width};
 
 pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx: usize) {
     let _is_focused = pane_idx == app.focused_pane_index && !app.sidebar_focus;

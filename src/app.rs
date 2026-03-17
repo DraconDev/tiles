@@ -2,8 +2,8 @@ use ratatui::widgets::TableState;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use terma::compositor::engine::TilePlacement;
-use terma::widgets::TextInput;
+use dracon_terminal_engine::compositor::engine::TilePlacement;
+use dracon_terminal_engine::widgets::TextInput;
 
 pub use crate::state::{
     AppEvent, AppMode, ClipboardOp, CommandAction, CommandItem, CommitInfo, ContextMenuAction,

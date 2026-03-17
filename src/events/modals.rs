@@ -1,6 +1,6 @@
 use crate::app::{App, AppEvent, AppMode, ContextMenuAction, ContextMenuTarget, SettingsSection};
 use crate::state::IconMode;
-use dracon_tui_contracts::{
+use dracon_terminal_engine::contracts::{
     InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind,
 };
 use serde::Deserialize;
@@ -123,7 +123,7 @@ fn parse_style_color_input(input: &str) -> Option<crate::ui::theme::RgbColor> {
     None
 }
 
-fn handle_style_color_input_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) -> bool {
+fn handle_style_color_input_keys(key: &dracon_terminal_engine::contracts::KeyEvent, app: &mut App) -> bool {
     match key.code {
         KeyCode::Esc => {
             app.mode = AppMode::Settings;
@@ -151,7 +151,7 @@ fn handle_style_color_input_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut
         }
         _ => app
             .input
-            .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(*key))),
+            .handle_event(&dracon_terminal_engine::input::to_runtime_event(&Event::Key(*key))),
     }
 }
 
@@ -189,7 +189,7 @@ fn reset_all_settings_to_defaults(app: &mut App) {
     }
 }
 
-fn handle_reset_settings_confirm_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) -> bool {
+fn handle_reset_settings_confirm_keys(key: &dracon_terminal_engine::contracts::KeyEvent, app: &mut App) -> bool {
     match key.code {
         KeyCode::Esc => {
             app.mode = AppMode::Settings;
@@ -216,12 +216,12 @@ fn handle_reset_settings_confirm_keys(key: &dracon_tui_contracts::KeyEvent, app:
         }
         _ => app
             .input
-            .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(*key))),
+            .handle_event(&dracon_terminal_engine::input::to_runtime_event(&Event::Key(*key))),
     }
 }
 
 fn handle_modal_keys(
-    key: &dracon_tui_contracts::KeyEvent,
+    key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     evt: &Event,
@@ -270,7 +270,7 @@ fn handle_modal_keys(
 }
 
 fn handle_search_keys(
-    key: &dracon_tui_contracts::KeyEvent,
+    key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -307,7 +307,7 @@ fn handle_search_keys(
             // Live Update
             let handled = app
                 .input
-                .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(*key)));
+                .handle_event(&dracon_terminal_engine::input::to_runtime_event(&Event::Key(*key)));
             if handled {
                 let filter = app.input.value.clone();
                 if let Some(fs) = app.current_file_state_mut() {
@@ -321,7 +321,7 @@ fn handle_search_keys(
 }
 
 fn handle_path_input_keys(
-    key: &dracon_tui_contracts::KeyEvent,
+    key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -373,11 +373,11 @@ fn handle_path_input_keys(
         }
         _ => app
             .input
-            .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(*key))),
+            .handle_event(&dracon_terminal_engine::input::to_runtime_event(&Event::Key(*key))),
     }
 }
 
-fn handle_properties_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) -> bool {
+fn handle_properties_keys(key: &dracon_terminal_engine::contracts::KeyEvent, app: &mut App) -> bool {
     match key.code {
         KeyCode::Esc | KeyCode::Enter | KeyCode::Char('q') => {
             app.mode = AppMode::Normal;
@@ -388,7 +388,7 @@ fn handle_properties_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) -
 }
 
 fn handle_context_menu_keys(
-    key: &dracon_tui_contracts::KeyEvent,
+    key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     actions: &[ContextMenuAction],
@@ -471,7 +471,7 @@ fn handle_context_menu_keys(
 }
 
 fn handle_drag_drop_keys(
-    key: &dracon_tui_contracts::KeyEvent,
+    key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     sources: &[std::path::PathBuf],
@@ -527,7 +527,7 @@ fn handle_drag_drop_keys(
 }
 
 fn handle_editor_replace_keys(
-    key: &dracon_tui_contracts::KeyEvent,
+    key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     evt: &Event,
@@ -595,7 +595,7 @@ fn handle_editor_replace_keys(
         _ => {
             let res = app
                 .input
-                .handle_event(&dracon_tui_input::to_runtime_event(evt));
+                .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt));
             if res && app.replace_buffer.is_empty() && app.input.value.is_empty() {
                 app.mode = app.previous_mode.clone();
                 app.input.clear();
@@ -607,14 +607,14 @@ fn handle_editor_replace_keys(
 }
 
 fn handle_editor_search_keys(
-    _key: &dracon_tui_contracts::KeyEvent,
+    _key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
     evt: &Event,
 ) -> bool {
     match _key.code {
         KeyCode::Esc | KeyCode::Enter => {
-            let clear_filter = |ed: &mut terma::widgets::TextEditor| ed.set_filter("");
+            let clear_filter = |ed: &mut dracon_terminal_engine::widgets::TextEditor| ed.set_filter("");
             if let Some(preview) = &mut app.editor_state {
                 if let Some(editor) = &mut preview.editor {
                     clear_filter(editor);
@@ -635,7 +635,7 @@ fn handle_editor_search_keys(
             if let Some(preview) = &mut app.editor_state {
                 if let Some(editor) = &mut preview.editor {
                     editor.handle_event(
-                        &dracon_tui_input::to_runtime_event(evt),
+                        &dracon_terminal_engine::input::to_runtime_event(evt),
                         ratatui::layout::Rect::new(
                             1,
                             1,
@@ -649,7 +649,7 @@ fn handle_editor_search_keys(
                 if let Some(preview) = &mut pane.preview {
                     if let Some(editor) = &mut preview.editor {
                         editor.handle_event(
-                            &dracon_tui_input::to_runtime_event(evt),
+                            &dracon_terminal_engine::input::to_runtime_event(evt),
                             ratatui::layout::Rect::new(0, 0, 100, 100),
                         );
                     }
@@ -660,7 +660,7 @@ fn handle_editor_search_keys(
         _ => {
             let handled = app
                 .input
-                .handle_event(&dracon_tui_input::to_runtime_event(evt));
+                .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt));
             if handled {
                 let filter = app.input.value.clone();
                 if filter.is_empty() {
@@ -687,7 +687,7 @@ fn handle_editor_search_keys(
 }
 
 fn handle_editor_goto_keys(
-    _key: &dracon_tui_contracts::KeyEvent,
+    _key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
     evt: &Event,
@@ -724,12 +724,12 @@ fn handle_editor_goto_keys(
         }
         _ => app
             .input
-            .handle_event(&dracon_tui_input::to_runtime_event(evt)),
+            .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt)),
     }
 }
 
 fn handle_command_palette_keys(
-    _key: &dracon_tui_contracts::KeyEvent,
+    _key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
     evt: &Event,
@@ -750,7 +750,7 @@ fn handle_command_palette_keys(
         _ => {
             let handled = app
                 .input
-                .handle_event(&dracon_tui_input::to_runtime_event(evt));
+                .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt));
             if handled {
                 crate::event_helpers::update_commands(app);
             }
@@ -760,7 +760,7 @@ fn handle_command_palette_keys(
 }
 
 fn handle_add_remote_keys(
-    _key: &dracon_tui_contracts::KeyEvent,
+    _key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
     idx: usize,
@@ -801,7 +801,7 @@ fn handle_add_remote_keys(
         }
         _ => app
             .input
-            .handle_event(&dracon_tui_input::to_runtime_event(evt)),
+            .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt)),
     }
 }
 
@@ -826,7 +826,7 @@ const fn default_ssh_port() -> u16 {
 }
 
 fn handle_import_servers_keys(
-    key: &dracon_tui_contracts::KeyEvent,
+    key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
     evt: &Event,
@@ -893,11 +893,11 @@ fn handle_import_servers_keys(
         }
         _ => app
             .input
-            .handle_event(&dracon_tui_input::to_runtime_event(evt)),
+            .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt)),
     }
 }
 
-fn handle_highlight_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) -> bool {
+fn handle_highlight_keys(key: &dracon_terminal_engine::contracts::KeyEvent, app: &mut App) -> bool {
     if let KeyCode::Char(c) = key.code {
         if let Some(digit) = c.to_digit(10) {
             if digit <= 6 {
@@ -941,7 +941,7 @@ fn handle_highlight_keys(key: &dracon_tui_contracts::KeyEvent, app: &mut App) ->
 }
 
 fn handle_input_modals_keys(
-    key: &dracon_tui_contracts::KeyEvent,
+    key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -1019,12 +1019,12 @@ fn handle_input_modals_keys(
         }
         _ => app
             .input
-            .handle_event(&dracon_tui_input::to_runtime_event(&Event::Key(*key))),
+            .handle_event(&dracon_terminal_engine::input::to_runtime_event(&Event::Key(*key))),
     }
 }
 
 fn handle_header_keys(
-    _key: &dracon_tui_contracts::KeyEvent,
+    _key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
     _idx: usize,
@@ -1054,7 +1054,7 @@ fn handle_header_keys(
 }
 
 fn handle_settings_keys(
-    key: &dracon_tui_contracts::KeyEvent,
+    key: &dracon_terminal_engine::contracts::KeyEvent,
     app: &mut App,
     _event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -1200,7 +1200,7 @@ fn handle_settings_keys(
 }
 
 pub fn handle_modal_mouse(
-    me: &dracon_tui_contracts::MouseEvent,
+    me: &dracon_terminal_engine::contracts::MouseEvent,
     app: &mut App,
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
@@ -1223,7 +1223,7 @@ pub fn handle_modal_mouse(
                 | AppMode::StyleColorInput
                 | AppMode::ResetSettingsConfirm
         ) {
-            if let Some(text) = terma::utils::get_primary_selection_text() {
+            if let Some(text) = dracon_terminal_engine::utils::get_primary_selection_text() {
                 let pos = app.input.cursor_position;
                 if pos >= app.input.value.len() {
                     app.input.value.push_str(&text);
@@ -1600,12 +1600,12 @@ pub fn handle_modal_mouse(
 mod tests {
     use super::*;
     use crate::app::{App, AppMode};
-    use dracon_tui_contracts::{
+    use dracon_terminal_engine::contracts::{
         KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
     };
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
-    use terma::compositor::engine::TilePlacement;
+    use dracon_terminal_engine::compositor::engine::TilePlacement;
     use tokio::sync::mpsc;
 
     fn test_app() -> App {

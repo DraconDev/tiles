@@ -3,7 +3,7 @@ use dracon_system::{
     DiskSnapshot, ProcessControlContract, ProcessController, ProcessSnapshot, SystemSnapshot,
     SystemSnapshotContract, SystemSnapshotProvider,
 };
-use terma::system::{DiskInfo, ProcessInfo};
+use dracon_terminal_engine::system::{DiskInfo, ProcessInfo};
 
 pub struct SystemModule {
     monitor: SystemSnapshotProvider,
