@@ -1,60 +1,94 @@
-# 👹 THE DRACON SOVEREIGN STACK !!!
+# Tiles
 
-Welcome to the **Sovereign Developer Environment**. This repository contains **Tiles**, the first application built on the **Terma Sovereign Engine**.
+A high-performance terminal file manager built in Rust. Modular pane system, integrated text editor, git awareness, remote SSH file browsing, and system monitoring — all in one TUI.
 
-## 🚀 Projects in this Repo
+## Features
 
-### 1. [Tiles (The Application)](./plan.md)
+- **File Manager** — Dual-pane navigation, drag & drop, batch operations, hidden file toggle, column sorting
+- **Text Editor** — Syntax highlighting via `syntect`, unlimited undo/redo, multi-selection, live search
+- **Git Integration** — Commit history viewer, staged/unstaged diffs, branch info, ahead/behind tracking
+- **Remote SSH** — Browse remote filesystems via SSH, SFTP-style file operations
+- **System Monitor** — CPU, memory, disk, network stats, process list
+- **Sidebar** — Favorites, project directories, expandable folder tree
+- **Path Input** — Click the breadcrumb bar to edit the path directly, copy on click
+- **Keyboard-first** — Vim-style navigation, command palette (`:`), context menus
 
-ok ?
+## Architecture
 
-A high-performance, modular data commander.
-
-- **Role:** File Manager + Container Orchestrator + System Dashboard.
-- **Tech:** Universal TTY, 60FPS Grid Rendering.
-
-### 2. [Terma (The Engine)](./TERMA_ENGINE_DEFINITION.md)
-
-The Unreal Engine of the TUI world.
-
-- **Nature:** An application engine wrapper around Ratatui.
-- **Key Files:** [Engine Definition](./TERMA_ENGINE_DEFINITION.md).
-
-## 🏛️ Manifesto & Philosophy
-
-- [**The Sovereign Terminal**](./BLUEPRINT.md): Why we utilize the terminal as our platform.
-- [**Hybrid Identity**](./HYBRID_IDENTITY.md): Combining WezTerm, Zellij, and Yazi.
-- [**Memory Efficiency**](./MEMORY_EFFICIENCY.md): How we stay under 20MB while others use 500MB+.
-
-## 🛠️ Installation & Releases
-
-### Optional Dependencies
-To enable Drag & Drop support (e.g. dragging files from Tiles to a browser), install one of the following tools:
-- **dragon** (https://github.com/mwh/dragon)
-- **ripdrag** (https://github.com/nik012003/ripdrag)
-
-Tiles will automatically detect these tools and add a "Drag" option to the context menu.
-
-### Download Pre-compiled Binaries
-You can download the latest pre-compiled binaries for Linux, macOS, and Windows from the [GitHub Releases](https://github.com/DraconDev/tiles/releases) page.
-
-### Build from Source
-If you have Rust installed, you can build and install Tiles directly:
-
-```bash
-# Clone and install locally
-git clone https://github.com/DraconDev/tiles
-cd tiles
-cargo install --path .
-
-# Or run without installing
-cargo run --release
+```
+tiles
+├── dracon-terminal-engine  (git)  — Terminal runtime, compositor, input parser, ratatui bridge
+├── dracon-files            (path) — Filesystem operations, metadata, search
+├── dracon-git              (path) — Git log, diff, status, branch parsing
+└── dracon-system           (path) — System stats, SSH remote operations
 ```
 
----
+## Prerequisites
 
-_Built for the Agent Director Era. Owned by you._
+- Rust 1.75+ (`rustup install stable`)
+- Git
+- For remote SSH: an SSH key configured
 
----
+## Build from Source
 
-Dracon License v1.1 - this project is covered by the umbrella Dracon License. Small teams can use included software for free; larger organizations need the annual commercial license described in [LICENSE](LICENSE). Current pricing and included products: https://dracon.uk/licensing
+```bash
+git clone https://github.com/DraconDev/tiles
+cd tiles
+cargo build --release
+./target/release/tiles
+```
+
+## Install Locally
+
+```bash
+./install.sh
+```
+
+This builds a release binary and copies it to `~/.local/bin/tiles`.
+
+## Development
+
+```bash
+# Run in debug mode
+cargo run
+
+# Run with debug logging
+TILES_DEBUG_LOG=1 cargo run
+
+# Run tests
+cargo test
+
+# Lint
+cargo clippy
+```
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `h/j/k/l` or arrows | Navigate |
+| `Enter` | Open file / enter directory |
+| `Backspace` | Go to parent directory |
+| `:` | Command palette |
+| `Ctrl+E` | Editor view |
+| `Ctrl+G` | Git history view |
+| `Ctrl+D` | System monitor view |
+| `Ctrl+L` | Edit current path |
+| `Tab` | Switch panes |
+| `q` | Quit |
+
+## Optional Dependencies
+
+For drag & drop support (dragging files from Tiles to other apps):
+- [dragon](https://github.com/mwh/dragon)
+- [ripdrag](https://github.com/nik012003/ripdrag)
+
+Tiles auto-detects these tools and adds a "Drag" option to the context menu.
+
+## Download Pre-compiled Binaries
+
+Download the latest binaries for Linux, macOS, and Windows from [GitHub Releases](https://github.com/DraconDev/tiles/releases).
+
+## License
+
+Dracon License v1.1 — see [LICENSE](LICENSE).
