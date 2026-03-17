@@ -151,7 +151,7 @@ fn handle_style_color_input_keys(key: &dracon_terminal_engine::contracts::KeyEve
         }
         _ => app
             .input
-            .handle_event(&dracon_terminal_engine::input::to_runtime_event(&Event::Key(*key))),
+            .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(&Event::Key(*key))),
     }
 }
 
@@ -216,7 +216,7 @@ fn handle_reset_settings_confirm_keys(key: &dracon_terminal_engine::contracts::K
         }
         _ => app
             .input
-            .handle_event(&dracon_terminal_engine::input::to_runtime_event(&Event::Key(*key))),
+            .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(&Event::Key(*key))),
     }
 }
 
@@ -307,7 +307,7 @@ fn handle_search_keys(
             // Live Update
             let handled = app
                 .input
-                .handle_event(&dracon_terminal_engine::input::to_runtime_event(&Event::Key(*key)));
+                .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(&Event::Key(*key)));
             if handled {
                 let filter = app.input.value.clone();
                 if let Some(fs) = app.current_file_state_mut() {
@@ -373,7 +373,7 @@ fn handle_path_input_keys(
         }
         _ => app
             .input
-            .handle_event(&dracon_terminal_engine::input::to_runtime_event(&Event::Key(*key))),
+            .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(&Event::Key(*key))),
     }
 }
 
@@ -595,7 +595,7 @@ fn handle_editor_replace_keys(
         _ => {
             let res = app
                 .input
-                .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt));
+                .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(evt));
             if res && app.replace_buffer.is_empty() && app.input.value.is_empty() {
                 app.mode = app.previous_mode.clone();
                 app.input.clear();
@@ -635,7 +635,7 @@ fn handle_editor_search_keys(
             if let Some(preview) = &mut app.editor_state {
                 if let Some(editor) = &mut preview.editor {
                     editor.handle_event(
-                        &dracon_terminal_engine::input::to_runtime_event(evt),
+                        &dracon_terminal_engine::input::mapping::to_runtime_event(evt),
                         ratatui::layout::Rect::new(
                             1,
                             1,
@@ -649,7 +649,7 @@ fn handle_editor_search_keys(
                 if let Some(preview) = &mut pane.preview {
                     if let Some(editor) = &mut preview.editor {
                         editor.handle_event(
-                            &dracon_terminal_engine::input::to_runtime_event(evt),
+                            &dracon_terminal_engine::input::mapping::to_runtime_event(evt),
                             ratatui::layout::Rect::new(0, 0, 100, 100),
                         );
                     }
@@ -660,7 +660,7 @@ fn handle_editor_search_keys(
         _ => {
             let handled = app
                 .input
-                .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt));
+                .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(evt));
             if handled {
                 let filter = app.input.value.clone();
                 if filter.is_empty() {
@@ -724,7 +724,7 @@ fn handle_editor_goto_keys(
         }
         _ => app
             .input
-            .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt)),
+            .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(evt)),
     }
 }
 
@@ -750,7 +750,7 @@ fn handle_command_palette_keys(
         _ => {
             let handled = app
                 .input
-                .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt));
+                .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(evt));
             if handled {
                 crate::event_helpers::update_commands(app);
             }
@@ -801,7 +801,7 @@ fn handle_add_remote_keys(
         }
         _ => app
             .input
-            .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt)),
+            .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(evt)),
     }
 }
 
@@ -893,7 +893,7 @@ fn handle_import_servers_keys(
         }
         _ => app
             .input
-            .handle_event(&dracon_terminal_engine::input::to_runtime_event(evt)),
+            .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(evt)),
     }
 }
 
@@ -1019,7 +1019,7 @@ fn handle_input_modals_keys(
         }
         _ => app
             .input
-            .handle_event(&dracon_terminal_engine::input::to_runtime_event(&Event::Key(*key))),
+            .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(&Event::Key(*key))),
     }
 }
 

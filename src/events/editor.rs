@@ -295,7 +295,7 @@ fn handle_text_editor_mouse(
     path: &std::path::Path,
 ) -> bool {
     let to_runtime_mouse = |mouse: MouseEvent| -> dracon_terminal_engine::input::input::event::MouseEvent {
-        match dracon_terminal_engine::input::to_runtime_event(&Event::Mouse(mouse)) {
+        match dracon_terminal_engine::input::mapping::to_runtime_event(&Event::Mouse(mouse)) {
             dracon_terminal_engine::input::input::event::Event::Mouse(m) => m,
             _ => unreachable!(),
         }
@@ -473,7 +473,7 @@ fn handle_generic_editor_shortcuts(
 
     if has_control && !key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::Char('z')
     {
-        editor.handle_event(&dracon_terminal_engine::input::to_runtime_event(evt), area);
+        editor.handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(evt), area);
         return true;
     }
     if has_control
@@ -481,7 +481,7 @@ fn handle_generic_editor_shortcuts(
             || key.code == KeyCode::Char('Y')
             || key.code == KeyCode::Char('Z'))
     {
-        editor.handle_event(&dracon_terminal_engine::input::to_runtime_event(evt), area);
+        editor.handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(evt), area);
         return true;
     }
 
@@ -530,7 +530,7 @@ fn handle_generic_editor_shortcuts(
         return true;
     }
 
-    if editor.handle_event(&dracon_terminal_engine::input::to_runtime_event(evt), area) {
+    if editor.handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(evt), area) {
         if auto_save && editor.modified {
             let _ = event_tx.try_send(AppEvent::SaveFile(path.to_path_buf(), editor.get_content()));
             editor.modified = false;

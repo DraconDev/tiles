@@ -5,8 +5,8 @@ use std::time::Duration;
 use tokio::sync::mpsc;
 
 use dracon_terminal_engine::contracts::InputEvent as Event;
-use dracon_terminal_engine::input::input::parser::Parser as TuiParser;
-use dracon_terminal_engine::input::to_ui_event;
+use dracon_terminal_engine::input::parser::Parser as TuiParser;
+use dracon_terminal_engine::input::mapping::to_ui_event;
 use dracon_terminal_engine::integration::ratatui::TermaBackend;
 
 // Ratatui Imports
