@@ -587,7 +587,7 @@ dependencies = [
 
 [[package]]
 name = "dracon-git"
-version = "0.1.1430"
+version = "0.1.1456"
 dependencies = [
  "anyhow",
  "git2",
@@ -616,8 +616,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "dracon-tui"
-version = "1.1.0"
+name = "dracon-terminal-engine"
+version = "1.1.4"
+source = "git+https://github.com/DraconDev/dracon-terminal-engine#836619ff9c5ce474630f82f6f21175f190a91b11"
 dependencies = [
  "bitflags 2.10.0",
  "chrono",
@@ -631,21 +632,6 @@ dependencies = [
  "syntect",
  "sysinfo",
  "unicode-width 0.1.14",
-]
-
-[[package]]
-name = "dracon-tui-contracts"
-version = "0.1.1430"
-dependencies = [
- "bitflags 2.10.0",
-]
-
-[[package]]
-name = "dracon-tui-input"
-version = "0.1.1430"
-dependencies = [
- "dracon-tui",
- "dracon-tui-contracts",
 ]
 
 [[package]]
@@ -2671,7 +2657,7 @@ dependencies = [
 
 [[package]]
 name = "tiles"
-version = "0.1.14556"
+version = "0.1.14557"
 dependencies = [
  "anyhow",
  "base64",
@@ -2681,9 +2667,7 @@ dependencies = [
  "dracon-files",
  "dracon-git",
  "dracon-system",
- "dracon-tui",
- "dracon-tui-contracts",
- "dracon-tui-input",
+ "dracon-terminal-engine",
  "image",
  "libc",
  "notify",
