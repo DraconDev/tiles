@@ -587,7 +587,7 @@ dependencies = [
 
 [[package]]
 name = "dracon-git"
-version = "0.1.1456"
+version = "0.1.1474"
 dependencies = [
  "anyhow",
  "git2",
@@ -617,8 +617,7 @@ dependencies = [
 
 [[package]]
 name = "dracon-terminal-engine"
-version = "1.1.4"
-source = "git+https://github.com/DraconDev/dracon-terminal-engine#836619ff9c5ce474630f82f6f21175f190a91b11"
+version = "1.1.14"
 dependencies = [
  "bitflags 2.10.0",
  "chrono",
@@ -2657,7 +2656,7 @@ dependencies = [
 
 [[package]]
 name = "tiles"
-version = "0.1.14566"
+version = "0.1.14567"
 dependencies = [
  "anyhow",
  "base64",
