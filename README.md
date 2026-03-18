@@ -1,5 +1,7 @@
 # Tiles
 
+![Tiles](assets/tiles-screenshot.png)
+
 A high-performance terminal file manager built in Rust. Modular pane system, integrated text editor, git awareness, remote SSH file browsing, and system monitoring — all in one TUI.
 
 ## Features
@@ -12,55 +14,6 @@ A high-performance terminal file manager built in Rust. Modular pane system, int
 - **Sidebar** — Favorites, project directories, expandable folder tree
 - **Path Input** — Click the breadcrumb bar to edit the path directly, copy on click
 - **Keyboard-first** — Vim-style navigation, command palette (`:`), context menus
-
-## Architecture
-
-```
-tiles
-├── dracon-terminal-engine  (git)  — Terminal runtime, compositor, input parser, ratatui bridge
-├── dracon-files            (path) — Filesystem operations, metadata, search
-├── dracon-git              (path) — Git log, diff, status, branch parsing
-└── dracon-system           (path) — System stats, SSH remote operations
-```
-
-## Prerequisites
-
-- Rust 1.75+ (`rustup install stable`)
-- Git
-- For remote SSH: an SSH key configured
-
-## Build from Source
-
-```bash
-git clone https://github.com/DraconDev/tiles
-cd tiles
-cargo build --release
-./target/release/tiles
-```
-
-## Install Locally
-
-```bash
-./install.sh
-```
-
-This builds a release binary and copies it to `~/.local/bin/tiles`.
-
-## Development
-
-```bash
-# Run in debug mode
-cargo run
-
-# Run with debug logging
-TILES_DEBUG_LOG=1 cargo run
-
-# Run tests
-cargo test
-
-# Lint
-cargo clippy
-```
 
 ## Keyboard Shortcuts
 
@@ -76,6 +29,21 @@ cargo clippy
 | `Ctrl+L` | Edit current path |
 | `Tab` | Switch panes |
 | `q` | Quit |
+
+## Install
+
+```bash
+git clone https://github.com/DraconDev/tiles
+cd tiles
+./install.sh
+```
+
+Or build manually:
+
+```bash
+cargo build --release
+./target/release/tiles
+```
 
 ## Optional Dependencies
 
