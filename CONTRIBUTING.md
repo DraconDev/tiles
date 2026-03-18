@@ -53,7 +53,7 @@ src/
 
 | Crate | Source | Purpose |
 |-------|--------|---------|
-| `dracon-terminal-engine` | GitHub | Terminal runtime, compositor, input parser, ratatui bridge, widgets |
+| `dracon-terminal-engine` | Local path | Terminal runtime, compositor, input parser, ratatui bridge, widgets |
 | `dracon-files` | Local path | Filesystem operations, metadata, search |
 | `dracon-git` | Local path | Git log, diff, status parsing |
 | `dracon-system` | Local path | System stats, SSH remote operations |
