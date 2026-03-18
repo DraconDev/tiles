@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 use dracon_terminal_engine::contracts::InputEvent as Event;
 use dracon_terminal_engine::input::parser::Parser as TuiParser;
 use dracon_terminal_engine::input::mapping::to_ui_event;
-use dracon_terminal_engine::integration::ratatui::TermaBackend as EngineBackend;
+use dracon_terminal_engine::integration::ratatui::RatatuiBackend as EngineBackend;
 
 // Ratatui Imports
 use ratatui::Terminal;

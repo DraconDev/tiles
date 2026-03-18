@@ -1,6 +1,6 @@
 [package]
 name = "tiles"
-version = "0.1.14565"
+version = "0.1.14566"
 edition = "2021"
 license-file = "LICENSE"
 
@@ -15,7 +15,7 @@ walkdir = "2.5.0"
 dirs = "5.0.1"
 chrono = "0.4.42"
 ratatui = "0.29.0"
-dracon-terminal-engine = { git = "https://github.com/DraconDev/dracon-terminal-engine" }
+dracon-terminal-engine = { path = "../dracon-libs/tools/tui/dracon-terminal-engine" }
 
 dracon-files = { path = "../dracon-libs/tools/files/dracon-files" }
 dracon-git = { path = "../dracon-libs/tools/sync/dracon-git" }
