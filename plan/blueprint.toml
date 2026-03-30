@@ -1,0 +1,26 @@
+version = 1
+stall_timeout_secs = 300
+command_deny_patterns = []
+checkpoint_commit = false
+
+[[slices]]
+id = "synth-1774826981"
+intent = "failed to load manifest for dependency `dracon-files`"
+verifiers = [
+    "cargo check --workspace",
+    "cargo clippy -- -D warnings",
+    "cargo test --workspace",
+]
+conformance_verifiers = []
+metric_verifiers = []
+actions = []
+depends_on = []
+max_retries = 3
+
+[[slices.ai_actions]]
+objective = "failed to load manifest for dependency `dracon-files`"
+context_paths = [
+    "/home/dracon/Dev/tiles",
+    "/home/dracon/Dev/tiles/error",
+]
+max_attempts = 3
