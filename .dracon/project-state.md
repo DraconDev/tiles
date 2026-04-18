@@ -1,10 +1,8 @@
 # Project State
 
 ## Current Focus
-Added "Open With" modal handler for file operations
+Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 
 ## Completed
-- [x] Implemented modal key handling for "Open With" mode
-- [x] Added ESC to cancel and Enter to execute commands
-- [x] Integrated input handling for command entry
-- [x] Updated Cargo.lock for dependency resolution
+- [x] chore(docs): Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+```
