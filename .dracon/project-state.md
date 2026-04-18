@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Optimized rendering by removing unnecessary draw triggers during periodic ticks
+Refactored Git path handling in TTY mode by moving variable declaration inside the scope
 
 ## Completed
-- [x] Removed redundant `needs_draw = true` assignment during periodic ticks to reduce unnecessary rendering
+- [x] Moved `git_path` variable declaration inside the appropriate scope to prevent potential borrowing issues
+- [x] Removed redundant tick event that was being sent unnecessarily
 ```

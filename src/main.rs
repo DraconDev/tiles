@@ -1142,10 +1142,8 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             }
                         }
                     }
-                }
-                let _ = tx.send(AppEvent::Tick).await;
 
-                let git_path = path.clone();
+                    let git_path = path.clone();
                 let git_remote = remote.clone();
                 let app_for_git = app_clone.clone();
                 let tx_for_git = tx.clone();
