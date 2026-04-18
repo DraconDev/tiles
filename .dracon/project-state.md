@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored view/mode change handling in TTY mode to improve clarity and reduce redundant state tracking
+docs(dependencies): updated Cargo.lock to resolve manifest loading failure for dependency `dracon-files`
 
 ## Completed
-- [x] Renamed `view_mode_changed` to `view_mode_before` for clearer semantics
-- [x] Simplified view/mode comparison by directly accessing tuple elements
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure
+- [x] docs(dependencies): resolved dependency manifest loading failure by updating Cargo.lock
+```
