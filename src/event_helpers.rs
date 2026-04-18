@@ -182,7 +182,6 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
                 ContextMenuAction::Separator,
                 ContextMenuAction::Properties,
             ];
-            let _ = path;
             actions
         }
         ContextMenuTarget::EmptySpace => {
