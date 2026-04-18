@@ -463,6 +463,103 @@ pub fn handle_context_menu_action(
             app.input.clear();
             app.rename_selected = false;
         }
+        ContextMenuAction::Cut => {
+            if let ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) = target {
+                let path_opt = app
+                    .current_file_state()
+                    .and_then(|fs| fs.files.get(*idx).cloned());
+                if let Some(path) = path_opt {
+                    app.clipboard = Some((path, crate::app::ClipboardOp::Cut));
+                }
+            }
+        }
+        ContextMenuAction::Copy => {
+            if let ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) = target {
+                let path_opt = app
+                    .current_file_state()
+                    .and_then(|fs| fs.files.get(*idx).cloned());
+                if let Some(path) = path_opt {
+                    app.clipboard = Some((path, crate::app::ClipboardOp::Copy));
+                }
+            }
+        }
+        ContextMenuAction::Paste => {
+            if let Some((src, op)) = app.clipboard.clone() {
+                let target_dir = match target {
+                    ContextMenuTarget::Folder(idx) => {
+                        app.current_file_state()
+                            .and_then(|fs| fs.files.get(*idx).cloned())
+                    }
+                    ContextMenuTarget::SidebarFavorite(path) => Some(path.clone()),
+                    ContextMenuTarget::EmptySpace => {
+                        app.current_file_state().map(|fs| fs.current_path.clone())
+                    }
+                    _ => app.current_file_state().map(|fs| fs.current_path.clone()),
+                };
+                if let Some(dest_dir) = target_dir {
+                    let dest = dest_dir.join(
+                        src.file_name()
+                            .unwrap_or_else(|| std::ffi::OsStr::new("root")),
+                    );
+                    match op {
+                        crate::app::ClipboardOp::Copy => {
+                            let _ = event_tx.try_send(AppEvent::Copy(src, dest));
+                        }
+                        crate::app::ClipboardOp::Cut => {
+                            let _ = event_tx.try_send(AppEvent::Rename(src, dest));
+                            app.clipboard = None;
+                        }
+                    }
+                }
+            }
+        }
+        ContextMenuAction::Compress => {
+            if let ContextMenuTarget::File(idx) | ContextMenuTarget::Folder(idx) = target {
+                let path_opt = app
+                    .current_file_state()
+                    .and_then(|fs| fs.files.get(*idx).cloned());
+                if let Some(path) = path_opt {
+                    let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                        "Compress: {}",
+                        path.display()
+                    )));
+                }
+            }
+        }
+        ContextMenuAction::ExtractHere => {
+            if let ContextMenuTarget::File(idx) = target {
+                let path_opt = app
+                    .current_file_state()
+                    .and_then(|fs| fs.files.get(*idx).cloned());
+                if let Some(path) = path_opt {
+                    let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                        "Extract: {}",
+                        path.display()
+                    )));
+                }
+            }
+        }
+        ContextMenuAction::Duplicate => {
+            if let ContextMenuTarget::File(idx) = target {
+                let path_opt = app
+                    .current_file_state()
+                    .and_then(|fs| fs.files.get(*idx).cloned());
+                if let Some(path) = path_opt {
+                    if let Some(parent) = path.parent() {
+                        let stem = path.file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("file");
+                        let ext = path.extension()
+                            .and_then(|e| e.to_str())
+                            .map(|s| format!(".{}", s))
+                            .unwrap_or_default();
+                        let new_name = format!("{}_copy{}", stem, ext);
+                        let dest = parent.join(new_name);
+                        let _ = event_tx.try_send(AppEvent::Copy(path, dest));
+                    }
+                }
+            }
+        }
         _ => {}
     }
 }
