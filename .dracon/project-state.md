@@ -1,8 +1,11 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+Added undo/redo functionality for file operations with remote support
 
 ## Completed
-- [x] chore(docs): Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
-```
+- [x] Implemented `execute_undo` function to reverse file operations (rename, move, copy, delete)
+- [x] Implemented `execute_redo` function to reapply previously undone operations
+- [x] Added support for both local and remote file operations in undo/redo actions
+- [x] Integrated status messages for successful/failed undo/redo operations
+- [x] Added file refresh events after undo/redo operations to update UI

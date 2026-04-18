@@ -29,6 +29,104 @@ fn is_virtual_divider(path: &std::path::Path) -> bool {
     path.to_string_lossy() == "__DIVIDER__"
 }
 
+fn execute_undo(
+    app: &mut App,
+    event_tx: &mpsc::Sender<AppEvent>,
+) -> Option<&'static str> {
+    let action = app.undo_stack.pop()?;
+    let active_remote = app
+        .current_file_state()
+        .and_then(|fs| fs.remote_session.clone());
+    let success;
+    let action_name = match &action {
+        UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
+            success = if let Some(remote) = &active_remote {
+                crate::modules::remote::rename(remote, new, old).is_ok()
+            } else {
+                std::fs::rename(new, old).is_ok()
+            };
+            "move/rename"
+        }
+        UndoAction::Copy(_src, dest) => {
+            success = if let Some(remote) = &active_remote {
+                crate::modules::remote::remove_path(remote, dest).is_ok()
+            } else if dest.is_dir() {
+                std::fs::remove_dir_all(dest).is_ok()
+            } else {
+                std::fs::remove_file(dest).is_ok()
+            };
+            "copy"
+        }
+        UndoAction::Delete(path) => {
+            success = if let Some(remote) = &active_remote {
+                crate::modules::remote::remove_path(remote, path).is_ok()
+            } else {
+                std::fs::remove_file(path).is_ok()
+            };
+            "delete"
+        }
+    };
+    if success {
+        app.redo_stack.push(action);
+    }
+    let _ = event_tx.try_send(AppEvent::StatusMsg(if success {
+        format!("Undo OK ({})", action_name)
+    } else {
+        format!("Undo failed ({})", action_name)
+    }));
+    let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+    let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+    Some(action_name)
+}
+
+fn execute_redo(
+    app: &mut App,
+    event_tx: &mpsc::Sender<AppEvent>,
+) -> Option<&'static str> {
+    let action = app.redo_stack.pop()?;
+    let active_remote = app
+        .current_file_state()
+        .and_then(|fs| fs.remote_session.clone());
+    let success;
+    let action_name = match &action {
+        UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
+            success = if let Some(remote) = &active_remote {
+                crate::modules::remote::rename(remote, old, new).is_ok()
+            } else {
+                std::fs::rename(old, new).is_ok()
+            };
+            "move/rename"
+        }
+        UndoAction::Copy(src, dest) => {
+            success = if let Some(remote) = &active_remote {
+                crate::modules::remote::copy_recursive(remote, src, dest).is_ok()
+            } else {
+                crate::modules::files::copy_recursive(src, dest).is_ok()
+            };
+            "copy"
+        }
+        UndoAction::Delete(path) => {
+            success = if let Some(remote) = &active_remote {
+                crate::modules::remote::remove_path(remote, path).is_ok()
+            } else {
+                std::fs::remove_file(path).is_ok()
+            };
+            "delete"
+        }
+    };
+    if success {
+        app.undo_stack.push(action);
+    }
+    let _ = event_tx.try_send(AppEvent::StatusMsg(if success {
+        format!("Redo OK ({})", action_name)
+    } else {
+        format!("Redo failed ({})", action_name)
+    }));
+    let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
+    let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+    Some(action_name)
+}
+
 pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
     if let Event::Key(key) = evt {
         let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
