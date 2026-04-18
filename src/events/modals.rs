@@ -454,13 +454,18 @@ fn handle_context_menu_keys(
                     if *action != ContextMenuAction::Separator {
                         let action = action.clone();
                         let target = target.clone();
-                        app.mode = AppMode::Normal;
+                        let prev_mode = app.mode.clone();
                         crate::event_helpers::handle_context_menu_action(
                             &action,
                             &target,
                             app,
                             event_tx.clone(),
                         );
+                        if matches!(prev_mode, AppMode::ContextMenu { .. }) {
+                            if !matches!(app.mode, AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::DeleteFile(_)) {
+                                app.mode = AppMode::Normal;
+                            }
+                        }
                     }
                 }
             }
