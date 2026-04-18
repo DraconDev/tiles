@@ -540,7 +540,10 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
                                 pane.preview = Some(preview.clone());
                             }
-                            if app_guard.current_view == CurrentView::Editor
+                            let is_git_url = path_str.starts_with("git://")
+                                || path_str.starts_with("git-diff://");
+                            if is_git_url
+                                || app_guard.current_view == CurrentView::Editor
                                 || app_guard.current_view == CurrentView::Commit
                             {
                                 app_guard.editor_state = Some(preview);
