@@ -691,16 +691,22 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             .current_file_state()
                             .and_then(|fs| fs.remote_session.clone())
                     };
-                    if let Some(remote) = remote {
-                        let _ = crate::modules::remote::remove_path(&remote, &path);
+                    let result = if let Some(remote) = remote {
+                        crate::modules::remote::remove_path(&remote, &path)
                     } else if path.is_dir() {
-                        let _ = std::fs::remove_dir_all(&path);
+                        std::fs::remove_dir_all(&path)
                     } else {
-                        let _ = std::fs::remove_file(&path);
+                        std::fs::remove_file(&path)
+                    };
+                    let focused = app.lock().unwrap().focused_pane_index;
+                    if let Err(e) = result {
+                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                            "Delete failed: {} - {}",
+                            path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default(),
+                            e
+                        )));
                     }
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(
-                        app.lock().unwrap().focused_pane_index,
-                    ));
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(focused));
                 }
                 AppEvent::Copy(src, dest) => {
                     let tx = event_tx.clone();

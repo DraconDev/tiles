@@ -1,8 +1,10 @@
 # Project State
 
 ## Current Focus
-Refactored test setup in `event_helpers.rs` to use immutable filesystem for empty history test
+Improved file deletion error handling and status messaging
 
 ## Completed
-- [x] Changed `push_history_empty_fs` test to use immutable `fs` instead of mutable
-- [x] Maintained test assertions about history initialization
+- [x] Added error handling for file deletion operations
+- [x] Enhanced status messaging for failed deletions with path and error details
+- [x] Refactored file deletion logic to use consistent error propagation
+```
