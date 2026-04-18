@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Optimized file watch synchronization by adding periodic syncing instead of on every tick
+Optimized rendering by removing unnecessary draw triggers during periodic ticks
 
 ## Completed
-- [x] Added periodic file watch synchronization with 2-second interval
-- [x] Refactored watch sync logic to reduce unnecessary operations
-- [x] Maintained existing functionality while improving performance
+- [x] Removed redundant `needs_draw = true` assignment during periodic ticks to reduce unnecessary rendering
+```
