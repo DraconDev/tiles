@@ -519,10 +519,18 @@ pub fn handle_context_menu_action(
                     .current_file_state()
                     .and_then(|fs| fs.files.get(*idx).cloned());
                 if let Some(path) = path_opt {
-                    let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                        "Compress: {}",
-                        path.display()
-                    )));
+                    let name = path.file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("archive");
+                    let dest = path.parent()
+                        .map(|p| p.join(format!("{}.zip", name)));
+                    if let Some(dest_path) = dest {
+                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                            "Compressing {}...",
+                            path.display()
+                        )));
+                        let _ = event_tx.try_send(AppEvent::Copy(path.clone(), dest_path));
+                    }
                 }
             }
         }
@@ -533,7 +541,7 @@ pub fn handle_context_menu_action(
                     .and_then(|fs| fs.files.get(*idx).cloned());
                 if let Some(path) = path_opt {
                     let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                        "Extract: {}",
+                        "ExtractHere not yet implemented for {}",
                         path.display()
                     )));
                 }
