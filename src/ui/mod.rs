@@ -585,6 +585,22 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         }
     }
 
+    if let Some(pane) = app.panes.get(app.focused_pane_index) {
+        if let Some(preview) = &pane.preview {
+            if let Some(editor) = &preview.editor {
+                let mut editor_clone = editor.clone();
+                editor_clone.wrap = false;
+                editor_clone.show_line_numbers = true;
+                editor_clone.read_only = true;
+                if editor_clone.language.is_empty() {
+                    editor_clone.language = "diff".to_string();
+                }
+                f.render_widget(&editor_clone, content_inner);
+                return;
+            }
+        }
+    }
+
     f.render_widget(
         Paragraph::new("Loading commit...")
             .alignment(Alignment::Center)

@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Added Git URL handling in TTY mode preview system
+Added diff preview rendering in commit view with configurable editor settings
 
 ## Completed
-- [x] Added special handling for `git://` and `git-diff://` URLs in preview system
-- [x] Refactored preview assignment logic to include Git URL check
-```
+- [x] feat(commit view): added diff preview rendering with fixed editor settings (no wrap, line numbers, read-only, and default "diff" language)
+- [x] feat(commit view): implemented conditional rendering of preview editor when available
