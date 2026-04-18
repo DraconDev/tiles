@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+Refactored Git path handling in TTY mode by fixing indentation in variable declarations
 
 ## Completed
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+- [x] Fixed indentation in Git path variable declarations in TTY mode
 ```

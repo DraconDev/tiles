@@ -235,9 +235,6 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         std::collections::HashMap::new();
     let mut last_watch_sync = std::time::Instant::now();
     const WATCH_SYNC_INTERVAL_MS: u64 = 2000;
-    let mut pending_file_changes: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
-    let mut last_file_change_flush = std::time::Instant::now();
-    const FILE_CHANGE_DEBOUNCE_MS: u64 = 100;
 
     loop {
         let mut needs_draw = false;
@@ -354,75 +351,67 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     panes_needing_refresh.insert(pane_idx);
                 }
                 AppEvent::FilesChangedOnDisk(path) => {
-                    // Batch file change events and process them in bulk
-                    pending_file_changes.insert(path.clone());
-                    // Process pending changes if enough time has passed or queue is large
-                    let flush = last_file_change_flush.elapsed() >= Duration::from_millis(FILE_CHANGE_DEBOUNCE_MS)
-                        || pending_file_changes.len() >= 10;
-                    if flush {
-                        last_file_change_flush = std::time::Instant::now();
-                        let paths_to_process: Vec<_> = pending_file_changes.drain().collect();
-                        let app_guard = app.lock().unwrap();
-                        let mut needs_reload = Vec::new();
-                        for path in &paths_to_process {
-                            crate::app::log_debug(&format!("FilesChangedOnDisk: {:?}", path));
-
-                            // Check if this was a self-save by comparing file mtime
-                            if let Some(&saved_mtime) = last_self_save.get(&path) {
-                                if let Ok(meta) = std::fs::metadata(&path) {
-                                    if let Ok(mtime) = meta.modified() {
-                                        if mtime == saved_mtime {
-                                            last_self_save.remove(&path);
-                                            continue;
-                                        }
-                                    }
-                                }
-                                last_self_save.remove(&path);
-                            }
-
-                            for (i, pane) in app_guard.panes.iter().enumerate() {
-                                if let Some(fs) = pane.current_state() {
-                                    let current_path = &fs.current_path;
-                                    let should_refresh = if let Some(parent) = path.parent() {
-                                        parent == current_path.as_path() || path.starts_with(current_path)
-                                    } else {
-                                        path == current_path.as_path() || path.starts_with(current_path)
-                                    };
-
-                                    if should_refresh {
-                                        panes_needing_refresh.insert(i);
-                                    }
-                                }
-                                if let Some(preview) = &pane.preview {
-                                    if preview.path == *path {
-                                        if let Some(editor) = &preview.editor {
-                                            if !editor.modified {
-                                                needs_reload.push((i, path.clone()));
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if let Some(preview) = &app_guard.editor_state {
-                                if preview.path == *path {
-                                    if let Some(editor) = &preview.editor {
-                                        if !editor.modified {
-                                            needs_reload.push((app_guard.focused_pane_index, path.clone()));
-                                        }
-                                    }
+                    crate::app::log_debug(&format!("FilesChangedOnDisk: {:?}", path));
+                    
+                    // Check if this was a self-save by comparing file mtime
+                    if let Some(&saved_mtime) = last_self_save.get(&path) {
+                        if let Ok(meta) = std::fs::metadata(&path) {
+                            if let Ok(mtime) = meta.modified() {
+                                if mtime == saved_mtime {
+                                    last_self_save.remove(&path);
+                                    continue; // Skip refreshing/reloading for our own saves
                                 }
                             }
                         }
-                        drop(app_guard);
-                        for (p_idx, p_path) in needs_reload {
-                            let _ = event_tx.try_send(AppEvent::PreviewRequested(p_idx, p_path));
-                        }
-                        needs_draw = true;
-                    } else {
-                        // Small delay - don't set needs_draw yet, will process on next tick or event
+                        last_self_save.remove(&path);
                     }
-                }
+
+                    let app_guard = app.lock().unwrap();
+                    let mut needs_reload = Vec::new();
+
+                    for (i, pane) in app_guard.panes.iter().enumerate() {
+                        if let Some(fs) = pane.current_state() {
+                            // Check if the changed path is in or under the current directory
+                            let current_path = &fs.current_path;
+                            let should_refresh = if let Some(parent) = path.parent() {
+                                // File changed - check if parent is current dir or path is in current dir
+                                parent == current_path.as_path() || path.starts_with(current_path)
+                            } else {
+                                // Directory changed
+                                path == current_path.as_path() || path.starts_with(current_path)
+                            };
+                            
+                            if should_refresh {
+                                crate::app::log_debug(&format!("Refreshing pane {} for path {:?}", i, path));
+                                panes_needing_refresh.insert(i);
+                            }
+                        }
+                        if let Some(preview) = &pane.preview {
+                            if preview.path == path {
+                                if let Some(editor) = &preview.editor {
+                                    if !editor.modified {
+                                        needs_reload.push((i, path.clone()));
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if let Some(preview) = &app_guard.editor_state {
+                        if preview.path == path {
+                            if let Some(editor) = &preview.editor {
+                                if !editor.modified {
+                                    needs_reload.push((app_guard.focused_pane_index, path.clone()));
+                                }
+                            }
+                        }
+                    }
+
+                    drop(app_guard);
+                    for (p_idx, p_path) in needs_reload {
+                        let _ = event_tx.try_send(AppEvent::PreviewRequested(p_idx, p_path));
+                    }
+                    needs_draw = true;
                 }
                 AppEvent::PreviewRequested(pane_idx, path) => {
                     let tx = event_tx.clone();
@@ -1153,13 +1142,15 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             }
                         }
                     }
+                }
+                let _ = tx.send(AppEvent::Tick).await;
 
-                    let git_path = path.clone();
-                    let git_remote = remote.clone();
-                    let app_for_git = app_clone.clone();
-                    let tx_for_git = tx.clone();
-                    tokio::spawn(async move {
-                        let git_fetch_path = git_path.clone();
+                let git_path = path.clone();
+                let git_remote = remote.clone();
+                let app_for_git = app_clone.clone();
+                let tx_for_git = tx.clone();
+                tokio::spawn(async move {
+                    let git_fetch_path = git_path.clone();
                     let git_data = tokio::task::spawn_blocking(move || {
                         if let Some(session) = &git_remote {
                             crate::modules::remote::fetch_git_data(session, &git_fetch_path)
