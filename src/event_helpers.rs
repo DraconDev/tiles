@@ -579,6 +579,17 @@ pub fn handle_context_menu_action(
                 }
             }
         }
+        ContextMenuAction::OpenWith => {
+            if let ContextMenuTarget::File(idx) = target {
+                let path_opt = app
+                    .current_file_state()
+                    .and_then(|fs| fs.files.get(*idx).cloned());
+                if let Some(path) = path_opt {
+                    app.mode = AppMode::OpenWith(path.clone());
+                    app.input.clear();
+                }
+            }
+        }
         ContextMenuAction::Duplicate => {
             if let ContextMenuTarget::File(idx) = target {
                 let path_opt = app

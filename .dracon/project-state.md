@@ -1,11 +1,11 @@
 # Project State
 
 ## Current Focus
-Added archive extraction functionality for zip, tar, 7z, and rar files with proper status messaging
+Added "Open With" context menu action handler for files
 
 ## Completed
-- [x] Implemented archive extraction for multiple formats (zip, tar, 7z, rar) with appropriate command-line tools
-- [x] Added status messages for extraction progress and unsupported formats
-- [x] Created destination directory based on archive filename
-- [x] Handled error cases for unsupported archive formats
-- [x] Removed placeholder "not yet implemented" message for extract functionality
+- [x] Implemented handler for `ContextMenuAction::OpenWith` that:
+  - Extracts file path from current file state
+  - Switches app mode to `OpenWith` with the file path
+  - Clears input buffer
+```
