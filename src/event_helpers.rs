@@ -568,6 +568,9 @@ pub fn handle_context_menu_action(
                 }
             }
         }
+        ContextMenuAction::SystemMonitor => {
+            let _ = event_tx.try_send(AppEvent::SystemMonitor);
+        }
         _ => {}
     }
 }
