@@ -1,9 +1,10 @@
 # Project State
 
 ## Current Focus
-Added debug logging and UI block rendering for commit view editor state tracking
+Added UI block rendering for commit view with debug logging and visual indicators
 
 ## Completed
-- [x] Added debug logging for editor state in commit view to track preview content
-- [x] Added UI block rendering for commit view layout
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure
+- [x] Added debug logging for editor state in commit view to track preview state
+- [x] Implemented rounded border styling for commit view UI block
+- [x] Added visual title indicators with color-coded escape key hint
+- [x] Updated Cargo.lock to resolve dependency manifest loading issues

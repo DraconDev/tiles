@@ -345,6 +345,30 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         crate::app::log_debug(&format!("draw_commit_view: editor_state is NONE"));
     }
 
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(crate::ui::theme::border_inactive()))
+        .title_top(Line::from(vec![Span::styled(
+            " COMMIT ",
+            Style::default()
+                .fg(Color::Black)
+                .bg(crate::ui::theme::accent_primary())
+                .add_modifier(Modifier::BOLD),
+        )]))
+        .title_top(
+            Line::from(vec![
+                Span::styled(
+                    " Esc ",
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Red)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(" Back to Git ", Style::default().fg(Color::Red)),
+            ])
+            .alignment(Alignment::Right),
+        );
     let inner = block.inner(area);
     f.render_widget(block, area);
 
