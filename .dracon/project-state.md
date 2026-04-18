@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored double-click detection in editor events to use a named constant for better maintainability
+Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
 
 ## Completed
-- [x] Replaced magic number `500` with `DOUBLE_CLICK_MS` constant in mouse event handling
-- [x] Improved code maintainability by using named constants instead of literals
+- [x] Resolved dependency manifest loading failure by updating Cargo.lock
+```
