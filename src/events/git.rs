@@ -32,6 +32,7 @@ pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<App
                         }
                     }
                     if let Some(path) = open_preview {
+                        crate::app::log_debug(&format!("Git Enter: sending PreviewRequested path={}", path.to_string_lossy()));
                         let _ = event_tx
                             .try_send(AppEvent::PreviewRequested(app.focused_pane_index, path));
                         if open_commit_view {
