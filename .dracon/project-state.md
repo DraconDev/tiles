@@ -1,10 +1,8 @@
 # Project State
 
 ## Current Focus
-Enhanced file compression functionality with proper destination path handling
+Improved file watch error handling by adding status message propagation
 
 ## Completed
-- [x] Added destination path generation for compressed archives
-- [x] Improved status messages for compression operations
-- [x] Updated placeholder message for extraction functionality
-- [x] Refactored file path handling in context menu actions
+- [x] Added error message propagation for file watch failures to the application event system
+- [x] Maintained existing file change event handling while adding error case coverage
