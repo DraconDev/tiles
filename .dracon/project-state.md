@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Refactored MPSC channel capacity to use a named constant for better maintainability
+Refactored double-click detection to use a named constant for the timeout duration
 
 ## Completed
-- [x] Replaced hardcoded channel capacity value with `MPSC_CHANNEL_CAPACITY` constant
-- [x] Improved code maintainability by centralizing configuration values
+- [x] Added `DOUBLE_CLICK_MS` constant with value 500ms
+- [x] Updated `is_double_click` to use the constant instead of magic number
+- [x] Improved maintainability by centralizing the timeout configuration
