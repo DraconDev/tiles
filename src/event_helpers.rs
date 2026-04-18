@@ -3,6 +3,7 @@ use crate::app::{
     CurrentView, FileState,
 };
 use base64::Engine;
+use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use tokio::sync::mpsc;
