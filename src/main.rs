@@ -583,6 +583,9 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             if remote_for_save.is_none() {
                                 if let Ok(meta) = std::fs::metadata(&path) {
                                     if let Ok(mtime) = meta.modified() {
+                                        if last_self_save.len() > 100 {
+                                            last_self_save.clear();
+                                        }
                                         last_self_save.insert(path.clone(), mtime);
                                     }
                                 }
