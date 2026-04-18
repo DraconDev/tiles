@@ -1235,7 +1235,7 @@ fn setup_app(
     mpsc::Sender<AppEvent>,
     mpsc::Receiver<AppEvent>,
 ) {
-    let (tx, rx) = mpsc::channel(1000);
+    let (tx, rx) = mpsc::channel(MPSC_CHANNEL_CAPACITY);
     let mut app = App::new(tile_queue);
 
     if let Some(state) = crate::config::load_state() {
