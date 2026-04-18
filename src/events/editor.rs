@@ -1,9 +1,11 @@
 use crate::app::{App, AppEvent, AppMode, CurrentView};
 use dracon_terminal_engine::contracts::{
-    InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+    InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseButton, MouseEvent, MouseEventKind,
 };
 use tokio::sync::mpsc;
 use unicode_width::UnicodeWidthStr;
+
+const DOUBLE_CLICK_MS: u64 = 500;
 
 fn pane_editor_area(app: &App, pane_idx: usize) -> Option<ratatui::layout::Rect> {
     let (w, h) = app.terminal_size;
