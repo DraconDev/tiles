@@ -4,4 +4,5 @@
 Updated dependency versions in Cargo.lock
 
 ## Completed
-- [x] Updated dependency versions in Cargo.lock (binary change)
+- [x] Updated dependency versions in Cargo.lock
+```
