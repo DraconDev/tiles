@@ -1159,7 +1159,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     let app_for_git = app_clone.clone();
                     let tx_for_git = tx.clone();
                     tokio::spawn(async move {
-                    let git_fetch_path = git_path.clone();
+                        let git_fetch_path = git_path.clone();
                     let git_data = tokio::task::spawn_blocking(move || {
                         if let Some(session) = &git_remote {
                             crate::modules::remote::fetch_git_data(session, &git_fetch_path)
