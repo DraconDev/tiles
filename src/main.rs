@@ -251,11 +251,10 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     // Don't set needs_draw on tick - let actual events drive rendering
                 }
                 AppEvent::Raw(raw) => {
-                    let view_mode_changed;
+                    let view_mode_before;
                     {
                         let mut app_guard = app.lock().unwrap();
-                        view_mode_changed = (app_guard.current_view.clone(), app_guard.mode.clone());
-                        let (view_before, mode_before) = view_mode_changed.clone();
+                        view_mode_before = (app_guard.current_view.clone(), app_guard.mode.clone());
                         if handle_event(
                             raw,
                             &mut app_guard,
@@ -264,8 +263,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         ) {
                             needs_draw = true;
                         }
-                        view_mode_changed = (app_guard.current_view.clone(), app_guard.mode.clone());
-                        if app_guard.current_view != view_before || app_guard.mode != mode_before {
+                        if app_guard.current_view != view_mode_before.0 || app_guard.mode != view_mode_before.1 {
                             let _ = terminal.clear();
                         }
                     }
