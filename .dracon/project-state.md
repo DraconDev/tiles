@@ -1,11 +1,10 @@
 # Project State
 
 ## Current Focus
-Added "Open With" context menu action handler for files
+Added "Open With" modal handler for file operations
 
 ## Completed
-- [x] Implemented handler for `ContextMenuAction::OpenWith` that:
-  - Extracts file path from current file state
-  - Switches app mode to `OpenWith` with the file path
-  - Clears input buffer
-```
+- [x] Implemented modal key handling for "Open With" mode
+- [x] Added ESC to cancel and Enter to execute commands
+- [x] Integrated input handling for command entry
+- [x] Updated Cargo.lock for dependency resolution

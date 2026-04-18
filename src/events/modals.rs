@@ -265,6 +265,32 @@ fn handle_modal_keys(
         AppMode::Settings => handle_settings_keys(key, app, event_tx),
         AppMode::Properties => handle_properties_keys(key, app),
         AppMode::Search => handle_search_keys(key, app, event_tx),
+        AppMode::OpenWith(path) => {
+            match key.code {
+                KeyCode::Esc => {
+                    app.mode = AppMode::Normal;
+                    true
+                }
+                KeyCode::Enter => {
+                    if !app.input.value.is_empty() {
+                        let _ = event_tx.try_send(AppEvent::SpawnDetached {
+                            cmd: app.input.value.clone(),
+                            args: vec![path.to_string_lossy().to_string()],
+                        });
+                    }
+                    app.mode = AppMode::Normal;
+                    app.input.clear();
+                    true
+                }
+                _ => {
+                    let res = app.input.handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(evt));
+                    if app.input.value.is_empty() && res {
+                        app.mode = AppMode::Normal;
+                    }
+                    res
+                }
+            }
+        }
         _ => false,
     }
 }
