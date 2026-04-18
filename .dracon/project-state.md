@@ -1,8 +1,7 @@
 # Project State
 
 ## Current Focus
-Removed redundant redraw flag in TTY mode pane update
+Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
 
 ## Completed
-- [x] Removed `needs_draw = true` assignment in TTY mode pane update since it was redundant (the update already triggers a redraw)
-```
+- [x] Updated Cargo.lock to resolve manifest loading failure for dependency `dracon-files`
