@@ -1,10 +1,8 @@
 # Project State
 
 ## Current Focus
-Improved commit view fallback content handling by adding pane preview fallback when editor content is empty
+Fixed indentation in commit view diff line processing to prevent potential runtime errors
 
 ## Completed
-- [x] Added fallback logic to extract commit metadata from pane preview when editor content is empty
-- [x] Maintained existing commit metadata extraction when editor content is available
-- [x] Improved commit view rendering with fallback content handling
-```
+- [x] Fixed indentation in `draw_commit_view` function to properly handle diff line processing
+- [x] Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`

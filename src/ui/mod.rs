@@ -434,6 +434,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
             } else if line.starts_with('-') && !line.starts_with("---") {
                 deletions += 1;
             }
+            }
         }
     }
 
