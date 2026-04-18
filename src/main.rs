@@ -1230,7 +1230,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         ))
                         .await;
                 });
-            });
+            }
         }
 
         if needs_draw {
