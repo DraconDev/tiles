@@ -235,6 +235,9 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         std::collections::HashMap::new();
     let mut last_watch_sync = std::time::Instant::now();
     const WATCH_SYNC_INTERVAL_MS: u64 = 2000;
+    let mut pending_file_changes: std::collections::HashSet<PathBuf> = std::collections::HashSet::new();
+    let mut last_file_change_flush = std::time::Instant::now();
+    const FILE_CHANGE_DEBOUNCE_MS: u64 = 100;
 
     loop {
         let mut needs_draw = false;
