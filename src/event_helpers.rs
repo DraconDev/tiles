@@ -166,14 +166,24 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
             ]);
             actions
         }
-        ContextMenuTarget::SidebarFavorite(_) => vec![
-            ContextMenuAction::Open,
-            ContextMenuAction::OpenNewTab,
-            ContextMenuAction::Separator,
-            ContextMenuAction::RemoveFromFavorites,
-            ContextMenuAction::Separator,
-            ContextMenuAction::Properties,
-        ],
+        ContextMenuTarget::SidebarFavorite(path) => {
+            let mut actions = vec![
+                ContextMenuAction::Open,
+                ContextMenuAction::OpenNewTab,
+                ContextMenuAction::Separator,
+                ContextMenuAction::NewFile,
+                ContextMenuAction::NewFolder,
+                ContextMenuAction::Separator,
+                ContextMenuAction::TerminalTab,
+                ContextMenuAction::TerminalWindow,
+                ContextMenuAction::Separator,
+                ContextMenuAction::RemoveFromFavorites,
+                ContextMenuAction::Separator,
+                ContextMenuAction::Properties,
+            ];
+            let _ = path;
+            actions
+        }
         ContextMenuTarget::EmptySpace => {
             let mut actions = vec![ContextMenuAction::NewFile, ContextMenuAction::NewFolder];
             if app.clipboard.is_some() {
