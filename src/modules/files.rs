@@ -1,7 +1,7 @@
 use crate::app::{CommitInfo, FileMetadata, GitPendingChange};
 use dracon_files::{
     FileCategory as LibFileCategory, FileCopyContract, FileInspectContract, FileSearchContract,
-    FsCatalog,
+    FileSuitabilityContract, FsCatalog,
 };
 use dracon_git::{CliGitSnapshotProvider, GitPreviewContract, GitSnapshotContract};
 use std::collections::HashMap;
@@ -20,7 +20,7 @@ type GitData = (
     Vec<String>,
 );
 
-fn map_metadata(meta: dracon_files::contracts::EntryMetadata) -> FileMetadata {
+fn map_metadata(meta: dracon_files::EntryMetadata) -> FileMetadata {
     FileMetadata {
         size: meta.size,
         modified: meta.modified,

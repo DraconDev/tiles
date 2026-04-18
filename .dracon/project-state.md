@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Updated dependency versions in Cargo.lock
+Refactored file metadata mapping to use direct `EntryMetadata` type from `dracon-files`
 
 ## Completed
-- [x] Updated dependency versions in Cargo.lock
-```
+- [x] Updated file metadata mapping to use `dracon_files::EntryMetadata` instead of nested `contracts::EntryMetadata`
+- [x] Removed unused `FileSuitabilityContract` import from `dracon_files` module
