@@ -1026,7 +1026,7 @@ mod tests {
 
     #[test]
     fn push_history_empty_fs() {
-        let mut fs = make_fs("/root");
+        let fs = make_fs("/root");
         assert_eq!(fs.history.len(), 1); // initialized with current_path
         assert_eq!(fs.history[0], PathBuf::from("/root"));
     }

@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+Refactored test setup in `event_helpers.rs` to use immutable filesystem for empty history test
 
 ## Completed
-- [x] Resolved dependency manifest loading failure by updating Cargo.lock
-```
+- [x] Changed `push_history_empty_fs` test to use immutable `fs` instead of mutable
+- [x] Maintained test assertions about history initialization
