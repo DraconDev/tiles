@@ -165,11 +165,21 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
         if let Some(preview) = &app.editor_state {
             if let Some(editor) = &preview.editor {
-                // Ensure wrap is handled
                 let mut editor_clone = editor.clone();
                 editor_clone.wrap = app.is_split_mode;
                 f.render_widget(&editor_clone, inner_area);
             }
+        }
+
+        if matches!(app.mode, AppMode::EditorSearch | AppMode::EditorGoToLine | AppMode::EditorReplace) {
+            let footer_height = 2;
+            let footer_area = Rect::new(
+                f.area().x,
+                f.area().height.saturating_sub(footer_height),
+                f.area().width,
+                footer_height,
+            );
+            draw_footer(f, footer_area, app);
         }
     } else if matches!(
         app.mode,

@@ -1,7 +1,9 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+Added editor footer for search/replace/goto-line modes and improved editor wrap handling
 
 ## Completed
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+- [x] Added footer rendering for editor search/replace/goto-line modes
+- [x] Improved editor wrap handling by conditionally applying split mode wrapping
+- [x] Refactored editor rendering logic to handle different app modes properly
