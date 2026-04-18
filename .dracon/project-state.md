@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Added a check to clear the `last_self_save` cache when it exceeds 100 entries to prevent memory bloat.
+Removed redundant redraw flag in TTY mode pane update
 
 ## Completed
-- [x] Added size limit to `last_self_save` cache to prevent memory growth
-- [x] Implemented cache clearing when size exceeds 100 entries
+- [x] Removed `needs_draw = true` assignment in TTY mode pane update since it was redundant (the update already triggers a redraw)
+```
