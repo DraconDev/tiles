@@ -1,8 +1,12 @@
 # Project State
 
 ## Current Focus
-Updated dependency versions in Cargo.toml to resolve a failed manifest for dependency `dracon-files`
+Enhanced undo/redo functionality with proper file operation handling for rename, copy, and delete actions
 
 ## Completed
-- [x] Updated dependency versions in Cargo.toml to resolve a failed manifest for dependency `dracon-files`
+- [x] Fixed incorrect parameter order in rename operations (was `old, new`, now `new, old`)
+- [x] Added proper delete action handling in undo/redo operations
+- [x] Consolidated duplicate undo/redo logic into a single implementation
+- [x] Updated keyboard shortcuts for undo/redo operations (Ctrl+Y and Ctrl+Shift+Z)
+- [x] Improved status message formatting for undo/redo operations
 ```
