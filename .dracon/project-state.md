@@ -1,7 +1,11 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+Improved logging and preview handling in the commit view UI
 
 ## Completed
-- [x] Updated dependency lockfile to fix manifest loading issue for `dracon-files` package
+- [x] Enhanced debug logging to track editor state and preview content
+- [x] Added content length tracking for preview pane
+- [x] Simplified commit view UI by removing redundant border styling
+- [x] Added content preview fallback from pane when editor is empty
+- [x] Improved logging of preview content with first 100 characters
