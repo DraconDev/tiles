@@ -1,10 +1,9 @@
 # Project State
 
 ## Current Focus
-Refactored undo/redo functionality for file operations with remote support
+Refactored path resolution in event helpers to handle normalization for local paths while preserving remote paths
 
 ## Completed
-- [x] Extracted undo/redo logic into separate `execute_undo` and `execute_redo` functions
-- [x] Simplified keybinding handlers by delegating to the new functions
-- [x] Maintained all existing functionality while improving code organization
-```
+- [x] Added path normalization for local paths in `resolve_path_input` function
+- [x] Preserved original path behavior for remote paths
+- [x] Maintained backward compatibility with existing path resolution logic
