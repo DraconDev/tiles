@@ -301,57 +301,12 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                 KeyCode::Char('z')
                     if has_control && !key.modifiers.contains(KeyModifiers::SHIFT) =>
                 {
-                    if let Some(action) = app.undo_stack.pop() {
-                        let active_remote = app
-                            .current_file_state()
-                            .and_then(|fs| fs.remote_session.clone());
-                        let success;
-                        let action_name = match action.clone() {
-                            UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                success = if let Some(remote) = &active_remote {
-                                    crate::modules::remote::rename(remote, &new, &old).is_ok()
-                                } else {
-                                    std::fs::rename(&new, &old).is_ok()
-                                };
-                                "move/rename"
+                    if execute_undo(app, event_tx).is_none() {
+                        if let Some(fs) = app.current_file_state_mut() {
+                            if !fs.search_filter.is_empty() {
+                                fs.search_filter.clear();
+                                let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             }
-                            UndoAction::Copy(_src, dest) => {
-                                success = if let Some(remote) = &active_remote {
-                                    crate::modules::remote::remove_path(remote, &dest).is_ok()
-                                } else {
-                                    if dest.is_dir() {
-                                        std::fs::remove_dir_all(&dest)
-                                    } else {
-                                        std::fs::remove_file(&dest)
-                                    }
-                                    .is_ok()
-                                };
-                                "copy"
-                            }
-                            UndoAction::Delete(path) => {
-                                success = if let Some(remote) = &active_remote {
-                                    crate::modules::remote::remove_path(remote, &path).is_ok()
-                                } else {
-                                    std::fs::remove_file(&path).is_ok()
-                                };
-                                "delete"
-                            }
-                        };
-                        if success {
-                            app.redo_stack.push(action);
-                        }
-                        let _ = event_tx.try_send(AppEvent::StatusMsg(if success {
-                            format!("Undo OK ({})", action_name)
-                        } else {
-                            format!("Undo failed ({})", action_name)
-                        }));
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
-                    } else if let Some(fs) = app.current_file_state_mut() {
-                        if !fs.search_filter.is_empty() {
-                            fs.search_filter.clear();
-                            let _ =
-                                event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                         }
                     }
                     return true;
@@ -359,95 +314,11 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                 KeyCode::Char('y') | KeyCode::Char('Z')
                     if has_control && key.modifiers.contains(KeyModifiers::SHIFT) =>
                 {
-                    if let Some(action) = app.redo_stack.pop() {
-                        let active_remote = app
-                            .current_file_state()
-                            .and_then(|fs| fs.remote_session.clone());
-                        let success;
-                        let action_name = match action.clone() {
-                            UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                success = if let Some(remote) = &active_remote {
-                                    crate::modules::remote::rename(remote, &old, &new).is_ok()
-                                } else {
-                                    std::fs::rename(&old, &new).is_ok()
-                                };
-                                "move/rename"
-                            }
-                            UndoAction::Copy(src, dest) => {
-                                success = if let Some(remote) = &active_remote {
-                                    crate::modules::remote::copy_recursive(remote, &src, &dest)
-                                        .is_ok()
-                                } else {
-                                    crate::modules::files::copy_recursive(&src, &dest).is_ok()
-                                };
-                                "copy"
-                            }
-                            UndoAction::Delete(path) => {
-                                success = if let Some(remote) = &active_remote {
-                                    crate::modules::remote::remove_path(remote, &path).is_ok()
-                                } else {
-                                    std::fs::remove_file(&path).is_ok()
-                                };
-                                "delete"
-                            }
-                        };
-                        if success {
-                            app.undo_stack.push(action);
-                        }
-                        let _ = event_tx.try_send(AppEvent::StatusMsg(if success {
-                            format!("Redo OK ({})", action_name)
-                        } else {
-                            format!("Redo failed ({})", action_name)
-                        }));
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
-                    }
+                    execute_redo(app, event_tx);
                     return true;
                 }
                 KeyCode::Char('Z') if has_control && !key.modifiers.contains(KeyModifiers::SHIFT) => {
-                    if let Some(action) = app.redo_stack.pop() {
-                        let active_remote = app
-                            .current_file_state()
-                            .and_then(|fs| fs.remote_session.clone());
-                        let success;
-                        let action_name = match action.clone() {
-                            UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
-                                success = if let Some(remote) = &active_remote {
-                                    crate::modules::remote::rename(remote, &old, &new).is_ok()
-                                } else {
-                                    std::fs::rename(&old, &new).is_ok()
-                                };
-                                "move/rename"
-                            }
-                            UndoAction::Copy(src, dest) => {
-                                success = if let Some(remote) = &active_remote {
-                                    crate::modules::remote::copy_recursive(remote, &src, &dest)
-                                        .is_ok()
-                                } else {
-                                    crate::modules::files::copy_recursive(&src, &dest).is_ok()
-                                };
-                                "copy"
-                            }
-                            UndoAction::Delete(path) => {
-                                success = if let Some(remote) = &active_remote {
-                                    crate::modules::remote::remove_path(remote, &path).is_ok()
-                                } else {
-                                    std::fs::remove_file(&path).is_ok()
-                                };
-                                "delete"
-                            }
-                        };
-                        if success {
-                            app.undo_stack.push(action);
-                        }
-                        let _ = event_tx.try_send(AppEvent::StatusMsg(if success {
-                            format!("Redo OK ({})", action_name)
-                        } else {
-                            format!("Redo failed ({})", action_name)
-                        }));
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
-                    }
+                    execute_redo(app, event_tx);
                     return true;
                 }
                 KeyCode::Char('f') if has_control => {
