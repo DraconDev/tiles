@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+Fixed indentation in TTY mode variable declaration to resolve runtime error
 
 ## Completed
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
-```
+- [x] Fixed indentation in `run_tty` function to properly scope variable declaration
+- [x] Resolved potential runtime error from incorrect variable scoping
