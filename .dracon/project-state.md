@@ -1,7 +1,9 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+Refactored view/mode change handling in TTY mode to improve clarity and maintainability
 
 ## Completed
-- [x] Updated dependency resolution in Cargo.lock to fix manifest loading failure for the `dracon-files` dependency
+- [x] Restructured view/mode change detection to use a single scope for both before/after states
+- [x] Maintained terminal clearing behavior when view or mode changes
+- [x] Improved code organization by reducing nested locking operations
