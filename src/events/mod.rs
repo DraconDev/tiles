@@ -185,6 +185,14 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
         app.input.clear();
         app.input_shield_until =
             Some(std::time::Instant::now() + std::time::Duration::from_millis(60));
+        for pane in &mut app.panes {
+            if let Some(preview) = &pane.preview {
+                let p = preview.path.to_string_lossy();
+                if p.starts_with("git://") || p.starts_with("git-diff://") {
+                    pane.preview = None;
+                }
+            }
+        }
         return true;
     }
 

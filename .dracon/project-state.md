@@ -1,8 +1,7 @@
 # Project State
 
 ## Current Focus
-Added diff preview rendering in commit view with configurable editor settings
+Added handling to clear Git-related previews when Escape key is pressed
 
 ## Completed
-- [x] feat(commit view): added diff preview rendering with fixed editor settings (no wrap, line numbers, read-only, and default "diff" language)
-- [x] feat(commit view): implemented conditional rendering of preview editor when available
+- [x] feat(preview): Clear Git-related previews (git:// and git-diff://) when Escape key is pressed to prevent stale content in preview panes
