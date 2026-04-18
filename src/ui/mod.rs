@@ -344,6 +344,10 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     if app.editor_state.is_none() {
         crate::app::log_debug(&format!("draw_commit_view: editor_state is NONE"));
     }
+
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
     if let Some(preview) = &app.editor_state {
         crate::app::log_debug(&format!("draw_commit_view: editor_state content first 100: '{}'", preview.content.chars().take(100).collect::<String>()));
         if preview.content.is_empty() {

@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Added debug logging for editor state in commit view to track preview content and empty state
+Added debug logging and UI block rendering for commit view editor state tracking
 
 ## Completed
-- [x] Added debug log when editor_state is None in commit view
-- [x] Added debug log for first 100 characters of editor_state content
+- [x] Added debug logging for editor state in commit view to track preview content
+- [x] Added UI block rendering for commit view layout
 - [x] Updated Cargo.lock to resolve dependency manifest loading failure
