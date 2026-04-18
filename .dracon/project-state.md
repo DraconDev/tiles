@@ -1,7 +1,7 @@
 # Project State
 
 ## Current Focus
-Refactored file path handling in context menu actions to use direct `OsStr` import
+Updated dependency versions in Cargo.lock
 
 ## Completed
-- [x] Refactored file path fallback from `std::ffi::OsStr::new("root")` to direct `OsStr::new("root")` for consistency with existing imports
+- [x] Updated dependency versions in Cargo.lock (binary change)
