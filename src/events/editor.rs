@@ -1,6 +1,6 @@
 use crate::app::{App, AppEvent, AppMode, CurrentView};
 use dracon_terminal_engine::contracts::{
-    InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseButton, MouseEvent, MouseEventKind,
+    InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 use tokio::sync::mpsc;
 use unicode_width::UnicodeWidthStr;
@@ -306,7 +306,7 @@ fn handle_text_editor_mouse(
     match me.kind {
         MouseEventKind::Down(MouseButton::Left) => {
             let now = std::time::Instant::now();
-            if now.duration_since(*mouse_last_click) < std::time::Duration::from_millis(500)
+            if now.duration_since(*mouse_last_click) < std::time::Duration::from_millis(DOUBLE_CLICK_MS)
                 && *mouse_click_pos == (me.column, me.row)
             {
                 *mouse_click_count += 1;

@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored double-click detection in editor events by adding a named constant for the timeout duration
+Refactored double-click detection in editor events to use a named constant for better maintainability
 
 ## Completed
-- [x] Added `DOUBLE_CLICK_MS` constant to standardize double-click detection timeout
-- [x] Removed duplicate `MouseButton` import in editor event handling
+- [x] Replaced magic number `500` with `DOUBLE_CLICK_MS` constant in mouse event handling
+- [x] Improved code maintainability by using named constants instead of literals
