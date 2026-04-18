@@ -843,7 +843,14 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     stashes,
                 ) => {
                     let mut app_guard = app.lock().unwrap();
-                    if let Some(pane) = app_guard.panes.get_mut(p_idx) {
+                    if p_idx >= app_guard.panes.len() {
+                        crate::app::log_debug(&format!(
+                            "GitHistoryUpdated: pane_idx {} out of bounds (panes: {})",
+                            p_idx,
+                            app_guard.panes.len()
+                        ));
+                        needs_draw = true;
+                    } else if let Some(pane) = app_guard.panes.get_mut(p_idx) {
                         // Store git data in the specified tab, or active tab as fallback
                         let tab_idx = if t_idx < pane.tabs.len() { t_idx } else { pane.active_tab_index };
                         if let Some(fs) = pane.tabs.get_mut(tab_idx) {
