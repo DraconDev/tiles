@@ -341,9 +341,11 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         app.panes.get(app.focused_pane_index).map(|p| p.preview.as_ref().map(|pr| pr.content.len()).unwrap_or(0)).unwrap_or(0),
         app.panes.get(app.focused_pane_index).and_then(|p| p.preview.as_ref()).map(|p| p.content.chars().take(50).collect::<String>()).unwrap_or_default()));
 
+    if app.editor_state.is_none() {
+        crate::app::log_debug(&format!("draw_commit_view: editor_state is NONE"));
+    }
     if let Some(preview) = &app.editor_state {
         crate::app::log_debug(&format!("draw_commit_view: editor_state content first 100: '{}'", preview.content.chars().take(100).collect::<String>()));
-        if preview.content.is_empty() {
         if preview.content.is_empty() {
             // Try to get content from pane preview as fallback
             if let Some(pane) = app.panes.get(app.focused_pane_index) {
