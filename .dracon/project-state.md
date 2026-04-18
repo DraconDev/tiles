@@ -1,7 +1,10 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+Improved commit view fallback content handling by adding pane preview fallback when editor content is empty
 
 ## Completed
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+- [x] Added fallback logic to extract commit metadata from pane preview when editor content is empty
+- [x] Maintained existing commit metadata extraction when editor content is available
+- [x] Improved commit view rendering with fallback content handling
+```
