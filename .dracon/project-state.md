@@ -1,8 +1,7 @@
 # Project State
 
 ## Current Focus
-Added system monitor context menu action handler
+Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
 
 ## Completed
-- [x] Added handling for `SystemMonitor` context menu action to send `AppEvent::SystemMonitor`
-```
+- [x] Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
