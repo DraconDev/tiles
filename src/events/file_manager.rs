@@ -205,7 +205,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         let active_remote = app
                             .current_file_state()
                             .and_then(|fs| fs.remote_session.clone());
-                        let mut success = true;
+                        let success;
                         let action_name = match action.clone() {
                             UndoAction::Rename(old, new) | UndoAction::Move(old, new) => {
                                 success = if let Some(remote) = &active_remote {
