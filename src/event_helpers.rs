@@ -167,8 +167,8 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
             ]);
             actions
         }
-        ContextMenuTarget::SidebarFavorite(path) => {
-            let mut actions = vec![
+        ContextMenuTarget::SidebarFavorite(_path) => {
+            let actions = vec![
                 ContextMenuAction::Open,
                 ContextMenuAction::OpenNewTab,
                 ContextMenuAction::Separator,

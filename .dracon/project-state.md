@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored file metadata mapping to use direct `EntryMetadata` type from `dracon-files`
+Refactored sidebar favorite context menu actions to remove unused path variable
 
 ## Completed
-- [x] Updated file metadata mapping to use `dracon_files::EntryMetadata` instead of nested `contracts::EntryMetadata`
-- [x] Removed unused `FileSuitabilityContract` import from `dracon_files` module
+- [x] Removed unused `path` variable in sidebar favorite context menu action generation
+- [x] Simplified context menu action creation for sidebar favorites by ignoring the path parameter
