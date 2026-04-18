@@ -233,6 +233,8 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
     let mut panes_needing_refresh = std::collections::HashSet::new();
     let mut last_self_save: std::collections::HashMap<PathBuf, std::time::SystemTime> =
         std::collections::HashMap::new();
+    let mut last_watch_sync = std::time::Instant::now();
+    const WATCH_SYNC_INTERVAL_MS: u64 = 2000;
 
     loop {
         let mut needs_draw = false;
@@ -240,9 +242,12 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         while let Ok(event) = event_rx.try_recv() {
             match event {
                 AppEvent::Tick => {
-                    // Periodically sync file watches with current paths
-                    let app_guard = app.lock().unwrap();
-                    sync_watches(&app_guard, &mut debouncer);
+                    // Only sync file watches periodically, not on every tick
+                    if last_watch_sync.elapsed() >= Duration::from_millis(WATCH_SYNC_INTERVAL_MS) {
+                        let app_guard = app.lock().unwrap();
+                        sync_watches(&app_guard, &mut debouncer);
+                        last_watch_sync = std::time::Instant::now();
+                    }
                     needs_draw = true;
                 }
                 AppEvent::Raw(raw) => {
