@@ -379,6 +379,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
             if let Some(pane) = app.panes.get(app.focused_pane_index) {
                 if let Some(p) = pane.preview.as_ref() {
                     if !p.content.is_empty() {
+                        crate::app::log_debug(&format!("draw_commit_view: fallback to pane.preview content first 100: '{}'", p.content.chars().take(100).collect::<String>()));
                         let mut temp_hash = String::new();
                         let mut temp_author = String::new();
                         let mut temp_date = String::new();
