@@ -437,11 +437,16 @@ pub fn handle_context_menu_action(
                         }
                     }
                 }
-                ContextMenuTarget::ProjectTree(path) => {
+                ContextMenuTarget::ProjectTree(path) | ContextMenuTarget::SidebarFavorite(path) => {
                     if path.is_dir() {
                         target_dir = Some(path.clone());
                     } else {
                         target_dir = path.parent().map(|pp| pp.to_path_buf());
+                    }
+                }
+                ContextMenuTarget::SidebarRemote(idx) => {
+                    if let Some(bookmark) = app.remote_bookmarks.get(*idx) {
+                        target_dir = Some(bookmark.last_path.clone());
                     }
                 }
                 ContextMenuTarget::EmptySpace => {}
