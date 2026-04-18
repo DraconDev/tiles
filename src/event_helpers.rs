@@ -851,14 +851,14 @@ fn resolve_path_input(input: &str, current_path: &std::path::Path, remote: bool)
     let typed = PathBuf::from(trimmed);
     if typed.is_absolute() {
         if !remote {
-            typed.normalize().unwrap_or(typed)
+            std::fs::canonicalize(&typed).unwrap_or(typed)
         } else {
             typed
         }
     } else {
         let joined = current_path.join(&typed);
         if !remote {
-            joined.normalize().unwrap_or(joined)
+            std::fs::canonicalize(&joined).unwrap_or(joined)
         } else {
             joined
         }

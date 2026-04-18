@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored path resolution in event helpers to handle normalization for local paths while preserving remote paths
+Refactored path resolution in event helpers to use `std::fs::canonicalize` instead of `normalize` for better filesystem path handling
 
 ## Completed
-- [x] Added path normalization for local paths in `resolve_path_input` function
-- [x] Preserved original path behavior for remote paths
-- [x] Maintained backward compatibility with existing path resolution logic
+- [x] Replaced `normalize()` with `std::fs::canonicalize()` in path resolution for both absolute and relative paths
+- [x] Maintained backward compatibility by falling back to original path on canonicalization failure
