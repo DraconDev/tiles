@@ -1,12 +1,8 @@
 # Project State
 
 ## Current Focus
-Optimized file change handling with debouncing to reduce redundant refresh operations
+Refactored Git path handling in TTY mode by fixing indentation in variable declaration
 
 ## Completed
-- [x] Implemented file change debouncing with 10ms delay or queue size threshold
-- [x] Batch-processed file change events to minimize UI refreshes
-- [x] Maintained self-save detection logic while improving performance
-- [x] Preserved all existing file change detection logic for directory contents
-- [x] Updated Cargo.lock to resolve dependency manifest loading issues
+- [x] Fixed indentation of `git_remote` variable declaration in TTY mode
 ```

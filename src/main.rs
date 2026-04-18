@@ -1155,7 +1155,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     }
 
                     let git_path = path.clone();
-                let git_remote = remote.clone();
+                    let git_remote = remote.clone();
                 let app_for_git = app_clone.clone();
                 let tx_for_git = tx.clone();
                 tokio::spawn(async move {
