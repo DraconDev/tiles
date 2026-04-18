@@ -540,10 +540,42 @@ pub fn handle_context_menu_action(
                     .current_file_state()
                     .and_then(|fs| fs.files.get(*idx).cloned());
                 if let Some(path) = path_opt {
-                    let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                        "ExtractHere not yet implemented for {}",
-                        path.display()
-                    )));
+                    if let Some(parent) = path.parent() {
+                        let dest_dir = parent.join(
+                            path.file_stem()
+                                .and_then(|s| s.to_str())
+                                .unwrap_or("extracted")
+                        );
+                        let ext = path.extension()
+                            .and_then(|e| e.to_str())
+                            .unwrap_or("")
+                            .to_lowercase();
+                        let cmd = match ext.as_str() {
+                            "zip" => Some(("unzip".to_string(), vec!["-o".to_string(), path.to_string_lossy().to_string(), "-d".to_string(), dest_dir.to_string_lossy().to_string()])),
+                            "tar" | "gz" | "tgz" | "tar.gz" | "tar.bz2" | "tar.xz" | "txz" => {
+                                Some(("tar".to_string(), vec!["xf".to_string(), path.to_string_lossy().to_string(), "-C".to_string(), dest_dir.to_string_lossy().to_string()]))
+                            }
+                            "7z" => Some(("7z".to_string(), vec!["x".to_string(), path.to_string_lossy().to_string(), "-o".to_string(), dest_dir.to_string_lossy().to_string()])),
+                            "rar" => Some(("unrar".to_string(), vec!["x".to_string(), "-o+".to_string(), path.to_string_lossy().to_string(), dest_dir.to_string_lossy().to_string()])),
+                            _ => None,
+                        };
+                        if let Some((cmd_name, args)) = cmd {
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                "Extracting {} to {}...",
+                                path.file_name().map(|n| n.to_string_lossy()).unwrap_or_default(),
+                                dest_dir.file_name().map(|n| n.to_string_lossy()).unwrap_or_default()
+                            )));
+                            let _ = event_tx.try_send(AppEvent::SpawnDetached {
+                                cmd: cmd_name,
+                                args
+                            });
+                        } else {
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                "Unsupported archive format: .{}",
+                                ext
+                            )));
+                        }
+                    }
                 }
             }
         }
