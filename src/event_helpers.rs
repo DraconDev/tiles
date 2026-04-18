@@ -499,7 +499,7 @@ pub fn handle_context_menu_action(
                 if let Some(dest_dir) = target_dir {
                     let dest = dest_dir.join(
                         src.file_name()
-                            .unwrap_or_else(|| std::ffi::OsStr::new("root")),
+                            .unwrap_or_else(|| OsStr::new("root")),
                     );
                     match op {
                         crate::app::ClipboardOp::Copy => {
