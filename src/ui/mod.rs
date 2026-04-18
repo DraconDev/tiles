@@ -315,6 +315,31 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         area,
     );
 
+    let (
+        mut commit_hash,
+        mut author,
+        mut date,
+        mut subject,
+        mut files_changed,
+        mut additions,
+        mut deletions,
+        mut hunks,
+    ) = (
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        0usize,
+        0usize,
+        0usize,
+        0usize,
+    );
+    let mut touched_files: Vec<String> = Vec::new();
+
+    crate::app::log_debug(&format!("draw_commit_view: editor_state.is_some()={}, pane.preview.is_some()={}",
+        app.editor_state.is_some(),
+        app.panes.get(app.focused_pane_index).map(|p| p.preview.is_some()).unwrap_or(false)));
+
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -341,27 +366,6 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         );
     let inner = block.inner(area);
     f.render_widget(block, area);
-
-    let (
-        mut commit_hash,
-        mut author,
-        mut date,
-        mut subject,
-        mut files_changed,
-        mut additions,
-        mut deletions,
-        mut hunks,
-    ) = (
-        String::new(),
-        String::new(),
-        String::new(),
-        String::new(),
-        0usize,
-        0usize,
-        0usize,
-        0usize,
-    );
-    let mut touched_files: Vec<String> = Vec::new();
 
     if let Some(preview) = &app.editor_state {
         if preview.content.is_empty() {
