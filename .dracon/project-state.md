@@ -1,8 +1,10 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+Improved context menu action handling with mode preservation logic
 
 ## Completed
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
-```
+- [x] Added mode preservation logic for context menu actions to prevent unnecessary mode resets
+- [x] Maintained previous mode when action doesn't change it
+- [x] Preserved new mode when action transitions from context menu to another mode (like NewFile/NewFolder)
+- [x] Reset to Normal mode only when appropriate after context menu actions

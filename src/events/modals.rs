@@ -1311,13 +1311,20 @@ pub fn handle_modal_mouse(
                     if row > dy && row < dy + mh - 1 {
                         if let Some(action) = actions.get(rel_y as usize) {
                             if *action != ContextMenuAction::Separator {
+                                let prev_mode = app.mode.clone();
                                 crate::event_helpers::handle_context_menu_action(
                                     action,
                                     target,
                                     app,
                                     event_tx.clone(),
                                 );
-                                app.mode = AppMode::Normal;
+                                if matches!(app.mode, AppMode::Normal) {
+                                    // Menu was closed, check if action changed mode
+                                } else if matches!(prev_mode, AppMode::ContextMenu { .. }) {
+                                    // Action changed mode (like NewFile/NewFolder), keep it
+                                } else {
+                                    app.mode = AppMode::Normal;
+                                }
                             }
                         }
                     }
