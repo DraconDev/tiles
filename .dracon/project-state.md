@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Improved file watch error handling by adding status message propagation
+Refactored file watcher configuration constants for better maintainability
 
 ## Completed
-- [x] Added error message propagation for file watch failures to the application event system
-- [x] Maintained existing file change event handling while adding error case coverage
+- [x] Extracted file watch debounce duration as constant `FILE_WATCH_DEBOUNCE_MS`
+- [x] Extracted channel capacity as constant `MPSC_CHANNEL_CAPACITY`
+- [x] Replaced magic numbers with named constants for improved code readability

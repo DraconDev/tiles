@@ -12,6 +12,9 @@ use dracon_terminal_engine::integration::ratatui::RatatuiBackend as EngineBacken
 // Ratatui Imports
 use ratatui::Terminal;
 
+const FILE_WATCH_DEBOUNCE_MS: u64 = 200;
+const MPSC_CHANNEL_CAPACITY: usize = 1000;
+
 use crate::app::{App, AppEvent, CurrentView, PreviewState};
 mod app;
 mod config;
@@ -60,7 +63,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
     // Watcher Setup
     let tx_clone = event_tx.clone();
     let mut debouncer = notify_debouncer_mini::new_debouncer(
-        Duration::from_millis(200),
+        Duration::from_millis(FILE_WATCH_DEBOUNCE_MS),
         move |res: notify_debouncer_mini::DebounceEventResult| {
             match res {
                 Ok(events) => {
