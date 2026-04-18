@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Fixed indentation in TTY mode variable declaration to resolve runtime issues
+Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 
 ## Completed
-- [x] Fixed indentation in TTY mode variable declaration to resolve runtime issues
+- [x] chore(docs): Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 ```
