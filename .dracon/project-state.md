@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored view/mode change handling in TTY mode to improve clarity and maintainability
+Refactored file change event handling in TTY mode to use non-blocking message sending
 
 ## Completed
-- [x] Restructured view/mode change detection to use a single scope for both before/after states
-- [x] Maintained terminal clearing behavior when view or mode changes
-- [x] Improved code organization by reducing nested locking operations
+- [x] Changed from `blocking_send` to `try_send` for file change events to prevent potential deadlocks
+- [x] Updated error handling to use non-blocking message sending for file watch errors

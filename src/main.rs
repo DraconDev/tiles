@@ -69,12 +69,12 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 Ok(events) => {
                     for event in events {
                         crate::app::log_debug(&format!("File watch event: {:?}", event));
-                        let _ = tx_clone.blocking_send(AppEvent::FilesChangedOnDisk(event.path));
+                        let _ = tx_clone.try_send(AppEvent::FilesChangedOnDisk(event.path));
                     }
                 }
                 Err(e) => {
                     crate::app::log_debug(&format!("File watch error: {:?}", e));
-                    let _ = tx_clone.blocking_send(AppEvent::StatusMsg(format!(
+                    let _ = tx_clone.try_send(AppEvent::StatusMsg(format!(
                         "File watch error: {}",
                         e
                     )));
