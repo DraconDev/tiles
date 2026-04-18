@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Improved context menu action handling with mode preservation logic
+Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 
 ## Completed
-- [x] Preserved previous application mode when handling context menu actions
-- [x] Added conditional mode reset to Normal only when exiting ContextMenu mode
-- [x] Maintained special modes (NewFile, NewFolder, etc.) during context menu operations
+- [x] Resolved dependency manifest loading failure for dracon-files by updating Cargo.lock
+```
