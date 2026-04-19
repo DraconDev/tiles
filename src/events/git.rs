@@ -101,6 +101,8 @@ pub fn handle_git_mouse(
             let history_area_y = inner_y + top_h;
             let table_data_start_y = history_area_y + 3;
 
+            eprintln!("DEBUG Git mouse: row={}, history_area_y={}, table_data_start_y={}, top_h={}", 
+                row, history_area_y, table_data_start_y, top_h);
             if row >= table_data_start_y {
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                     if let Some(tab) = pane.tabs.get_mut(pane.active_tab_index) {
