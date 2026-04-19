@@ -77,6 +77,12 @@ pub fn handle_git_mouse(
 
             eprintln!("DEBUG Git mouse: row={}, pending_len={}, top_h={}, inner_y={}, active_data_start_y={}",
                 row, pending_len, top_h, inner_y, active_data_start_y);
+
+            // History section calculation
+            let history_area_y = inner_y + top_h;
+            let table_data_start_y = history_area_y + 2;  // 1 header row + 1 bottom margin = 2
+            eprintln!("DEBUG Git mouse: history_area_y={}, table_data_start_y={}", history_area_y, table_data_start_y);
+
             if row >= table_data_start_y {
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                     if let Some(tab) = pane.tabs.get_mut(pane.active_tab_index) {
