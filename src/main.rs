@@ -434,24 +434,20 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
 
                     tokio::spawn(async move {
                         let path_str = path.to_string_lossy();
-                        crate::app::log_debug(&format!("PreviewRequested: path_str={}", path_str));
                         let content = if let Some(hash) = path_str.strip_prefix("git://") {
-                            crate::app::log_debug(&format!("Fetching git commit: hash={}", hash));
-                            if let Some(remote) = &remote_session {
-                                match crate::modules::remote::show_commit_patch(
-                                    remote,
-                                    &current_dir,
-                                    hash,
-                                ) {
-                                    Ok(content) => {
-                                        crate::app::log_debug(&format!("Got commit content: {} bytes, first 100 chars: {}", content.len(), &content.chars().take(100).collect::<String>()));
-                                        content
-                                    },
-                                    Err(e) => {
-                                        crate::app::log_debug(&format!("Error fetching commit data: {}", e));
-                                        format!("Error fetching commit data: {}", e)
-                                    },
-                                }
+                            let result = crate::modules::files::show_commit_patch(&current_dir, hash);
+                            match result {
+                                Ok(content) => {
+                                    eprintln!("DEBUG: Got commit content: {} bytes, first 200 chars: '{}'", 
+                                        content.len(), content.chars().take(200).collect::<String>());
+                                    content
+                                },
+                                Err(e) => {
+                                    eprintln!("DEBUG: Error fetching commit data: {}", e);
+                                    format!("Error fetching commit data: {}", e)
+                                },
+                            }
+                        } else if let Some(file_path) = path_str.strip_prefix("git-diff://") {
                             } else {
                                 match crate::modules::files::show_commit_patch(&current_dir, hash) {
                                     Ok(content) => {
