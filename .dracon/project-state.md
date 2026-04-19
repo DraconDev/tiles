@@ -1,8 +1,10 @@
 # Project State
 
 ## Current Focus
-Refactored commit view content handling to simplify fallback logic and improve preview source resolution
+Added a styled commit view header with rounded borders and navigation hint
 
 ## Completed
-- [x] Added unified content source resolution for commit view previews, combining editor state and pane preview sources
-- [x] Simplified commit view content handling by consolidating preview source resolution logic
+- [x] Added rounded border styling to commit view
+- [x] Included "COMMIT" title with accent color
+- [x] Added "Esc Back to Git" navigation hint in red
+- [x] Updated Cargo.lock to resolve dependency manifest loading failure
