@@ -448,19 +448,6 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                 },
                             }
                         } else if let Some(file_path) = path_str.strip_prefix("git-diff://") {
-                            } else {
-                                match crate::modules::files::show_commit_patch(&current_dir, hash) {
-                                    Ok(content) => {
-                                        crate::app::log_debug(&format!("Got commit content: {} bytes, first 100 chars: {}", content.len(), &content.chars().take(100).collect::<String>()));
-                                        content
-                                    },
-                                    Err(e) => {
-                                        crate::app::log_debug(&format!("Error fetching commit data: {}", e));
-                                        format!("Error fetching commit data: {}", e)
-                                    },
-                                }
-                            }
-                        } else if let Some(file_path) = path_str.strip_prefix("git-diff://") {
                             if let Some(remote) = &remote_session {
                                 match crate::modules::remote::show_file_diff(
                                     remote,
