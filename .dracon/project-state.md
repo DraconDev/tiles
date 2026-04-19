@@ -1,8 +1,7 @@
 # Project State
 
 ## Current Focus
-Refactored Git mouse interaction handling to simplify commit view selection logic
+Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
 
 ## Completed
-- [x] Removed unused variables (`remotes`, `stashes`, `tab`) by prefixing with `_` to silence compiler warnings
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+- [x] Updated dependency lockfile to fix manifest loading failure for `dracon-files` package
