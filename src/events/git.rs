@@ -55,6 +55,7 @@ pub fn handle_git_mouse(
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
     let row = me.row;
+    eprintln!("DEBUG handle_git_mouse: row={}, terminal_size=({},{}})", row, app.terminal_size.0, app.terminal_size.1);
     if let MouseEventKind::Down(MouseButton::Left) = me.kind {
         if let Some(fs) = app.current_file_state() {
             let pending = &fs.git_pending;
@@ -99,9 +100,9 @@ pub fn handle_git_mouse(
 
             // 2. Check if click is in HISTORY section
             let history_area_y = inner_y + top_h;
-            let table_data_start_y = history_area_y + 3;
+            let table_data_start_y = history_area_y + 2;  // 1 header row + 1 bottom margin = 2
 
-            eprintln!("DEBUG Git mouse: row={}, history_area_y={}, table_data_start_y={}, top_h={}", 
+            eprintln!("DEBUG Git mouse: row={}, history_area_y={}, table_data_start_y={}, top_h={}",
                 row, history_area_y, table_data_start_y, top_h);
             if row >= table_data_start_y {
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
