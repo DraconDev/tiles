@@ -58,12 +58,12 @@ pub fn handle_git_mouse(
     if let MouseEventKind::Down(MouseButton::Left) = me.kind {
         if let Some(fs) = app.current_file_state() {
             let pending = &fs.git_pending;
-            let remotes = &fs.git_remotes;
-            let stashes = &fs.git_stashes;
+            let _remotes = &fs.git_remotes;
+            let _stashes = &fs.git_stashes;
             let pane_idx = app.focused_pane_index;
             let pane = app.panes.get(pane_idx);
             let tab_idx = pane.map(|p| p.active_tab_index).unwrap_or(0);
-            let tab = pane.and_then(|p| p.tabs.get(tab_idx));
+            let _tab = pane.and_then(|p| p.tabs.get(tab_idx));
             let pending_len = pending.len();
             let inner_h = app.terminal_size.1.saturating_sub(2);
             let top_h = if pending_len == 0 {
