@@ -372,38 +372,17 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    if let Some(preview) = &app.editor_state {
-        crate::app::log_debug(&format!("draw_commit_view: editor_state content first 100: '{}'", preview.content.chars().take(100).collect::<String>()));
-        if preview.content.is_empty() {
-            // Try to get content from pane preview as fallback
-            if let Some(pane) = app.panes.get(app.focused_pane_index) {
-                if let Some(p) = pane.preview.as_ref() {
-                    if !p.content.is_empty() {
-                        crate::app::log_debug(&format!("draw_commit_view: fallback to pane.preview content first 100: '{}'", p.content.chars().take(100).collect::<String>()));
-                        let mut temp_hash = String::new();
-                        let mut temp_author = String::new();
-                        let mut temp_date = String::new();
-                        let mut temp_subject = String::new();
-                        for line in p.content.lines() {
-                            if temp_hash.is_empty() && line.starts_with("commit ") {
-                                temp_hash = line.trim_start_matches("commit ").trim().to_string();
-                            } else if temp_author.is_empty() && line.starts_with("Author:") {
-                                temp_author = line.trim_start_matches("Author:").trim().to_string();
-                            } else if temp_date.is_empty() && line.starts_with("Date:") {
-                                temp_date = line.trim_start_matches("Date:").trim().to_string();
-                            } else if temp_subject.is_empty() && line.trim().starts_with(char::is_alphabetic) {
-                                temp_subject = line.trim().to_string();
-                            }
-                        }
-                        commit_hash = temp_hash;
-                        author = temp_author;
-                        date = temp_date;
-                        subject = temp_subject;
-                    }
-                }
-            }
-        } else {
-            for line in preview.content.lines() {
+    let content_source = app.editor_state.as_ref()
+        .or_else(|| {
+            let pane_idx = app.focused_pane_index;
+            app.panes.get(pane_idx).and_then(|p| p.preview.as_ref())
+        });
+
+    if let Some(preview) = content_source {
+        crate::app::log_debug(&format!("draw_commit_view: using content from {:?}, len={}",
+            if app.editor_state.is_some() { "editor_state" } else { "pane.preview" },
+            preview.content.len()));
+        for line in preview.content.lines() {
             if commit_hash.is_empty() && line.starts_with("commit ") {
                 commit_hash = line.trim_start_matches("commit ").trim().to_string();
                 continue;
@@ -445,8 +424,9 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
             } else if line.starts_with('-') && !line.starts_with("---") {
                 deletions += 1;
             }
-            }
         }
+    } else {
+        crate::app::log_debug("draw_commit_view: no content source found (editor_state and pane.preview both None)");
     }
 
     let short_hash = if commit_hash.is_empty() {
