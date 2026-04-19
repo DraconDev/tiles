@@ -1,8 +1,11 @@
 # Project State
 
 ## Current Focus
-Added debug logging for Git commit preview operations to track editor state transitions
+Enhanced debug logging for Git commit preview operations and view state management
 
 ## Completed
-- [x] Added debug log statement showing Git URL detection and current view state during commit preview
+- [x] Replaced `log_debug` with direct `eprintln!` for Git mouse event handling
+- [x] Added detailed debug logging for pane preview state management
+- [x] Improved commit view debug logging to track content source and state
+- [x] Enhanced commit view rendering with content length tracking
 ```

@@ -553,16 +553,22 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
 
                             if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
                                 pane.preview = Some(preview.clone());
+                                eprintln!("DEBUG: pane.preview SET for pane {}", pane_idx);
+                            } else {
+                                eprintln!("DEBUG: pane {} NOT FOUND", pane_idx);
                             }
                             let is_git_url = path_str.starts_with("git://")
                                 || path_str.starts_with("git-diff://");
-                            crate::app::log_debug(&format!("PreviewRequested COMPLETE: is_git_url={}, app_clone.current_view={:?}, setting editor_state", is_git_url, app_guard.current_view));
+                            eprintln!("DEBUG: PreviewRequested COMPLETE: is_git_url={}, app_clone.current_view={:?}", is_git_url, app_guard.current_view);
                             if is_git_url
                                 || app_guard.current_view == CurrentView::Editor
                                 || app_guard.current_view == CurrentView::Commit
                             {
                                 app_guard.editor_state = Some(preview);
                                 app_guard.sidebar_focus = false;
+                                eprintln!("DEBUG: editor_state SET");
+                            } else {
+                                eprintln!("DEBUG: editor_state NOT SET - is_git_url={}, view={:?}", is_git_url, app_guard.current_view);
                             }
                         }
                         let _ = tx.send(AppEvent::Tick).await;
