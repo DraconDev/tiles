@@ -1,8 +1,7 @@
 # Project State
 
 ## Current Focus
-Added debug logging for Git mouse interactions to track row and current view state
+Added debug logging to track Git event handling in the commit view
 
 ## Completed
-- [x] Added debug logging in `handle_git_mouse` to track row position and current view state
-```
+- [x] Added debug logging to `handle_git_events` to track view state and incoming events

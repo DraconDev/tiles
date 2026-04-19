@@ -3,6 +3,7 @@ use dracon_terminal_engine::contracts::{InputEvent as Event, KeyCode, MouseButto
 use tokio::sync::mpsc;
 
 pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
+    eprintln!("DEBUG handle_git_events: view={:?}, event={:?}", app.current_view, evt);
     if let CurrentView::Git = app.current_view {
         if let Event::Key(key) = evt {
             match key.code {
