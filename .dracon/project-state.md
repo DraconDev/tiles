@@ -1,7 +1,8 @@
 # Project State
 
 ## Current Focus
-Added debug logging to track Git event handling in the commit view
+Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 
 ## Completed
-- [x] Added debug logging to `handle_git_events` to track view state and incoming events
+- [x] Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+```
