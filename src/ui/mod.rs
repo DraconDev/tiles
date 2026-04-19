@@ -378,10 +378,15 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
             app.panes.get(pane_idx).and_then(|p| p.preview.as_ref())
         });
 
+    crate::app::log_debug(&format!("draw_commit_view: editor_state.is_some()={}, pane_idx={}, pane.preview.is_some()={}, content_source.is_some()={}",
+        app.editor_state.is_some(),
+        app.focused_pane_index,
+        app.panes.get(app.focused_pane_index).map(|p| p.preview.is_some()).unwrap_or(false),
+        content_source.is_some()));
+
     if let Some(preview) = content_source {
-        crate::app::log_debug(&format!("draw_commit_view: using content from {:?}, len={}",
-            if app.editor_state.is_some() { "editor_state" } else { "pane.preview" },
-            preview.content.len()));
+        crate::app::log_debug(&format!("draw_commit_view: content_source first 50 chars: '{}'",
+            preview.content.chars().take(50).collect::<String>()));
         for line in preview.content.lines() {
             if commit_hash.is_empty() && line.starts_with("commit ") {
                 commit_hash = line.trim_start_matches("commit ").trim().to_string();
