@@ -1,7 +1,11 @@
 # Project State
 
 ## Current Focus
-Added debug logging to track Git page rendering dimensions and pending operations
+Refactored Git mouse interaction handling to simplify commit view selection logic and improve debug logging
 
 ## Completed
-- [x] Added debug logging to track Git page rendering dimensions (width, height, inner dimensions, pending operations count, and top height)
+- [x] Removed redundant pending/remotes/stashes empty checks in Git mouse handler
+- [x] Simplified pending section height calculation logic
+- [x] Updated debug logging to track pending length and layout dimensions
+- [x] Removed unused commit hash clone in Git mouse event handler
+- [x] Refactored commit view content handling to simplify fallback logic and reduce code complexity
