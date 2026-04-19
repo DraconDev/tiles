@@ -336,6 +336,12 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     );
     let mut touched_files: Vec<String> = Vec::new();
 
+    let content_source = app.editor_state.as_ref()
+        .or_else(|| {
+            let pane_idx = app.focused_pane_index;
+            app.panes.get(pane_idx).and_then(|p| p.preview.as_ref())
+        });
+
     if let Some(preview) = content_source {
         for line in preview.content.lines() {
             if commit_hash.is_empty() && line.starts_with("commit ") {

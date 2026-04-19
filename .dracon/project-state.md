@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Removed debug logging from Git commit view to reduce production noise
+Refactored commit view content handling to simplify fallback logic and improve preview source resolution
 
 ## Completed
-- [x] Removed debug logging statements from the commit view rendering logic
-- [x] Simplified commit view content handling by removing debug logging dependencies
+- [x] Added unified content source resolution for commit view previews, combining editor state and pane preview sources
+- [x] Simplified commit view content handling by consolidating preview source resolution logic
