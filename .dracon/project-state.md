@@ -1,7 +1,7 @@
 # Project State
 
 ## Current Focus
-Added debug logging to track Git mouse interactions in the commit view
+Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 
 ## Completed
-- [x] Added debug logging for Git mouse events to track row position and coordinate calculations
+- [x] Resolved dependency manifest loading failure for dracon-files by updating Cargo.lock
