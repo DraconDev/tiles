@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Removed unused variables and debug logging from Git mouse interaction handling
+Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 
 ## Completed
-- [x] Removed unused variables (`_remotes`, `_stashes`, `_tab`) from Git mouse event handler
-- [x] Eliminated debug logging statements from Git mouse interaction code
-- [x] Cleaned up debug logging from Git UI rendering code
+- [x] Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+```
