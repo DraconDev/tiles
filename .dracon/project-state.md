@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Removed unused commit hash clone in Git mouse event handler
+Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 
 ## Completed
-- [x] Removed redundant `commit.hash.clone()` in Git mouse event handler to reduce unnecessary allocations
+- [x] Resolved dependency manifest loading failure for dracon-files by updating Cargo.lock
 ```
