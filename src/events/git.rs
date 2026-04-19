@@ -56,6 +56,7 @@ pub fn handle_git_mouse(
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
     let row = me.row;
+    eprintln!("DEBUG handle_git_mouse: row={}, current_view={:?}", row, app.current_view);
     if let MouseEventKind::Down(MouseButton::Left) = me.kind {
         if let Some(fs) = app.current_file_state() {
             let pending = &fs.git_pending;
