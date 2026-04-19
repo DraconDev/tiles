@@ -112,7 +112,7 @@ pub fn handle_git_mouse(
                             tab.git_pending_state.select(None);
                             if let Some(commit) = tab.git_history.get(rel_row) {
                                 let hash = commit.hash.clone();
-                                crate::app::log_debug(&format!("Git mouse: clicking commit hash={}", hash));
+                                crate::app::log_debug(&format!("Git mouse CLICK: hash={}, view=Commit after set", hash));
                                 let _ = event_tx.try_send(AppEvent::PreviewRequested(
                                     app.focused_pane_index,
                                     std::path::PathBuf::from(format!("git://{}", commit.hash)),
@@ -120,6 +120,7 @@ pub fn handle_git_mouse(
                                 app.current_view = CurrentView::Commit;
                                 app.mode = AppMode::Viewer;
                                 app.sidebar_focus = false;
+                                crate::app::log_debug(&format!("Git mouse: current_view now={:?}", app.current_view));
                             }
                             return true;
                         }

@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Added NixOS owner public key and updated gitignore to track encrypted secrets
+Enhanced debug logging for Git commit view interactions to track preview state transitions
 
 ## Completed
-- [x] Added NixOS owner public key for secure deployment operations
-- [x] Updated gitignore to track encrypted secrets while maintaining security boundaries
+- [x] Added detailed logging for commit view transitions (before/after state)
+- [x] Updated debug message to clarify commit preview context
+- [x] Maintained consistent logging format for Git operations
