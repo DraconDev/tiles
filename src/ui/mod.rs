@@ -336,48 +336,6 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     );
     let mut touched_files: Vec<String> = Vec::new();
 
-    crate::app::log_debug(&format!("draw_commit_view: editor_state.is_some()={}, pane.preview.is_some()={}, pane.preview.content.len()={}",
-        app.editor_state.is_some(),
-        app.panes.get(app.focused_pane_index).map(|p| p.preview.as_ref().map(|pr| pr.content.len()).unwrap_or(0)).unwrap_or(0),
-        app.panes.get(app.focused_pane_index).and_then(|p| p.preview.as_ref()).map(|p| p.content.chars().take(50).collect::<String>()).unwrap_or_default()));
-
-    if app.editor_state.is_none() {
-        crate::app::log_debug(&format!("draw_commit_view: editor_state is NONE"));
-    }
-
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(crate::ui::theme::border_inactive()))
-        .title_top(Line::from(vec![Span::styled(
-            " COMMIT ",
-            Style::default()
-                .fg(Color::Black)
-                .bg(crate::ui::theme::accent_primary())
-                .add_modifier(Modifier::BOLD),
-        )]))
-        .title_top(
-            Line::from(vec![
-                Span::styled(
-                    " Esc ",
-                    Style::default()
-                        .fg(Color::Black)
-                        .bg(Color::Red)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(" Back to Git ", Style::default().fg(Color::Red)),
-            ])
-            .alignment(Alignment::Right),
-        );
-    let inner = block.inner(area);
-    f.render_widget(block, area);
-
-    let content_source = app.editor_state.as_ref()
-        .or_else(|| {
-            let pane_idx = app.focused_pane_index;
-            app.panes.get(pane_idx).and_then(|p| p.preview.as_ref())
-        });
-
     if let Some(preview) = content_source {
         for line in preview.content.lines() {
             if commit_hash.is_empty() && line.starts_with("commit ") {
