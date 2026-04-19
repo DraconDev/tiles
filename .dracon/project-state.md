@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+Removed debug logging from Git event handling to reduce noise in production
 
 ## Completed
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
-```
+- [x] Removed debug logging for Git event handling in commit view
+- [x] Removed debug logging for Git mouse interactions to reduce console noise

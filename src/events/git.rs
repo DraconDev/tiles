@@ -3,7 +3,6 @@ use dracon_terminal_engine::contracts::{InputEvent as Event, KeyCode, MouseButto
 use tokio::sync::mpsc;
 
 pub fn handle_git_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> bool {
-    eprintln!("DEBUG handle_git_events: view={:?}, event={:?}", app.current_view, evt);
     if let CurrentView::Git = app.current_view {
         if let Event::Key(key) = evt {
             match key.code {
@@ -57,7 +56,6 @@ pub fn handle_git_mouse(
     event_tx: &mpsc::Sender<AppEvent>,
 ) -> bool {
     let row = me.row;
-    eprintln!("DEBUG handle_git_mouse: row={}, current_view={:?}", row, app.current_view);
     if let MouseEventKind::Down(MouseButton::Left) = me.kind {
         if let Some(fs) = app.current_file_state() {
             let pending = &fs.git_pending;
