@@ -1,7 +1,8 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+Added NixOS owner public key and updated gitignore to track encrypted secrets
 
 ## Completed
-- [x] Resolved dependency manifest loading failure for `dracon-files` by updating Cargo.lock
+- [x] Added NixOS owner public key for secure deployment operations
+- [x] Updated gitignore to track encrypted secrets while maintaining security boundaries
