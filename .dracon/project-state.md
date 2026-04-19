@@ -1,7 +1,8 @@
 # Project State
 
 ## Current Focus
-Removed debug logging from Git commit view to reduce production noise
+Removed debug logging from Git event handling to reduce production noise
 
 ## Completed
-- [x] Removed debug logging from Git commit view to reduce production noise
+- [x] Removed debug logging from Git event handling to reduce noise in production
+```
