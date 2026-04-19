@@ -1,7 +1,9 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+Removed unused variables and debug logging from Git mouse interaction handling
 
 ## Completed
-- [x] Updated dependency lockfile to fix manifest loading failure for `dracon-files` package
+- [x] Removed unused variables (`_remotes`, `_stashes`, `_tab`) from Git mouse event handler
+- [x] Eliminated debug logging statements from Git mouse interaction code
+- [x] Cleaned up debug logging from Git UI rendering code

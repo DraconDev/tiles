@@ -2056,9 +2056,6 @@ fn draw_git_page(f: &mut Frame, area: Rect, app: &mut App) {
         (pending_len as u16 + 2).min(inner.height / 3)
     };
 
-    eprintln!("DEBUG draw_git_page: area=({},{}), inner=({},{}), pending_len={}, top_h={}",
-        area.width, area.height, inner.width, inner.height, pending_len, top_h);
-
     let main_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(top_h), Constraint::Min(0)])

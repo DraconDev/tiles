@@ -58,12 +58,6 @@ pub fn handle_git_mouse(
     if let MouseEventKind::Down(MouseButton::Left) = me.kind {
         if let Some(fs) = app.current_file_state() {
             let pending = &fs.git_pending;
-            let _remotes = &fs.git_remotes;
-            let _stashes = &fs.git_stashes;
-            let pane_idx = app.focused_pane_index;
-            let pane = app.panes.get(pane_idx);
-            let tab_idx = pane.map(|p| p.active_tab_index).unwrap_or(0);
-            let _tab = pane.and_then(|p| p.tabs.get(tab_idx));
             let pending_len = pending.len();
             let inner_h = app.terminal_size.1.saturating_sub(2);
             let top_h = if pending_len == 0 {
@@ -73,15 +67,10 @@ pub fn handle_git_mouse(
             };
 
             let inner_y = 1; // Top border
-            let active_data_start_y = inner_y + 1;
-
-            eprintln!("DEBUG Git mouse: row={}, pending_len={}, top_h={}, inner_y={}, active_data_start_y={}",
-                row, pending_len, top_h, inner_y, active_data_start_y);
 
             // History section calculation
             let history_area_y = inner_y + top_h;
             let table_data_start_y = history_area_y + 2;  // 1 header row + 1 bottom margin = 2
-            eprintln!("DEBUG Git mouse: history_area_y={}, table_data_start_y={}", history_area_y, table_data_start_y);
 
             if row >= table_data_start_y {
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
