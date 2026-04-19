@@ -112,7 +112,6 @@ pub fn handle_git_mouse(
                             tab.git_pending_state.select(None);
                             if let Some(commit) = tab.git_history.get(rel_row) {
                                 let hash = commit.hash.clone();
-                                eprintln!("DEBUG Git mouse: CLICK on hash={}, row={}", hash, row);
                                 let _ = event_tx.try_send(AppEvent::PreviewRequested(
                                     app.focused_pane_index,
                                     std::path::PathBuf::from(format!("git://{}", commit.hash)),
@@ -120,7 +119,6 @@ pub fn handle_git_mouse(
                                 app.current_view = CurrentView::Commit;
                                 app.mode = AppMode::Viewer;
                                 app.sidebar_focus = false;
-                                eprintln!("DEBUG Git mouse: current_view now={:?}, focused_pane_index={}", app.current_view, app.focused_pane_index);
                             }
                             return true;
                         }
