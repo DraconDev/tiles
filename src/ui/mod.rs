@@ -385,7 +385,6 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         content_source.is_some());
 
     if let Some(preview) = content_source {
-        eprintln!("DEBUG draw_commit_view: CONTENT FOUND, len={}", preview.content.len());
         for line in preview.content.lines() {
             if commit_hash.is_empty() && line.starts_with("commit ") {
                 commit_hash = line.trim_start_matches("commit ").trim().to_string();
