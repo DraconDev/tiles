@@ -786,7 +786,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     match result {
                         Ok(_) => {
                             if let Some(parent) = dest.parent() {
-                                let app_guard = app.lock().unwrap();
+let mut app_guard = app.lock().unwrap();
                                 for (i, pane) in app_guard.panes.iter().enumerate() {
                                     if let Some(fs) = pane.current_state() {
                                         if fs.current_path == parent {

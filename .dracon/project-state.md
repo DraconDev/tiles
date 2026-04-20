@@ -1,7 +1,8 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+Refactored file pane state handling to use mutable lock for parent path comparison
 
 ## Completed
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+- [x] Changed immutable lock to mutable lock in file pane state comparison
+```
