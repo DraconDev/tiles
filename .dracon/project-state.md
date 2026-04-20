@@ -4,6 +4,6 @@
 Refactored Git history table rendering to handle dynamic layout conditions
 
 ## Completed
-- [x] Modified Git mouse interaction to handle dynamic table data start position based on layout conditions
-- [x] Added debug logging for Git mouse interaction parameters
-- [x] Simplified table data start position calculation by removing fixed offset when top header is absent
+- [x] Updated Git history table rendering logic to correctly calculate data start position based on block title presence
+- [x] Removed redundant offset calculation for history area when block title exists
+- [x] Improved debug logging to show all relevant layout metrics for verification

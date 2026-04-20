@@ -70,10 +70,9 @@ pub fn handle_git_mouse(
 
             // History section calculation
             let history_area_y = inner_y + top_h;
-            // Table header is 1 row + bottom_margin(1), data starts at history_area_y + 2
-            // But when top_h=0 and block title exists, the data starts at history_area_y
-            // So we use history_area_y directly (no offset)
-            let table_data_start_y = history_area_y;
+            // Block title " HISTORY " uses the border area, inner starts after title
+            // Header row is 1 row, so first data row is history_area_y + 1
+            let table_data_start_y = history_area_y + 1;
 
             eprintln!("DEBUG Git mouse: row={}, inner_h={}, top_h={}, inner_y={}, history_area_y={}, table_data_start_y={}, pending_len={}",
                 row, inner_h, top_h, inner_y, history_area_y, table_data_start_y, pending_len);
