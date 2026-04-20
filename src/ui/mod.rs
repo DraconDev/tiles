@@ -2598,8 +2598,7 @@ fn draw_file_view(
 
                                 let truncated_name =
                                     truncate_to_width(&display_name, available_width, "..");
-                                let final_line =
-                                    format!(" {} {}{}", icon_str, truncated_name, suffix);
+                                format!(" {} {}{}", icon_str, truncated_name, suffix)
                             }
                         }
                         FileColumn::Size => {

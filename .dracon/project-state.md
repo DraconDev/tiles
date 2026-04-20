@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored file pane state handling to use mutable lock for parent path comparison
+Refactored file view rendering to simplify string formatting in the file pane
 
 ## Completed
-- [x] Changed immutable lock to mutable lock in file pane state comparison
-```
+- [x] Removed unnecessary variable assignment in file view rendering
+- [x] Simplified string concatenation in file view display logic
