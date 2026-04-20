@@ -1,8 +1,7 @@
 # Project State
 
 ## Current Focus
-Added debug logging to track commit view rendering state and preview content
+Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
 
 ## Completed
-- [x] Added debug logging for commit view rendering state including editor state, pane preview status, and content source availability
-- [x] Added detailed debug logging for preview content including length and first line when available
+- [x] Resolved dependency manifest loading failure for `dracon-files` by updating Cargo.lock
