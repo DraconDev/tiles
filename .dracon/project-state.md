@@ -1,11 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored file refresh logic to reduce lock contention during watch synchronization
+Removed debug logging and watch synchronization from file refresh logic to reduce lock contention
 
 ## Completed
-- [x] Removed mutable borrow of app state during path retrieval
-- [x] Moved watch synchronization outside the app lock to prevent potential deadlocks
-- [x] Maintained same functionality while improving concurrency safety
-- [x] Kept debug logging for performance monitoring
-- [x] Preserved recent folder tracking behavior
+- [x] Removed debug logging for sync_watches timing
+- [x] Removed watch synchronization during file refresh to prevent potential deadlocks
