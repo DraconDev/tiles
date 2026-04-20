@@ -1,7 +1,9 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+Refactored rendering logic to trigger redraws on tick events
 
 ## Completed
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+- [x] Removed redundant tick-based rendering suppression
+- [x] Simplified event handling by always marking ticks as needing redraw
+- [x] Maintained periodic file watch synchronization while improving rendering efficiency

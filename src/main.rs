@@ -242,13 +242,12 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         while let Ok(event) = event_rx.try_recv() {
             match event {
                 AppEvent::Tick => {
-                    // Only sync file watches periodically, not on every tick
+                    needs_draw = true;
                     if last_watch_sync.elapsed() >= Duration::from_millis(WATCH_SYNC_INTERVAL_MS) {
                         let app_guard = app.lock().unwrap();
                         sync_watches(&app_guard, &mut debouncer);
                         last_watch_sync = std::time::Instant::now();
                     }
-                    // Don't set needs_draw on tick - let actual events drive rendering
                 }
                 AppEvent::Raw(raw) => {
                     let view_mode_before;
