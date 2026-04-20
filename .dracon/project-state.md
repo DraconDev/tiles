@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Improved error handling for clipboard cut operations by verifying event transmission success
+Refactored file refresh logic to handle dynamic number of panes
 
 ## Completed
-- [x] Added explicit error handling for `AppEvent::Rename` transmission in clipboard cut operations
-- [x] Only clear clipboard state if the rename event was successfully sent
+- [x] Changed hardcoded pane refresh events to dynamic iteration over all panes
+- [x] Improved undo operation by ensuring all panes are refreshed after undo
 ```

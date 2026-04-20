@@ -74,8 +74,9 @@ fn execute_undo(
     } else {
         format!("Undo failed ({})", action_name)
     }));
-    let _ = event_tx.try_send(AppEvent::RefreshFiles(0));
-    let _ = event_tx.try_send(AppEvent::RefreshFiles(1));
+    for pane_idx in 0..app.panes.len() {
+        let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
+    }
     Some(action_name)
 }
 
