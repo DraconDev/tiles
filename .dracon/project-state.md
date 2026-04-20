@@ -1,9 +1,11 @@
 # Project State
 
 ## Current Focus
-Refactored file refresh logic to handle dynamic number of panes
+Refactored file refresh logic to reduce lock contention during watch synchronization
 
 ## Completed
-- [x] Changed hardcoded pane refresh events to dynamic iteration over all panes
-- [x] Improved undo operation by ensuring all panes are refreshed after undo
-```
+- [x] Removed mutable borrow of app state during path retrieval
+- [x] Moved watch synchronization outside the app lock to prevent potential deadlocks
+- [x] Maintained same functionality while improving concurrency safety
+- [x] Kept debug logging for performance monitoring
+- [x] Preserved recent folder tracking behavior
