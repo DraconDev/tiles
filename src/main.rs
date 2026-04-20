@@ -113,7 +113,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         for path in &current_paths {
             if !watched_paths.contains(path) {
                 crate::app::log_debug(&format!("Starting file watch for: {:?}", path));
-                if let Ok(()) = debouncer.watcher().watch(path, notify::RecursiveMode::NonRecursive) {
+                if let Ok(()) = debouncer.watcher().watch(path, notify::RecursiveMode::Recursive) {
                     watched_paths.insert(path.clone());
                     crate::app::log_debug(&format!("Now watching: {:?}", path));
                 } else {
@@ -593,6 +593,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                     if let Some(ref mut editor) = preview.editor {
                                         editor.modified = false;
                                     }
+                                    preview.highlighted_lines = None;
                                 }
                             }
                             for pane in &mut app_guard.panes {
@@ -602,6 +603,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                         if let Some(ref mut editor) = preview.editor {
                                             editor.modified = false;
                                         }
+                                        preview.highlighted_lines = None;
                                     }
                                 }
                             }

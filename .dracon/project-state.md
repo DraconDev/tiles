@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored file view rendering to use correct area dimensions for scrollbar rendering
+Refactored file watcher to use recursive mode and added highlighted lines reset during file refresh
 
 ## Completed
-- [x] Fixed scrollbar rendering to use `inner_area` instead of `area` to ensure proper positioning within the file view
-- [x] Removed redundant truncation of final line in file view rendering
+- [x] Changed file watcher from non-recursive to recursive mode for better directory monitoring
+- [x] Added highlighted lines reset during file refresh to ensure consistent rendering state
