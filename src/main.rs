@@ -355,9 +355,10 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                     last_self_save.remove(&path);
                                     continue; // Skip refreshing/reloading for our own saves
                                 }
+                                // Mtime mismatch means external modification - KEEP tracking
+                                // so we can detect subsequent saves
                             }
                         }
-                        last_self_save.remove(&path);
                     }
 
                     let app_guard = app.lock().unwrap();
