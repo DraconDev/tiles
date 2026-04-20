@@ -326,7 +326,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     let t_refresh = std::time::Instant::now();
                     let current_path = {
                         let t_lock = std::time::Instant::now();
-                        let app_guard = app.lock().unwrap();
+                        let mut app_guard = app.lock().unwrap();
                         crate::app::log_debug(&format!("RefreshFiles lock took {:?}", t_lock.elapsed()));
                         let path = app_guard
                             .panes

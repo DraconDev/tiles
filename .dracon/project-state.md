@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Refactored file view rendering to simplify string formatting in the file pane
+Refactored file pane state handling to use mutable lock for parent path access
 
 ## Completed
-- [x] Removed unnecessary variable assignment in file view rendering
-- [x] Simplified string concatenation in file view display logic
+- [x] Changed `app.lock().unwrap()` to `app.lock().unwrap_mut()` in file refresh logic
+- [x] Updated Cargo.lock to resolve dependency manifest loading failure
+```
