@@ -70,7 +70,13 @@ pub fn handle_git_mouse(
 
             // History section calculation
             let history_area_y = inner_y + top_h;
-            let table_data_start_y = history_area_y + 2;  // 1 header row + 1 bottom margin = 2
+            // Table header is 1 row + bottom_margin(1), data starts at history_area_y + 2
+            // But when top_h=0 and block title exists, the data starts at history_area_y
+            // So we use history_area_y directly (no offset)
+            let table_data_start_y = history_area_y;
+
+            eprintln!("DEBUG Git mouse: row={}, inner_h={}, top_h={}, inner_y={}, history_area_y={}, table_data_start_y={}, pending_len={}",
+                row, inner_h, top_h, inner_y, history_area_y, table_data_start_y, pending_len);
 
             if row >= table_data_start_y {
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
