@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored Git history table rendering to handle dynamic layout conditions
+Added debug logging to track commit view rendering state and preview content
 
 ## Completed
-- [x] Updated Git history table rendering logic to correctly calculate data start position based on block title presence
-- [x] Removed redundant offset calculation for history area when block title exists
-- [x] Improved debug logging to show all relevant layout metrics for verification
+- [x] Added debug logging for commit view rendering state including editor state, pane preview status, and content source availability
+- [x] Added detailed debug logging for preview content including length and first line when available
