@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored file refresh logic to preserve tracking of externally modified files
+Refactored file view rendering to use correct area dimensions for scrollbar rendering
 
 ## Completed
-- [x] Removed premature removal of self-save tracking
-- [x] Added comment explaining external modification handling
-```
+- [x] Fixed scrollbar rendering to use `inner_area` instead of `area` to ensure proper positioning within the file view
+- [x] Removed redundant truncation of final line in file view rendering

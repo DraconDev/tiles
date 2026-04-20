@@ -2600,11 +2600,6 @@ fn draw_file_view(
                                     truncate_to_width(&display_name, available_width, "..");
                                 let final_line =
                                     format!(" {} {}{}", icon_str, truncated_name, suffix);
-                                truncate_to_width(
-                                    &final_line,
-                                    (col_rect.width as usize).saturating_sub(2),
-                                    "",
-                                )
                             }
                         }
                         FileColumn::Size => {
@@ -2677,7 +2672,7 @@ fn draw_file_view(
                 .position(file_state.table_state.offset())
                 .viewport_content_length(inner_area.height as usize);
 
-            f.render_stateful_widget(scrollbar, area, &mut scroll_state);
+            f.render_stateful_widget(scrollbar, inner_area, &mut scroll_state);
         }
     }
 }
