@@ -1,8 +1,7 @@
 # Project State
 
 ## Current Focus
-Refactored file watcher to use recursive mode and added highlighted lines reset during file refresh
+Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 
 ## Completed
-- [x] Changed file watcher from non-recursive to recursive mode for better directory monitoring
-- [x] Added highlighted lines reset during file refresh to ensure consistent rendering state
+- [x] Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
