@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Removed debug logging from Git mouse event handling and commit view rendering
+Refactored scrollbar rendering to use correct area dimensions for file view
 
 ## Completed
-- [x] Removed debug logging from Git history table rendering in `src/events/git.rs`
-- [x] Removed debug logging from commit view rendering in `src/ui/mod.rs`
+- [x] Fixed scrollbar rendering by changing from `inner_area` to `area` in file view
 ```

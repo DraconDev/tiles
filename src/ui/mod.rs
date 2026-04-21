@@ -2671,7 +2671,7 @@ fn draw_file_view(
                 .position(file_state.table_state.offset())
                 .viewport_content_length(inner_area.height as usize);
 
-            f.render_stateful_widget(scrollbar, inner_area, &mut scroll_state);
+            f.render_stateful_widget(scrollbar, area, &mut scroll_state);
         }
     }
 }
