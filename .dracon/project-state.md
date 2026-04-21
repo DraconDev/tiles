@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Improved Git commit content fetching with debug logging and simplified error handling
+Added debug logging to track Git mouse event handling and commit view state
 
 ## Completed
-- [x] Refactored Git commit content fetching to add debug logging for successful loads
-- [x] Simplified error handling for Git commit fetching by using pattern matching
-- [x] Maintained consistent error message formatting for commit fetch failures
+- [x] Added debug logging for Git mouse click events with commit hash and row information
+- [x] Added debug logging for Git mouse event boundary conditions (row < table_data_start_y, rel_row >= git_history.len())
+- [x] Added debug logging for Git mouse event state transitions (current_view set to Commit)
