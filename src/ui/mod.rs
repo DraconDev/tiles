@@ -343,47 +343,34 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         });
 
     if let Some(preview) = content_source {
-        eprintln!("DEBUG draw_commit_view: content length = {}", preview.content.len());
-        eprintln!("DEBUG draw_commit_view: content first 300 chars: {:?}", &preview.content[..preview.content.len().min(300)]);
+        let lines: Vec<&str> = preview.content.lines().collect();
+        eprintln!("DEBUG draw_commit_view: content length = {}, lines count = {}", preview.content.len(), lines.len());
+        if !lines.is_empty() {
+            eprintln!("DEBUG draw_commit_view: first line: {:?}", lines[0]);
+            if lines.len() > 1 { eprintln!("DEBUG draw_commit_view: second line: {:?}", lines[1]); }
+            if lines.len() > 2 { eprintln!("DEBUG draw_commit_view: third line: {:?}", lines[2]); }
+        }
         let mut found_commit_line = false;
-        for line in preview.content.lines() {
+        for line in &lines {
             if commit_hash.is_empty() && line.starts_with("commit ") {
                 commit_hash = line.trim_start_matches("commit ").trim().to_string();
-                eprintln!("DEBUG draw_commit_view: found commit hash line: {:?}", line);
-                eprintln!("DEBUG draw_commit_view: extracted hash: {:?}", commit_hash);
+                eprintln!("DEBUG draw_commit_view: found commit line: {:?}", line);
                 found_commit_line = true;
-                continue;
             }
             if author.is_empty() && line.starts_with("Author:") {
                 author = line.trim_start_matches("Author:").trim().to_string();
-                continue;
             }
             if date.is_empty() && line.starts_with("Date:") {
                 date = line.trim_start_matches("Date:").trim().to_string();
-                continue;
             }
             if subject.is_empty() && line.starts_with("    ") {
                 let candidate = line.trim();
                 if !candidate.is_empty() {
                     subject = candidate.to_string();
-                    continue;
                 }
             }
             if line.starts_with("diff --git ") {
                 files_changed += 1;
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 4 {
-                    let from = parts[2].trim_start_matches("a/");
-                    let to = parts[3].trim_start_matches("b/");
-                    let display = if from == to {
-                        to.to_string()
-                    } else {
-                        format!("{} -> {}", from, to)
-                    };
-                    if !touched_files.contains(&display) {
-                        touched_files.push(display);
-                    }
-                }
             } else if line.starts_with("@@") {
                 hunks += 1;
             } else if line.starts_with('+') && !line.starts_with("+++") {
@@ -393,10 +380,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
             }
         }
         if !found_commit_line {
-            eprintln!("DEBUG draw_commit_view: NO LINE STARTED WITH 'commit ' - showing first 10 lines:");
-            for (i, line) in preview.content.lines().take(10).enumerate() {
-                eprintln!("  line {}: {:?}", i, line);
-            }
+            eprintln!("DEBUG draw_commit_view: NO 'commit ' line found in {} lines", lines.len());
         }
         eprintln!("DEBUG draw_commit_view: parsed hash={}, author={}, date={}, subject={}",
             if commit_hash.is_empty() { "EMPTY" } else { &commit_hash[..commit_hash.len().min(12)] },
@@ -404,7 +388,9 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
             if date.is_empty() { "EMPTY" } else { "found" },
             if subject.is_empty() { "EMPTY" } else { "found" });
     } else {
-        eprintln!("DEBUG draw_commit_view: no content source found (editor_state and pane.preview both None)");
+        eprintln!("DEBUG draw_commit_view: content_source is None (editor_state={}, pane.preview={})",
+            app.editor_state.is_some(),
+            app.panes.get(app.focused_pane_index).map(|p| p.preview.is_some()).unwrap_or(false));
     }
 
     let block = Block::default()
