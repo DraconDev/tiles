@@ -75,15 +75,15 @@ pub fn handle_git_mouse(
             // First data row is at history_area_y + 2
             let table_data_start_y = history_area_y + 2;
 
-            eprintln!("DEBUG handle_git_mouse: row={}, inner_h={}, top_h={}, history_area_y={}, table_data_start_y={}, history_len={}",
-                row, inner_h, top_h, history_area_y, table_data_start_y, tab.git_history.len());
+            eprintln!("DEBUG handle_git_mouse: row={}, inner_h={}, top_h={}, history_area_y={}, table_data_start_y={}",
+                row, inner_h, top_h, history_area_y, table_data_start_y);
 
             if row >= table_data_start_y {
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                     if let Some(tab) = pane.tabs.get_mut(pane.active_tab_index) {
                         let scroll_offset = tab.git_history_state.offset();
                         let rel_row = (row - table_data_start_y) as usize + scroll_offset;
-                        eprintln!("DEBUG handle_git_mouse: scroll_offset={}, rel_row={}", scroll_offset, rel_row);
+                        eprintln!("DEBUG handle_git_mouse: scroll_offset={}, rel_row={}, history_len={}", scroll_offset, rel_row, tab.git_history.len());
                         if rel_row < tab.git_history.len() {
                             tab.git_history_state.select(Some(rel_row));
                             tab.git_pending_state.select(None);
