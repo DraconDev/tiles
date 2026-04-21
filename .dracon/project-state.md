@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Refactored commit content fetching to simplify error handling and remove debug logging
+Improved Git commit content fetching with debug logging and simplified error handling
 
 ## Completed
-- [x] Removed debug logging from Git commit content fetching
-- [x] Simplified error handling for commit content fetching using `unwrap_or_else`
-```
+- [x] Refactored Git commit content fetching to add debug logging for successful loads
+- [x] Simplified error handling for Git commit fetching by using pattern matching
+- [x] Maintained consistent error message formatting for commit fetch failures
