@@ -83,8 +83,6 @@ pub fn handle_git_mouse(
                             tab.git_history_state.select(Some(rel_row));
                             tab.git_pending_state.select(None);
                             if let Some(commit) = tab.git_history.get(rel_row) {
-                                let hash = commit.hash.clone();
-                                crate::app::log_debug(&format!("Git mouse click: hash={}, rel_row={}, total={}", hash, rel_row, tab.git_history.len()));
                                 let _ = event_tx.try_send(AppEvent::PreviewRequested(
                                     app.focused_pane_index,
                                     std::path::PathBuf::from(format!("git://{}", commit.hash)),
@@ -92,16 +90,11 @@ pub fn handle_git_mouse(
                                 app.current_view = CurrentView::Commit;
                                 app.mode = AppMode::Viewer;
                                 app.sidebar_focus = false;
-                                crate::app::log_debug(&format!("Git mouse: current_view set to Commit"));
                             }
                             return true;
-                        } else {
-                            crate::app::log_debug(&format!("Git mouse: rel_row {} >= git_history.len() {}", rel_row, tab.git_history.len()));
                         }
                     }
                 }
-            } else {
-                crate::app::log_debug(&format!("Git mouse: row {} < table_data_start_y {}", row, table_data_start_y));
             }
         }
     }

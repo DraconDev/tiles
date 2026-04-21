@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Added debug logging to track Git mouse event handling and commit view state
+Removed debug logging from Git mouse event handling to reduce noise in production logs
 
 ## Completed
-- [x] Added debug logging for Git mouse click events with commit hash and row information
-- [x] Added debug logging for Git mouse event boundary conditions (row < table_data_start_y, rel_row >= git_history.len())
-- [x] Added debug logging for Git mouse event state transitions (current_view set to Commit)
+- [x] Removed debug logging from Git mouse event handling to eliminate redundant log messages
+- [x] Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
