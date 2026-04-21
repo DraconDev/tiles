@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Refactored Git history table rendering to handle dynamic layout conditions
+Refactored debug logging in commit view rendering to use `eprintln!` for direct output and increased content preview length
 
 ## Completed
-- [x] Updated Git history table rendering to account for dynamic layout conditions
-- [x] Adjusted table data start position to properly account for header rows
-- [x] Improved layout calculation for history section in Git view
+- [x] Replaced `crate::app::log_debug` with direct `eprintln!` calls for commit view debug output
+- [x] Increased content preview length from 200 to 500 characters
+- [x] Simplified debug message formatting for commit metadata parsing
