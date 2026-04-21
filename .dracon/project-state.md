@@ -1,7 +1,9 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+Removed debug logging from Git mouse event handling and commit view rendering
 
 ## Completed
-- [x] Resolved dependency manifest loading failure for `dracon-files` by updating Cargo.lock
+- [x] Removed debug logging from Git history table rendering in `src/events/git.rs`
+- [x] Removed debug logging from commit view rendering in `src/ui/mod.rs`
+```

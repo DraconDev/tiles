@@ -342,17 +342,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
             app.panes.get(pane_idx).and_then(|p| p.preview.as_ref())
         });
 
-    eprintln!("DEBUG draw_commit_view: editor_state.is_some()={}, pane.preview.is_some()={}, pane_idx={}, panes.len={}, content_source.is_some()={}",
-        app.editor_state.is_some(),
-        app.panes.get(app.focused_pane_index).map(|p| p.preview.is_some()).unwrap_or(false),
-        app.focused_pane_index,
-        app.panes.len(),
-        content_source.is_some());
-
     if let Some(preview) = content_source {
-        eprintln!("DEBUG draw_commit_view: preview.content.len={}, first_line='{}'",
-            preview.content.len(),
-            preview.content.lines().next().unwrap_or(""));
         for line in preview.content.lines() {
             if commit_hash.is_empty() && line.starts_with("commit ") {
                 commit_hash = line.trim_start_matches("commit ").trim().to_string();

@@ -74,9 +74,6 @@ pub fn handle_git_mouse(
             // Header row is 1 row, so first data row is history_area_y + 1
             let table_data_start_y = history_area_y + 1;
 
-            eprintln!("DEBUG Git mouse: row={}, inner_h={}, top_h={}, inner_y={}, history_area_y={}, table_data_start_y={}, pending_len={}",
-                row, inner_h, top_h, inner_y, history_area_y, table_data_start_y, pending_len);
-
             if row >= table_data_start_y {
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
                     if let Some(tab) = pane.tabs.get_mut(pane.active_tab_index) {
