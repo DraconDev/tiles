@@ -347,11 +347,13 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         if preview.content.len() < 500 {
             eprintln!("DEBUG draw_commit_view: content = {:?}", &preview.content[..preview.content.len().min(500)]);
         }
+        let mut found_commit_line = false;
         for line in preview.content.lines() {
-            eprintln!("DEBUG draw_commit_view: processing line: {:?}", line);
             if commit_hash.is_empty() && line.starts_with("commit ") {
                 commit_hash = line.trim_start_matches("commit ").trim().to_string();
-                eprintln!("DEBUG draw_commit_view: found commit hash line, extracted: {:?}", commit_hash);
+                eprintln!("DEBUG draw_commit_view: found commit hash line: {:?}", line);
+                eprintln!("DEBUG draw_commit_view: extracted hash: {:?}", commit_hash);
+                found_commit_line = true;
                 continue;
             }
             if author.is_empty() && line.starts_with("Author:") {
@@ -390,6 +392,12 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 additions += 1;
             } else if line.starts_with('-') && !line.starts_with("---") {
                 deletions += 1;
+            }
+        }
+        if !found_commit_line {
+            eprintln!("DEBUG draw_commit_view: NO LINE STARTED WITH 'commit ' - showing first 10 lines:");
+            for (i, line) in preview.content.lines().take(10).enumerate() {
+                eprintln!("  line {}: {:?}", i, line);
             }
         }
         eprintln!("DEBUG draw_commit_view: parsed hash={}, author={}, date={}, subject={}",

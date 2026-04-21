@@ -1,8 +1,10 @@
 # Project State
 
 ## Current Focus
-Added debug logging to track commit hash extraction in Git commit view rendering
+Enhanced debug logging for Git commit view rendering to track commit hash extraction and content parsing
 
 ## Completed
-- [x] Added debug logging for processing each line in commit view content
-- [x] Added debug logging for successful commit hash extraction from Git commit lines
+- [x] Added debug logging for commit hash extraction with line verification
+- [x] Implemented fallback logging when commit line isn't found, showing first 10 lines
+- [x] Improved debug output formatting for commit view parsing state
+- [x] Enhanced commit metadata tracking with empty value indicators
