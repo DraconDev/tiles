@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Refactored scrollbar rendering to use correct area dimensions for file view
+Refactored commit content fetching to simplify error handling and remove debug logging
 
 ## Completed
-- [x] Fixed scrollbar rendering by changing from `inner_area` to `area` in file view
+- [x] Removed debug logging from Git commit content fetching
+- [x] Simplified error handling for commit content fetching using `unwrap_or_else`
 ```

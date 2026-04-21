@@ -431,18 +431,8 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     tokio::spawn(async move {
                         let path_str = path.to_string_lossy();
                         let content = if let Some(hash) = path_str.strip_prefix("git://") {
-                            let result = crate::modules::files::show_commit_patch(&current_dir, hash);
-                            match result {
-                                Ok(content) => {
-                                    eprintln!("DEBUG: Got commit content: {} bytes, first 200 chars: '{}'", 
-                                        content.len(), content.chars().take(200).collect::<String>());
-                                    content
-                                },
-                                Err(e) => {
-                                    eprintln!("DEBUG: Error fetching commit data: {}", e);
-                                    format!("Error fetching commit data: {}", e)
-                                },
-                            }
+                            crate::modules::files::show_commit_patch(&current_dir, hash)
+                                .unwrap_or_else(|e| format!("Error fetching commit data: {}", e))
                         } else if let Some(file_path) = path_str.strip_prefix("git-diff://") {
                             if let Some(remote) = &remote_session {
                                 match crate::modules::remote::show_file_diff(
