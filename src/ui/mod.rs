@@ -343,6 +343,10 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
         });
 
     if let Some(preview) = content_source {
+        crate::app::log_debug(&format!("draw_commit_view: content length = {}", preview.content.len()));
+        if preview.content.len() < 200 {
+            crate::app::log_debug(&format!("draw_commit_view: content preview = {:?}", &preview.content[..preview.content.len().min(200)]));
+        }
         for line in preview.content.lines() {
             if commit_hash.is_empty() && line.starts_with("commit ") {
                 commit_hash = line.trim_start_matches("commit ").trim().to_string();
@@ -386,6 +390,11 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 deletions += 1;
             }
         }
+        crate::app::log_debug(&format!("draw_commit_view: parsed hash={}, author={}, date={}, subject={}",
+            if commit_hash.is_empty() { "EMPTY" } else { &commit_hash[..commit_hash.len().min(12)] },
+            if author.is_empty() { "EMPTY" } else { "found" },
+            if date.is_empty() { "EMPTY" } else { "found" },
+            if subject.is_empty() { "EMPTY" } else { "found" }));
     } else {
         crate::app::log_debug("draw_commit_view: no content source found (editor_state and pane.preview both None)");
     }
