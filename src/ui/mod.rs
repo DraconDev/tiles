@@ -348,8 +348,10 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
             eprintln!("DEBUG draw_commit_view: content = {:?}", &preview.content[..preview.content.len().min(500)]);
         }
         for line in preview.content.lines() {
+            eprintln!("DEBUG draw_commit_view: processing line: {:?}", line);
             if commit_hash.is_empty() && line.starts_with("commit ") {
                 commit_hash = line.trim_start_matches("commit ").trim().to_string();
+                eprintln!("DEBUG draw_commit_view: found commit hash line, extracted: {:?}", commit_hash);
                 continue;
             }
             if author.is_empty() && line.starts_with("Author:") {
