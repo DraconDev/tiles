@@ -534,12 +534,17 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             }
                             let is_git_url = path_str.starts_with("git://")
                                 || path_str.starts_with("git-diff://");
+                            eprintln!("DEBUG PreviewRequested: is_git_url={}, current_view={:?}, setting editor_state",
+                                is_git_url, app_guard.current_view);
                             if is_git_url
                                 || app_guard.current_view == CurrentView::Editor
                                 || app_guard.current_view == CurrentView::Commit
                             {
                                 app_guard.editor_state = Some(preview);
+                                eprintln!("DEBUG PreviewRequested: editor_state now has content");
                                 app_guard.sidebar_focus = false;
+                            } else {
+                                eprintln!("DEBUG PreviewRequested: NOT setting editor_state - is_git_url={}, view={:?}", is_git_url, app_guard.current_view);
                             }
                         }
                         let _ = tx.send(AppEvent::Tick).await;

@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Enhanced debug logging for Git commit view rendering to track commit content with reduced noise
+Enhanced debug logging for Git commit view rendering to track editor state updates
 
 ## Completed
-- [x] Reduced debug output for commit content from 500 to 300 characters to minimize noise while maintaining useful information
-- [x] Improved debug logging format for commit view content inspection
+- [x] Added debug logging to track when editor_state is set for Git URLs or specific views
+- [x] Added debug logging to show when editor_state is not updated due to view conditions
+- [x] Improved visibility of editor state management in commit view rendering
