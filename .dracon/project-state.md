@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Refactored debug logging in commit view rendering to use `eprintln!` for direct output and increased content preview length
+Added debug logging to track Git mouse event handling and commit view rendering state
 
 ## Completed
-- [x] Replaced `crate::app::log_debug` with direct `eprintln!` calls for commit view debug output
-- [x] Increased content preview length from 200 to 500 characters
-- [x] Simplified debug message formatting for commit metadata parsing
+- [x] Added debug logging for Git mouse event handling to track row calculations and scroll offsets
+- [x] Added debug logging for commit view rendering to track selected commits and preview requests
+- [x] Enhanced debug logging with conditional checks for boundary conditions in Git history navigation
