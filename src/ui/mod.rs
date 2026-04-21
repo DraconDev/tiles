@@ -344,9 +344,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
 
     if let Some(preview) = content_source {
         eprintln!("DEBUG draw_commit_view: content length = {}", preview.content.len());
-        if preview.content.len() < 500 {
-            eprintln!("DEBUG draw_commit_view: content = {:?}", &preview.content[..preview.content.len().min(500)]);
-        }
+        eprintln!("DEBUG draw_commit_view: content first 300 chars: {:?}", &preview.content[..preview.content.len().min(300)]);
         let mut found_commit_line = false;
         for line in preview.content.lines() {
             if commit_hash.is_empty() && line.starts_with("commit ") {
