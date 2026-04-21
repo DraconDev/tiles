@@ -70,9 +70,10 @@ pub fn handle_git_mouse(
 
             // History section calculation
             let history_area_y = inner_y + top_h;
-            // Block title " HISTORY " uses the border area, inner starts after title
-            // Header row is 1 row, so first data row is history_area_y + 1
-            let table_data_start_y = history_area_y + 1;
+            // Table block title " HISTORY " is at history_area_y (1 row)
+            // Column headers from .header() are at history_area_y + 1 (1 row)
+            // First data row is at history_area_y + 2
+            let table_data_start_y = history_area_y + 2;
 
             if row >= table_data_start_y {
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {

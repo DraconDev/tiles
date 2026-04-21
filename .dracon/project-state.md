@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Added debug logging to track commit view rendering state and preview content
+Refactored Git history table rendering to handle dynamic layout conditions
 
 ## Completed
-- [x] Added debug logging for commit content length
-- [x] Added debug logging for commit content preview (first 200 chars)
-- [x] Added debug logging for parsed commit metadata (hash, author, date, subject)
+- [x] Updated Git history table rendering to account for dynamic layout conditions
+- [x] Adjusted table data start position to properly account for header rows
+- [x] Improved layout calculation for history section in Git view
