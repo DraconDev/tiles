@@ -2654,7 +2654,7 @@ dependencies = [
 
 [[package]]
 name = "tiles"
-version = "0.19.82"
+version = "0.19.84"
 dependencies = [
  "anyhow",
  "base64",
