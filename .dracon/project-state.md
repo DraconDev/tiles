@@ -1,7 +1,7 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+Updated Linux binary release artifact from v0.19.110 to v0.19.112
 
 ## Completed
-- [x] Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
+- [x] Updated Linux binary release artifact from v0.19.110 to v0.19.112 (binary file size reduced by 176 bytes)
