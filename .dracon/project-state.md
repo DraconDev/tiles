@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-docs(blueprint): added empty blueprint file with runtime progress tracking
+Fixed indentation in file path comparison logic to ensure consistent behavior
 
 ## Completed
-- [x] created empty blueprint file with runtime progress tracking
-```
+- [x] Refactored file path comparison to use consistent indentation in `run_tty` function
+- [x] Maintained same functionality while improving code readability
