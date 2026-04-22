@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Removed debug logging from Git mouse event handling to reduce noise in production
+Removed debug logging from Git commit handling to reduce noise in the application output
 
 ## Completed
-- [x] Removed all debug `eprintln!` statements from `handle_git_mouse` function
-- [x] Cleaned up conditional logging that tracked mouse event handling and commit view rendering
+- [x] Removed debug logging from Git commit patch display to simplify error handling
+- [x] Simplified error handling for Git commit loading by removing verbose debug output
