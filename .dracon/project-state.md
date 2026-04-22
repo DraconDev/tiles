@@ -1,10 +1,8 @@
 # Project State
 
 ## Current Focus
-Documented QA fixes for Git commit view, click detection, clipboard handling, and file refresh issues
+Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 
 ## Completed
-- [x] Added QA matrix entry for 2026-04-22 fixes
-- [x] Documented 8 specific bug fixes with root causes and solutions
-- [x] Updated environment details for test session
-- [x] Maintained chronological order of QA documentation
+- [x] Updated dependency resolution in Cargo.lock to fix manifest loading failure for dracon-files
+```
