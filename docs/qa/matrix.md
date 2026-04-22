@@ -3,6 +3,27 @@
 Status legend: `PASS` | `FAIL` | `FIXED`
 
 ## Environment
+- Date: 2026-04-22
+- Build target: local dev (v0.19.100)
+- Focus areas:
+  - Git commit view showing "unknown"
+  - Click detection coordinates in Git History
+  - Various clipboard and refresh issues
+
+## Session 2026-04-22 Fixes
+
+| ID | Issue | Root Cause | Fix |
+|---|---|---|---|
+| GC1 | Git commit view shows "unknown" | `dracon-git::show_commit_patch` passes `--` before hash, making git treat hash as path filter | Bypass library with direct `git show --patch --stat --color=never <hash>` in `modules/files.rs` |
+| GC2 | Click detection off-by-one | `table_data_start_y = history_area_y + 1` missed header row | Changed to `+ 2` in `events/git.rs` |
+| GC3 | Missing redraw on async preview | `Tick` handler didn't set `needs_draw = true` | Added `needs_draw = true` to `Tick` handler |
+| GC4 | Paste clipboard cleared on failure | `app.clipboard = None` after failed `try_send` | Check `try_send` result first in both `event_helpers.rs` and `file_manager.rs` |
+| GC5 | Hardcoded pane indices in Undo | `RefreshFiles(0)` hardcoded | Iterate `0..app.panes.len()` |
+| GC6 | Self-save tracking one-shot | Path removed from `last_self_save` on mtime mismatch | Keep tracking on mismatch |
+| GC7 | Preview cache not invalidated | `highlighted_lines` never cleared on save | Set `highlighted_lines = None` on save |
+| GC8 | Non-recursive file watcher | `notify::RecursiveMode::NonRecursive` | Changed to `RecursiveMode::Recursive` |
+
+## Environment
 - Date: 2026-02-08
 - Build target: local dev
 - Focus areas:

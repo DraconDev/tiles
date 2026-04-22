@@ -1,8 +1,10 @@
 # Project State
 
 ## Current Focus
-Added Linux binary release artifact for tiles-v0.19.100
+Documented QA fixes for Git commit view, click detection, clipboard handling, and file refresh issues
 
 ## Completed
-- [x] Added pre-built Linux binary for tiles-v0.19.100 to releases directory
-```
+- [x] Added QA matrix entry for 2026-04-22 fixes
+- [x] Documented 8 specific bug fixes with root causes and solutions
+- [x] Updated environment details for test session
+- [x] Maintained chronological order of QA documentation
