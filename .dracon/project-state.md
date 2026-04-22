@@ -1,8 +1,11 @@
 # Project State
 
 ## Current Focus
-Removed debug logging from Git commit handling to reduce noise in the application output
+Refactored Git commit view parsing to improve commit metadata extraction and file change tracking
 
 ## Completed
-- [x] Removed debug logging statements that tracked Git URL detection and editor state changes in commit handling
-- [x] Simplified conditional logic for setting editor state by removing the debug logging branch
+- [x] Removed debug logging from Git commit view rendering
+- [x] Improved commit metadata parsing (hash, author, date, subject)
+- [x] Enhanced file change tracking with proper path normalization
+- [x] Added hunk and line change counting for diff visualization
+```
