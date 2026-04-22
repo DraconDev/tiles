@@ -1,7 +1,7 @@
 # Project State
 
 ## Current Focus
-Removed Linux binary release artifact for version v0.19.107
+Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
 
 ## Completed
-- [x] Removed the Linux binary release artifact for version v0.19.107 from the releases directory
+- [x] Updated Cargo.lock to resolve dependency manifest loading failure for `dracon-files`
