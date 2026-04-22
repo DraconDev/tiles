@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Added dead code annotation to Git commit patch display function
+docs(dependencies): Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 
 ## Completed
-- [x] Marked `show_commit_patch` as dead code to suppress warnings
+- [x] docs(dependencies): Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 ```
