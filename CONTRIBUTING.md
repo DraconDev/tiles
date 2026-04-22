@@ -53,10 +53,10 @@ src/
 
 | Crate | Source | Purpose |
 |-------|--------|---------|
-| `dracon-terminal-engine` | Local path | Terminal runtime, compositor, input parser, ratatui bridge, widgets |
-| `dracon-files` | Local path | Filesystem operations, metadata, search |
-| `dracon-git` | Local path | Git log, diff, status parsing |
-| `dracon-system` | Local path | System stats, SSH remote operations |
+| `dracon-terminal-engine` | Git (dracon-libs) | Terminal runtime, compositor, input parser, ratatui bridge, widgets |
+| `dracon-files` | Git (dracon-libs) | Filesystem operations, metadata, search |
+| `dracon-git` | Git (dracon-libs) | Git log, diff, status parsing |
+| `dracon-system` | Git (dracon-libs) | System stats, SSH remote operations |
 
 ## Running
 
@@ -100,7 +100,7 @@ cargo test && cargo clippy
 
 ### File Watching
 - Uses `notify-debouncer-mini` with 200ms debounce
-- `NonRecursive` mode — only watches current directory, not subdirectories
+- `Recursive` mode — watches directory trees (expanded folders and their contents)
 - `sync_watches` has fast bail-out when paths haven't changed
 
 ## Code Style

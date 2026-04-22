@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-docs(dependencies): Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
+Updated dependency source locations in CONTRIBUTING.md to reference Git (dracon-libs) instead of local paths
 
 ## Completed
-- [x] docs(dependencies): Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
-```
+- [x] Updated crate source locations from local paths to Git (dracon-libs) references
+- [x] Changed file watching mode from NonRecursive to Recursive for directory trees
