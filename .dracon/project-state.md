@@ -1,7 +1,7 @@
 # Project State
 
 ## Current Focus
-Removed Linux binary release artifact for tiles-v0.19.102
+Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
 
 ## Completed
-- [x] Removed the Linux binary release artifact for version v0.19.102
+- [x] Updated Cargo.lock to resolve dependency manifest loading failure for dracon-files
