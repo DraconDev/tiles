@@ -4,5 +4,5 @@
 Removed debug logging from Git commit handling to reduce noise in the application output
 
 ## Completed
-- [x] Removed debug logging from Git commit patch display to simplify error handling
-- [x] Simplified error handling for Git commit loading by removing verbose debug output
+- [x] Removed debug logging statements that tracked Git URL detection and editor state changes in commit handling
+- [x] Simplified conditional logic for setting editor state by removing the debug logging branch
