@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Updated blueprint file with runtime progress tracking for dependency resolution
+Added dead code annotation to Git commit patch display function
 
 ## Completed
-- [x] Added runtime progress section to blueprint with dependency resolution status
-- [x] Documented current phase as "planning" with execution disabled
-- [x] Included slice status for failed dependency loading (dracon-files)
+- [x] Marked `show_commit_patch` as dead code to suppress warnings
+```

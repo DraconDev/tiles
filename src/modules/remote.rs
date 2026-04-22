@@ -244,6 +244,7 @@ pub fn build_remote_terminal_command(
     format!("ssh -p {}{} {} {}", remote.port, key_part, dest, body_q)
 }
 
+#[allow(dead_code)]
 pub fn show_commit_patch(
     remote: &RemoteSession,
     repo_path: &Path,
