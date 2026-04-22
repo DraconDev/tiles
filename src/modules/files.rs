@@ -166,8 +166,21 @@ pub fn check_file_suitability(path: &Path, max_bytes: u64) -> (bool, bool, u64) 
 }
 
 pub fn show_commit_patch(repo_path: &Path, hash: &str) -> std::io::Result<String> {
-    let provider = CliGitSnapshotProvider;
-    provider.show_commit_patch(repo_path, hash)
+    // Bypass dracon-git's buggy implementation which incorrectly passes `--` before the hash,
+    // causing git to treat the hash as a path filter instead of a commit hash.
+    let out = std::process::Command::new("git")
+        .args(["show", "--patch", "--stat", "--color=never", hash])
+        .current_dir(repo_path)
+        .env_remove("DIRENV_DIR")
+        .env_remove("DIRENV_FILE")
+        .env_remove("DIRENV_WATCHES")
+        .env_remove("DIRENV_DIFF")
+        .env("DIRENV_LOG_FORMAT", "")
+        .env("GIT_HOOKS_PATH", "")
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("SSH_ASKPASS", "")
+        .output()?;
+    Ok(String::from_utf8_lossy(&out.stdout).to_string())
 }
 
 pub fn show_file_diff(repo_path: &Path, file_path: &str) -> std::io::Result<String> {
