@@ -447,21 +447,20 @@ pub fn log_debug(msg: &str) {
 
     use std::io::Write;
     static LOG_FILE: std::sync::LazyLock<
-        std::sync::Mutex<Option<std::io::BufWriter<std::fs::File>>>,
+        parking_lot::Mutex<Option<std::io::BufWriter<std::fs::File>>>,
     > = std::sync::LazyLock::new(|| {
         let file = std::fs::OpenOptions::new()
             .append(true)
             .create(true)
             .open("debug.log")
             .ok();
-        std::sync::Mutex::new(file.map(std::io::BufWriter::new))
+        parking_lot::Mutex::new(file.map(std::io::BufWriter::new))
     });
 
-    if let Ok(mut guard) = LOG_FILE.lock() {
-        if let Some(ref mut w) = *guard {
-            let _ = writeln!(w, "[{}] DEBUG: {}", chrono::Utc::now(), msg);
-            let _ = w.flush();
-        }
+    let mut guard = LOG_FILE.lock();
+    if let Some(ref mut w) = *guard {
+        let _ = writeln!(w, "[{}] DEBUG: {}", chrono::Utc::now(), msg);
+        let _ = w.flush();
     }
 }
 
