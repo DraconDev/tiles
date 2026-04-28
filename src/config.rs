@@ -112,7 +112,7 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     let json = serde_json::to_string_pretty(&state)?;
 
     {
-        let mut last = LAST_SAVE.lock().unwrap();
+        let mut last = LAST_SAVE.lock();
         let now = Instant::now();
         if let Some((last_at, last_json)) = last.as_ref() {
             // Avoid repeated writes of identical content.
