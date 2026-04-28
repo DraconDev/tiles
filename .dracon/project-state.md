@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Removed unused module declaration for UI modals
+Refactored mutex type aliasing in app.rs for better type clarity
 
 ## Completed
-- [x] Removed `modals` module declaration from `src/ui/mod.rs` as it was no longer in use
+- [x] Changed `Mutex` alias from `AppMutex` to `StdMutex` in app.rs to improve type clarity
 ```
