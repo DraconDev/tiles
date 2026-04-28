@@ -8,7 +8,7 @@ use dracon_terminal_engine::widgets::TextInput;
 pub use crate::state::{
     AppEvent, AppMode, ClipboardOp, CommandAction, CommandItem, CommitInfo, ContextMenuAction,
     ContextMenuTarget, CurrentView, DropTarget, FileCategory, FileColumn, FileMetadata, FileState,
-    GitPendingChange, LicenseStatus, MonitorSubview, Pane, PreviewState, ProcessColumn,
+    GitPendingChange, MonitorSubview, Pane, PreviewState, ProcessColumn,
     RemoteBookmark, SettingsSection, SettingsTarget, SidebarBounds, SidebarScope, SidebarTarget,
     SystemState, UndoAction, ViewPreferences, ViewStatePersistence,
 };
@@ -33,8 +33,6 @@ pub struct App {
     pub terminal_size: (u16, u16),
     pub mouse_pos: (u16, u16),
     pub system_state: SystemState,
-    #[allow(dead_code)]
-    pub license: LicenseStatus,
     pub sidebar_focus: bool,
     pub sidebar_index: usize,
     pub sidebar_scope: SidebarScope,
@@ -160,7 +158,6 @@ impl App {
             terminal_size: (80, 24),
             mouse_pos: (0, 0),
             system_state,
-            license: LicenseStatus::FreeMode,
             sidebar_focus: false,
             sidebar_index: 0,
             sidebar_scope: SidebarScope::All,

@@ -475,16 +475,6 @@ pub enum UndoAction {
     Delete(PathBuf),
 }
 
-#[allow(dead_code)]
-#[derive(Clone, Debug)]
-pub enum LicenseStatus {
-    Valid,
-    Invalid(String),
-    TrialExpired,
-    FreeMode,
-    Commercial(String),
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CommitInfo {
     pub hash: String,
