@@ -211,7 +211,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
 
     // Initial State Setup
     let pane_count = {
-        let mut app_guard = app.lock().unwrap();
+        let mut app_guard = app.lock();
         app_guard.running = true;
         if let Ok(size) = terminal.size() {
             app_guard.terminal_size = (size.width, size.height);
@@ -224,7 +224,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
 
     // Initial watch sync
     {
-        let app_guard = app.lock().unwrap();
+        let app_guard = app.lock();
         sync_watches(&app_guard, &mut debouncer);
     }
 
@@ -244,7 +244,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 AppEvent::Tick => {
                     needs_draw = true;
                     if last_watch_sync.elapsed() >= Duration::from_millis(WATCH_SYNC_INTERVAL_MS) {
-                        let app_guard = app.lock().unwrap();
+                        let app_guard = app.lock();
                         sync_watches(&app_guard, &mut debouncer);
                         last_watch_sync = std::time::Instant::now();
                     }
@@ -252,7 +252,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 AppEvent::Raw(raw) => {
                     let view_mode_before;
                     {
-                        let mut app_guard = app.lock().unwrap();
+                        let mut app_guard = app.lock();
                         view_mode_before = (app_guard.current_view.clone(), app_guard.mode.clone());
                         if handle_event(
                             raw,
@@ -269,13 +269,13 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 }
                 AppEvent::Ui(_ui_event) => {}
                 AppEvent::SystemUpdated(data) => {
-                    let mut app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock();
                     crate::modules::system::SystemModule::update_app_state(&mut app_guard, data);
                     needs_draw = true;
                 }
                 AppEvent::ConnectToRemote(pane_idx, bookmark_idx) => {
                     let remote_opt = {
-                        let app_guard = app.lock().unwrap();
+                        let app_guard = app.lock();
                         app_guard.remote_bookmarks.get(bookmark_idx).cloned()
                     };
                     if let Some(remote) = remote_opt {
@@ -312,7 +312,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     }
                 }
                 AppEvent::RemoteConnected(pane_idx, session) => {
-                    let mut app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock();
                     if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
                         if let Some(fs) = pane.current_state_mut() {
                             fs.remote_session = Some(session);
@@ -326,7 +326,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     let t_refresh = std::time::Instant::now();
                     let current_path = {
                         let t_lock = std::time::Instant::now();
-                        let mut app_guard = app.lock().unwrap();
+                        let mut app_guard = app.lock();
                         crate::app::log_debug(&format!("RefreshFiles lock took {:?}", t_lock.elapsed()));
                         let path = app_guard
                             .panes
@@ -361,7 +361,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         }
                     }
 
-                    let app_guard = app.lock().unwrap();
+                    let app_guard = app.lock();
                     let mut needs_reload = Vec::new();
 
                     for (i, pane) in app_guard.panes.iter().enumerate() {
@@ -412,7 +412,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     let tx = event_tx.clone();
                     let app_clone = app.clone();
                     let (current_dir, preview_limit_mb, remote_session) = {
-                        let app_guard = app.lock().unwrap();
+                        let app_guard = app.lock();
                         if let Some(pane) = app_guard.panes.get(pane_idx) {
                             if let Some(fs) = pane.current_state() {
                                 (
@@ -511,7 +511,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         }
 
                         {
-                            let mut app_guard = app_clone.lock().unwrap();
+                            let mut app_guard = app_clone.lock();
                             let preview = PreviewState {
                                 path: path.clone(),
                                 content,
@@ -540,7 +540,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 }
                 AppEvent::SaveFile(path, content) => {
                     let remote_for_save = {
-                        let app_guard = app.lock().unwrap();
+                        let app_guard = app.lock();
                         app_guard
                             .panes
                             .iter()
@@ -578,7 +578,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                     }
                                 }
                             }
-                            let mut app_guard = app.lock().unwrap();
+                            let mut app_guard = app.lock();
                             if let Some(ref mut preview) = app_guard.editor_state {
                                 if preview.path == path {
                                     preview.last_saved = Some(std::time::Instant::now());
@@ -612,7 +612,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             }
                         }
                         Err(e) => {
-                            let mut app_guard = app.lock().unwrap();
+                            let mut app_guard = app.lock();
                             let msg = format!("Failed to save file: {}", e);
                             crate::app::log_debug(&msg);
                             app_guard.last_action_msg = Some((msg, std::time::Instant::now()));
@@ -622,7 +622,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 }
                 AppEvent::CreateFile(path) => {
                     let remote = {
-                        let app_guard = app.lock().unwrap();
+                        let app_guard = app.lock();
                         app_guard
                             .current_file_state()
                             .and_then(|fs| fs.remote_session.clone())
@@ -633,12 +633,12 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         let _ = std::fs::File::create(&path);
                     }
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(
-                        app.lock().unwrap().focused_pane_index,
+                        app.lock().focused_pane_index,
                     ));
                 }
                 AppEvent::CreateFolder(path) => {
                     let remote = {
-                        let app_guard = app.lock().unwrap();
+                        let app_guard = app.lock();
                         app_guard
                             .current_file_state()
                             .and_then(|fs| fs.remote_session.clone())
@@ -649,12 +649,12 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         let _ = std::fs::create_dir_all(&path);
                     }
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(
-                        app.lock().unwrap().focused_pane_index,
+                        app.lock().focused_pane_index,
                     ));
                 }
                 AppEvent::Rename(old, new) => {
                     let remote = {
-                        let app_guard = app.lock().unwrap();
+                        let app_guard = app.lock();
                         app_guard
                             .current_file_state()
                             .and_then(|fs| fs.remote_session.clone())
@@ -666,7 +666,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     };
                     match rename_res {
                         Ok(_) => {
-                            let mut app_guard = app.lock().unwrap();
+                            let mut app_guard = app.lock();
                             // Undo should move the path back to its original location.
                             app_guard
                                 .undo_stack
@@ -683,7 +683,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 }
                 AppEvent::Delete(path) => {
                     let remote = {
-                        let app_guard = app.lock().unwrap();
+                        let app_guard = app.lock();
                         app_guard
                             .current_file_state()
                             .and_then(|fs| fs.remote_session.clone())
@@ -695,7 +695,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     } else {
                         std::fs::remove_file(&path)
                     };
-                    let focused = app.lock().unwrap().focused_pane_index;
+                    let focused = app.lock().focused_pane_index;
                     if let Err(e) = result {
                         let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
                             "Delete failed: {} - {}",
@@ -710,7 +710,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     let app_clone = app.clone();
                     tokio::spawn(async move {
                         let remote = {
-                            let app_guard = app_clone.lock().unwrap();
+                            let app_guard = app_clone.lock();
                             app_guard
                                 .current_file_state()
                                 .and_then(|fs| fs.remote_session.clone())
@@ -721,7 +721,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             dracon_terminal_engine::utils::copy_recursive(&src, &dest).is_ok()
                         };
                         if copied {
-                            let mut app_guard = app_clone.lock().unwrap();
+                            let mut app_guard = app_clone.lock();
                             app_guard
                                 .undo_stack
                                 .push(crate::app::UndoAction::Copy(src.clone(), dest.clone()));
@@ -729,7 +729,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         }
                         let mut panes_to_refresh = std::collections::HashSet::new();
                         if let Some(parent) = dest.parent() {
-                            let app_guard = app_clone.lock().unwrap();
+                            let app_guard = app_clone.lock();
                             for (i, pane) in app_guard.panes.iter().enumerate() {
                                 if let Some(fs) = pane.current_state() {
                                     if fs.current_path == parent {
@@ -749,7 +749,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 }
                 AppEvent::Symlink(src, dest) => {
                     let remote = {
-                        let app_guard = app.lock().unwrap();
+                        let app_guard = app.lock();
                         app_guard
                             .current_file_state()
                             .and_then(|fs| fs.remote_session.clone())
@@ -778,7 +778,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     match result {
                         Ok(_) => {
                             if let Some(parent) = dest.parent() {
-                                let app_guard = app.lock().unwrap();
+                                let app_guard = app.lock();
                                 for (i, pane) in app_guard.panes.iter().enumerate() {
                                     if let Some(fs) = pane.current_state() {
                                         if fs.current_path == parent {
@@ -833,7 +833,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     remotes,
                     stashes,
                 ) => {
-                    let mut app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock();
                     if p_idx >= app_guard.panes.len() {
                         crate::app::log_debug(&format!(
                             "GitHistoryUpdated: pane_idx {} out of bounds (panes: {})",
@@ -857,7 +857,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     needs_draw = true;
                 }
                 AppEvent::TaskProgress(id, progress, status) => {
-                    let mut app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock();
                     if let Some(task) = app_guard.background_tasks.iter_mut().find(|t| t.id == id) {
                         task.progress = progress;
                         task.status = status;
@@ -872,12 +872,12 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     needs_draw = true;
                 }
                 AppEvent::TaskFinished(id) => {
-                    let mut app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock();
                     app_guard.background_tasks.retain(|t| t.id != id);
                     needs_draw = true;
                 }
                 AppEvent::GlobalSearchUpdated(pane_idx, files, _meta) => {
-                    let mut app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock();
                     if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
                         if let Some(fs) = pane.current_state_mut() {
                             fs.files = files;
@@ -886,13 +886,13 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     needs_draw = true;
                 }
                 AppEvent::SystemMonitor => {
-                    let mut app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock();
                     app_guard.save_current_view_prefs();
                     app_guard.current_view = CurrentView::Processes;
                     needs_draw = true;
                 }
                 AppEvent::GitHistory => {
-                    let mut app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock();
                     app_guard.save_current_view_prefs();
                     app_guard.current_view = CurrentView::Git;
                     let pane_idx = app_guard.focused_pane_index;
@@ -901,7 +901,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
                 }
                 AppEvent::Editor => {
-                    let mut app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock();
                     app_guard.save_current_view_prefs();
                     app_guard.current_view = CurrentView::Editor;
                     app_guard.load_view_prefs(CurrentView::Editor);
@@ -910,12 +910,12 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     needs_draw = true;
                 }
                 AppEvent::StatusMsg(msg) => {
-                    let mut app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock();
                     app_guard.last_action_msg = Some((msg, std::time::Instant::now()));
                     needs_draw = true;
                 }
                 AppEvent::AddToFavorites(path) => {
-                    let mut app_guard = app.lock().unwrap();
+                    let mut app_guard = app.lock();
                     // Only add if path exists and not already in favorites
                     if path.exists() && !app_guard.starred.contains(&path) {
                         app_guard.starred.push(path.clone());
@@ -939,7 +939,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         // Handle Refreshes
         for pane_idx in panes_needing_refresh.drain() {
             let (path, remote, current_filter) = {
-                let app_guard = app.lock().unwrap();
+                let app_guard = app.lock();
                 if let Some(pane) = app_guard.panes.get(pane_idx) {
                     if let Some(fs) = pane.current_state() {
                         (
@@ -1003,7 +1003,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
 
                 {
                     let t_apply = std::time::Instant::now();
-                    let mut app_guard = app_clone.lock().unwrap();
+                    let mut app_guard = app_clone.lock();
                     crate::app::log_debug(&format!("apply lock took {:?}", t_apply.elapsed()));
                     if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
                         if let Some(fs) = pane.current_state_mut() {
@@ -1161,7 +1161,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     .flatten();
 
                     let path_still_active = {
-                        let app_guard = app_for_git.lock().unwrap();
+                        let app_guard = app_for_git.lock();
                         app_guard
                             .panes
                             .get(pane_idx)
@@ -1175,7 +1175,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
 
                     // Get the active tab index for this pane so git data lands in the right place
                     let active_tab_idx = {
-                        let app_guard = app_for_git.lock().unwrap();
+                        let app_guard = app_for_git.lock();
                         app_guard
                             .panes
                             .get(pane_idx)
@@ -1223,7 +1223,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         }
 
         if needs_draw {
-            let mut app_guard = app.lock().unwrap();
+            let mut app_guard = app.lock();
             if !app_guard.running {
                 shutdown.store(true, Ordering::Release);
                 break;
@@ -1238,9 +1238,9 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
 }
 
 fn setup_app(
-    tile_queue: Arc<Mutex<Vec<dracon_terminal_engine::compositor::engine::TilePlacement>>>,
+    tile_queue: Arc<StdMutex<Vec<dracon_terminal_engine::compositor::engine::TilePlacement>>>,
 ) -> (
-    Arc<Mutex<App>>,
+    Arc<AppMutex<App>>,
     mpsc::Sender<AppEvent>,
     mpsc::Receiver<AppEvent>,
 ) {

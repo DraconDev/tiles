@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Refactored test dependencies by replacing `std::sync::Mutex` with `parking_lot::Mutex` and adding `std::sync::Mutex` for additional synchronization
+Refactored Mutex usage in main.rs to improve error handling and remove unwraps
 
 ## Completed
-- [x] Replaced `std::sync::Mutex` with `parking_lot::Mutex` in test module
-- [x] Added `std::sync::Mutex` import for additional synchronization needs
+- [x] Replaced all `lock().unwrap()` calls with direct `lock()` calls in main.rs
+- [x] Maintained same functionality while improving error handling
 ```
