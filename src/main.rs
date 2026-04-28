@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex as StdMutex};
+use parking_lot::Mutex as AppMutex;
 use std::time::Duration;
 use tokio::sync::mpsc;
 
