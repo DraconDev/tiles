@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Refactored mutex type usage in app.rs to replace AppMutex with StdMutex for consistency
+Removed unused UI modal and file pane modules to reduce code complexity
 
 ## Completed
-- [x] Replaced AppMutex with StdMutex in App struct field
-- [x] Updated constructor to accept StdMutex instead of AppMutex
+- [x] Removed `src/ui/modals.rs` containing drag-and-drop and hotkey modal implementations
+- [x] Removed `src/ui/panes/files.rs` containing file navigation pane components
+```
