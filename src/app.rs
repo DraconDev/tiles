@@ -1,8 +1,7 @@
 use ratatui::widgets::TableState;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::sync::Arc;
-use parking_lot::Mutex;
+use std::sync::{Arc, Mutex};
 use dracon_terminal_engine::compositor::engine::TilePlacement;
 use dracon_terminal_engine::widgets::TextInput;
 

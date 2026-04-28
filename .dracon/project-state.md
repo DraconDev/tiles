@@ -1,7 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored mutex usage in app.rs to replace std::sync::Mutex with parking_lot::Mutex
+Refactored mutex usage in app.rs to replace parking_lot::Mutex with std::sync::Mutex
 
 ## Completed
-- [x] Replaced std::sync::Mutex with parking_lot::Mutex in app.rs for improved performance and deadlock resistance
+- [x] Replaced parking_lot::Mutex with std::sync::Mutex in app.rs
+```
