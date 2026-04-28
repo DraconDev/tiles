@@ -96,7 +96,7 @@ pub struct App {
     pub open_with_index: usize,
     pub replace_buffer: String,
     pub background_tasks: Vec<BackgroundTask>,
-    #[allow(dead_code)]
+    /// Queue for compositor tile placements. Written by app, read by terminal engine.
     pub tile_queue: Arc<StdMutex<Vec<TilePlacement>>>,
     pub saved_pane: Option<Pane>,
 }
