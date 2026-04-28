@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex as StdMutex};
-use parking_lot::Mutex as AppMutex;
+use parking_lot::Mutex as PLMutex;
 use std::time::Duration;
 use tokio::sync::mpsc;
 
@@ -1241,7 +1241,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
 fn setup_app(
     tile_queue: Arc<StdMutex<Vec<dracon_terminal_engine::compositor::engine::TilePlacement>>>,
 ) -> (
-    Arc<AppMutex<App>>,
+    Arc<PLMutex<App>>,
     mpsc::Sender<AppEvent>,
     mpsc::Receiver<AppEvent>,
 ) {
@@ -1455,7 +1455,7 @@ fn prime_local_file_state(fs: &mut crate::state::FileState) {
 mod tests {
     use super::*;
 use std::sync::{Arc, Mutex as StdMutex};
-use parking_lot::Mutex as AppMutex;
+use parking_lot::Mutex as PLMutex;
     use dracon_terminal_engine::compositor::engine::TilePlacement;
 
     #[test]

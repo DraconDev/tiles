@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored mutex type aliasing in app.rs for better type clarity
+Refactored mutex type aliasing in main.rs for better type clarity
 
 ## Completed
-- [x] Changed `Mutex` alias from `AppMutex` to `StdMutex` in app.rs to improve type clarity
-```
+- [x] Renamed `AppMutex` to `PLMutex` to clarify it's specifically `parking_lot::Mutex`
+- [x] Updated all references to use the new `PLMutex` type alias consistently
