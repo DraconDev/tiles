@@ -23,7 +23,6 @@ use dracon_terminal_engine::utils::{
 use dracon_terminal_engine::widgets::HotkeyHint;
 use unicode_width::UnicodeWidthStr;
 
-pub mod modals;
 pub mod panes;
 pub mod theme;
 

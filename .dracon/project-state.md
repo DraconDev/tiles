@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Removed unused files module from UI panes
+Removed unused module declaration for UI modals
 
 ## Completed
-- [x] Removed `files` module from `src/ui/panes/mod.rs` to reduce unused code
+- [x] Removed `modals` module declaration from `src/ui/mod.rs` as it was no longer in use
 ```
