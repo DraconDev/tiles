@@ -1453,7 +1453,7 @@ fn prime_local_file_state(fs: &mut crate::state::FileState) {
 #[cfg(test)]
 mod tests {
     use super::*;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex as StdMutex};
 use parking_lot::Mutex as AppMutex;
     use dracon_terminal_engine::compositor::engine::TilePlacement;
 
