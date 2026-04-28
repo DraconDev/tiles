@@ -99,12 +99,12 @@ pub struct App {
     pub replace_buffer: String,
     pub background_tasks: Vec<BackgroundTask>,
     #[allow(dead_code)]
-    pub tile_queue: Arc<Mutex<Vec<TilePlacement>>>,
+    pub tile_queue: Arc<AppMutex<Vec<TilePlacement>>>,
     pub saved_pane: Option<Pane>,
 }
 
 impl App {
-    pub fn new(tile_queue: Arc<Mutex<Vec<TilePlacement>>>) -> Self {
+    pub fn new(tile_queue: Arc<AppMutex<Vec<TilePlacement>>>) -> Self {
         let start_path = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let initial_fs = FileState::new(
             start_path,
