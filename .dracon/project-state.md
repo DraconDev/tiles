@@ -1,8 +1,7 @@
 # Project State
 
 ## Current Focus
-Refactored mutex usage in app.rs to replace parking_lot::Mutex with std::sync::Mutex
+Refactored Mutex usage in app.rs to improve type clarity with aliasing
 
 ## Completed
-- [x] Replaced parking_lot::Mutex with std::sync::Mutex in app.rs
-```
+- [x] Renamed `std::sync::Mutex` to `AppMutex` for clearer type distinction in app.rs
