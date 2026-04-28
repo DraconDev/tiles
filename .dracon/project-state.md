@@ -1,8 +1,7 @@
 # Project State
 
 ## Current Focus
-Added documentation for the tile_queue field in App struct to clarify its purpose
+Updated Cargo.toml dependencies (binary change, likely version bump or new dependency)
 
 ## Completed
-- [x] Added doc comment explaining tile_queue's role as a compositor tile placement queue
-```
+- [x] Updated project dependencies (binary change in Cargo.toml)
