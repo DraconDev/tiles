@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored mutex usage in app.rs to improve type clarity with AppMutex aliasing
+Removed unused files module from UI panes
 
 ## Completed
-- [x] Replaced `parking_lot::Mutex` with `AppMutex` alias in App struct and constructor
-- [x] Maintained same functionality while improving type system clarity
+- [x] Removed `files` module from `src/ui/panes/mod.rs` to reduce unused code
+```
