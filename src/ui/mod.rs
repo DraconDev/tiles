@@ -2301,6 +2301,7 @@ fn draw_file_view(
             f.render_widget(text, area);
             return;
         }
+        }
     }
 
     // --- BORDER & BACKGROUND (Rendered FIRST to create base) ---

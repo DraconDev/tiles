@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Update Cargo.lock with resolved dependency versions after fixing manifest issues.
+Remove unused `Pane::preview_mut` method and fix mismatched brace in `draw_file_view`
 
 ## Completed
-- [x] Updated Cargo.lock to reflect the newly resolved dependency versions
-- [x] Fixed manifest dependency resolution issues by adjusting locked versions
+- [x] Remove obsolete `Pane::preview_mut` method following migration of preview state to per-tab `FileState`
+- [x] Fix unclosed block in `draw_file_view` by adding missing closing brace to resolve syntax error
