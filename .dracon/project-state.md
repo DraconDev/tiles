@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Remove unused functions and enums related to Git status in remote and state modules.
+Refactor remote session directory check to use idiomatic pattern matching and drop unused conditional branches.
 
 ## Completed
-- Remove unused `show_commit_patch` function from the remote module.
-- Remove the `GitStatus` enum from the state module.
-Legend: `[ ]` planned, `[~]` in progress, `[x]` complete.
+- [x] Simplify remote session handling by replacing manual `is_some()` check with `if let Some(rs)` for clearer ownership and readability.
+- [x] Streamline dependencies (Cargo.lock) consistent with the refactored code path.

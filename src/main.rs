@@ -494,12 +494,8 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         if path_str.starts_with("git://") || path_str.starts_with("git-diff://") {
                             editor.language = "diff".to_string();
                             editor.read_only = true;
-                        } else if remote_session.is_some() {
-                            let is_dir = crate::modules::remote::is_dir(
-                                remote_session.as_ref().unwrap(),
-                                &path,
-                            )
-                            .unwrap_or(false);
+                        } else if let Some(rs) = &remote_session {
+                            let is_dir = crate::modules::remote::is_dir(rs, &path).unwrap_or(false);
                             if is_dir {
                                 editor.read_only = true;
                             }
