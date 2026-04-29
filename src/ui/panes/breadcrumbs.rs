@@ -22,8 +22,10 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
 
     if app.current_view == CurrentView::Editor {
         if let Some(pane) = app.panes.get(pane_idx) {
-            if let Some(preview) = &pane.preview {
-                path = preview.path.clone();
+            if let Some(fs) = pane.current_state() {
+                if let Some(preview) = &fs.preview {
+                    path = preview.path.clone();
+                }
             }
         }
     }
@@ -34,37 +36,39 @@ pub fn draw_pane_breadcrumbs(f: &mut Frame, area: Rect, app: &mut App, pane_idx:
     // IDE Mode Search Integration
     if app.current_view == CurrentView::Editor && search_filter.is_empty() {
         if let Some(pane) = app.panes.get(pane_idx) {
-            if let Some(preview) = &pane.preview {
-                if let Some(editor) = &preview.editor {
-                    if _is_focused {
-                        match app.mode {
-                            AppMode::EditorSearch => {
-                                search_filter = app.input.value.clone();
-                                search_label = "";
-                            }
-                            AppMode::EditorGoToLine => {
-                                search_filter = app.input.value.clone();
-                                search_label = "LINE: ";
-                            }
-                            AppMode::EditorReplace => {
-                                search_filter = app.input.value.clone();
-                                search_label = if app.replace_buffer.is_empty() {
-                                    ""
-                                } else {
-                                    "WITH: "
-                                };
-                                search_color = Color::Magenta;
-                            }
-                            _ => {
-                                if !editor.filter_query.is_empty() {
-                                    search_filter = editor.filter_query.clone();
+            if let Some(fs) = pane.current_state() {
+                if let Some(preview) = &fs.preview {
+                    if let Some(editor) = &preview.editor {
+                        if _is_focused {
+                            match app.mode {
+                                AppMode::EditorSearch => {
+                                    search_filter = app.input.value.clone();
                                     search_label = "";
                                 }
+                                AppMode::EditorGoToLine => {
+                                    search_filter = app.input.value.clone();
+                                    search_label = "LINE: ";
+                                }
+                                AppMode::EditorReplace => {
+                                    search_filter = app.input.value.clone();
+                                    search_label = if app.replace_buffer.is_empty() {
+                                        ""
+                                    } else {
+                                        "WITH: "
+                                    };
+                                    search_color = Color::Magenta;
+                                }
+                                _ => {
+                                    if !editor.filter_query.is_empty() {
+                                        search_filter = editor.filter_query.clone();
+                                        search_label = "";
+                                    }
+                                }
                             }
+                        } else if !editor.filter_query.is_empty() {
+                            search_filter = editor.filter_query.clone();
+                            search_label = "";
                         }
-                    } else if !editor.filter_query.is_empty() {
-                        search_filter = editor.filter_query.clone();
-                        search_label = "";
                     }
                 }
             }

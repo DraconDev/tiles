@@ -511,37 +511,29 @@ fn section_header_line(
 
 pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let selection_bg = crate::ui::theme::selection_bg();
-    // Resolve both tree base path and a user-facing title path from focused editor context.
     let (base_path, title_path) = if let Some(pane) = app.panes.get(app.focused_pane_index) {
         if let Some(fs) = pane.current_state() {
-            if let Some(preview) = &fs.preview {
+            if let Some(ref preview) = fs.preview {
                 if preview.path.is_dir() {
                     (preview.path.clone(), preview.path.clone())
                 } else {
                     (
-                        preview
-                            .path
-                        .parent()
-                        .map(|p| p.to_path_buf())
-                        .unwrap_or_else(|| PathBuf::from("/")),
-                    preview.path.clone(),
-                )
+                        preview.path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("/")),
+                        preview.path.clone(),
+                    )
+                }
+            } else {
+                (fs.current_path.clone(), fs.current_path.clone())
             }
-        } else if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
-            (tab.current_path.clone(), tab.current_path.clone())
         } else {
             return;
         }
-    } else if let Some(preview) = &app.editor_state {
+    } else if let Some(ref preview) = app.editor_state {
         if preview.path.is_dir() {
             (preview.path.clone(), preview.path.clone())
         } else {
             (
-                preview
-                    .path
-                    .parent()
-                    .map(|p| p.to_path_buf())
-                    .unwrap_or_else(|| PathBuf::from("/")),
+                preview.path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("/")),
                 preview.path.clone(),
             )
         }
