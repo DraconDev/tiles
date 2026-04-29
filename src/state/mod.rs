@@ -28,7 +28,7 @@ pub enum AppEvent {
     ConnectToRemote(usize, usize),
     RemoteConnected(usize, RemoteSession),
     SystemUpdated(dracon_system::SystemSnapshot),
-    MountDisk(String),
+
     KillProcess(u32),
     GitHistoryUpdated(
         usize,
@@ -188,13 +188,10 @@ pub enum AppMode {
     },
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum DropTarget {
     Favorites,
-    SidebarArea,
     Folder(PathBuf),
-    ImportServers,
     RemotesHeader,
     Pane(usize),
     ReorderFavorite(usize),

@@ -2765,9 +2765,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                     }
                     DropTarget::Favorites => "Favorites",
                     DropTarget::RemotesHeader => "Remotes",
-                    DropTarget::ImportServers => "Import Servers",
                     DropTarget::ReorderFavorite(_) => "Favorites (Reorder)",
-                    DropTarget::SidebarArea => "Sidebar",
                 };
                 left_spans.push(Span::styled(
                     format!(" {} ", target_desc),
