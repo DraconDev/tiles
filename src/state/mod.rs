@@ -481,18 +481,6 @@ pub struct CommitInfo {
     pub deletions: usize,
 }
 
-#[allow(dead_code)]
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub enum GitStatus {
-    Modified,
-    Added,
-    Deleted,
-    Renamed,
-    Untracked,
-    Staged,
-    Conflict,
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GitPendingChange {
     pub status: String,

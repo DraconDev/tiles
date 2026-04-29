@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Update app state management by removing disk mounting events and adding process termination handling, while eliminating import servers UI option
+Remove unused functions and enums related to Git status in remote and state modules.
 
 ## Completed
-- [x] Removed `MountDisk` event from `AppEvent` enum and replaced with `KillProcess(u32)` for process management
-- [x] Removed `DropTarget::ImportServers` from `DragTarget` enum in UI, disabling import servers functionality
+- Remove unused `show_commit_patch` function from the remote module.
+- Remove the `GitStatus` enum from the state module.
+Legend: `[ ]` planned, `[~]` in progress, `[x]` complete.

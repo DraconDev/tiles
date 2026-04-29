@@ -247,20 +247,6 @@ pub fn build_remote_terminal_command(
     format!("ssh -p {}{} {} {}", remote.port, key_part, dest, body_q)
 }
 
-#[allow(dead_code)]
-pub fn show_commit_patch(
-    remote: &RemoteSession,
-    repo_path: &Path,
-    hash: &str,
-) -> std::io::Result<String> {
-    let repo_str = repo_path.to_string_lossy().replace('\'', "'\"'\"'");
-    let hash_safe = hash.replace('\'', "'\"'\"'");
-    exec_program(remote, "sh", &[
-        "-c",
-        &format!("cd '{}' && git show --patch --stat --color=never '{}'", repo_str, hash_safe),
-    ])
-}
-
 pub fn show_file_diff(
     remote: &RemoteSession,
     repo_path: &Path,
