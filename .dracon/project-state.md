@@ -1,8 +1,7 @@
 # Project State
 
 ## Current Focus
-Add Save action and Editor target to context menu enum definitions
+Updated imports in editor.rs to include ContextMenuAction and ContextMenuTarget while dropping unused AppMode and CurrentView
 
 ## Completed
-- [x] Added `Editor` variant to `ContextMenuTarget` enum
-- [x] Added `Save` variant to `ContextMenuAction` enum
+- [x] Updated imports in src/events/editor.rs to reflect new ContextMenuAction and ContextMenuTarget types and remove unused AppMode, CurrentView
