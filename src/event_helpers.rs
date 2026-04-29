@@ -238,7 +238,6 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
             ContextMenuAction::Delete, // Kill
             ContextMenuAction::Properties,
         ],
-        ContextMenuTarget::Editor => vec![],
     }
 }
 
@@ -692,67 +691,65 @@ pub fn handle_context_menu_action(
                 }
             }
         }
-        ContextMenuTarget::Editor => {
-            let editor_area = ratatui::layout::Rect::new(0, 0, 9999, 9999);
-            let ctrl = KeyModifiers::CONTROL;
-
-            match action {
-                ContextMenuAction::EditorSelectAll | ContextMenuAction::SelectAll => {
-                    if let Some(editor) = get_active_editor_mut(app) {
-                        editor.select_all();
-                    }
+        ContextMenuAction::EditorSelectAll => {
+            if let Some(editor) = get_active_editor_mut(app) {
+                editor.select_all();
+            }
+        }
+        ContextMenuAction::EditorCopy => {
+            if let Some(editor) = get_active_editor_mut(app) {
+                if let Some(text) = editor.get_selected_text() {
+                    let _ = copy_text_to_clipboard(&text);
                 }
-                ContextMenuAction::EditorCopy | ContextMenuAction::Copy => {
-                    if let Some(editor) = get_active_editor_mut(app) {
-                        if let Some(text) = editor.get_selected_text() {
-                            let _ = copy_text_to_clipboard(&text);
-                        }
-                    }
+            }
+        }
+        ContextMenuAction::EditorPaste => {
+            if let Some(editor) = get_active_editor_mut(app) {
+                if let Some(text) = dracon_terminal_engine::utils::get_primary_selection_text() {
+                    editor.insert_string(&text);
+                    editor.modified = true;
                 }
-                ContextMenuAction::EditorPaste | ContextMenuAction::Paste => {
-                    if let Some(editor) = get_active_editor_mut(app) {
-                        if let Some(text) = dracon_terminal_engine::utils::get_primary_selection_text() {
-                            editor.insert_string(&text);
-                            editor.modified = true;
-                        }
-                    }
+            }
+        }
+        ContextMenuAction::EditorUndo | ContextMenuAction::Undo => {
+            if let Some(editor) = get_active_editor_mut(app) {
+                let editor_area = ratatui::layout::Rect::new(0, 0, 9999, 9999);
+                let ctrl = KeyModifiers::CONTROL;
+                let key_event = KeyEvent { code: KeyCode::Char('z'), modifiers: ctrl, kind: KeyEventKind::Press };
+                let event = Event::Key(key_event);
+                let _ = editor.handle_event(&event, editor_area);
+            }
+        }
+        ContextMenuAction::EditorRedo | ContextMenuAction::Redo => {
+            if let Some(editor) = get_active_editor_mut(app) {
+                let editor_area = ratatui::layout::Rect::new(0, 0, 9999, 9999);
+                let ctrl = KeyModifiers::CONTROL;
+                let key_event = KeyEvent { code: KeyCode::Char('y'), modifiers: ctrl, kind: KeyEventKind::Press };
+                let event = Event::Key(key_event);
+                let _ = editor.handle_event(&event, editor_area);
+            }
+        }
+        ContextMenuAction::Save => {
+            if let Some(editor) = get_active_editor_mut(app) {
+                let content = editor.get_content();
+                let path = get_active_editor_path(app);
+                if let Some(path) = path {
+                    let _ = event_tx.try_send(AppEvent::SaveFile(path, content));
+                    editor.modified = false;
                 }
-                ContextMenuAction::Undo | ContextMenuAction::EditorUndo => {
-                    if let Some(editor) = get_active_editor_mut(app) {
-                        let key_event = KeyEvent { code: KeyCode::Char('z'), modifiers: ctrl, kind: KeyEventKind::Press };
-                        let _ = editor.handle_event(&Event::Key(key_event), editor_area);
-                    }
+            }
+        }
+        ContextMenuAction::Run => {
+            if let Some(path) = get_active_editor_path(app) {
+                if let Some((work_dir, program, args)) = crate::modules::files::get_run_command(&path) {
+                    let remote = app.current_file_state().and_then(|fs| fs.remote_session.clone());
+                    let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                        path: work_dir,
+                        new_tab: true,
+                        remote,
+                        command: Some(format!("{} {}", program, args.join(" "))),
+                    });
                 }
-                ContextMenuAction::Redo | ContextMenuAction::EditorRedo => {
-                    if let Some(editor) = get_active_editor_mut(app) {
-                        let key_event = KeyEvent { code: KeyCode::Char('y'), modifiers: ctrl, kind: KeyEventKind::Press };
-                        let _ = editor.handle_event(&Event::Key(key_event), editor_area);
-                    }
-                }
-                ContextMenuAction::Save => {
-                    if let Some(editor) = get_active_editor_mut(app) {
-                        let content = editor.get_content();
-                        let path = get_active_editor_path(app);
-                        if let Some(path) = path {
-                            let _ = event_tx.try_send(AppEvent::SaveFile(path, content));
-                            editor.modified = false;
-                        }
-                    }
-                }
-                ContextMenuAction::Run => {
-                    if let Some(path) = get_active_editor_path(app) {
-                        if let Some((work_dir, program, args)) = crate::modules::files::get_run_command(&path) {
-                            let remote = app.current_file_state().and_then(|fs| fs.remote_session.clone());
-                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
-                                path: work_dir,
-                                new_tab: true,
-                                remote,
-                                command: Some(format!("{} {}", program, args.join(" "))),
-                            });
-                        }
-                    }
-                }
-                _ => {}
             }
         }
         _ => {}
