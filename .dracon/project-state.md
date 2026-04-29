@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Handle editor context menu with empty actions and set default selection to Some(0)
+Implemented context‑menu handling for editor actions with icon‑prefixed labels.
 
 ## Completed
-- [x] Added ContextMenuTarget::Editor branch returning an empty actions vector in event_helpers.rs
-- [x] Modified selected_index from 0 to Some(0) in two places of editor.rs to match expected Option type
+- [x] Add formatted context menu entry for Save using Icon::Save
+- [x] Add formatted context menu entries for Cut, Copy, Paste, and Select All with respective icons
+- [x] Add formatted Undo and Redo entries using Icon::Refresh

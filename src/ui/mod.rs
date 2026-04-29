@@ -3151,6 +3151,17 @@ fn draw_context_menu(
                 }
                 label
             }
+            ContextMenuAction::Save => format!(" {} Save", Icon::Save.get(app.icon_mode)),
+            ContextMenuAction::EditorCut => format!(" {} Cut", Icon::Cut.get(app.icon_mode)),
+            ContextMenuAction::EditorCopy => format!(" {} Copy", Icon::Copy.get(app.icon_mode)),
+            ContextMenuAction::EditorPaste => format!(" {} Paste", Icon::Paste.get(app.icon_mode)),
+            ContextMenuAction::EditorUndo => format!(" {} Undo", Icon::Refresh.get(app.icon_mode)),
+            ContextMenuAction::EditorRedo => format!(" {} Redo", Icon::Refresh.get(app.icon_mode)),
+            ContextMenuAction::EditorSelectAll => {
+                format!(" {} Select All", Icon::SelectAll.get(app.icon_mode))
+            }
+            ContextMenuAction::Undo => format!(" {} Undo", Icon::Refresh.get(app.icon_mode)),
+            ContextMenuAction::Redo => format!(" {} Redo", Icon::Refresh.get(app.icon_mode)),
             ContextMenuAction::Separator => " ────────────────".to_string(),
         };
 
