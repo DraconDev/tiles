@@ -452,6 +452,9 @@ impl Pane {
         self.tabs.push(fs);
         self.active_tab_index = self.tabs.len() - 1;
     }
+    pub fn preview_mut(&mut self) -> Option<&mut PreviewState> {
+        self.tabs.get_mut(self.active_tab_index)?.preview.as_mut()
+    }
 }
 
 #[allow(dead_code)]

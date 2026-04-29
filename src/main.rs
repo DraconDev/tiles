@@ -525,9 +525,11 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                 highlighted_lines: None,
                             };
 
-                            if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
-                                pane.preview = Some(preview.clone());
-                            }
+                             if let Some(pane) = app_guard.panes.get_mut(pane_idx) {
+                                 if let Some(fs) = pane.current_state_mut() {
+                                     fs.preview = Some(preview.clone());
+                                 }
+                             }
                             let is_git_url = path_str.starts_with("git://")
                                 || path_str.starts_with("git-diff://");
                             if is_git_url
