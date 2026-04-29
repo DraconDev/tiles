@@ -16,10 +16,10 @@ dirs = "5.0.1"
 chrono = "0.4.42"
 ratatui = "0.29.0"
 
-dracon-terminal-engine = { path = "../dracon-libs/tools/tui/dracon-terminal-engine" }
-dracon-files = { path = "../dracon-libs/tools/files/dracon-files" }
-dracon-git = { path = "../dracon-libs/tools/sync/dracon-git" }
-dracon-system = { path = "../dracon-libs/tools/system/dracon-system" }
+dracon-terminal-engine = { git = "https://github.com/DraconDev/dracon-libs", tag = "v12.6.0", version = "1.1.17" }
+dracon-files = { git = "https://github.com/DraconDev/dracon-libs", tag = "v12.6.0", version = "0.1.0" }
+dracon-git = { git = "https://github.com/DraconDev/dracon-libs", tag = "v12.6.0", version = "12.6.0" }
+dracon-system = { git = "https://github.com/DraconDev/dracon-libs", tag = "v12.6.0", version = "0.4.0" }
 
 tokio = { version = "1.0", features = ["full"] }
 openssl = { version = "0.10", features = ["vendored"] }

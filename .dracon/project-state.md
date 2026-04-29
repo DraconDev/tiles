@@ -1,7 +1,9 @@
 # Project State
 
 ## Current Focus
-Updated Cargo.lock due to dependency manifest changes (likely version bump)
+Removed Cargo.lock and updated Cargo.toml dependencies to resolve manifest loading issues
 
 ## Completed
-- [x] Updated Cargo.lock to reflect dependency changes (binary change)
+- [x] Removed Cargo.lock to force dependency resolution on next build
+- [x] Updated Cargo.toml to resolve dependency manifest loading failures
+```
