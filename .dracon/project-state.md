@@ -1,9 +1,10 @@
 # Project State
 
 ## Current Focus
-feat(tab limit): replace hardcoded 3-tab limit with configurable MAX_TABS constant set to 8
+Implement editor‑cut action in context‑menu and refine editor‑state path handling for Save‑As
 
 ## Completed
-- [x] Define MAX_TABS constant (8) in src/state/mod.rs
-- [x] Replace hardcoded 3-tab check with MAX_TABS comparison
-- [x] Update Cargo.lock with new dependency versions
+- [x] Added EditorCut handling that copies selected text to clipboard and deletes selection via `get_active_editor_mut`
+- [x] Refactored `get_active_editor_mut` to move preview‑editor lookup after primary pane logic
+- [x] Refactored `get_active_editor_path` to move preview‑path lookup after primary pane logic
+- [x] Updated Save‑As handler to update `preview.path` when saving over the original file path

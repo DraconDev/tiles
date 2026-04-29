@@ -449,6 +449,11 @@ fn handle_save_as_keys(
                             }
                         }
                     }
+                    if let Some(preview) = &mut app.editor_state {
+                        if preview.path == *original_path {
+                            preview.path = target.clone();
+                        }
+                    }
                     let _ = event_tx.try_send(AppEvent::SaveFile(target.clone(), content));
                     app.last_action_msg = Some((
                         format!("Saved as: {}", target.file_name().unwrap_or_default().to_string_lossy()),

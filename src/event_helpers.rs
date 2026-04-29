@@ -243,11 +243,6 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
 }
 
 fn get_active_editor_mut(app: &mut App) -> Option<&mut dracon_terminal_engine::widgets::TextEditor> {
-    if let Some(preview) = &mut app.editor_state {
-        if let Some(editor) = &mut preview.editor {
-            return Some(editor);
-        }
-    }
     if app.current_view == CurrentView::Editor {
         if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
             if let Some(fs) = pane.current_state_mut() {
@@ -259,13 +254,15 @@ fn get_active_editor_mut(app: &mut App) -> Option<&mut dracon_terminal_engine::w
             }
         }
     }
+    if let Some(preview) = &mut app.editor_state {
+        if let Some(editor) = &mut preview.editor {
+            return Some(editor);
+        }
+    }
     None
 }
 
 fn get_active_editor_path(app: &App) -> Option<PathBuf> {
-    if let Some(preview) = &app.editor_state {
-        return Some(preview.path.clone());
-    }
     if app.current_view == CurrentView::Editor {
         if let Some(pane) = app.panes.get(app.focused_pane_index) {
             if let Some(fs) = pane.current_state() {
@@ -274,6 +271,9 @@ fn get_active_editor_path(app: &App) -> Option<PathBuf> {
                 }
             }
         }
+    }
+    if let Some(preview) = &app.editor_state {
+        return Some(preview.path.clone());
     }
     None
 }
@@ -724,6 +724,14 @@ pub fn handle_context_menu_action(
             if let Some(editor) = get_active_editor_mut(app) {
                 if let Some(text) = editor.get_selected_text() {
                     let _ = copy_text_to_clipboard(&text);
+                }
+            }
+        }
+        ContextMenuAction::EditorCut => {
+            if let Some(editor) = get_active_editor_mut(app) {
+                if let Some(text) = editor.get_selected_text() {
+                    let _ = copy_text_to_clipboard(&text);
+                    editor.delete_selection();
                 }
             }
         }
