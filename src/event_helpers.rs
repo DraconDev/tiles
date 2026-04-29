@@ -721,27 +721,39 @@ pub fn handle_context_menu_action(
             }
         }
         ContextMenuAction::EditorCopy => {
-            if let Some(editor) = get_active_editor_mut(app) {
-                if let Some(text) = editor.get_selected_text() {
-                    app.editor_clipboard = Some(text.clone());
-                    let _ = copy_text_to_clipboard(&text);
+            let text = {
+                if let Some(editor) = get_active_editor_mut(app) {
+                    editor.get_selected_text()
+                } else {
+                    None
                 }
+            };
+            if let Some(text) = text {
+                app.editor_clipboard = Some(text.clone());
+                let _ = copy_text_to_clipboard(&text);
             }
         }
         ContextMenuAction::EditorCut => {
-            if let Some(editor) = get_active_editor_mut(app) {
-                if let Some(text) = editor.get_selected_text() {
-                    app.editor_clipboard = Some(text.clone());
-                    let _ = copy_text_to_clipboard(&text);
+            let text = {
+                if let Some(editor) = get_active_editor_mut(app) {
+                    editor.get_selected_text()
+                } else {
+                    None
+                }
+            };
+            if let Some(text) = text {
+                app.editor_clipboard = Some(text.clone());
+                let _ = copy_text_to_clipboard(&text);
+                if let Some(editor) = get_active_editor_mut(app) {
                     editor.delete_selection();
                 }
             }
         }
         ContextMenuAction::EditorPaste => {
-            if let Some(editor) = get_active_editor_mut(app) {
-                let text = app.editor_clipboard.clone()
-                    .or_else(|| dracon_terminal_engine::utils::get_clipboard_text());
-                if let Some(text) = text {
+            let text = app.editor_clipboard.clone()
+                .or_else(|| dracon_terminal_engine::utils::get_clipboard_text());
+            if let Some(text) = text {
+                if let Some(editor) = get_active_editor_mut(app) {
                     editor.insert_string(&text);
                     editor.modified = true;
                 }

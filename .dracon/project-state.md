@@ -1,10 +1,11 @@
 # Project State
 
 ## Current Focus
-Implement clipboard integration and conditional context‑menu actions based on editor read‑only state.
+Centralize selection retrieval and improve clipboard handling for editor context‑menu actions.
 
 ## Completed
-- [x] Store copied/selected text in `app.editor_clipboard` during copy and cut operations
-- [x] Retrieve `app.editor_clipboard` (falling back to system clipboard) for paste operation and insert it into the editor
-- [x] Generate context‑menu actions dynamically, excluding cut/paste/undo/redo when the editor is read‑only
-- [x] Apply the conditional actions logic in both mouse‑click branches of `handle_editor_mouse`
+- [x] Refactor copy action to extract selected text via a temporary variable and gracefully handle a missing editor
+- [x] Refactor cut action similarly, add deletion of the selection after copying, and handle missing editor gracefully
+- [x] Refactor paste action to use clipboard or system clipboard text, insert it into the active editor, and mark the document as modified
+- [x] Remove duplicated clipboard‑copy logic from copy, cut, and paste branches
+- [x] Update Cargo.lock with resolved dependency versions
