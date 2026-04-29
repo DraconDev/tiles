@@ -1,11 +1,14 @@
 # Project State
 
 ## Current Focus
-Refactor event handling and UI to use per-tab `FileState` for better preview management.
+Update dependencies and fix UI rendering logic in tab management
 
 ## Completed
-- [x] Refactor editor search event handling to use per-file state for filtering
-- [x] Update UI to access file state through `current_state()` method
-- [x] Implement proper preview path resolution in sidebar and editor
-- [x] Clean up mutability and improve code structure in UI components
-- [x] Update dependency version tracking in `Cargo.lock` file
+- [x] Fix tab rendering layout by restructuring UI draw function in src/ui/mod.rs
+- [x] Update Cargo.lock and dependencies to resolve manifest issues (dracon-files)
+- [x] Implement Ctrl+W shortcut for closing tabs with proper state cleanup
+- [x] Refactor editor search to use FileState for preview actions
+- [x] Remove redundant mutability/clone operations in header generation
+- [x] Add "Project" icon to global UI header
+- [x] Improve save-as functionality with persistent file path handling
+- [x] Add keyboard navigation shortcuts (Ctrl+Tab/Ctrl+Shift+Tab)

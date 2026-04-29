@@ -578,7 +578,6 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 f.render_widget(&editor_clone, content_inner);
                 return;
                 }
-                }
             }
         }
     }
