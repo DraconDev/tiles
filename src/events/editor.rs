@@ -451,6 +451,16 @@ fn handle_generic_editor_shortcuts(
     }
 
     if has_control
+        && key.modifiers.contains(KeyModifiers::SHIFT)
+        && (key.code == KeyCode::Char('s') || key.code == KeyCode::Char('S'))
+    {
+        *prev_mode = mode.clone();
+        *mode = AppMode::SaveAs(path.to_path_buf());
+        input.clear();
+        return true;
+    }
+
+    if has_control
         && (key.code == KeyCode::Char('c')
             || key.code == KeyCode::Char('C')
             || key.code == KeyCode::Insert)

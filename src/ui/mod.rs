@@ -277,6 +277,9 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::NewFile) {
         draw_new_file_modal(f, app);
     }
+    if matches!(app.mode, AppMode::SaveAs(_)) {
+        draw_save_as_modal(f, app);
+    }
     if matches!(app.mode, AppMode::CommandPalette) {
         draw_command_palette(f, app);
     }
@@ -3405,6 +3408,19 @@ fn draw_new_file_modal(f: &mut Frame, app: &App) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::Green));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+    f.render_widget(&app.input, inner);
+}
+
+fn draw_save_as_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(50, 10, f.area());
+    f.render_widget(Clear, area);
+    let block = Block::default()
+        .title(" Save As ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Yellow));
     let inner = block.inner(area);
     f.render_widget(block, area);
     f.render_widget(&app.input, inner);

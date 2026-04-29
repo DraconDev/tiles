@@ -164,6 +164,7 @@ pub enum AppMode {
     DeleteFile(PathBuf),
     Search,
     PathInput,
+    SaveAs(PathBuf),
     CommandPalette,
     StyleColorInput,
     ResetSettingsConfirm,

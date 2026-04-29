@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::app::{App, AppEvent, AppMode, ContextMenuAction, ContextMenuTarget, SettingsSection};
 use crate::state::IconMode;
 use dracon_terminal_engine::contracts::{
@@ -253,6 +254,7 @@ fn handle_modal_keys(
         | AppMode::Delete
         | AppMode::DeleteFile(_) => handle_input_modals_keys(key, app, event_tx),
         AppMode::PathInput => handle_path_input_keys(key, app, event_tx),
+        AppMode::SaveAs(_) => handle_save_as_keys(key, app, event_tx),
         AppMode::Header(idx) => handle_header_keys(key, app, event_tx, idx),
         AppMode::Hotkeys => {
             if let KeyCode::Esc | KeyCode::Enter | KeyCode::F(1) = key.code {
@@ -395,6 +397,58 @@ fn handle_path_input_keys(
                     ));
                 }
             }
+            true
+        }
+        _ => app
+            .input
+            .handle_event(&dracon_terminal_engine::input::mapping::to_runtime_event(&Event::Key(*key))),
+    }
+}
+
+fn handle_save_as_keys(
+    key: &dracon_terminal_engine::contracts::KeyEvent,
+    app: &mut App,
+    event_tx: &mpsc::Sender<AppEvent>,
+) -> bool {
+    match key.code {
+        KeyCode::Esc => {
+            app.mode = AppMode::Normal;
+            app.input.clear();
+            true
+        }
+        KeyCode::Enter => {
+            let input = app.input.value.trim().to_string();
+            if input.is_empty() {
+                app.last_action_msg = Some(("Path is empty".to_string(), std::time::Instant::now()));
+                return true;
+            }
+            if let AppMode::SaveAs(original_path) = app.mode.clone() {
+                let target = if input.starts_with('/') {
+                    PathBuf::from(&input)
+                } else if let Some(parent) = original_path.parent() {
+                    parent.join(&input)
+                } else {
+                    PathBuf::from(&input)
+                };
+                let content = if let Some(pane) = app.panes.get(app.focused_pane_index) {
+                    pane.preview.as_ref().and_then(|p| {
+                        p.editor.as_ref().map(|e| e.get_content())
+                    })
+                } else {
+                    None
+                };
+                if let Some(content) = content {
+                    let _ = event_tx.try_send(AppEvent::SaveFile(target.clone(), content));
+                    app.last_action_msg = Some((
+                        format!("Saved as: {}", target.file_name().unwrap_or_default().to_string_lossy()),
+                        std::time::Instant::now(),
+                    ));
+                } else {
+                    app.last_action_msg = Some(("No content to save".to_string(), std::time::Instant::now()));
+                }
+            }
+            app.mode = AppMode::Normal;
+            app.input.clear();
             true
         }
         _ => app
