@@ -1,10 +1,9 @@
 # Project State
 
 ## Current Focus
-Add Ctrl+Enter handling to execute selected files and send execution events
+feat(ctrl+enter): Add Ctrl+Enter execution handling for files via context menu and preview, moving logic out of file_manager.
 
 ## Completed
-- [x] Implement Ctrl+Enter key handling that runs the selected file using `get_run_command`
-- [x] Send `SpawnTerminal` event to open the file in a new terminal tab
-- [x] Send `StatusMsg` events for success and for missing run commands
-- [x] Preserve default Enter behavior when Ctrl modifier is not present
+- [x] Added Run and RunTerminal handling in src/event_helpers.rs, including remote session propagation, work‑dir extraction, and status feedback.
+- [x] Extended src/events/editor.rs to spawn a terminal on Ctrl+Enter using the preview path and remote session.
+- [x] Removed the prior Ctrl+Enter execution block from src/events/file_manager.rs.

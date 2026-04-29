@@ -252,13 +252,18 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
 
                 // Ctrl+Enter: run the current file (full-screen mode)
                 if has_control && key.code == KeyCode::Enter {
+                    let remote = app
+                        .panes
+                        .get(app.focused_pane_index)
+                        .and_then(|p| p.current_state())
+                        .and_then(|fs| fs.remote_session.clone());
                     if let Some((work_dir, program, args)) =
                         crate::modules::files::get_run_command(&preview.path)
                     {
                         let _ = event_tx.try_send(AppEvent::SpawnTerminal {
                             path: work_dir,
                             new_tab: true,
-                            remote: None,
+                            remote,
                             command: Some(format!("{} {}", program, args.join(" "))),
                         });
                         let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
