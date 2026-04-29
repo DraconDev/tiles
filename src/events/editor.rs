@@ -364,18 +364,28 @@ pub fn handle_editor_mouse(
                         && editor_area.y <= row
                         && row < editor_area.y + editor_area.height
                     {
-                        let actions = vec![
-                            ContextMenuAction::EditorCut,
-                            ContextMenuAction::EditorCopy,
-                            ContextMenuAction::EditorPaste,
-                            ContextMenuAction::Separator,
-                            ContextMenuAction::Undo,
-                            ContextMenuAction::Redo,
-                            ContextMenuAction::EditorSelectAll,
-                            ContextMenuAction::Separator,
-                            ContextMenuAction::Save,
-                            ContextMenuAction::Run,
-                        ];
+                        let actions = if editor.read_only {
+                            vec![
+                                ContextMenuAction::EditorCopy,
+                                ContextMenuAction::Separator,
+                                ContextMenuAction::EditorSelectAll,
+                                ContextMenuAction::Separator,
+                                ContextMenuAction::Run,
+                            ]
+                        } else {
+                            vec![
+                                ContextMenuAction::EditorCut,
+                                ContextMenuAction::EditorCopy,
+                                ContextMenuAction::EditorPaste,
+                                ContextMenuAction::Separator,
+                                ContextMenuAction::Undo,
+                                ContextMenuAction::Redo,
+                                ContextMenuAction::EditorSelectAll,
+                                ContextMenuAction::Separator,
+                                ContextMenuAction::Save,
+                                ContextMenuAction::Run,
+                            ]
+                        };
                         app.mode = AppMode::ContextMenu {
                             x: column,
                             y: row,
@@ -444,18 +454,28 @@ pub fn handle_editor_mouse(
                                 && editor_area.y <= row
                                 && row < editor_area.y + editor_area.height
                             {
-                                let actions = vec![
-                                    ContextMenuAction::EditorCut,
-                                    ContextMenuAction::EditorCopy,
-                                    ContextMenuAction::EditorPaste,
-                                    ContextMenuAction::Separator,
-                                    ContextMenuAction::Undo,
-                                    ContextMenuAction::Redo,
-                                    ContextMenuAction::EditorSelectAll,
-                                    ContextMenuAction::Separator,
-                                    ContextMenuAction::Save,
-                                    ContextMenuAction::Run,
-                                ];
+                                let actions = if editor.read_only {
+                                    vec![
+                                        ContextMenuAction::EditorCopy,
+                                        ContextMenuAction::Separator,
+                                        ContextMenuAction::EditorSelectAll,
+                                        ContextMenuAction::Separator,
+                                        ContextMenuAction::Run,
+                                    ]
+                                } else {
+                                    vec![
+                                        ContextMenuAction::EditorCut,
+                                        ContextMenuAction::EditorCopy,
+                                        ContextMenuAction::EditorPaste,
+                                        ContextMenuAction::Separator,
+                                        ContextMenuAction::Undo,
+                                        ContextMenuAction::Redo,
+                                        ContextMenuAction::EditorSelectAll,
+                                        ContextMenuAction::Separator,
+                                        ContextMenuAction::Save,
+                                        ContextMenuAction::Run,
+                                    ]
+                                };
                                 app.mode = AppMode::ContextMenu {
                                     x: column,
                                     y: row,

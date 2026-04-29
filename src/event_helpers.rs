@@ -723,6 +723,7 @@ pub fn handle_context_menu_action(
         ContextMenuAction::EditorCopy => {
             if let Some(editor) = get_active_editor_mut(app) {
                 if let Some(text) = editor.get_selected_text() {
+                    app.editor_clipboard = Some(text.clone());
                     let _ = copy_text_to_clipboard(&text);
                 }
             }
@@ -730,6 +731,7 @@ pub fn handle_context_menu_action(
         ContextMenuAction::EditorCut => {
             if let Some(editor) = get_active_editor_mut(app) {
                 if let Some(text) = editor.get_selected_text() {
+                    app.editor_clipboard = Some(text.clone());
                     let _ = copy_text_to_clipboard(&text);
                     editor.delete_selection();
                 }
@@ -737,7 +739,9 @@ pub fn handle_context_menu_action(
         }
         ContextMenuAction::EditorPaste => {
             if let Some(editor) = get_active_editor_mut(app) {
-                if let Some(text) = dracon_terminal_engine::utils::get_primary_selection_text() {
+                let text = app.editor_clipboard.clone()
+                    .or_else(|| dracon_terminal_engine::utils::get_clipboard_text());
+                if let Some(text) = text {
                     editor.insert_string(&text);
                     editor.modified = true;
                 }
