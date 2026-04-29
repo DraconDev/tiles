@@ -1,11 +1,15 @@
 # Project State
 
 ## Current Focus
-Add visual indicator for open files in the project sidebar and refactor line rendering using spans with styled accent.
+Refactor app state management by migrating from `WorldState` to per-tab `FileState` serialization
 
 ## Completed
-- [x] Import `HashSet` from `std::collections`
-- [x] Collect `open_files` as a `HashSet<PathBuf>` from all tab previews
-- [x] Create `open_indicator` span styled with accent primary when a file is open
-- [x] Use `indent_str` for consistent indentation instead of repeated `"  "` string
-- [x] Rebuild sidebar items with `Line` containing marker, icon, optional open indicator, and name, applying style cambios
+- [x] Remove `introspection.rs`: Eliminate dead code and unused serialization logic for `WorldState` and `TabState` structs, which previously captured global state including tabs/input buffers for preview functionality
+- [x] Update `mod.rs`: Remove deprecated `introspection` module from module graph, consolidating state management under `mod::files`
+
+# Blueprint Notes
+- Dependency issues still block progress in `planning` phase due to missing `dracon-files` manifest
+- Recent commits show concurrent work on:
+  - Tabs: Ctrl+W close, Ctrl+Tab cycling
+  - Previews: Migrated to tab-level FileState
+  - Editing: Direct file path selection in sidebar
