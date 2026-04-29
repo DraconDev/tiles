@@ -1,8 +1,10 @@
 # Project State
 
 ## Current Focus
-Update Cargo.lock with resolved dependency versions to fix binary division issue and ensure reproducible builds
+Add support for Alt+Up/Down shortcuts to move the current line up or down in the editor.
 
 ## Completed
-- [x] Updated Cargo.lock dependencies to resolve binary division bug
-- [x] Ensured reproducible binary output through version pinning
+- [x] Added detection of the Alt modifier in generic editor shortcuts
+- [x] Implemented line movement on Alt+Up (move_line_up) and Alt+Down (move_line_down)
+- [x] Updated the line modification flag and triggered invalidation when moving lines
+- [x] Return true to indicate the shortcut was handled

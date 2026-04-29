@@ -554,6 +554,26 @@ fn handle_generic_editor_shortcuts(
     area: ratatui::layout::Rect,
 ) -> bool {
     let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
+    let has_alt = key.modifiers.contains(KeyModifiers::ALT);
+
+    // Alt+Up/Down: move current line up/down
+    if has_alt {
+        match key.code {
+            KeyCode::Up => {
+                editor.move_line_up();
+                editor.modified = true;
+                editor.invalidate_from(editor.cursor_row);
+                return true;
+            }
+            KeyCode::Down => {
+                editor.move_line_down();
+                editor.modified = true;
+                editor.invalidate_from(editor.cursor_row.saturating_sub(1));
+                return true;
+            }
+            _ => {}
+        }
+    }
 
     if has_control && (key.code == KeyCode::Char('s') || key.code == KeyCode::Char('S')) {
         let _ = event_tx.try_send(AppEvent::SaveFile(path.to_path_buf(), editor.get_content()));
