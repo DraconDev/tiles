@@ -1731,7 +1731,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                         .unwrap_or_else(|| "/".to_string())
                 };
 
-                let mut spans = vec![Span::styled(format!(" {} ", base_name), base_style)];
+                let spans = vec![Span::styled(format!(" {} ", base_name), base_style)];
                 let line = Line::from(spans.clone());
                 let total_width = line.width() as u16;
                 let max_width = chunk.x + chunk.width - current_x;
