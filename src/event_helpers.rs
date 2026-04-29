@@ -655,41 +655,64 @@ pub fn handle_context_menu_action(
             let _ = event_tx.try_send(AppEvent::SystemMonitor);
         }
         ContextMenuAction::Run | ContextMenuAction::RunTerminal => {
-            if let ContextMenuTarget::File(idx) = target {
-                let path_opt = app
-                    .current_file_state()
-                    .and_then(|fs| fs.files.get(*idx).cloned());
-                if let Some(path) = path_opt {
-                    if path.is_dir() {
-                        return;
-                    }
-                    let remote = app
+            match target {
+                ContextMenuTarget::File(idx) => {
+                    let path_opt = app
                         .current_file_state()
-                        .and_then(|fs| fs.remote_session.clone());
-                    if let Some((work_dir, program, args)) =
-                        crate::modules::files::get_run_command(&path)
-                    {
-                        let _ = event_tx.try_send(AppEvent::SpawnTerminal {
-                            path: work_dir,
-                            new_tab: matches!(action, ContextMenuAction::RunTerminal),
-                            remote,
-                            command: Some(format!("{} {}", program, args.join(" "))),
-                        });
-                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                            "Running: {} {}",
-                            program,
-                            args.join(" ")
-                        )));
-                    } else {
-                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
-                            "No run command for: {}",
-                            path.extension()
-                                .and_then(|e| e.to_str())
-                                .map(|e| format!(".{e}"))
-                                .unwrap_or_else(|| "unknown".to_string())
-                        )));
+                        .and_then(|fs| fs.files.get(*idx).cloned());
+                    if let Some(path) = path_opt {
+                        if path.is_dir() {
+                            return;
+                        }
+                        let remote = app
+                            .current_file_state()
+                            .and_then(|fs| fs.remote_session.clone());
+                        if let Some((work_dir, program, args)) =
+                            crate::modules::files::get_run_command(&path)
+                        {
+                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                                path: work_dir,
+                                new_tab: matches!(action, ContextMenuAction::RunTerminal),
+                                remote,
+                                command: Some(format!("{} {}", program, args.join(" "))),
+                            });
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                "Running: {} {}",
+                                program,
+                                args.join(" ")
+                            )));
+                        } else {
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                "No run command for: {}",
+                                path.extension()
+                                    .and_then(|e| e.to_str())
+                                    .map(|e| format!(".{e}"))
+                                    .unwrap_or_else(|| "unknown".to_string())
+                            )));
+                        }
                     }
                 }
+                ContextMenuTarget::Editor => {
+                    if let Some(path) = get_active_editor_path(app) {
+                        if let Some((work_dir, program, args)) =
+                            crate::modules::files::get_run_command(&path)
+                        {
+                            let remote = app.current_file_state().and_then(|fs| fs.remote_session.clone());
+                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                                path: work_dir,
+                                new_tab: true,
+                                remote,
+                                command: Some(format!("{} {}", program, args.join(" "))),
+                            });
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                "Running: {} {}",
+                                program,
+                                args.join(" ")
+                            )));
+                        }
+                    }
+                }
+                _ => {}
             }
         }
         ContextMenuAction::EditorSelectAll => {
