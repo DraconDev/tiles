@@ -7,7 +7,9 @@ A high-performance terminal file manager built in Rust. Modular pane system, int
 ## Features
 
 - **File Manager** — Dual-pane navigation, drag & drop, batch operations, hidden file toggle, column sorting
-- **Text Editor** — Syntax highlighting via `syntect`, unlimited undo/redo, multi-selection, live search
+- **Text Editor** — Syntax highlighting via `syntect`, unlimited undo/redo, multi-selection, live search, right-click context menu
+- **Editor Shortcuts** — Alt+↑/↓ move lines, Ctrl+D duplicate, Ctrl+K/U kill lines, Ctrl+A select all, Ctrl+Home/End jump to edges
+- **Run Files** — Ctrl+Enter runs scripts (shebang), Cargo projects, and extension-mapped executables
 - **Git Integration** — Commit history viewer, staged/unstaged diffs, branch info, ahead/behind tracking
 - **Remote SSH** — Browse remote filesystems via SSH, SFTP-style file operations
 - **System Monitor** — CPU, memory, disk, network stats, process list
