@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactor remote session directory check to use idiomatic pattern matching and drop unused conditional branches.
+Update `Cargo.lock` to reflect resolved dependency versions and remove unused functions from `theme.rs`.
 
 ## Completed
-- [x] Simplify remote session handling by replacing manual `is_some()` check with `if let Some(rs)` for clearer ownership and readability.
-- [x] Streamline dependencies (Cargo.lock) consistent with the refactored code path.
+- [x] Update `Cargo.lock` with resolved dependency versions after fixing manifest issue
+- [x] Remove unused functions and enums related to Git status in `theme.rs`

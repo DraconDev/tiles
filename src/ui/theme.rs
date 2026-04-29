@@ -1,4 +1,3 @@
-#![allow(dead_code, unused)]
 use ratatui::style::{Color, Modifier, Style};
 use serde::{Deserialize, Serialize};
 use std::sync::{LazyLock, RwLock};
