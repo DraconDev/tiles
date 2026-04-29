@@ -107,6 +107,29 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
             return true;
         }
 
+        if has_control && key.code == KeyCode::Char('w') {
+            if let Some(pane) = app.panes.get_mut(pane_idx) {
+                if pane.tabs.len() > 1 {
+                    let removed = pane.tabs.remove(pane.active_tab_index);
+                    if pane.active_tab_index >= pane.tabs.len() {
+                        pane.active_tab_index = pane.tabs.len() - 1;
+                    }
+                    pane.preview = None;
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
+                    let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                        "Closed: {}",
+                        removed.current_path.file_name()
+                            .map(|n| n.to_string_lossy().to_string())
+                            .unwrap_or_default()
+                    )));
+                } else {
+                    pane.preview = None;
+                    let _ = event_tx.try_send(AppEvent::StatusMsg("No more tabs to close".to_string()));
+                }
+            }
+            return true;
+        }
+
         if has_control && key.code == KeyCode::Char('n') {
             if let Some(pane) = app.panes.get(pane_idx) {
                 let base_dir = if let Some(preview) = &pane.preview {
