@@ -949,7 +949,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
 
         // Handle Refreshes
         for pane_idx in panes_needing_refresh.drain() {
-            let (path, remote, current_filter) = {
+            let (path, remote, current_filter, git_view) = {
                 let app_guard = app.lock();
                 if let Some(pane) = app_guard.panes.get(pane_idx) {
                     if let Some(fs) = pane.current_state() {
@@ -957,6 +957,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             fs.current_path.clone(),
                             fs.remote_session.clone(),
                             fs.search_filter.clone(),
+                            matches!(app_guard.current_view, CurrentView::Git | CurrentView::Commit),
                         )
                     } else {
                         continue;
@@ -1154,11 +1155,12 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 }
                 let _ = tx.send(AppEvent::Tick).await;
 
-                let git_path = path.clone();
-                let git_remote = remote.clone();
-                let app_for_git = app_clone.clone();
-                let tx_for_git = tx.clone();
-                tokio::spawn(async move {
+                if git_view {
+                    let git_path = path.clone();
+                    let git_remote = remote.clone();
+                    let app_for_git = app_clone.clone();
+                    let tx_for_git = tx.clone();
+                    tokio::spawn(async move {
                     let git_fetch_path = git_path.clone();
                     let git_data = tokio::task::spawn_blocking(move || {
                         if let Some(session) = &git_remote {
@@ -1230,6 +1232,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         ))
                         .await;
                 });
+                }
             });
         }
 

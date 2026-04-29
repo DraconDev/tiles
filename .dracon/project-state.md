@@ -1,11 +1,9 @@
 # Project State
 
 ## Current Focus
-refactor(remove unused): Remove unused `border_style` mutability and theme helper methods (`block_active`, `block_inactive`, `text_highlight`) along with the `Modifier` import
+Conditionally spawn Git fetch task only when current view is Git/Commit, using new `git_view` flag.
 
 ## Completed
-- [x] Remove `mut` from `border_style` variable assignment in file view rendering
-- [x] Delete unused `block_active()` and `block_inactive()` methods from `DraconTheme`
-- [x] Delete unused `text_highlight()` method from `DraconTheme` that used `Modifier::BOLD`
-- [x] Remove `Modifier` import from theme.rs since it's no longer needed
-- [x] Add `#[allow(dead_code)]` to `DraconTheme` struct to suppress warnings about unused fields
+- [x] Added `git_view` flag to tuple destructuring to detect Git/Commit view
+- [x] Wrapped Git fetch task spawning in an `if git_view` block to run only when appropriate
+- [x] Moved cloning of git-related data inside the conditional block to confine scope
