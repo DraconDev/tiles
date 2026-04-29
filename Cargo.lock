@@ -567,7 +567,6 @@ dependencies = [
 [[package]]
 name = "dracon-files"
 version = "0.1.0"
-source = "git+https://github.com/DraconDev/dracon-libs#e622cdd12c7ae26a544d20a1f1565886bdd2b2ff"
 dependencies = [
  "mime_guess",
  "serde",
@@ -576,8 +575,7 @@ dependencies = [
 
 [[package]]
 name = "dracon-git"
-version = "12.4.0"
-source = "git+https://github.com/DraconDev/dracon-libs#e622cdd12c7ae26a544d20a1f1565886bdd2b2ff"
+version = "12.6.0"
 dependencies = [
  "anyhow",
  "git2",
@@ -588,8 +586,7 @@ dependencies = [
 
 [[package]]
 name = "dracon-system"
-version = "0.3.0"
-source = "git+https://github.com/DraconDev/dracon-libs#e622cdd12c7ae26a544d20a1f1565886bdd2b2ff"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "dirs 6.0.0",
@@ -608,7 +605,6 @@ dependencies = [
 [[package]]
 name = "dracon-terminal-engine"
 version = "1.1.17"
-source = "git+https://github.com/DraconDev/dracon-libs#e622cdd12c7ae26a544d20a1f1565886bdd2b2ff"
 dependencies = [
  "bitflags 2.10.0",
  "chrono",
@@ -2654,7 +2650,7 @@ dependencies = [
 
 [[package]]
 name = "tiles"
-version = "0.19.112"
+version = "0.21.2"
 dependencies = [
  "anyhow",
  "base64",
@@ -2670,6 +2666,7 @@ dependencies = [
  "notify",
  "notify-debouncer-mini",
  "openssl",
+ "parking_lot",
  "ratatui",
  "serde",
  "serde_json",
