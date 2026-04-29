@@ -1,7 +1,8 @@
 # Project State
 
 ## Current Focus
-Add Ctrl+Enter hotkey hint for Run command in footer
+Handle Ctrl+Enter only when a preview is available
 
 ## Completed
-- [x] Added "^↵ Run" hotkey hint to shortcuts in draw_footer
+- [x] Conditional handling of Ctrl+Enter based on preview presence
+- [x] Early return executed only when preview handling occurred
