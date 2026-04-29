@@ -716,8 +716,8 @@ pub fn handle_context_menu_action(
                 let editor_area = ratatui::layout::Rect::new(0, 0, 9999, 9999);
                 let ctrl = KeyModifiers::CONTROL;
                 let key_event = KeyEvent { code: KeyCode::Char('z'), modifiers: ctrl, kind: KeyEventKind::Press };
-                let event = Event::Key(key_event);
-                let _ = editor.handle_event(&event, editor_area);
+                let event = InputEvent::Key(key_event);
+                let _ = editor.handle_event(&to_runtime_event(&event), editor_area);
             }
         }
         ContextMenuAction::EditorRedo | ContextMenuAction::Redo => {
@@ -725,8 +725,8 @@ pub fn handle_context_menu_action(
                 let editor_area = ratatui::layout::Rect::new(0, 0, 9999, 9999);
                 let ctrl = KeyModifiers::CONTROL;
                 let key_event = KeyEvent { code: KeyCode::Char('y'), modifiers: ctrl, kind: KeyEventKind::Press };
-                let event = Event::Key(key_event);
-                let _ = editor.handle_event(&event, editor_area);
+                let event = InputEvent::Key(key_event);
+                let _ = editor.handle_event(&to_runtime_event(&event), editor_area);
             }
         }
         ContextMenuAction::Save => {
