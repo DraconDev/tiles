@@ -67,6 +67,8 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
         _ => return false,
     };
 
+    let has_control = key.modifiers.contains(KeyModifiers::CONTROL);
+
     // 1. View-Specific Esc Handling
     if key.code == KeyCode::Esc && matches!(app.mode, AppMode::Normal) {
         if let CurrentView::Editor = app.current_view {
@@ -89,6 +91,21 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
         && matches!(app.mode, AppMode::Normal)
     {
         let pane_idx = app.focused_pane_index;
+
+        if has_control && key.code == KeyCode::Tab {
+            if let Some(pane) = app.panes.get_mut(pane_idx) {
+                let tab_count = pane.tabs.len();
+                if tab_count > 1 {
+                    if key.modifiers.contains(KeyModifiers::SHIFT) {
+                        pane.active_tab_index = pane.active_tab_index.saturating_sub(1);
+                    } else {
+                        pane.active_tab_index = (pane.active_tab_index + 1) % tab_count;
+                    }
+                }
+            }
+            return true;
+        }
+
         let Some(pane_area) = pane_editor_area(app, pane_idx) else {
             return false;
         };

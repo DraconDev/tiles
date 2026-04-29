@@ -1,6 +1,9 @@
 # Project State
-This commit tracks the modification of the Cargo.lock file, ensuring dependency version tracking remains consistent across environments.
+
+## Current Focus
+feat(editor): add Ctrl+Tab and Ctrl+Shift+Tab shortcuts for cycling through editor pane tabs
 
 ## Completed
-- Updated Cargo.lock to resolve dependency version conflicts linked to the dracon-files crate.
-- Adjusted internal dependency references in Cargo.toml to align dependencies with the latest Cargo.lock hash.
+- [x] Add tab cycling with Ctrl+Tab (next tab, wraps to first when at end)
+- [x] Add reverse tab cycling with Ctrl+Shift+Tab (previous tab, saturating subtraction)
+- [x] Guard tab switching behind check for multiple tabs (only active when tab_count > 1)
