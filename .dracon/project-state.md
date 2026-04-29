@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Added program execution capability to remote module
+Improved remote file search by using proper shell escaping and direct program execution
 
 ## Completed
-- [x] Added `exec_program` function to run remote programs with arguments
-- [x] Maintained backward compatibility with existing `run_command` function
-```
+- [x] Refactored file search to use proper shell escaping for special characters
+- [x] Changed from `run_command` to `exec_program` with explicit shell invocation
+- [x] Improved pattern matching by handling single quotes in search queries
