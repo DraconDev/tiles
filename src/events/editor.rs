@@ -160,6 +160,42 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
             return true;
         }
 
+        // Ctrl+Enter: run the current file
+        if has_control && key.code == KeyCode::Enter {
+            if let Some(pane) = app.panes.get(pane_idx) {
+                if let Some(fs) = pane.current_state() {
+                    if let Some(ref preview) = fs.preview {
+                        if let Some((work_dir, program, args)) =
+                            crate::modules::files::get_run_command(&preview.path)
+                        {
+                            let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                                path: work_dir,
+                                new_tab: true,
+                                remote: fs.remote_session.clone(),
+                                command: Some(format!("{} {}", program, args.join(" "))),
+                            });
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                "Running: {} {}",
+                                program,
+                                args.join(" ")
+                            )));
+                        } else {
+                            let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                "No run command for: {}",
+                                preview
+                                    .path
+                                    .extension()
+                                    .and_then(|e| e.to_str())
+                                    .map(|e| format!(".{e}"))
+                                    .unwrap_or_else(|| "unknown".to_string())
+                            )));
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
         let Some(pane_area) = pane_editor_area(app, pane_idx) else {
             return false;
         };
@@ -211,6 +247,36 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
                 if key.code == KeyCode::Esc {
                     app.mode = AppMode::Normal;
                     app.editor_state = None;
+                    return true;
+                }
+
+                // Ctrl+Enter: run the current file (full-screen mode)
+                if has_control && key.code == KeyCode::Enter {
+                    if let Some((work_dir, program, args)) =
+                        crate::modules::files::get_run_command(&preview.path)
+                    {
+                        let _ = event_tx.try_send(AppEvent::SpawnTerminal {
+                            path: work_dir,
+                            new_tab: true,
+                            remote: None,
+                            command: Some(format!("{} {}", program, args.join(" "))),
+                        });
+                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                            "Running: {} {}",
+                            program,
+                            args.join(" ")
+                        )));
+                    } else {
+                        let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                            "No run command for: {}",
+                            preview
+                                .path
+                                .extension()
+                                .and_then(|e| e.to_str())
+                                .map(|e| format!(".{e}"))
+                                .unwrap_or_else(|| "unknown".to_string())
+                        )));
+                    }
                     return true;
                 }
 
