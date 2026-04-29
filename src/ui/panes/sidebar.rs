@@ -333,9 +333,7 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 let mut remotes_style = Style::default()
                     .fg(crate::ui::theme::accent_primary())
                     .add_modifier(Modifier::BOLD);
-                if matches!(app.hovered_drop_target, Some(DropTarget::RemotesHeader))
-                    || app.sidebar_index == current_header_idx
-                {
+                if app.sidebar_index == current_header_idx {
                     line_style = line_style.fg(crate::ui::theme::border_active());
                     remotes_style = remotes_style
                         .fg(crate::ui::theme::border_active())
