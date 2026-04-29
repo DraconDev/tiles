@@ -1463,7 +1463,7 @@ mod tests {
         std::fs::create_dir_all(&tmp).unwrap();
         std::fs::write(tmp.join("example.txt"), "ok").unwrap();
 
-        let queue: Arc<Mutex<Vec<TilePlacement>>> = Arc::new(Mutex::new(Vec::new()));
+        let queue: Arc<StdMutex<Vec<TilePlacement>>> = Arc::new(StdMutex::new(Vec::new()));
         let mut app = App::new(queue);
         if let Some(fs) = app.current_file_state_mut() {
             fs.current_path = tmp.clone();
