@@ -1701,6 +1701,13 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                 let is_active_tab = t_i == pane.active_tab_index;
                 let is_focused_pane = p_i == app.focused_pane_index && !app.sidebar_focus;
 
+                let is_modified = tab
+                    .preview
+                    .as_ref()
+                    .and_then(|p| p.editor.as_ref())
+                    .map(|e| e.modified)
+                    .unwrap_or(false);
+
                 let base_style = if is_active_tab {
                     if is_focused_pane {
                         Style::default()
@@ -1713,7 +1720,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                     Style::default().fg(Color::DarkGray)
                 };
 
-                let base_name = if t_i == pane.active_tab_index {
+                let base_name = if is_active_tab {
                     if let Some(fs) = pane.current_state() {
                         if let Some(preview) = &fs.preview {
                             preview
@@ -1740,7 +1747,14 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                         .unwrap_or_else(|| "/".to_string())
                 };
 
-                let spans = vec![Span::styled(format!(" {} ", base_name), base_style)];
+                let mut spans = vec![Span::styled(format!(" {}", base_name), base_style)];
+                if is_modified {
+                    spans.push(Span::styled(
+                        " ●",
+                        Style::default().fg(crate::ui::theme::accent_primary()),
+                    ));
+                }
+                spans.push(Span::styled(" ", base_style));
                 let line = Line::from(spans.clone());
                 let total_width = line.width() as u16;
                 let max_width = chunk.x + chunk.width - current_x;

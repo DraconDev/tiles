@@ -1,10 +1,9 @@
 # Project State
 
 ## Current Focus
-Add support for Alt+Up/Down shortcuts to move the current line up or down in the editor.
+Render a colored dot indicator for modified tabs in the global header
 
 ## Completed
-- [x] Added detection of the Alt modifier in generic editor shortcuts
-- [x] Implemented line movement on Alt+Up (move_line_up) and Alt+Down (move_line_down)
-- [x] Updated the line modification flag and triggered invalidation when moving lines
-- [x] Return true to indicate the shortcut was handled
+- [x] Added detection of modified preview state and rendering of an accent dot when the active tab is modified
+- [x] Updated header drawing to include the indicator span and maintain proper spacing
+- [x] Refactored active‑tab condition to use the `is_active_tab` variable for consistency
