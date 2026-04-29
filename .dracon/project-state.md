@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Added logic in NewFile mode to transition to editor view, clear input, and request preview of created file.
+feat(tab limit): replace hardcoded 3-tab limit with configurable MAX_TABS constant set to 8
 
 ## Completed
-- [x] Imported `CurrentView` type to enable UI state updates.
-- [x] Modified `handle_input_modals_keys` in `AppMode::NewFile` to set `app.current_view = CurrentView::Editor`, reset `app.mode` to `Normal`, clear `app.input`, and send `PreviewRequested` with pane index and cloned path.
-- [x] Updated `Cargo.lock` with resolved dependency versions.
+- [x] Define MAX_TABS constant (8) in src/state/mod.rs
+- [x] Replace hardcoded 3-tab check with MAX_TABS comparison
+- [x] Update Cargo.lock with new dependency versions

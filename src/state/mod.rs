@@ -451,7 +451,8 @@ impl Pane {
         self.tabs.get_mut(self.active_tab_index)
     }
     pub fn open_tab(&mut self, fs: FileState) {
-        if self.tabs.len() >= 3 {
+        const MAX_TABS: usize = 8;
+        if self.tabs.len() >= MAX_TABS {
             return;
         }
         self.tabs.push(fs);
