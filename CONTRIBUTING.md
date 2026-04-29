@@ -103,6 +103,22 @@ cargo test && cargo clippy
 - `Recursive` mode — watches directory trees (expanded folders and their contents)
 - `sync_watches` has fast bail-out when paths haven't changed
 
+### Editor Clipboard Pattern
+The editor uses a unified clipboard model:
+- **Internal buffer**: `app.editor_clipboard` — source of truth for Copy/Paste round-tripping
+- **System clipboard**: `dracon_terminal_engine::utils::set_clipboard_text()` — syncs to OS clipboard for external apps
+- **Paste order**: Internal buffer first, falls back to system clipboard
+- **Copy/Cut**: Write to both internal buffer and system clipboard
+- **Borrow safety**: When modifying `app.editor_clipboard` AND borrowing the editor, extract data first in a separate scope:
+  ```rust
+  // Correct: extract text first (borrow ends), then modify clipboard
+  let text = { if let Some(editor) = get_active_editor_mut(app) { editor.get_selected_text() } else { None } };
+  if let Some(text) = text {
+      app.editor_clipboard = Some(text.clone());
+      let _ = copy_text_to_clipboard(&text);
+  }
+  ```
+
 ## Code Style
 
 - No comments in code unless specifically asked
