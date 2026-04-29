@@ -513,13 +513,14 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let selection_bg = crate::ui::theme::selection_bg();
     // Resolve both tree base path and a user-facing title path from focused editor context.
     let (base_path, title_path) = if let Some(pane) = app.panes.get(app.focused_pane_index) {
-        if let Some(preview) = &pane.preview {
-            if preview.path.is_dir() {
-                (preview.path.clone(), preview.path.clone())
-            } else {
-                (
-                    preview
-                        .path
+        if let Some(fs) = pane.current_state() {
+            if let Some(preview) = &fs.preview {
+                if preview.path.is_dir() {
+                    (preview.path.clone(), preview.path.clone())
+                } else {
+                    (
+                        preview
+                            .path
                         .parent()
                         .map(|p| p.to_path_buf())
                         .unwrap_or_else(|| PathBuf::from("/")),

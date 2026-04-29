@@ -734,7 +734,7 @@ fn handle_editor_search_keys(
                 if let Some(fs) = pane.current_state_mut() {
                     if let Some(preview) = &mut fs.preview {
                         if let Some(editor) = &mut preview.editor {
-                            editor.set_filter(&filter);
+                            editor.set_filter("");
                         }
                     }
                 }

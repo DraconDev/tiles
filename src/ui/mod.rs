@@ -341,7 +341,7 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     let content_source = app.editor_state.as_ref()
         .or_else(|| {
             let pane_idx = app.focused_pane_index;
-            app.panes.get(pane_idx).and_then(|p| p.preview.as_ref())
+            app.panes.get(pane_idx).and_then(|p| p.current_state().and_then(|fs| fs.preview.as_ref()))
         });
 
     if let Some(preview) = content_source {
@@ -565,8 +565,9 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
     }
 
     if let Some(pane) = app.panes.get(app.focused_pane_index) {
-        if let Some(preview) = &pane.preview {
-            if let Some(editor) = &preview.editor {
+        if let Some(fs) = pane.current_state() {
+            if let Some(preview) = &fs.preview {
+                if let Some(editor) = &preview.editor {
                 let mut editor_clone = editor.clone();
                 editor_clone.wrap = false;
                 editor_clone.show_line_numbers = true;
@@ -576,6 +577,8 @@ fn draw_commit_view(f: &mut Frame, area: Rect, app: &mut App) {
                 }
                 f.render_widget(&editor_clone, content_inner);
                 return;
+                }
+                }
             }
         }
     }
@@ -1712,12 +1715,19 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                 };
 
                 let base_name = if t_i == pane.active_tab_index {
-                    if let Some(preview) = &pane.preview {
-                        preview
-                            .path
-                            .file_name()
-                            .map(|n| n.to_string_lossy().to_string())
-                            .unwrap_or_else(|| "Editor".to_string())
+                    if let Some(fs) = pane.current_state() {
+                        if let Some(preview) = &fs.preview {
+                            preview
+                                .path
+                                .file_name()
+                                .map(|n| n.to_string_lossy().to_string())
+                                .unwrap_or_else(|| "Editor".to_string())
+                        } else {
+                            tab.current_path
+                                .file_name()
+                                .map(|n| n.to_string_lossy().to_string())
+                                .unwrap_or_else(|| "/".to_string())
+                        }
                     } else {
                         tab.current_path
                             .file_name()

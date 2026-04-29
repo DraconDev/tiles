@@ -46,14 +46,15 @@ pub fn draw_pane_editor(
     is_focused: bool,
 ) {
     let (title, welcome_path) = if let Some(pane) = app.panes.get(pane_idx) {
-        if let Some(preview) = &pane.preview {
-            (
-                Line::from(vec![Span::styled(
-                    format!(" {} ", preview.path.to_string_lossy()),
-                    Style::default().fg(crate::ui::theme::accent_secondary()),
-                )]),
-                None,
-            )
+        if let Some(fs) = pane.current_state() {
+            if let Some(preview) = &fs.preview {
+                (
+                    Line::from(vec![Span::styled(
+                        format!(" {} ", preview.path.to_string_lossy()),
+                        Style::default().fg(crate::ui::theme::accent_secondary()),
+                    )]),
+                    None,
+                )
         } else {
             let current_dir = pane.current_state().map(|fs| fs.current_path.clone());
             if let Some(ref path) = current_dir {
@@ -101,8 +102,9 @@ pub fn draw_pane_editor(
     f.render_widget(block, area);
 
     if let Some(pane) = app.panes.get_mut(pane_idx) {
-        if let Some(preview) = &mut pane.preview {
-            if let Some(editor) = &mut preview.editor {
+        if let Some(fs) = pane.current_state_mut() {
+            if let Some(preview) = &mut fs.preview {
+                if let Some(editor) = &mut preview.editor {
                 let path_str = preview.path.to_string_lossy();
                 let ext = if path_str.starts_with("git://") {
                     "diff".to_string()
