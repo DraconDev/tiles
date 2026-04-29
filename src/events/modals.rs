@@ -431,8 +431,10 @@ fn handle_save_as_keys(
                     PathBuf::from(&input)
                 };
                 let content = if let Some(pane) = app.panes.get(app.focused_pane_index) {
-                    pane.preview.as_ref().and_then(|p| {
-                        p.editor.as_ref().map(|e| e.get_content())
+                    pane.current_state().and_then(|fs| {
+                        fs.preview.as_ref().and_then(|p| {
+                            p.editor.as_ref().map(|e| e.get_content())
+                        })
                     })
                 } else {
                     None
@@ -660,13 +662,15 @@ fn handle_editor_replace_keys(
                 }
                 let focused_idx = app.focused_pane_index;
                 if let Some(pane) = app.panes.get_mut(focused_idx) {
-                    if let Some(preview) = &mut pane.preview {
-                        if let Some(editor) = &mut preview.editor {
-                            editor.push_history();
-                            if is_all {
-                                editor.replace_all(&find_term, &replace_term);
-                            } else {
-                                editor.replace_next(&find_term, &replace_term);
+                    if let Some(fs) = pane.current_state_mut() {
+                        if let Some(preview) = &mut fs.preview {
+                            if let Some(editor) = &mut preview.editor {
+                                editor.push_history();
+                                if is_all {
+                                    editor.replace_all(&find_term, &replace_term);
+                                } else {
+                                    editor.replace_next(&find_term, &replace_term);
+                                }
                             }
                         }
                     }
@@ -706,10 +710,35 @@ fn handle_editor_search_keys(
                 }
             }
             if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                if let Some(preview) = &mut pane.preview {
-                    if let Some(editor) = &mut preview.editor {
-                        clear_filter(editor);
+                if let Some(fs) = pane.current_state_mut() {
+                    if let Some(preview) = &mut fs.preview {
+                        if let Some(editor) = &mut preview.editor {
+                            clear_filter(editor);
+                        }
                     }
+                }
+            }
+            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                if let Some(fs) = pane.current_state_mut() {
+                    if let Some(preview) = &mut fs.preview {
+                        if let Some(editor) = &mut preview.editor {
+                            editor.handle_event(
+                                &dracon_terminal_engine::input::mapping::to_runtime_event(evt),
+                                ratatui::layout::Rect::new(0, 0, 100, 100),
+                            );
+                        }
+                    }
+                }
+            }
+            if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                if let Some(fs) = pane.current_state_mut() {
+                    if let Some(preview) = &mut fs.preview {
+                        if let Some(editor) = &mut preview.editor {
+                            editor.set_filter(&filter);
+                        }
+                    }
+                }
+            }
                 }
             }
             app.mode = app.previous_mode.clone();
@@ -759,9 +788,11 @@ fn handle_editor_search_keys(
                     }
                 }
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                    if let Some(preview) = &mut pane.preview {
-                        if let Some(editor) = &mut preview.editor {
-                            editor.set_filter(&filter);
+                    if let Some(fs) = pane.current_state_mut() {
+                        if let Some(preview) = &mut fs.preview {
+                            if let Some(editor) = &mut preview.editor {
+                                editor.set_filter(&filter);
+                            }
                         }
                     }
                 }
@@ -794,11 +825,13 @@ fn handle_editor_goto_keys(
                     }
                 }
                 if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                    if let Some(preview) = &mut pane.preview {
-                        if let Some(editor) = &mut preview.editor {
-                            editor.cursor_row =
-                                std::cmp::min(target, editor.lines.len().saturating_sub(1));
-                            editor.cursor_col = 0;
+                    if let Some(fs) = pane.current_state_mut() {
+                        if let Some(preview) = &mut fs.preview {
+                            if let Some(editor) = &mut preview.editor {
+                                editor.cursor_row =
+                                    std::cmp::min(target, editor.lines.len().saturating_sub(1));
+                                editor.cursor_col = 0;
+                            }
                         }
                     }
                 }

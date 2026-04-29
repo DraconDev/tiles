@@ -78,7 +78,9 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
             app.load_view_prefs(CurrentView::Files);
             app.editor_state = None;
             for pane in &mut app.panes {
-                pane.preview = None;
+                for fs in &mut pane.tabs {
+                    fs.preview = None;
+                }
             }
             app.input_shield_until =
                 Some(std::time::Instant::now() + std::time::Duration::from_millis(50));
@@ -114,7 +116,9 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
                     if pane.active_tab_index >= pane.tabs.len() {
                         pane.active_tab_index = pane.tabs.len() - 1;
                     }
-                    pane.preview = None;
+                    if let Some(fs) = pane.current_state_mut() {
+                        fs.preview = None;
+                    }
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(pane_idx));
                     let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
                         "Closed: {}",
@@ -123,7 +127,9 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
                             .unwrap_or_default()
                     )));
                 } else {
-                    pane.preview = None;
+                    if let Some(fs) = pane.current_state_mut() {
+                        fs.preview = None;
+                    }
                     let _ = event_tx.try_send(AppEvent::StatusMsg("No more tabs to close".to_string()));
                 }
             }
@@ -132,14 +138,16 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
 
         if has_control && key.code == KeyCode::Char('n') {
             if let Some(pane) = app.panes.get(pane_idx) {
-                let base_dir = if let Some(preview) = &pane.preview {
-                    if preview.path.is_dir() {
-                        preview.path.clone()
+                let base_dir = if let Some(fs) = pane.current_state() {
+                    if let Some(ref preview) = fs.preview {
+                        if preview.path.is_dir() {
+                            preview.path.clone()
+                        } else {
+                            preview.path.parent().unwrap_or(&PathBuf::from("/")).to_path_buf()
+                        }
                     } else {
-                        preview.path.parent().unwrap_or(&PathBuf::from("/")).to_path_buf()
+                        fs.current_path.clone()
                     }
-                } else if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
-                    tab.current_path.clone()
                 } else {
                     PathBuf::from(".")
                 };
@@ -157,32 +165,34 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
         };
 
         if let Some(pane) = app.panes.get_mut(pane_idx) {
-            if let Some(preview) = &mut pane.preview {
-                if let Some(editor) = &mut preview.editor {
-                    let mut clipboard = app.editor_clipboard.clone();
-                    let auto_save = app.auto_save;
-                    let mut mode = app.mode.clone();
-                    let mut prev_mode = app.previous_mode.clone();
+            if let Some(fs) = pane.current_state_mut() {
+                if let Some(preview) = &mut fs.preview {
+                    if let Some(editor) = &mut preview.editor {
+                        let mut clipboard = app.editor_clipboard.clone();
+                        let auto_save = app.auto_save;
+                        let mut mode = app.mode.clone();
+                        let mut prev_mode = app.previous_mode.clone();
 
-                    let handled = handle_generic_editor_shortcuts(
-                        key,
-                        editor,
-                        &mut clipboard,
-                        auto_save,
-                        &mut mode,
-                        &mut prev_mode,
-                        &mut app.input,
-                        &mut app.replace_buffer,
-                        event_tx,
-                        &preview.path,
-                        evt,
-                        pane_area,
-                    );
+                        let handled = handle_generic_editor_shortcuts(
+                            key,
+                            editor,
+                            &mut clipboard,
+                            auto_save,
+                            &mut mode,
+                            &mut prev_mode,
+                            &mut app.input,
+                            &mut app.replace_buffer,
+                            event_tx,
+                            &preview.path,
+                            evt,
+                            pane_area,
+                        );
 
-                    app.editor_clipboard = clipboard;
-                    app.mode = mode;
-                    app.previous_mode = prev_mode;
-                    return handled;
+                        app.editor_clipboard = clipboard;
+                        app.mode = mode;
+                        app.previous_mode = prev_mode;
+                        return handled;
+                    }
                 }
             }
         }
@@ -321,23 +331,25 @@ pub fn handle_editor_mouse(
         };
 
         if let Some(pane) = app.panes.get_mut(pane_idx) {
-            if let Some(preview) = &mut pane.preview {
-                if let Some(editor) = &mut preview.editor {
-                    let mut clipboard = app.editor_clipboard.clone();
-                    let handled = handle_text_editor_mouse(
-                        me,
-                        editor,
-                        &mut clipboard,
-                        &mut app.mouse_last_click,
-                        &mut app.mouse_click_pos,
-                        &mut app.mouse_click_count,
-                        app.auto_save,
-                        editor_area,
-                        event_tx,
-                        &preview.path,
-                    );
-                    app.editor_clipboard = clipboard;
-                    return handled;
+            if let Some(fs) = pane.current_state_mut() {
+                if let Some(preview) = &mut fs.preview {
+                    if let Some(editor) = &mut preview.editor {
+                        let mut clipboard = app.editor_clipboard.clone();
+                        let handled = handle_text_editor_mouse(
+                            me,
+                            editor,
+                            &mut clipboard,
+                            &mut app.mouse_last_click,
+                            &mut app.mouse_click_pos,
+                            &mut app.mouse_click_count,
+                            app.auto_save,
+                            editor_area,
+                            event_tx,
+                            &preview.path,
+                        );
+                        app.editor_clipboard = clipboard;
+                        return handled;
+                    }
                 }
             }
         }

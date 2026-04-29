@@ -186,10 +186,12 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
         app.input_shield_until =
             Some(std::time::Instant::now() + std::time::Duration::from_millis(60));
         for pane in &mut app.panes {
-            if let Some(preview) = &pane.preview {
-                let p = preview.path.to_string_lossy();
-                if p.starts_with("git://") || p.starts_with("git-diff://") {
-                    pane.preview = None;
+            for fs in &mut pane.tabs {
+                if let Some(preview) = &fs.preview {
+                    let p = preview.path.to_string_lossy();
+                    if p.starts_with("git://") || p.starts_with("git-diff://") {
+                        fs.preview = None;
+                    }
                 }
             }
         }
@@ -204,12 +206,13 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
                     fs.git_pending_state.select(None);
                     fs.git_history_state.select(None);
                 }
-                // Prevent Git-only previews from leaking into file view.
                 for pane in &mut app.panes {
-                    if let Some(preview) = &pane.preview {
-                        let p = preview.path.to_string_lossy();
-                        if p.starts_with("git://") || p.starts_with("git-diff://") {
-                            pane.preview = None;
+                    for fs in &mut pane.tabs {
+                        if let Some(preview) = &fs.preview {
+                            let p = preview.path.to_string_lossy();
+                            if p.starts_with("git://") || p.starts_with("git-diff://") {
+                                fs.preview = None;
+                            }
                         }
                     }
                 }
@@ -222,7 +225,6 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
                 return true;
             }
             CurrentView::Editor => {
-                // Save before closing if modified
                 if let Some(preview) = &app.editor_state {
                     if let Some(editor) = &preview.editor {
                         if editor.modified {
@@ -234,17 +236,19 @@ fn handle_global_escape(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) -> boo
                     }
                 }
                 for pane in &mut app.panes {
-                    if let Some(preview) = &pane.preview {
-                        if let Some(editor) = &preview.editor {
-                            if editor.modified {
-                                let _ = event_tx.try_send(AppEvent::SaveFile(
-                                    preview.path.clone(),
-                                    editor.get_content(),
-                                ));
+                    for fs in &mut pane.tabs {
+                        if let Some(preview) = &fs.preview {
+                            if let Some(editor) = &preview.editor {
+                                if editor.modified {
+                                    let _ = event_tx.try_send(AppEvent::SaveFile(
+                                        preview.path.clone(),
+                                        editor.get_content(),
+                                    ));
+                                }
                             }
                         }
+                        fs.preview = None;
                     }
-                    pane.preview = None;
                 }
 
                 app.save_current_view_prefs();

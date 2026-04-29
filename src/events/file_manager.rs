@@ -236,7 +236,9 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
             // Standard Navigation
             if key.code == KeyCode::Esc {
                 for pane in &mut app.panes {
-                    pane.preview = None;
+                    for fs in &mut pane.tabs {
+                        fs.preview = None;
+                    }
                 }
 
                 if let Some(fs) = app.current_file_state_mut() {

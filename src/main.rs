@@ -551,7 +551,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                             .iter()
                             .find_map(|pane| {
                                 let fs = pane.current_state()?;
-                                let preview = pane.preview.as_ref()?;
+                                let preview = fs.preview.as_ref()?;
                                 if preview.path == path {
                                     fs.remote_session.clone()
                                 } else {
@@ -594,13 +594,15 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                 }
                             }
                             for pane in &mut app_guard.panes {
-                                if let Some(ref mut preview) = pane.preview {
-                                    if preview.path == path {
-                                        preview.last_saved = Some(std::time::Instant::now());
-                                        if let Some(ref mut editor) = preview.editor {
-                                            editor.modified = false;
+                                if let Some(fs) = pane.current_state_mut() {
+                                    if let Some(ref mut preview) = fs.preview {
+                                        if preview.path == path {
+                                            preview.last_saved = Some(std::time::Instant::now());
+                                            if let Some(ref mut editor) = preview.editor {
+                                                editor.modified = false;
+                                            }
+                                            preview.highlighted_lines = None;
                                         }
-                                        preview.highlighted_lines = None;
                                     }
                                 }
                             }
