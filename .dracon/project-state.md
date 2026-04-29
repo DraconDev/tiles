@@ -1,14 +1,8 @@
 # Project State
 
 ## Current Focus
-Handle editor context‑menu actions directly by processing each action individually instead of using a dedicated `ContextMenuTarget::Editor` branch.
+Switched event imports to the new `input::mapping` module and added `to_runtime_event` import.
 
 ## Completed
-- [x] Removed the empty `ContextMenuTarget::Editor => vec![]` branch
-- [x] Refactored `handle_context_menu_action` to match on `ContextMenuAction` for editor actions
-- [x] Implemented `EditorSelectAll` to select all text in the active editor
-- [x] Implemented `EditorCopy` to copy selected text to clipboard
-- [x] Implemented `EditorPaste` to paste primary selection into the active editor
-- [x] Implemented `EditorUndo` and `EditorRedo` via Ctrl+Z / Ctrl+Y key events
-- [x] Implemented `Save` action to send a save event with file path and content
-- [x] Implemented `Run` action to spawn a terminal with the file’s run command
+- [x] Replaced import of `InputEvent`, `KeyCode`, `KeyEvent`, `KeyEventKind`, `KeyModifiers` from `dracon_terminal_engine::contracts` with the new path `dracon_terminal_engine::input::mapping`, renaming `Event` to `InputEvent`
+- [x] Added import of `to_runtime_event` from the same module

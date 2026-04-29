@@ -3,7 +3,7 @@ use crate::app::{
     CurrentView, FileState,
 };
 use base64::Engine;
-use dracon_terminal_engine::contracts::{InputEvent as Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use dracon_terminal_engine::input::mapping::{to_runtime_event, Event as InputEvent, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
