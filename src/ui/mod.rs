@@ -1625,6 +1625,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
 
     let monitor_icon = Icon::Monitor.get(app.icon_mode);
     let git_icon = Icon::Git.get(app.icon_mode);
+    let editor_icon = Icon::Document.get(app.icon_mode);
 
     app.header_icon_bounds.clear();
     let mut cur_icon_x = area.x + 2;
@@ -1639,6 +1640,7 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
             (split_icon, "split"),
             (monitor_icon, "monitor"),
             (git_icon, "git"),
+            (editor_icon, "project"),
         ];
 
         for (i, (icon, id)) in icons.into_iter().enumerate() {
