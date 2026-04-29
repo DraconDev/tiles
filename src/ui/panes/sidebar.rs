@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, List, ListItem, Paragraph},
     Frame,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use unicode_width::UnicodeWidthStr;
 
@@ -574,6 +574,16 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
     let mut tree_items: Vec<(PathBuf, u16)> = Vec::new();
     collect_tree_items(&base_path, 0, app, &mut tree_items);
 
+    let open_files: HashSet<PathBuf> = app
+        .panes
+        .iter()
+        .flat_map(|pane| {
+            pane.tabs
+                .iter()
+                .filter_map(|tab| tab.preview.as_ref().map(|p| p.path.clone()))
+        })
+        .collect();
+
     let mut sidebar_items = Vec::new();
     app.sidebar_bounds.clear();
     let mut current_y = inner.y;
@@ -627,10 +637,29 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         };
 
         let icon = Icon::get_for_path(&path, cat, is_dir, icon_mode);
-        let indent = "  ".repeat(depth as usize);
+        let indent_str = "  ".repeat(depth as usize);
 
-        sidebar_items
-            .push(ListItem::new(format!("{}{}{}{}", indent, marker, icon, name)).style(style));
+        let open_indicator = if !is_dir && open_files.contains(&path) {
+            Some(Span::styled(
+                " ●",
+                Style::default().fg(crate::ui::theme::accent_primary()),
+            ))
+        } else {
+            None
+        };
+
+        let line = Line::from({
+            let mut spans = vec![
+                Span::raw(format!("{}{}", indent_str, marker)),
+                Span::raw(icon),
+            ];
+            if let Some(ind) = open_indicator {
+                spans.push(ind);
+            }
+            spans.push(Span::raw(name));
+            spans
+        });
+        sidebar_items.push(ListItem::new(line).style(style));
         app.sidebar_bounds.push(SidebarBounds {
             y: current_y,
             index: current_idx,

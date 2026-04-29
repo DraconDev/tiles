@@ -1,8 +1,11 @@
 # Project State
 
 ## Current Focus
-Remove unused `Pane::preview_mut` method and fix mismatched brace in `draw_file_view`
+Add visual indicator for open files in the project sidebar and refactor line rendering using spans with styled accent.
 
 ## Completed
-- [x] Remove obsolete `Pane::preview_mut` method following migration of preview state to per-tab `FileState`
-- [x] Fix unclosed block in `draw_file_view` by adding missing closing brace to resolve syntax error
+- [x] Import `HashSet` from `std::collections`
+- [x] Collect `open_files` as a `HashSet<PathBuf>` from all tab previews
+- [x] Create `open_indicator` span styled with accent primary when a file is open
+- [x] Use `indent_str` for consistent indentation instead of repeated `"  "` string
+- [x] Rebuild sidebar items with `Line` containing marker, icon, optional open indicator, and name, applying style cambios
