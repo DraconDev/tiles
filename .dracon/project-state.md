@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Removed deprecated command execution function from remote module
+Added dead_code lint suppression for unused tile_queue field in App struct
 
 ## Completed
-- [x] Removed unused `run_command` function from remote module
-- [x] Updated Cargo.lock due to dependency changes (likely version bump)
+- [x] refactored: added #[allow(dead_code)] attribute to tile_queue field to suppress unused code warning
+```
