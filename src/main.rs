@@ -635,9 +635,9 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     } else {
                         let _ = std::fs::File::create(&path);
                     }
-                    let _ = event_tx.try_send(AppEvent::RefreshFiles(
-                        app.lock().focused_pane_index,
-                    ));
+                    let focused_pane = app.lock().focused_pane_index;
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(focused_pane));
+                    let _ = event_tx.try_send(AppEvent::PreviewRequested(focused_pane, path));
                 }
                 AppEvent::CreateFolder(path) => {
                     let remote = {
