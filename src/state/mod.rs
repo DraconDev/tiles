@@ -290,8 +290,7 @@ pub struct FileState {
     #[allow(dead_code)]
     pub path_colors: HashMap<PathBuf, u8>,
     #[serde(skip)]
-    #[allow(dead_code)]
-    pub preview: Option<String>,
+    pub preview: Option<PreviewState>,
     #[serde(skip)]
     pub view_height: usize,
     #[serde(skip)]
@@ -431,8 +430,6 @@ pub struct ViewStatePersistence {
 pub struct Pane {
     pub tabs: Vec<FileState>,
     pub active_tab_index: usize,
-    #[serde(skip)]
-    pub preview: Option<PreviewState>,
 }
 
 impl Pane {
@@ -440,7 +437,6 @@ impl Pane {
         Self {
             tabs: vec![initial_fs],
             active_tab_index: 0,
-            preview: None,
         }
     }
     pub fn current_state(&self) -> Option<&FileState> {

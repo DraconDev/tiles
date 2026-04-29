@@ -382,11 +382,13 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                 panes_needing_refresh.insert(i);
                             }
                         }
-                        if let Some(preview) = &pane.preview {
-                            if preview.path == path {
-                                if let Some(editor) = &preview.editor {
-                                    if !editor.modified {
-                                        needs_reload.push((i, path.clone()));
+                        if let Some(fs) = pane.current_state() {
+                            if let Some(ref preview) = fs.preview {
+                                if preview.path == path {
+                                    if let Some(editor) = &preview.editor {
+                                        if !editor.modified {
+                                            needs_reload.push((i, path.clone()));
+                                        }
                                     }
                                 }
                             }
