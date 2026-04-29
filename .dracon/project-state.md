@@ -1,7 +1,7 @@
 # Project State
 
 ## Current Focus
-Add editor enhancements documentation and test matrix
+Resolve dependency version conflicts and update Cargo.lock
 
 ## Completed
-- [x] Add comprehensive test matrix for editor enhancements
+- [x] Update dependencies and regenerate Cargo.lock
