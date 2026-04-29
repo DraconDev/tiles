@@ -2802,6 +2802,11 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                 "GoTo",
                 crate::ui::theme::accent_secondary(),
             ));
+            shortcuts.extend(HotkeyHint::render(
+                "^↵",
+                "Run",
+                crate::ui::theme::accent_secondary(),
+            ));
         } else {
             shortcuts.extend(HotkeyHint::render(
                 "^P",

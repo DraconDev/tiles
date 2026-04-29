@@ -1,8 +1,7 @@
 # Project State
 
 ## Current Focus
-Update Cargo.lock with resolved dependency versions to fix binary divergence and ensure deterministic builds
+Add Ctrl+Enter hotkey hint for Run command in footer
 
 ## Completed
-- [x] Update Cargo.lock with resolved dependency versions after dependency resolution
-- [x] Ensure deterministic dependency lock file for reproducible builds
+- [x] Added "^↵ Run" hotkey hint to shortcuts in draw_footer
