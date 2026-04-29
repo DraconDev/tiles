@@ -754,25 +754,18 @@ pub fn handle_context_menu_action(
             }
         }
         ContextMenuAction::Save => {
-            if let Some(editor) = get_active_editor_mut(app) {
-                let content = editor.get_content();
-                let path = get_active_editor_path(app);
-                if let Some(path) = path {
-                    let _ = event_tx.try_send(AppEvent::SaveFile(path, content));
-                    editor.modified = false;
+            let path = get_active_editor_path(app);
+            let content = {
+                if let Some(editor) = get_active_editor_mut(app) {
+                    Some(editor.get_content())
+                } else {
+                    None
                 }
-            }
-        }
-        ContextMenuAction::Run => {
-            if let Some(path) = get_active_editor_path(app) {
-                if let Some((work_dir, program, args)) = crate::modules::files::get_run_command(&path) {
-                    let remote = app.current_file_state().and_then(|fs| fs.remote_session.clone());
-                    let _ = event_tx.try_send(AppEvent::SpawnTerminal {
-                        path: work_dir,
-                        new_tab: true,
-                        remote,
-                        command: Some(format!("{} {}", program, args.join(" "))),
-                    });
+            };
+            if let (Some(path), Some(content)) = (path, content) {
+                let _ = event_tx.try_send(AppEvent::SaveFile(path, content));
+                if let Some(editor) = get_active_editor_mut(app) {
+                    editor.modified = false;
                 }
             }
         }
