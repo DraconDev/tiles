@@ -1,14 +1,10 @@
 # Project State
 
-## Current Focus
-Update dependencies and fix UI rendering logic in tab management
+## Current FocusMoved welcome‑pane rendering outside nested logic and refactored directory‑name extraction for cleaner UI handling.
 
 ## Completed
-- [x] Fix tab rendering layout by restructuring UI draw function in src/ui/mod.rs
-- [x] Update Cargo.lock and dependencies to resolve manifest issues (dracon-files)
-- [x] Implement Ctrl+W shortcut for closing tabs with proper state cleanup
-- [x] Refactor editor search to use FileState for preview actions
-- [x] Remove redundant mutability/clone operations in header generation
-- [x] Add "Project" icon to global UI header
-- [x] Improve save-as functionality with persistent file path handling
-- [x] Add keyboard navigation shortcuts (Ctrl+Tab/Ctrl+Shift+Tab)
+- [x] Renamed `welcome_path` to `welcome_name` and moved its rendering block to the end of the function.
+- [x] Simplified directory name extraction using `fs.current_path.file_name()` directly instead of cloning via `pane.current_state().map`.
+- [x] Updated path display to use `fs.current_path.to_string_lossy()` in the UI line.
+- [x] Preserved welcome paragraph rendering when `welcome_name` is present, ensuring consistent UI feedback.
+- [x] Adjusted surrounding code block structure to maintain correct control flow and early returns.

@@ -45,9 +45,9 @@ pub fn draw_pane_editor(
     pane_idx: usize,
     is_focused: bool,
 ) {
-    let (title, welcome_path) = if let Some(pane) = app.panes.get(pane_idx) {
+    let (title, welcome_name) = if let Some(pane) = app.panes.get(pane_idx) {
         if let Some(fs) = pane.current_state() {
-            if let Some(preview) = &fs.preview {
+            if let Some(ref preview) = fs.preview {
                 (
                     Line::from(vec![Span::styled(
                         format!(" {} ", preview.path.to_string_lossy()),
@@ -55,28 +55,26 @@ pub fn draw_pane_editor(
                     )]),
                     None,
                 )
-        } else {
-            let current_dir = pane.current_state().map(|fs| fs.current_path.clone());
-            if let Some(ref path) = current_dir {
-                let dir_name = path.file_name()
+            } else {
+                let dir_name = fs.current_path.file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_else(|| "/".to_string());
                 (
                     Line::from(vec![Span::styled(
-                        format!(" {} ", path.to_string_lossy()),
+                        format!(" {} ", fs.current_path.to_string_lossy()),
                         Style::default().fg(crate::ui::theme::accent_secondary()),
                     )]),
                     Some(dir_name),
                 )
-            } else {
-                (
-                    Line::from(vec![Span::styled(
-                        " (no file) ",
-                        Style::default().fg(crate::ui::theme::border_inactive()),
-                    )]),
-                    None,
-                )
             }
+        } else {
+            (
+                Line::from(vec![Span::styled(
+                    " (no file) ",
+                    Style::default().fg(crate::ui::theme::border_inactive()),
+                )]),
+                None,
+            )
         }
     } else {
         (
@@ -105,33 +103,37 @@ pub fn draw_pane_editor(
         if let Some(fs) = pane.current_state_mut() {
             if let Some(preview) = &mut fs.preview {
                 if let Some(editor) = &mut preview.editor {
-                let path_str = preview.path.to_string_lossy();
-                let ext = if path_str.starts_with("git://") {
-                    "diff".to_string()
-                } else {
-                    preview
-                        .path
-                        .extension()
-                        .and_then(|s| s.to_str())
-                        .unwrap_or("")
-                        .to_string()
-                };
+                    let path_str = preview.path.to_string_lossy();
+                    let ext = if path_str.starts_with("git://") {
+                        "diff".to_string()
+                    } else {
+                        preview
+                            .path
+                            .extension()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("")
+                            .to_string()
+                    };
 
-                if editor.language != ext {
-                    editor.language = ext;
-                    editor.invalidate_from(0);
+                    if editor.language != ext {
+                        editor.language = ext;
+                        editor.invalidate_from(0);
+                    }
+                    editor.wrap = app.is_split_mode;
+                    f.render_widget(&*editor, inner);
+                    return;
                 }
-                editor.wrap = app.is_split_mode;
-                f.render_widget(&*editor, inner);
             }
-        } else if let Some(dir_name) = welcome_path {
-            let style = Style::default()
-                .fg(crate::ui::theme::accent_primary())
-                .add_modifier(ratatui::style::Modifier::BOLD);
-            let para = Paragraph::new(editor_welcome_content(&dir_name))
-                .style(style)
-                .alignment(ratatui::layout::Alignment::Center);
-            f.render_widget(para, inner);
         }
+    }
+
+    if let Some(dir_name) = welcome_name {
+        let style = Style::default()
+            .fg(crate::ui::theme::accent_primary())
+            .add_modifier(ratatui::style::Modifier::BOLD);
+        let para = Paragraph::new(editor_welcome_content(&dir_name))
+            .style(style)
+            .alignment(ratatui::layout::Alignment::Center);
+        f.render_widget(para, inner);
     }
 }
