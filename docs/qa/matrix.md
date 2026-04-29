@@ -70,3 +70,60 @@ Code-level verification completed on 2026-02-08:
 | A1 | FIXED | Added arithmetic guards (`saturating_add`, pane-width guards, offset underflow safety). |
 
 Manual interactive validation is still recommended for UI feel/regression checks in a real terminal session.
+
+---
+
+## Session 2026-04-30 — Editor Enhancements
+
+### Environment
+- Date: 2026-04-30
+- Build target: local dev (v4.10.0)
+- Focus areas:
+  - Editor context menu (right-click)
+  - Unified clipboard (Copy/Cut/Paste round-trip)
+  - Modified indicator on tabs
+  - Run file feature (Ctrl+Enter)
+  - Editor footer bar
+  - Save-As path sync
+  - Auto-open new file after Ctrl+N
+
+## Test Matrix
+
+| ID | Flow | Mode | Steps | Expected | Result |
+|----|------|------|-------|----------|--------|
+| EC1 | Editor context menu | Single pane | Right-click in editor area | Menu appears with Edit actions | |
+| EC2 | Editor context menu | Read-only | Right-click in Viewer/git-diff | Menu shows only Copy, Select All, Run | |
+| EC3 | Copy round-trip | Single pane | Select text, right-click Copy, click elsewhere, right-click Paste | Text pastes correctly | |
+| EC4 | Cut round-trip | Single pane | Select text, right-click Cut, right-click Paste | Text moves correctly | |
+| EC5 | Modified indicator | Single pane | Edit a file, check tab | Amber dot appears on tab | |
+| EC6 | Modified indicator | Split pane | Edit file in pane 1, check pane 2 tabs | Correct tab shows dot | |
+| EC7 | Run script | File browser | Select `.sh` file, Ctrl+Enter | Terminal opens and runs script | |
+| EC8 | Run Cargo | Pane editor | Open `src/main.rs`, Ctrl+Enter | Terminal opens with `cargo run` | |
+| EC9 | Editor footer | Pane editor | Open file, move cursor | Footer shows Ln X, Col Y, language, modified dot | |
+| EC10 | Save-As path | Pane editor | Save-As to new file | Tab and title update to new filename | |
+| EC11 | Auto-open new file | File browser | Navigate to dir, Ctrl+N "test.txt", Enter | New file opens in editor | |
+| EC12 | Ctrl+K kill line | Pane editor | Position cursor, Ctrl+K | Text after cursor on line is deleted | |
+| EC13 | Alt+↑ move line | Pane editor | Position cursor on line, Alt+↑ | Line moves up, cursor follows | |
+| EC14 | Middle-click paste | Pane editor | Select text externally, middle-click | Text inserts at cursor | |
+| EC15 | Tab limit | Pane editor | Open 9 tabs | Only 8 tabs allowed, 9th rejected | |
+
+## Final Results
+
+| ID | Status | Notes |
+|----|--------|-------|
+| EC1 | | |
+| EC2 | | |
+| EC3 | | |
+| EC4 | | |
+| EC5 | | |
+| EC6 | | |
+| EC7 | | |
+| EC8 | | |
+| EC9 | | |
+| EC10 | | |
+| EC11 | | |
+| EC12 | | |
+| EC13 | | |
+| EC14 | | |
+| EC15 | | |
+
