@@ -739,8 +739,6 @@ fn handle_editor_search_keys(
                     }
                 }
             }
-                }
-            }
             app.mode = app.previous_mode.clone();
             app.input.clear();
             true
@@ -760,12 +758,14 @@ fn handle_editor_search_keys(
                 }
             }
             if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
-                if let Some(preview) = &mut pane.preview {
-                    if let Some(editor) = &mut preview.editor {
-                        editor.handle_event(
-                            &dracon_terminal_engine::input::mapping::to_runtime_event(evt),
-                            ratatui::layout::Rect::new(0, 0, 100, 100),
-                        );
+                if let Some(fs) = pane.current_state_mut() {
+                    if let Some(preview) = &mut fs.preview {
+                        if let Some(editor) = &mut preview.editor {
+                            editor.handle_event(
+                                &dracon_terminal_engine::input::mapping::to_runtime_event(evt),
+                                ratatui::layout::Rect::new(0, 0, 100, 100),
+                            );
+                        }
                     }
                 }
             }
