@@ -80,6 +80,7 @@ pub enum ContextMenuTarget {
     SidebarStorage(usize),
     ProjectTree(PathBuf),
     Process(u32),
+    Editor,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -122,6 +123,7 @@ pub enum ContextMenuAction {
     SetColor(Option<u8>),
     SortBy(FileColumn),
     Separator,
+    Save,
     EditorCut,
     EditorCopy,
     EditorPaste,

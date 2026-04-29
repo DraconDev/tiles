@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Implemented right‑click context menu for the editor with cut, copy, paste, undo, redo, select‑all, save and run actions.
+Add Save action and Editor target to context menu enum definitions
 
 ## Completed
-- [x] Added handling for right‑click mouse events to open a ContextMenu targeting the editor.
-- [x] Extended ContextMenuAction enum with EditorCut, EditorCopy, EditorPaste, EditorUndo, EditorRedo, EditorSelectAll variants.
+- [x] Added `Editor` variant to `ContextMenuTarget` enum
+- [x] Added `Save` variant to `ContextMenuAction` enum
