@@ -3151,7 +3151,7 @@ fn draw_context_menu(
                 }
                 label
             }
-            ContextMenuAction::Save => format!(" {} Save", Icon::Save.get(app.icon_mode)),
+            ContextMenuAction::Save => format!(" {} Save", Icon::Document.get(app.icon_mode)),
             ContextMenuAction::EditorCut => format!(" {} Cut", Icon::Cut.get(app.icon_mode)),
             ContextMenuAction::EditorCopy => format!(" {} Copy", Icon::Copy.get(app.icon_mode)),
             ContextMenuAction::EditorPaste => format!(" {} Paste", Icon::Paste.get(app.icon_mode)),
@@ -3193,6 +3193,7 @@ fn draw_context_menu(
         crate::app::ContextMenuTarget::SidebarStorage(_) => " Storage ",
         crate::app::ContextMenuTarget::ProjectTree(_) => " Project ",
         crate::app::ContextMenuTarget::Process(_) => " Process ",
+        crate::app::ContextMenuTarget::Editor => " Editor ",
     };
 
     let menu_width = 30;

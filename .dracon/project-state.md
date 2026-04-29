@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Implemented context‑menu handling for editor actions with icon‑prefixed labels.
+Finalize context‑menu rendering for editor actions and update dependencies
 
 ## Completed
-- [x] Add formatted context menu entry for Save using Icon::Save
-- [x] Add formatted context menu entries for Cut, Copy, Paste, and Select All with respective icons
-- [x] Add formatted Undo and Redo entries using Icon::Refresh
+- [x] Updated Save context‑menu action to use the Document icon instead of the Save icon
+- [x] Added missing `ContextMenuTarget::Editor` case to the match arms in `draw_context_menu`
+- [x] Resolved dependency versions and updated Cargo.lock accordingly
