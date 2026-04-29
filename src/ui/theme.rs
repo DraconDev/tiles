@@ -1,7 +1,8 @@
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 use std::sync::{LazyLock, RwLock};
 
+#[allow(dead_code)]
 pub struct DraconTheme {
     pub bg: Color,
     pub fg: Color,
@@ -145,20 +146,6 @@ impl DraconTheme {
             file_archive: Color::Rgb(238, 132, 170),    // Rose
             file_exec: Color::Rgb(118, 203, 125),       // Green
         }
-    }
-
-    pub fn block_active(&self) -> Style {
-        Style::default().fg(self.border_active).bg(self.bg)
-    }
-
-    pub fn block_inactive(&self) -> Style {
-        Style::default().fg(self.border_inactive).bg(self.bg)
-    }
-
-    pub fn text_highlight(&self) -> Style {
-        Style::default()
-            .fg(self.accent_primary)
-            .add_modifier(Modifier::BOLD)
     }
 }
 

@@ -2306,7 +2306,7 @@ fn draw_file_view(
 
     // --- BORDER & BACKGROUND (Rendered FIRST to create base) ---
 
-    let mut border_style = if is_focused {
+    let border_style = if is_focused {
         let pulse = ((SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap_or_default()
