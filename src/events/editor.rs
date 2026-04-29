@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::app::{App, AppEvent, AppMode, CurrentView};
 use dracon_terminal_engine::contracts::{
     InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
@@ -103,6 +104,28 @@ pub fn handle_editor_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<
                     }
                 }
             }
+            return true;
+        }
+
+        if has_control && key.code == KeyCode::Char('n') {
+            if let Some(pane) = app.panes.get(pane_idx) {
+                let base_dir = if let Some(preview) = &pane.preview {
+                    if preview.path.is_dir() {
+                        preview.path.clone()
+                    } else {
+                        preview.path.parent().unwrap_or(&PathBuf::from("/")).to_path_buf()
+                    }
+                } else if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
+                    tab.current_path.clone()
+                } else {
+                    PathBuf::from(".")
+                };
+                if let Some(fs) = app.current_file_state_mut() {
+                    fs.current_path = base_dir;
+                }
+            }
+            app.mode = AppMode::NewFile;
+            app.input.clear();
             return true;
         }
 
