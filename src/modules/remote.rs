@@ -299,7 +299,13 @@ fn map_metadata(meta: RemoteEntryMetadata) -> FileMetadata {
 
 fn run_command(remote: &RemoteSession, command: &str) -> std::io::Result<String> {
     let exec = SshRemoteExecProvider;
+    #[allow(deprecated)]
     exec.run_command(&to_connection(remote), command)
+}
+
+fn exec_program(remote: &RemoteSession, program: &str, args: &[&str]) -> std::io::Result<String> {
+    let exec = SshRemoteExecProvider;
+    exec.exec_program(&to_connection(remote), program, args)
 }
 
 fn parse_git_log_record(line: &str) -> Option<CommitInfo> {
