@@ -1692,86 +1692,56 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
         let mut current_x = chunk.x;
 
         if app.current_view == CurrentView::Editor {
-            // SINGLE FILE TAB for Editor View
-            if let Some(preview) = &pane.preview {
-                let base_name = preview
-                    .path
-                    .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_else(|| "Editor".to_string());
-
+            if pane.tabs.is_empty() {
+                continue;
+            }
+            for (t_i, tab) in pane.tabs.iter().enumerate() {
+                let is_active_tab = t_i == pane.active_tab_index;
                 let is_focused_pane = p_i == app.focused_pane_index && !app.sidebar_focus;
-                let base_style = if is_focused_pane {
-                    Style::default()
-                        .fg(crate::ui::theme::accent_primary())
-                        .add_modifier(Modifier::BOLD)
+
+                let base_style = if is_active_tab {
+                    if is_focused_pane {
+                        Style::default()
+                            .fg(crate::ui::theme::accent_primary())
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default().fg(crate::ui::theme::accent_primary())
+                    }
                 } else {
-                    Style::default().fg(crate::ui::theme::accent_primary())
+                    Style::default().fg(Color::DarkGray)
+                };
+
+                let base_name = if t_i == pane.active_tab_index {
+                    if let Some(preview) = &pane.preview {
+                        preview
+                            .path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().to_string())
+                            .unwrap_or_else(|| "Editor".to_string())
+                    } else {
+                        tab.current_path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().to_string())
+                            .unwrap_or_else(|| "/".to_string())
+                    }
+                } else {
+                    tab.current_path
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "/".to_string())
                 };
 
                 let mut spans = vec![Span::styled(format!(" {} ", base_name), base_style)];
-
-                // Show git indicators on file and git pages.
-                if matches!(app.current_view, CurrentView::Files | CurrentView::Git) {
-                    if let Some(tab) = pane.tabs.get(pane.active_tab_index) {
-                        if let Some(branch) = &tab.git_branch {
-                            let pending = tab.git_pending.len();
-                            let ahead = tab.git_ahead;
-                            let behind = tab.git_behind;
-
-                            let branch_color = if pending > 0 {
-                                Color::Red
-                            } else if ahead > 0 || behind > 0 {
-                                Color::Yellow
-                            } else {
-                                Color::Green
-                            };
-
-                            let mut branch_style = Style::default().fg(branch_color);
-                            if is_focused_pane {
-                                branch_style = branch_style.add_modifier(Modifier::BOLD);
-                            }
-
-                            spans.push(Span::styled(format!("({})", branch), branch_style));
-
-                            if pending > 0 {
-                                spans.push(Span::styled(
-                                    format!(" +{}", pending),
-                                    Style::default().fg(Color::Red),
-                                ));
-                            }
-                            if ahead > 0 {
-                                spans.push(Span::styled(
-                                    format!(" ↑{}", ahead),
-                                    Style::default().fg(Color::Yellow),
-                                ));
-                            }
-                            if behind > 0 {
-                                spans.push(Span::styled(
-                                    format!(" ↓{}", behind),
-                                    Style::default().fg(Color::Yellow),
-                                ));
-                            }
-                            spans.push(Span::raw(" "));
-                        }
-                    }
-                }
-
                 let line = Line::from(spans.clone());
                 let total_width = line.width() as u16;
-
-                // Respect pane chunk boundary
                 let max_width = chunk.x + chunk.width - current_x;
 
-                // Actually truncate the line content if too wide
                 let final_line = if total_width > max_width && max_width > 3 {
-                    // Build truncated spans
                     let mut truncated = vec![];
                     let mut current_w = 0;
                     for span in spans {
                         let span_w = span.content.width() as u16;
                         if current_w + span_w > max_width - 1 {
-                            // Add ellipsis and stop
                             truncated.push(Span::styled("…", Style::default().fg(Color::DarkGray)));
                             break;
                         }
@@ -1784,12 +1754,10 @@ fn draw_global_header(f: &mut Frame, area: Rect, sidebar_width: u16, app: &mut A
                 };
 
                 let width = total_width.min(max_width);
-
                 if width > 0 {
                     let rect = Rect::new(current_x, area.y, width, 1);
                     f.render_widget(Paragraph::new(final_line), rect);
-                    // We'll still register it as a 'tab' so header-mode can highlight it
-                    app.tab_bounds.push((rect, p_i, pane.active_tab_index));
+                    app.tab_bounds.push((rect, p_i, t_i));
                 }
             }
             continue;
