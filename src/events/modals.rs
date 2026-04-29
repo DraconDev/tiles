@@ -440,6 +440,15 @@ fn handle_save_as_keys(
                     None
                 };
                 if let Some(content) = content {
+                    if let Some(pane) = app.panes.get_mut(app.focused_pane_index) {
+                        if let Some(fs) = pane.current_state_mut() {
+                            if let Some(preview) = &mut fs.preview {
+                                if preview.path == *original_path {
+                                    preview.path = target.clone();
+                                }
+                            }
+                        }
+                    }
                     let _ = event_tx.try_send(AppEvent::SaveFile(target.clone(), content));
                     app.last_action_msg = Some((
                         format!("Saved as: {}", target.file_name().unwrap_or_default().to_string_lossy()),
