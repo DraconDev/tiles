@@ -2335,11 +2335,6 @@ fn draw_file_view(
         Style::default().fg(crate::ui::theme::border_inactive())
     };
 
-    if matches!(app.hovered_drop_target, Some(DropTarget::Pane(idx)) if idx == pane_idx) {
-        border_style = Style::default()
-            .fg(Color::Rgb(0, 255, 200))
-            .add_modifier(Modifier::BOLD);
-    }
 
     let main_block = Block::default()
         .borders(borders)
@@ -2756,15 +2751,7 @@ fn draw_footer(f: &mut Frame, area: Rect, app: &mut App) {
                     DropTarget::Folder(p) => {
                         p.file_name().and_then(|n| n.to_str()).unwrap_or("Folder")
                     }
-                    DropTarget::Pane(idx) => {
-                        if *idx == 0 {
-                            "Left Pane"
-                        } else {
-                            "Right Pane"
-                        }
-                    }
                     DropTarget::Favorites => "Favorites",
-                    DropTarget::RemotesHeader => "Remotes",
                     DropTarget::ReorderFavorite(_) => "Favorites (Reorder)",
                 };
                 left_spans.push(Span::styled(

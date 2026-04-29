@@ -192,8 +192,6 @@ pub enum AppMode {
 pub enum DropTarget {
     Favorites,
     Folder(PathBuf),
-    RemotesHeader,
-    Pane(usize),
     ReorderFavorite(usize),
 }
 
