@@ -1340,7 +1340,7 @@ fn setup_app(
     // for async refresh/tick scheduling.
     prime_visible_tabs(&mut app);
 
-    let app_arc = Arc::new(Mutex::new(app));
+    let app_arc = Arc::new(PLMutex::new(app));
     (app_arc, tx, rx)
 }
 
