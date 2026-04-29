@@ -35,7 +35,7 @@ notify-debouncer-mini = "0.7.0"
 [workspace]
 
 [patch."https://github.com/DraconDev/dracon-libs"]
-dracon-terminal-engine = { path = "../dracon-libs" }
-dracon-files = { path = "../dracon-libs" }
-dracon-git = { path = "../dracon-libs" }
-dracon-system = { path = "../dracon-libs" }
+dracon-terminal-engine = { path = "../dracon-libs/tools/tui/dracon-terminal-engine" }
+dracon-files = { path = "../dracon-libs/tools/files/dracon-files" }
+dracon-git = { path = "../dracon-libs/tools/sync/dracon-git" }
+dracon-system = { path = "../dracon-libs/tools/system/dracon-system" }
