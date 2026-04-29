@@ -117,15 +117,18 @@ pub fn global_search(
 }
 
 pub fn fetch_git_data(remote: &RemoteSession, path: &Path) -> Option<GitData> {
-    let base = format!("cd {} && ", shell_quote_path(path));
-    let branch = run_command(remote, &(base.clone() + "git rev-parse --abbrev-ref HEAD"))
+    let path_str = path.to_string_lossy();
+    let cd_cmd = format!("cd '{}' && ", path_str.replace('\'', "'\"'\"'"));
+
+    let branch = exec_program(remote, "sh", &["-c", &format!("{}git rev-parse --abbrev-ref HEAD", cd_cmd)])
         .ok()?
         .trim()
         .to_string();
 
-    let (ahead, behind) = if let Ok(raw) = run_command(
+    let (ahead, behind) = if let Ok(raw) = exec_program(
         remote,
-        &(base.clone() + "git rev-list --left-right --count HEAD...@{u}"),
+        "sh",
+        &[ "-c", &format!("{}git rev-list --left-right --count HEAD...@{{u}}", cd_cmd) ],
     ) {
         let parts: Vec<&str> = raw.split_whitespace().collect();
         if parts.len() == 2 {
@@ -138,10 +141,10 @@ pub fn fetch_git_data(remote: &RemoteSession, path: &Path) -> Option<GitData> {
     };
 
     let mut history = Vec::new();
-    if let Ok(raw) = run_command(
+    if let Ok(raw) = exec_program(
         remote,
-        &(base.clone()
-            + "git --no-pager log -n 100 --pretty=format:%H%x1f%an%x1f%ar%x1f%s%x1f%d --shortstat"),
+        "sh",
+        &[ "-c", &format!("{}git --no-pager log -n 100 --pretty=format:%H%x1f%an%x1f%ar%x1f%s%x1f%d --shortstat", cd_cmd) ],
     ) {
         let mut current: Option<CommitInfo> = None;
         for line in raw.lines() {
@@ -166,7 +169,7 @@ pub fn fetch_git_data(remote: &RemoteSession, path: &Path) -> Option<GitData> {
 
     let mut pending = Vec::new();
     let mut stats_map: HashMap<String, (usize, usize)> = HashMap::new();
-    if let Ok(raw) = run_command(remote, &(base.clone() + "git diff --numstat")) {
+    if let Ok(raw) = exec_program(remote, "sh", &[ "-c", &format!("{}git diff --numstat", cd_cmd) ]) {
         for line in raw.lines() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 3 {
@@ -177,7 +180,7 @@ pub fn fetch_git_data(remote: &RemoteSession, path: &Path) -> Option<GitData> {
             }
         }
     }
-    if let Ok(raw) = run_command(remote, &(base.clone() + "git diff --staged --numstat")) {
+    if let Ok(raw) = exec_program(remote, "sh", &[ "-c", &format!("{}git diff --staged --numstat", cd_cmd) ]) {
         for line in raw.lines() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 3 {
@@ -187,7 +190,7 @@ pub fn fetch_git_data(remote: &RemoteSession, path: &Path) -> Option<GitData> {
             }
         }
     }
-    if let Ok(raw) = run_command(remote, &(base.clone() + "git status --porcelain")) {
+    if let Ok(raw) = exec_program(remote, "sh", &[ "-c", &format!("{}git status --porcelain", cd_cmd) ]) {
         for line in raw.lines() {
             if line.len() > 3 {
                 let status = line[0..2].trim().to_string();
@@ -203,16 +206,16 @@ pub fn fetch_git_data(remote: &RemoteSession, path: &Path) -> Option<GitData> {
         }
     }
 
-    let summary = run_command(remote, &(base.clone() + "git diff HEAD --shortstat"))
+    let summary = exec_program(remote, "sh", &[ "-c", &format!("{}git diff HEAD --shortstat", cd_cmd) ])
         .unwrap_or_default()
         .trim()
         .to_string();
-    let remotes = run_command(remote, &(base.clone() + "git remote -v"))
+    let remotes = exec_program(remote, "sh", &[ "-c", &format!("{}git remote -v", cd_cmd) ])
         .unwrap_or_default()
         .lines()
         .map(|s| s.to_string())
         .collect::<Vec<_>>();
-    let stashes = run_command(remote, &(base + "git stash list"))
+    let stashes = exec_program(remote, "sh", &[ "-c", &format!("{}git stash list", cd_cmd) ])
         .unwrap_or_default()
         .lines()
         .map(|s| s.to_string())
@@ -250,12 +253,12 @@ pub fn show_commit_patch(
     repo_path: &Path,
     hash: &str,
 ) -> std::io::Result<String> {
-    let cmd = format!(
-        "cd {} && git show --patch --stat --color=never {}",
-        shell_quote_path(repo_path),
-        escape_shell_single_quoted(hash)
-    );
-    run_command(remote, &cmd)
+    let repo_str = repo_path.to_string_lossy().replace('\'', "'\"'\"'");
+    let hash_safe = hash.replace('\'', "'\"'\"'");
+    exec_program(remote, "sh", &[
+        "-c",
+        &format!("cd '{}' && git show --patch --stat --color=never '{}'", repo_str, hash_safe),
+    ])
 }
 
 pub fn show_file_diff(
@@ -263,12 +266,12 @@ pub fn show_file_diff(
     repo_path: &Path,
     file_path: &str,
 ) -> std::io::Result<String> {
-    let cmd = format!(
-        "cd {} && git diff {}",
-        shell_quote_path(repo_path),
-        escape_shell_single_quoted(file_path)
-    );
-    let out = run_command(remote, &cmd)?;
+    let repo_str = repo_path.to_string_lossy().replace('\'', "'\"'\"'");
+    let file_safe = file_path.replace('\'', "'\"'\"'");
+    let out = exec_program(remote, "sh", &[
+        "-c",
+        &format!("cd '{}' && git diff '{}'", repo_str, file_safe),
+    ])?;
     if out.trim().is_empty() {
         Ok("(No changes or file only in index)".to_string())
     } else {
