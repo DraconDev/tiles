@@ -1,9 +1,9 @@
 # Project State
 
 ## Current Focus
-Adds a RefreshFiles event and a PreviewRequested event when creating a file, using a captured focused_pane variable.
+Added logic in NewFile mode to transition to editor view, clear input, and request preview of created file.
 
 ## Completed
-- [x] Extract focused_pane from app.lock() and store it in a variable
-- [x] Send AppEvent::RefreshFiles with the focused_pane index
-- [x] Send AppEvent::PreviewRequested with the focused_pane index and file path
+- [x] Imported `CurrentView` type to enable UI state updates.
+- [x] Modified `handle_input_modals_keys` in `AppMode::NewFile` to set `app.current_view = CurrentView::Editor`, reset `app.mode` to `Normal`, clear `app.input`, and send `PreviewRequested` with pane index and cloned path.
+- [x] Updated `Cargo.lock` with resolved dependency versions.

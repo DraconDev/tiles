@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use crate::app::{App, AppEvent, AppMode, ContextMenuAction, ContextMenuTarget, SettingsSection};
+use crate::app::{App, AppEvent, AppMode, ContextMenuAction, ContextMenuTarget, CurrentView, SettingsSection};
 use crate::state::IconMode;
 use dracon_terminal_engine::contracts::{
     InputEvent as Event, KeyCode, KeyModifiers, MouseButton, MouseEventKind,
@@ -1096,7 +1096,14 @@ fn handle_input_modals_keys(
                 let path = fs.current_path.join(&input);
                 match mode {
                     AppMode::NewFile => {
+                        let pane_idx = app.focused_pane_index;
+                        let path_clone = path.clone();
                         let _ = event_tx.try_send(AppEvent::CreateFile(path));
+                        app.current_view = CurrentView::Editor;
+                        app.mode = AppMode::Normal;
+                        app.input.clear();
+                        let _ = event_tx.try_send(AppEvent::PreviewRequested(pane_idx, path_clone));
+                        return true;
                     }
                     AppMode::NewFolder => {
                         let _ = event_tx.try_send(AppEvent::CreateFolder(path));
