@@ -165,6 +165,69 @@ pub fn check_file_suitability(path: &Path, max_bytes: u64) -> (bool, bool, u64) 
     (s.is_binary, s.is_too_large, s.size_mb)
 }
 
+/// Returns (work_dir, program, args) for running a file, or None if not runnable.
+pub fn get_run_command(path: &Path) -> Option<(PathBuf, String, Vec<String>)> {
+    if path.is_dir() {
+        return None;
+    }
+
+    let ext = path.extension().and_then(|e| e.to_str());
+    let work_dir = path.parent()?.to_path_buf();
+
+    // Shebang detection for scripts with executable bit
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(meta) = std::fs::metadata(path) {
+            let mode = meta.permissions().mode();
+            let is_executable = (mode & 0o111) != 0;
+            if is_executable {
+                if let Ok(first_line) = std::fs::read_to_string(path) {
+                    let shebang_line = first_line.lines().next()?;
+                    if shebang_line.starts_with("#!") {
+                        let interpreter = shebang_line
+                            .trim_start_matches("#!")
+                            .split_whitespace()
+                            .next()?;
+                        let file_str = path.to_string_lossy();
+                        return Some((work_dir, interpreter.to_string(), vec![file_str.to_string()]));
+                    }
+                }
+            }
+        }
+    }
+
+    // Rust: find Cargo.toml in ancestor directories
+    if ext == Some("rs") {
+        let mut dir = work_dir.clone();
+        loop {
+            if dir.join("Cargo.toml").exists() {
+                return Some((dir, "cargo".to_string(), vec!["run".to_string()]));
+            }
+            if !dir.pop() {
+                break;
+            }
+        }
+    }
+
+    // Extension-based interpreter mapping
+    let (program, args) = match ext {
+        Some("sh") | Some("bash") => ("bash".to_string(), vec![path.to_string_lossy().to_string()]),
+        Some("zsh") => ("zsh".to_string(), vec![path.to_string_lossy().to_string()]),
+        Some("py") => ("python3".to_string(), vec![path.to_string_lossy().to_string()]),
+        Some("js") | Some("mjs") => ("node".to_string(), vec![path.to_string_lossy().to_string()]),
+        Some("rb") => ("ruby".to_string(), vec![path.to_string_lossy().to_string()]),
+        Some("pl") => ("perl".to_string(), vec![path.to_string_lossy().to_string()]),
+        Some("php") => ("php".to_string(), vec![path.to_string_lossy().to_string()]),
+        Some("lua") => ("lua".to_string(), vec![path.to_string_lossy().to_string()]),
+        Some("r") => ("Rscript".to_string(), vec![path.to_string_lossy().to_string()]),
+        Some("go") => ("go".to_string(), vec!["run".to_string(), path.to_string_lossy().to_string()]),
+        _ => return None,
+    };
+
+    Some((work_dir, program, args))
+}
+
 pub fn show_commit_patch(repo_path: &Path, hash: &str) -> std::io::Result<String> {
     // Bypass dracon-git's buggy implementation which incorrectly passes `--` before the hash,
     // causing git to treat the hash as a path filter instead of a commit hash.
