@@ -19,17 +19,35 @@ A high-performance terminal file manager built in Rust. Modular pane system, int
 
 ## Keyboard Shortcuts
 
+### Navigation
 | Key | Action |
 |-----|--------|
 | `h/j/k/l` or arrows | Navigate |
 | `Enter` | Open file / enter directory |
 | `Backspace` | Go to parent directory |
+| `Tab` | Switch panes |
 | `:` | Command palette |
+
+### Editor
+| Key | Action |
+|-----|--------|
 | `Ctrl+E` | Editor view |
+| `Ctrl+Enter` | Run current file |
+| `Alt+↑` / `Alt+↓` | Move current line up/down |
+| `Ctrl+D` | Duplicate current line |
+| `Ctrl+K` | Kill to end of line |
+| `Ctrl+U` | Kill to start of line |
+| `Ctrl+A` | Select all |
+| `Ctrl+Home` | Jump to document start |
+| `Ctrl+End` | Jump to document end |
+| `Right-click` | Open context menu |
+
+### Other Views
+| Key | Action |
+|-----|--------|
 | `Ctrl+G` | Git history view |
 | `Ctrl+D` | System monitor view |
 | `Ctrl+L` | Edit current path |
-| `Tab` | Switch panes |
 | `q` | Quit |
 
 ## Install
