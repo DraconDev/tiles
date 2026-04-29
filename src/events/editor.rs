@@ -358,6 +358,35 @@ pub fn handle_editor_mouse(
                     }
                 }
 
+                if let MouseEventKind::Down(MouseButton::Right) = me.kind {
+                    if editor_area.x <= column
+                        && column < editor_area.x + editor_area.width
+                        && editor_area.y <= row
+                        && row < editor_area.y + editor_area.height
+                    {
+                        let actions = vec![
+                            ContextMenuAction::EditorCut,
+                            ContextMenuAction::EditorCopy,
+                            ContextMenuAction::EditorPaste,
+                            ContextMenuAction::Separator,
+                            ContextMenuAction::Undo,
+                            ContextMenuAction::Redo,
+                            ContextMenuAction::EditorSelectAll,
+                            ContextMenuAction::Separator,
+                            ContextMenuAction::Save,
+                            ContextMenuAction::Run,
+                        ];
+                        app.mode = AppMode::ContextMenu {
+                            x: column,
+                            y: row,
+                            target: ContextMenuTarget::Editor,
+                            actions,
+                            selected_index: 0,
+                        };
+                        return true;
+                    }
+                }
+
                 let mut clipboard = app.editor_clipboard.clone();
                 let handled = handle_text_editor_mouse(
                     me,

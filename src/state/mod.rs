@@ -122,6 +122,12 @@ pub enum ContextMenuAction {
     SetColor(Option<u8>),
     SortBy(FileColumn),
     Separator,
+    EditorCut,
+    EditorCopy,
+    EditorPaste,
+    EditorUndo,
+    EditorRedo,
+    EditorSelectAll,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
