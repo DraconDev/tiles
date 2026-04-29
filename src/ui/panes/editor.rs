@@ -5,6 +5,8 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
 };
+use ratatui::layout::Alignment;
+use ratatui::style::Color;
 
 use crate::app::App;
 
@@ -120,7 +122,38 @@ pub fn draw_pane_editor(
                         editor.invalidate_from(0);
                     }
                     editor.wrap = app.is_split_mode;
-                    f.render_widget(&*editor, inner);
+
+                    let footer_height = 1u16;
+                    let editor_area = Rect::new(inner.x, inner.y, inner.width, inner.height.saturating_sub(footer_height));
+                    let footer_area = Rect::new(inner.x, inner.y + inner.height - footer_height, inner.width, footer_height);
+
+                    f.render_widget(&*editor, editor_area);
+
+                    let cursor_row = editor.cursor_row + 1;
+                    let cursor_col = editor.cursor_col + 1;
+                    let modified_indicator = if editor.modified { " ●" } else { "" };
+                    let language = &editor.language;
+                    let modified_color = if editor.modified {
+                        crate::ui::theme::accent_primary()
+                    } else {
+                        Color::DarkGray
+                    };
+
+                    let footer_line = Line::from(vec![
+                        Span::raw(" "),
+                        Span::styled(format!("Ln {}, Col {}", cursor_row, cursor_col), Style::default().fg(Color::DarkGray)),
+                        Span::raw(" | "),
+                        Span::styled(format!(" {} ", language), Style::default().fg(crate::ui::theme::accent_secondary())),
+                        Span::raw(" | "),
+                        Span::styled(modified_indicator, Style::default().fg(modified_color)),
+                        Span::raw("  "),
+                        Span::styled("^S ", Style::default().fg(Color::DarkGray)),
+                        Span::styled("Save", Style::default().fg(crate::ui::theme::accent_secondary())),
+                        Span::raw("  "),
+                        Span::styled("^↵ ", Style::default().fg(Color::DarkGray)),
+                        Span::styled("Run", Style::default().fg(crate::ui::theme::accent_secondary())),
+                    ]);
+                    f.render_widget(Paragraph::new(footer_line).alignment(Alignment::Left), footer_area);
                     return;
                 }
             }
@@ -133,7 +166,7 @@ pub fn draw_pane_editor(
             .add_modifier(ratatui::style::Modifier::BOLD);
         let para = Paragraph::new(editor_welcome_content(&dir_name))
             .style(style)
-            .alignment(ratatui::layout::Alignment::Center);
+            .alignment(Alignment::Center);
         f.render_widget(para, inner);
     }
 }

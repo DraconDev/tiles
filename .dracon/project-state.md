@@ -1,8 +1,10 @@
 # Project State
 
 ## Current Focus
-Refactor context‑menu handling to centralize save logic and eliminate early returns
+Add footer UI to editor pane showing cursor position, language, modified indicator, and Save/Run shortcuts.
 
 ## Completed
-- [x] removed redundant early‑return in Save action and unified path/content extraction
-- [x] consolidated saving logic into a shared guard that now runs after Run case, ensuring consistent content capture
+- [x] Added Alignment and Color imports for layout and styling
+- [x] Implemented footer area rendering with cursor metadata and action labels
+- [x] Updated widget rendering to use explicit editor and footer rectangles
+- [x] Changed alignment constant to ratatui::layout::Alignment::Center
