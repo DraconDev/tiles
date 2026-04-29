@@ -237,6 +237,7 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
             ContextMenuAction::Delete, // Kill
             ContextMenuAction::Properties,
         ],
+        ContextMenuTarget::Editor => vec![],
     }
 }
 

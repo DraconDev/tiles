@@ -381,7 +381,7 @@ pub fn handle_editor_mouse(
                             y: row,
                             target: ContextMenuTarget::Editor,
                             actions,
-                            selected_index: 0,
+                            selected_index: Some(0),
                         };
                         return true;
                     }
@@ -461,7 +461,7 @@ pub fn handle_editor_mouse(
                                     y: row,
                                     target: ContextMenuTarget::Editor,
                                     actions,
-                                    selected_index: 0,
+                                    selected_index: Some(0),
                                 };
                                 return true;
                             }
