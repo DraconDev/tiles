@@ -2,7 +2,7 @@ use ratatui::{
     layout::Rect,
     style::Style,
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders},
+    widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
 };
 
@@ -31,6 +31,13 @@ pub fn draw_ide_editor(f: &mut Frame, area: Rect, app: &mut App) {
     }
 }
 
+fn editor_welcome_content(dir_name: &str) -> String {
+    format!(
+        "\n\n   << PROJECT: {} >>\n\n   Select a file from the sidebar to begin editing.",
+        dir_name
+    )
+}
+
 pub fn draw_pane_editor(
     f: &mut Frame,
     area: Rect,
@@ -38,23 +45,46 @@ pub fn draw_pane_editor(
     pane_idx: usize,
     is_focused: bool,
 ) {
-    let title = if let Some(pane) = app.panes.get(pane_idx) {
+    let (title, welcome_path) = if let Some(pane) = app.panes.get(pane_idx) {
         if let Some(preview) = &pane.preview {
-            Line::from(vec![Span::styled(
-                format!(" {} ", preview.path.to_string_lossy()),
-                Style::default().fg(crate::ui::theme::accent_secondary()),
-            )])
+            (
+                Line::from(vec![Span::styled(
+                    format!(" {} ", preview.path.to_string_lossy()),
+                    Style::default().fg(crate::ui::theme::accent_secondary()),
+                )]),
+                None,
+            )
         } else {
+            let current_dir = pane.current_state().map(|fs| fs.current_path.clone());
+            if let Some(ref path) = current_dir {
+                let dir_name = path.file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "/".to_string());
+                (
+                    Line::from(vec![Span::styled(
+                        format!(" {} ", path.to_string_lossy()),
+                        Style::default().fg(crate::ui::theme::accent_secondary()),
+                    )]),
+                    Some(dir_name),
+                )
+            } else {
+                (
+                    Line::from(vec![Span::styled(
+                        " (no file) ",
+                        Style::default().fg(crate::ui::theme::border_inactive()),
+                    )]),
+                    None,
+                )
+            }
+        }
+    } else {
+        (
             Line::from(vec![Span::styled(
                 " (no file) ",
                 Style::default().fg(crate::ui::theme::border_inactive()),
-            )])
-        }
-    } else {
-        Line::from(vec![Span::styled(
-            " (no file) ",
-            Style::default().fg(crate::ui::theme::border_inactive()),
-        )])
+            )]),
+            None,
+        )
     };
 
     let block = Block::default()
@@ -73,7 +103,6 @@ pub fn draw_pane_editor(
     if let Some(pane) = app.panes.get_mut(pane_idx) {
         if let Some(preview) = &mut pane.preview {
             if let Some(editor) = &mut preview.editor {
-                // Ensure language is set for syntax highlighting
                 let path_str = preview.path.to_string_lossy();
                 let ext = if path_str.starts_with("git://") {
                     "diff".to_string()
@@ -93,6 +122,14 @@ pub fn draw_pane_editor(
                 editor.wrap = app.is_split_mode;
                 f.render_widget(&*editor, inner);
             }
+        } else if let Some(dir_name) = welcome_path {
+            let style = Style::default()
+                .fg(crate::ui::theme::accent_primary())
+                .add_modifier(ratatui::style::Modifier::BOLD);
+            let para = Paragraph::new(editor_welcome_content(&dir_name))
+                .style(style)
+                .alignment(ratatui::layout::Alignment::Center);
+            f.render_widget(para, inner);
         }
     }
 }

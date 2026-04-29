@@ -906,9 +906,18 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     app_guard.save_current_view_prefs();
                     app_guard.current_view = CurrentView::Editor;
                     app_guard.load_view_prefs(CurrentView::Editor);
-                    // Editor opens single-pane by default for a focused editing flow.
                     app_guard.apply_split_mode(false);
+                    let pane_idx = app_guard.focused_pane_index;
+                    let dir_path = app_guard
+                        .panes
+                        .get(pane_idx)
+                        .and_then(|p| p.current_state())
+                        .map(|fs| fs.current_path.clone());
                     needs_draw = true;
+                    drop(app_guard);
+                    if let Some(path) = dir_path {
+                        let _ = event_tx.try_send(AppEvent::PreviewRequested(pane_idx, path));
+                    }
                 }
                 AppEvent::StatusMsg(msg) => {
                     let mut app_guard = app.lock();
