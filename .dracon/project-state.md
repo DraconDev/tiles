@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactored mutex type usage in main.rs to replace std::sync::Mutex with parking_lot::Mutex for better performance
+Removed deprecated command execution function from remote module
 
 ## Completed
-- [x] Replaced `std::sync::Mutex` with `parking_lot::Mutex` in app initialization
-```
+- [x] Removed unused `run_command` function from remote module
+- [x] Updated Cargo.lock due to dependency changes (likely version bump)
