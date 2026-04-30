@@ -3499,6 +3499,92 @@ fn draw_new_file_modal(f: &mut Frame, app: &App) {
     f.render_widget(&app.input, inner);
 }
 
+fn draw_bulk_rename_modal(f: &mut Frame, app: &App) {
+    let area = centered_rect(60, 20, f.area());
+    f.render_widget(Clear, area);
+
+    let block = Block::default()
+        .title(" Bulk Rename ")
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(Color::Cyan));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let label_style = Style::default().fg(Color::DarkGray);
+    let input_style = Style::default().fg(THEME.fg);
+
+    let line1 = Line::from(vec![
+        Span::styled("Find (regex): ", label_style),
+        Span::raw(" ".repeat(20)),
+    ]);
+    let line2 = Line::from(vec![
+        Span::styled("Replace: ", label_style),
+        Span::raw(" ".repeat(20)),
+    ]);
+
+    let pattern_text = if let AppMode::BulkRename { ref pattern, .. } = app.mode {
+        pattern.clone()
+    } else {
+        String::new()
+    };
+    let replace_text = if let AppMode::BulkRename { ref replacement, .. } = app.mode {
+        replacement.clone()
+    } else {
+        String::new()
+    };
+
+    let pattern_line = Line::from(vec![
+        Span::styled("Find: ", label_style),
+        Span::styled(&app.input.value, input_style),
+    ]);
+
+    let file_count = if let AppMode::BulkRename { ref files, .. } = app.mode {
+        files.len()
+    } else {
+        0
+    };
+
+    let mut content = Vec::new();
+    content.push(Line::from(vec![Span::styled(format!("{} files selected", file_count), Style::default().fg(Color::Cyan))]));
+    content.push(Line::from(vec![Span::raw("")]));
+    content.push(pattern_line);
+    content.push(Line::from(vec![Span::raw("")]));
+    content.push(Line::from(vec![Span::styled("Replace with: ", label_style)]));
+    content.push(Line::from(vec![Span::styled(&replace_text, input_style)]));
+    content.push(Line::from(vec![Span::raw("")]));
+    content.push(Line::from(vec![Span::raw("Preview (first 5):")]));
+
+    if let AppMode::BulkRename { ref files, ref pattern, ref replacement, .. } = app.mode {
+        let re = regex::Regex::new(pattern);
+        for (i, f) in files.iter().take(5).enumerate() {
+            let name = f.file_name().unwrap_or_default().to_string_lossy();
+            let new_name = if let Ok(ref re) = re {
+                re.replace_all(&name, replacement.as_str()).to_string()
+            } else {
+                name.to_string()
+            };
+            let changed = if new_name != name { " → " } else { "   " };
+            content.push(Line::from(vec![
+                Span::styled(format!("  {} ", i + 1), Style::default().fg(Color::DarkGray)),
+                Span::raw(&name),
+                Span::styled(format!("{}{}", changed, new_name), Style::default().fg(Color::Cyan)),
+            ]));
+        }
+        if files.len() > 5 {
+            content.push(Line::from(vec![Span::styled(format!("  ... and {} more", files.len() - 5), Style::default().fg(Color::DarkGray))]));
+        }
+    }
+
+    f.render_widget(Paragraph::new(content), inner);
+
+    let hint_style = Style::default().fg(Color::DarkGray);
+    f.render_widget(
+        Paragraph::new("Enter = Apply  Esc = Cancel").style(hint_style),
+        Rect::new(inner.x, inner.y + inner.height.saturating_sub(1), inner.width, 1),
+    );
+}
+
 fn draw_save_as_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(50, 10, f.area());
     f.render_widget(Clear, area);

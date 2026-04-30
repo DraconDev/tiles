@@ -1,6 +1,6 @@
 [package]
 name = "tiles"
-version = "7.0.0"
+version = "7.1.0"
 edition = "2021"
 license-file = "LICENSE"
 
@@ -32,5 +32,6 @@ image = "0.24"
 notify = "8.2.0"
 notify-debouncer-mini = "0.7.0"
 trash = "5.2"
+regex = "1"
 
 [workspace]
