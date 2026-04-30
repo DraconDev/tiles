@@ -17,7 +17,7 @@ const FILE_WATCH_DEBOUNCE_MS: u64 = 200;
 const MPSC_CHANNEL_CAPACITY: usize = 1000;
 
 use crate::app::{App, AppEvent, CurrentView, PreviewState};
-use image::{DynamicImage, GenericImageView};
+use image::GenericImageView;
 mod app;
 mod config;
 mod event;
@@ -493,7 +493,6 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                     match image::open(&path) {
                                         Ok(img) => {
                                             let (w, h) = img.dimensions();
-                                            let rgba = img.to_rgba8().into_raw();
                                             format!("<Image: {}x{} {} KB - preview below>", w, h, size_mb)
                                         }
                                         Err(_) => format!("<Binary file: {} MB>", size_mb),
@@ -506,6 +505,23 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                     .unwrap_or_else(|e| format!("Error reading file: {}", e))
                             }
                         };
+
+                        // Load image for preview if applicable
+                        let mut image_data: Option<(Vec<u8>, u32, u32)> = None;
+                        {
+                            let ext = path.extension()
+                                .and_then(|s| s.to_str())
+                                .unwrap_or("")
+                                .to_lowercase();
+                            let image_exts = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "ico", "tiff"];
+                            if image_exts.contains(&ext.as_str()) {
+                                if let Ok(img) = image::open(&path) {
+                                    let (w, h) = img.dimensions();
+                                    let rgba = img.to_rgba8().into_raw();
+                                    image_data = Some((rgba, w, h));
+                                }
+                            }
+                        }
 
                         let mut editor = dracon_terminal_engine::widgets::TextEditor::with_content(&content);
                         if path_str.starts_with("git://") || path_str.starts_with("git-diff://") {
@@ -534,7 +550,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                 scroll: 0,
                                 editor: Some(editor),
                                 last_saved: None,
-                                image_data: None,
+                                image_data,
                                 highlighted_lines: None,
                             };
 
