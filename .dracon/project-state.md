@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Remove hardcoded search debounce constant and update dependency lock file.
+Remove the `if should_refresh` guard around the search debounce assignment and always schedule debounce on file events.
 
 ## Completed
-- [x] Removed `SEARCH_DEBOUNCE_MS` constant from `src/state/mod.rs`
-- [x] Updated `Cargo.lock` with new dependency versions
+- [x] Removed the conditional `if should_refresh { … }` block and moved `fs.search_debounce_until = Some(now + Duration::from_millis(SEARCH_DEBOUNCE_MS));` outside the condition
+- [x] Simplified the debounce logic so it always sets the debounce timer when handling file events
+- [x] Updated Cargo.lock (binary change) to reflect dependency updates

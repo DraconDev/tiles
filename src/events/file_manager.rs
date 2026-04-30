@@ -635,9 +635,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                             needs_refresh = should_refresh;
                         }
 
-                        if should_refresh {
-                            fs.search_debounce_until = Some(now + Duration::from_millis(SEARCH_DEBOUNCE_MS));
-                        }
+                        fs.search_debounce_until = Some(now + Duration::from_millis(SEARCH_DEBOUNCE_MS));
                     }
                     if is_sidebar {
                         app.sidebar_index = 0;
