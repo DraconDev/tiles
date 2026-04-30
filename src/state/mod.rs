@@ -16,6 +16,7 @@ pub enum AppEvent {
     CreateFolder(PathBuf),
     Rename(PathBuf, PathBuf),
     Delete(PathBuf),
+    TrashFile(PathBuf),
     Copy(PathBuf, PathBuf),
     Symlink(PathBuf, PathBuf),
     StatusMsg(String),

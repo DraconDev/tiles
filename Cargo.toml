@@ -1,6 +1,6 @@
 [package]
 name = "tiles"
-version = "4.14.5"
+version = "4.14.6"
 edition = "2021"
 license-file = "LICENSE"
 
@@ -31,5 +31,6 @@ uuid = { version = "1.11.0", features = ["v4"] }
 image = "0.24"
 notify = "8.2.0"
 notify-debouncer-mini = "0.7.0"
+trash = "5.2"
 
 [workspace]

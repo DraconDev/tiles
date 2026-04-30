@@ -114,7 +114,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
         for path in &current_paths {
             if !watched_paths.contains(path) {
                 crate::app::log_debug(&format!("Starting file watch for: {:?}", path));
-                if let Ok(()) = debouncer.watcher().watch(path, notify::RecursiveMode::Recursive) {
+                if let Ok(()) = debouncer.watcher().watch(path, notify::RecursiveMode::NonRecursive) {
                     watched_paths.insert(path.clone());
                     crate::app::log_debug(&format!("Now watching: {:?}", path));
                 } else {
@@ -263,9 +263,9 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         ) {
                             needs_draw = true;
                         }
-                        if app_guard.current_view != view_mode_before.0 || app_guard.mode != view_mode_before.1 {
-                            let _ = terminal.clear();
-                        }
+                        // Note: ui::draw already calls f.render_widget(Clear, f.area())
+                        // so terminal.clear() is redundant and can cause flicker/black screen
+                        // between view transitions. Removed to prevent black screen bug.
                     }
                 }
                 AppEvent::Ui(_ui_event) => {}
