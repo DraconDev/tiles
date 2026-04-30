@@ -107,6 +107,8 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
         preview_max_mb: app.preview_max_mb,
         theme_style: Some(crate::ui::theme::style_settings()),
         sidebar_scope: app.sidebar_scope.clone(),
+        expanded_folders: app.expanded_folders.iter().cloned().collect(),
+        sidebar_width_percent: app.sidebar_width_percent,
         recent_folders: app.recent_folders.clone(),
     };
 
