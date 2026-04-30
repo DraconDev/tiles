@@ -19,6 +19,8 @@ A high-performance terminal file manager built in Rust. Modular pane system, int
 
 ## Keyboard Shortcuts
 
+> **Note:** Shortcuts are context-sensitive. `Ctrl+D` duplicates lines in Editor view, but opens System Monitor in Files view.
+
 ### Navigation
 | Key | Action |
 |-----|--------|
