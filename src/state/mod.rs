@@ -330,7 +330,11 @@ pub struct FileState {
     pub git_remotes: Vec<String>,
     #[serde(skip)]
     pub git_stashes: Vec<String>,
+    #[serde(skip)]
+    pub search_debounce_until: Option<std::time::Instant>,
 }
+
+const SEARCH_DEBOUNCE_MS: u64 = 300;
 
 impl FileState {
     pub fn new(
@@ -373,6 +377,7 @@ impl FileState {
             git_summary: None,
             git_remotes: Vec::new(),
             git_stashes: Vec::new(),
+            search_debounce_until: None,
         }
     }
 }
