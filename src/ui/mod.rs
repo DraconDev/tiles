@@ -2650,6 +2650,7 @@ fn draw_file_view(
                                 metadata
                                     .map(|m| m.modified)
                                     .unwrap_or(SystemTime::UNIX_EPOCH),
+                                app.smart_date,
                             );
                             truncate_to_width(
                                 &text,
@@ -2671,6 +2672,7 @@ fn draw_file_view(
                                 metadata
                                     .map(|m| m.created)
                                     .unwrap_or(SystemTime::UNIX_EPOCH),
+                                app.smart_date,
                             );
                             truncate_to_width(
                                 &text,
@@ -4671,12 +4673,36 @@ fn draw_highlight_modal(f: &mut Frame, _app: &App) {
     );
 }
 
-fn format_modified_time(time: SystemTime) -> String {
+fn format_modified_time(time: SystemTime, smart: bool) -> String {
     use chrono::{DateTime, Local};
     let dt: DateTime<Local> = time.into();
     let now = Local::now();
 
-    if dt.date_naive() == now.date_naive() {
+    if smart {
+        let duration = now.signed_duration_since(dt);
+        let days = duration.num_days();
+        if days == 0 {
+            if duration.num_hours() == 0 {
+                if duration.num_minutes() == 0 {
+                    "just now".to_string()
+                } else {
+                    format!("{}m ago", duration.num_minutes())
+                }
+            } else {
+                format!("{}h ago", duration.num_hours())
+            }
+        } else if days == 1 {
+            "yesterday".to_string()
+        } else if days < 7 {
+            format!("{}d ago", days)
+        } else if days < 30 {
+            format!("{}w ago", days / 7)
+        } else if days < 365 {
+            format!("{}mo ago", days / 30)
+        } else {
+            format!("{}y ago", days / 365)
+        }
+    } else if dt.date_naive() == now.date_naive() {
         dt.format("%H:%M:%S").to_string()
     } else {
         dt.format("%Y-%m-%d").to_string()

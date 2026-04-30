@@ -1363,6 +1363,7 @@ fn setup_app(
         app.show_sidebar = state.show_sidebar;
         app.show_side_panel = state.show_side_panel;
         app.default_show_hidden = state.default_show_hidden;
+        app.auto_save = state.auto_save;
         app.preview_max_mb = state.preview_max_mb.max(1);
         app.sidebar_scope = state.sidebar_scope;
         app.recent_folders = state.recent_folders;

@@ -39,6 +39,8 @@ pub struct PersistentState {
     pub show_side_panel: bool,
     #[serde(default = "default_true")]
     pub default_show_hidden: bool,
+    #[serde(default = "default_true")]
+    pub auto_save: bool,
     #[serde(default = "default_preview_max_mb")]
     pub preview_max_mb: u16,
     #[serde(default)]
@@ -97,6 +99,7 @@ pub fn save_state(app: &App) -> Result<(), Box<dyn std::error::Error>> {
         show_sidebar: app.show_sidebar,
         show_side_panel: app.show_side_panel,
         default_show_hidden: app.default_show_hidden,
+        auto_save: app.auto_save,
         preview_max_mb: app.preview_max_mb,
         theme_style: Some(crate::ui::theme::style_settings()),
         sidebar_scope: app.sidebar_scope.clone(),

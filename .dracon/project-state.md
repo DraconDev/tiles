@@ -1,11 +1,11 @@
 # Project State
 
 ## Current Focus
-Add a dedicated footer area to the editor UI that displays cursor info, language, modified status, and action shortcuts.
+Add auto_save persistence and smart date formatting for file timestamps.
 
 ## Completed
-- [x] Introduced `footer_height` and split the main area into `editor_area` and `footer_area`.
-- [x] Rendered a custom footer bar with cursor line/column, language name, ● modified indicator, and ^S Save / ^↵ Run shortcuts.
-- [x] Adjusted editor widget rendering to use `editor_area` instead of the full inner area.
-- [x] Re‑named search‑footer variables (`search_footer_height`, `search_footer_area`) for clarity.
-- [x] Updated footer drawing logic for both normal editor and search/replace modes.
+- [x] Add `auto_save` field to `PersistentState` with default true
+- [x] Persist `auto_save` when serializing state
+- [x] Initialize `app.auto_save` from loaded state in `setup_app`
+- [x] Refactor `format_modified_time` to support smart date logic
+- [x] Use `app.smart_date` in `draw_file_view` for modified and created timestamps
