@@ -13,6 +13,18 @@ use crate::events::input::delete_word_backwards;
 use crate::state::DropTarget;
 
 const DOUBLE_CLICK_MS: u64 = 500;
+const SEARCH_DEBOUNCE_MS: u64 = 300;
+
+fn is_valid_search_char(c: char) -> bool {
+    if (c as u32) < 32 || c == '\x7f' || c == '\x1b' {
+        return false;
+    }
+    match c {
+        | '[' | ']' | '~' | '^' | '_' | '=' | '+' | '<' | '>' | '*' | '?' | '!' | '$'
+        | '%' | '&' | '@' | '#' | '{' | '}' | '\\' | '|' | '`' => false,
+        _ => true,
+    }
+}
 
 fn is_double_click(
     last_click_pos: (u16, u16),
@@ -603,12 +615,17 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER,
                     ) =>
                 {
-                    if (c as u32) < 32 || c == '\x7f' || c == '\x1b' {
+                    if !is_valid_search_char(c) {
                         return false;
                     }
 
                     let is_sidebar = app.sidebar_focus;
                     if let Some(fs) = app.current_file_state_mut() {
+                        let now = std::time::Instant::now();
+                        let should_refresh = fs.search_debounce_until
+                            .map(|until| now >= until)
+                            .unwrap_or(true);
+
                         fs.search_filter.push(c);
                         if !is_sidebar {
                             fs.selection.selected = Some(0);
@@ -617,7 +634,11 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         } else {
                             app.sidebar_index = 0;
                         }
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+
+                        if should_refresh {
+                            fs.search_debounce_until = Some(now + Duration::from_millis(SEARCH_DEBOUNCE_MS));
+                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                        }
                     }
                     return true;
                 }
@@ -634,6 +655,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                             } else {
                                 app.sidebar_index = 0;
                             }
+                            fs.search_debounce_until = Some(std::time::Instant::now() + Duration::from_millis(SEARCH_DEBOUNCE_MS));
                             let _ =
                                 event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             handled_search = true;
@@ -659,6 +681,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         } else {
                             app.sidebar_index = 0;
                         }
+                        fs.search_debounce_until = Some(std::time::Instant::now() + Duration::from_millis(SEARCH_DEBOUNCE_MS));
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                     return true;
@@ -673,6 +696,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         } else {
                             app.sidebar_index = 0;
                         }
+                        fs.search_debounce_until = Some(std::time::Instant::now() + Duration::from_millis(SEARCH_DEBOUNCE_MS));
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                     return true;
