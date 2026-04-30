@@ -162,23 +162,63 @@ pub fn draw(f: &mut Frame, app: &mut App) {
             ..inner_area
         };
 
+        let footer_height = 1u16;
+        let editor_area = Rect::new(
+            inner_area.x,
+            inner_area.y,
+            inner_area.width,
+            inner_area.height.saturating_sub(footer_height),
+        );
+        let footer_area = Rect::new(
+            inner_area.x,
+            inner_area.y + inner_area.height - footer_height,
+            inner_area.width,
+            footer_height,
+        );
+
         if let Some(preview) = &app.editor_state {
             if let Some(editor) = &preview.editor {
                 let mut editor_clone = editor.clone();
                 editor_clone.wrap = app.is_split_mode;
-                f.render_widget(&editor_clone, inner_area);
+                f.render_widget(&editor_clone, editor_area);
+
+                // Footer bar: Ln X, Col Y | language | ● modified | ^S Save ^↵ Run
+                let cursor_row = editor.cursor_row + 1;
+                let cursor_col = editor.cursor_col + 1;
+                let modified_indicator = if editor.modified { " ●" } else { "" };
+                let modified_color = if editor.modified {
+                    crate::ui::theme::accent_primary()
+                } else {
+                    Color::DarkGray
+                };
+
+                let footer_line = Line::from(vec![
+                    Span::raw(" "),
+                    Span::styled(format!("Ln {}, Col {}", cursor_row, cursor_col), Style::default().fg(Color::DarkGray)),
+                    Span::raw(" | "),
+                    Span::styled(format!(" {} ", editor.language), Style::default().fg(crate::ui::theme::accent_secondary())),
+                    Span::raw(" | "),
+                    Span::styled(modified_indicator, Style::default().fg(modified_color)),
+                    Span::raw("  "),
+                    Span::styled("^S ", Style::default().fg(Color::DarkGray)),
+                    Span::styled("Save", Style::default().fg(crate::ui::theme::accent_secondary())),
+                    Span::raw("  "),
+                    Span::styled("^↵ ", Style::default().fg(Color::DarkGray)),
+                    Span::styled("Run", Style::default().fg(crate::ui::theme::accent_secondary())),
+                ]);
+                f.render_widget(Paragraph::new(footer_line).alignment(Alignment::Left), footer_area);
             }
         }
 
         if matches!(app.mode, AppMode::EditorSearch | AppMode::EditorGoToLine | AppMode::EditorReplace) {
-            let footer_height = 2;
-            let footer_area = Rect::new(
+            let search_footer_height = 2;
+            let search_footer_area = Rect::new(
                 f.area().x,
-                f.area().height.saturating_sub(footer_height),
+                f.area().height.saturating_sub(search_footer_height),
                 f.area().width,
-                footer_height,
+                search_footer_height,
             );
-            draw_footer(f, footer_area, app);
+            draw_footer(f, search_footer_area, app);
         }
     } else if matches!(
         app.mode,
