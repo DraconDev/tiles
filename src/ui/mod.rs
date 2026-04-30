@@ -3514,31 +3514,6 @@ fn draw_bulk_rename_modal(f: &mut Frame, app: &App) {
     let label_style = Style::default().fg(Color::DarkGray);
     let input_style = Style::default().fg(THEME.fg);
 
-    let line1 = Line::from(vec![
-        Span::styled("Find (regex): ", label_style),
-        Span::raw(" ".repeat(20)),
-    ]);
-    let line2 = Line::from(vec![
-        Span::styled("Replace: ", label_style),
-        Span::raw(" ".repeat(20)),
-    ]);
-
-    let pattern_text = if let AppMode::BulkRename { ref pattern, .. } = app.mode {
-        pattern.clone()
-    } else {
-        String::new()
-    };
-    let replace_text = if let AppMode::BulkRename { ref replacement, .. } = app.mode {
-        replacement.clone()
-    } else {
-        String::new()
-    };
-
-let pattern_line = Line::from(vec![
-        Span::styled("Pattern: ", label_style),
-        Span::styled(&app.input.value, input_style),
-    ]);
-
     let file_count = if let AppMode::BulkRename { ref files, .. } = app.mode {
         files.len()
     } else {
@@ -3553,6 +3528,7 @@ let pattern_line = Line::from(vec![
     content.push(Line::from(vec![Span::raw("")]));
     content.push(Line::from(vec![Span::styled("Preview (first 5):", label_style)]));
 
+    let mut preview_lines: Vec<String> = Vec::new();
     if let AppMode::BulkRename { ref files, ref pattern, ref replacement, .. } = app.mode {
         let re = regex::Regex::new(pattern);
         for (i, f) in files.iter().take(5).enumerate() {
@@ -3563,15 +3539,14 @@ let pattern_line = Line::from(vec![
                 name_str.clone()
             };
             let changed = if new_name != name_str { " → " } else { "   " };
-            content.push(Line::from(vec![
-                Span::styled(format!("  {} ", i + 1), Style::default().fg(Color::DarkGray)),
-                Span::raw(&name_str),
-                Span::styled(format!("{}{}", changed, new_name), Style::default().fg(Color::Cyan)),
-            ]));
+            preview_lines.push(format!("  {} {}{}{}", i + 1, name_str, changed, new_name));
         }
         if files.len() > 5 {
-            content.push(Line::from(vec![Span::styled(format!("  ... and {} more", files.len() - 5), Style::default().fg(Color::DarkGray))]));
+            preview_lines.push(format!("  ... and {} more", files.len() - 5));
         }
+    }
+    for line in preview_lines {
+        content.push(Line::from(vec![Span::styled(line, Style::default().fg(Color::DarkGray))]));
     }
 
     f.render_widget(Paragraph::new(content), inner);
