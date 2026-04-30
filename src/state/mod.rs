@@ -334,8 +334,6 @@ pub struct FileState {
     pub search_debounce_until: Option<std::time::Instant>,
 }
 
-const SEARCH_DEBOUNCE_MS: u64 = 300;
-
 impl FileState {
     pub fn new(
         path: PathBuf,
