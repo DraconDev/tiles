@@ -742,7 +742,6 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     let tx = event_tx.clone();
                     let app_clone = app.clone();
                     let src_name = src.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "file".to_string());
-                    let dest_name = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "file".to_string());
                     let task_id = uuid::Uuid::new_v4();
 
                     // Announce start
@@ -756,17 +755,17 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                 .and_then(|fs| fs.remote_session.clone())
                         };
 
-                        // Progress-aware copy for local files
                         let copied = if let Some(remote) = &remote {
                             crate::modules::remote::copy_recursive(remote, &src, &dest).is_ok()
                         } else {
-                            // Count files first for progress
                             let file_count = count_files(&src);
                             if file_count > 1 {
-                                let mut copied_count = 0usize;
-                                let result = copy_recursive_with_progress(&src, &dest, file_count, &mut copied_count, |pct| {
-                                    let _ = tx.try_send(AppEvent::TaskProgress(task_id, pct, format!("Copying {}... ({}%)", src_name, (pct * 100.0) as u32)));
-                                });
+                                let copied_count = std::sync::atomic::AtomicUsize::new(0);
+                                let on_progress = |done: usize, total: usize| {
+                                    let pct = (done as f32 / total as f32) * 100.0;
+                                    let _ = tx.try_send(AppEvent::TaskProgress(task_id, done as f32 / total as f32, format!("Copying {}... {}%", src_name, pct as u32)));
+                                };
+                                let result = copy_recursive_with_progress(&src, &dest, file_count, &copied_count, on_progress);
                                 result.is_ok()
                             } else {
                                 dracon_terminal_engine::utils::copy_recursive(&src, &dest).is_ok()
@@ -1538,31 +1537,34 @@ fn count_files(path: &PathBuf) -> usize {
     }).unwrap_or(1)
 }
 
-fn copy_recursive_with_progress<F>(src: &PathBuf, dst: &PathBuf, total: usize, copied: &mut usize, mut on_progress: F) -> std::io::Result<u64>
+fn copy_recursive_with_progress<F>(
+    src: &PathBuf,
+    dst: &PathBuf,
+    total: usize,
+    copied: &std::sync::atomic::AtomicUsize,
+    on_progress: F,
+) -> std::io::Result<u64>
 where
-    F: FnMut(f32),
+    F: Fn(usize, usize) + Send + Sync,
 {
     use std::fs;
     if src.is_dir() {
         fs::create_dir_all(dst)?;
-        let entries = fs::read_dir(src)?;
-        for entry in entries {
+        for entry in fs::read_dir(src)? {
             let entry = entry?;
             let ty = entry.file_type()?;
             let new_dst = dst.join(entry.file_name());
             if ty.is_dir() {
-                copy_recursive_with_progress(&entry.path(), &new_dst, total, copied, &mut on_progress)?;
+                copy_recursive_with_progress(&entry.path(), &new_dst, total, copied, &on_progress)?;
             } else {
-                copy_recursive_with_progress(&entry.path(), &new_dst, total, copied, &mut on_progress)?;
+                copy_recursive_with_progress(&entry.path(), &new_dst, total, copied, &on_progress)?;
             }
-            *copied += 1;
-            on_progress(*copied as f32 / total as f32);
         }
         Ok(0)
     } else {
         let size = fs::copy(src, dst)?;
-        *copied += 1;
-        on_progress(*copied as f32 / total as f32);
+        let prev = copied.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        on_progress(prev + 1, total);
         Ok(size)
     }
 }
