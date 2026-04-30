@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Implement task-progression notifications for local file copy operations.
+refactor(local-copy): remove redundant progress tracking and file count checks for local copies, use utility copy_recursive directly
 
 ## Completed
-- [x] Refactor local file copy progress tracking to use an atomic counter and improve performance.
-- [x] Add progress tracking notifications for local files copied by the application.
-- [x] Update copy recursion function `copy_recursive_with_progress` to handle progress updates using `copy_recursive_with_progress`'s updated parameters.`
+- [x] Eliminate local file copy progress handling including file count calculations, progress callbacks, and copy_recursive_with_progress usage
+- [x] Simplify non-remote file copy path to directly invoke dracon_terminal_engine::utils::copy_recursive

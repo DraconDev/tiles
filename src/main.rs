@@ -758,18 +758,7 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                         let copied = if let Some(remote) = &remote {
                             crate::modules::remote::copy_recursive(remote, &src, &dest).is_ok()
                         } else {
-                            let file_count = count_files(&src);
-                            if file_count > 1 {
-                                let copied_count = std::sync::atomic::AtomicUsize::new(0);
-                                let on_progress = |done: usize, total: usize| {
-                                    let pct = (done as f32 / total as f32) * 100.0;
-                                    let _ = tx.try_send(AppEvent::TaskProgress(task_id, done as f32 / total as f32, format!("Copying {}... {}%", src_name, pct as u32)));
-                                };
-                                let result = copy_recursive_with_progress(&src, &dest, file_count, &copied_count, on_progress);
-                                result.is_ok()
-                            } else {
-                                dracon_terminal_engine::utils::copy_recursive(&src, &dest).is_ok()
-                            }
+                            dracon_terminal_engine::utils::copy_recursive(&src, &dest).is_ok()
                         };
 
                         if copied {
