@@ -171,7 +171,7 @@ pub enum AppMode {
     Rename,
     NewFile,
     NewFolder,
-    Delete,
+    Delete(String),
     DeleteFile(PathBuf),
     Search,
     PathInput,

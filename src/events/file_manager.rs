@@ -591,7 +591,11 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     return true;
                 }
                 KeyCode::Delete => {
-                    handle_delete_key(app, event_tx);
+                    if key.modifiers.contains(KeyModifiers::SHIFT) {
+                        handle_permanent_delete_key(app, event_tx);
+                    } else {
+                        handle_trash_key(app, event_tx);
+                    }
                     return true;
                 }
                 KeyCode::Char('~') => {
@@ -1291,11 +1295,37 @@ fn handle_rename_shortcut(app: &mut App) {
     }
 }
 
-fn handle_delete_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
+fn handle_trash_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
     if let Some(fs) = app.current_file_state() {
         if fs.selection.selected.is_some() {
             if app.confirm_delete {
-                app.mode = AppMode::Delete;
+                app.mode = AppMode::DeleteFile("trash".to_string());
+            } else {
+                let mut paths = Vec::new();
+                if !fs.selection.is_empty() {
+                    for &idx in fs.selection.multi_selected_indices() {
+                        if let Some(p) = fs.files.get(idx) {
+                            paths.push(p.clone());
+                        }
+                    }
+                } else if let Some(idx) = fs.selection.selected {
+                    if let Some(p) = fs.files.get(idx) {
+                        paths.push(p.clone());
+                    }
+                }
+                for p in paths {
+                    let _ = event_tx.try_send(AppEvent::TrashFile(p));
+                }
+            }
+        }
+    }
+}
+
+fn handle_permanent_delete_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
+    if let Some(fs) = app.current_file_state() {
+        if fs.selection.selected.is_some() {
+            if app.confirm_delete {
+                app.mode = AppMode::DeleteFile("permanent".to_string());
             } else {
                 let mut paths = Vec::new();
                 if !fs.selection.is_empty() {
