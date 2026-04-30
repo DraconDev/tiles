@@ -1555,8 +1555,7 @@ where
             } else {
                 copy_recursive_with_progress(&entry.path(), &new_dst, total, copied, &mut on_progress)?;
             }
-            count += 1;
-*copied += 1;
+            *copied += 1;
             on_progress(*copied as f32 / total as f32);
         }
         Ok(0)
