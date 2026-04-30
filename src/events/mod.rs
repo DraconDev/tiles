@@ -103,8 +103,19 @@ pub fn handle_event(
                         return true;
                     }
                     KeyCode::Char('b') | KeyCode::Char('B') => {
-                        app.show_sidebar = !app.show_sidebar;
-                        app.save_current_view_prefs();
+                        if key.modifiers.contains(KeyModifiers::CONTROL) && app.show_sidebar {
+                            use crate::state::SidebarScope;
+                            app.sidebar_scope = match app.sidebar_scope {
+                                SidebarScope::All => SidebarScope::Favorites,
+                                SidebarScope::Favorites => SidebarScope::Remotes,
+                                SidebarScope::Remotes => SidebarScope::Tree,
+                                SidebarScope::Tree => SidebarScope::All,
+                            };
+                            app.save_current_view_prefs();
+                        } else {
+                            app.show_sidebar = !app.show_sidebar;
+                            app.save_current_view_prefs();
+                        }
                         return true;
                     }
                     KeyCode::Char('e') | KeyCode::Char('E') => {

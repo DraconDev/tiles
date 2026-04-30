@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use unicode_width::UnicodeWidthStr;
 
-use crate::app::{App, CurrentView, DropTarget, SidebarBounds, SidebarTarget};
+use crate::app::{App, CurrentView, DropTarget, SidebarBounds, SidebarTarget, SidebarScope};
 use crate::icons::Icon;
 use crate::ui::theme::THEME;
 use dracon_terminal_engine::utils::truncate_to_width;
@@ -483,6 +483,11 @@ pub fn draw_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
         CurrentView::Editor => {
             draw_project_sidebar(f, area, app);
         }
+        CurrentView::Files => {
+            if app.sidebar_scope == SidebarScope::Tree {
+                draw_tree_sidebar(f, area, app);
+            }
+        }
         _ => {}
     }
 }
@@ -652,6 +657,158 @@ pub fn draw_project_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
                 Span::raw(icon),
             ];
             if let Some(ind) = open_indicator {
+                spans.push(ind);
+            }
+            spans.push(Span::raw(name));
+            spans
+        });
+        sidebar_items.push(ListItem::new(line).style(style));
+        app.sidebar_bounds.push(SidebarBounds {
+            y: current_y,
+            index: current_idx,
+            target: SidebarTarget::Project(path.clone()),
+        });
+        current_y += 1;
+
+        if current_y >= inner.y + inner.height {
+            break;
+        }
+    }
+
+    f.render_widget(List::new(sidebar_items), inner);
+}
+
+pub fn draw_tree_sidebar(f: &mut Frame, area: Rect, app: &mut App) {
+    let selection_bg = crate::ui::theme::selection_bg();
+
+    let base_path = if let Some(pane) = app.panes.get(app.focused_pane_index) {
+        if let Some(fs) = pane.current_state() {
+            dirs::home_dir().unwrap_or_else(|| fs.current_path.clone())
+        } else {
+            dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"))
+        }
+    } else {
+        dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"))
+    };
+
+    let current_path = app.panes.get(app.focused_pane_index)
+        .and_then(|p| p.current_state())
+        .map(|fs| fs.current_path.clone());
+
+    let title_text = base_path.to_string_lossy().to_string();
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(format!(" {} ", title_text))
+        .border_style(if app.sidebar_focus {
+            Style::default().fg(crate::ui::theme::border_active())
+        } else {
+            Style::default().fg(crate::ui::theme::border_inactive())
+        });
+
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let mut tree_items: Vec<(PathBuf, u16)> = Vec::new();
+    collect_tree_items(&base_path, 0, app, &mut tree_items);
+
+    let open_files: HashSet<PathBuf> = app
+        .panes
+        .iter()
+        .flat_map(|pane| {
+            pane.tabs
+                .iter()
+                .filter_map(|tab| tab.preview.as_ref().map(|p| p.path.clone()))
+        })
+        .collect();
+
+    let mut sidebar_items = Vec::new();
+    app.sidebar_bounds.clear();
+    let mut current_y = inner.y;
+
+    for (path, depth) in tree_items {
+        let is_dir = path.is_dir();
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or("?".to_string());
+        let current_idx = sidebar_items.len();
+        let is_selected = app.sidebar_focus && app.sidebar_index == current_idx;
+        let is_hovered_drop =
+            matches!(&app.hovered_drop_target, Some(DropTarget::Folder(p)) if p == &path);
+
+        let cat = crate::modules::files::get_file_category(&path);
+        let icon_mode = app.icon_mode;
+
+        let style = if is_selected {
+            Style::default()
+                .bg(selection_bg)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD)
+        } else if is_hovered_drop {
+            Style::default()
+                .bg(crate::ui::theme::accent_secondary())
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            let fg = if app.semantic_coloring {
+                if is_dir {
+                    crate::ui::theme::accent_secondary()
+                } else {
+                    cat.cyber_color()
+                }
+            } else {
+                THEME.fg
+            };
+            Style::default().fg(fg)
+        };
+
+        let marker = if is_dir {
+            if app.expanded_folders.contains(&path) {
+                "▾ "
+            } else {
+                "▸ "
+            }
+        } else {
+            "  "
+        };
+
+        let icon = Icon::get_for_path(&path, cat, is_dir, icon_mode);
+        let indent_str = "  ".repeat(depth as usize);
+
+        let open_indicator = if !is_dir && open_files.contains(&path) {
+            Some(Span::styled(
+                " ●",
+                Style::default().fg(crate::ui::theme::accent_primary()),
+            ))
+        } else {
+            None
+        };
+
+        let is_current_indicator = if let Some(ref cp) = current_path {
+            path == *cp
+        } else {
+            false
+        };
+        let current_marker = if is_current_indicator {
+            Some(Span::styled(
+                " ◄",
+                Style::default().fg(crate::ui::theme::accent_primary()),
+            ))
+        } else {
+            None
+        };
+
+        let line = Line::from({
+            let mut spans = vec![
+                Span::raw(format!("{}{}", indent_str, marker)),
+                Span::raw(icon),
+            ];
+            if let Some(ind) = open_indicator {
+                spans.push(ind);
+            }
+            if let Some(ind) = current_marker {
                 spans.push(ind);
             }
             spans.push(Span::raw(name));
