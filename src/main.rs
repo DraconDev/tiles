@@ -708,6 +708,38 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     }
                     let _ = event_tx.try_send(AppEvent::RefreshFiles(focused));
                 }
+                AppEvent::TrashFile(path) => {
+                    let remote = {
+                        let app_guard = app.lock();
+                        app_guard
+                            .current_file_state()
+                            .and_then(|fs| fs.remote_session.clone())
+                    };
+                    let focused = app.lock().focused_pane_index;
+                    if remote.is_some() {
+                        // Remote files: fall back to permanent delete since trash doesn't work remotely
+                        let _ = event_tx.try_send(AppEvent::StatusMsg(
+                            "Remote files cannot be trashed. Use Delete for permanent removal.".to_string()
+                        ));
+                    } else {
+                        match trash::delete(&path) {
+                            Ok(_) => {
+                                let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                    "Trashed: {}",
+                                    path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
+                                )));
+                            }
+                            Err(e) => {
+                                let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                    "Trash failed: {} - {}",
+                                    path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default(),
+                                    e
+                                )));
+                            }
+                        }
+                    }
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(focused));
+                }
                 AppEvent::Copy(src, dest) => {
                     let tx = event_tx.clone();
                     let app_clone = app.clone();
