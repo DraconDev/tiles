@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Implement bulk rename mode triggered by F2 when multiple files are selected.
+Render bulk rename modal in UI when BulkRename mode is active
 
 ## Completed
-- [x] Add bulk rename mode support: detect multi‑selection on F2 and switch to `BulkRename` state with selected files list.
-- [x] Update key handling logic to differentiate between single and bulk rename operations.
+- [x] Add conditional `draw_bulk_rename_modal` call for `AppMode::BulkRename` in the `draw` function
+- [x] Ensure bulk rename modal is displayed alongside rename and delete modals when appropriate
