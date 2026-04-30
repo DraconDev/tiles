@@ -741,6 +741,13 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                 AppEvent::Copy(src, dest) => {
                     let tx = event_tx.clone();
                     let app_clone = app.clone();
+                    let src_name = src.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "file".to_string());
+                    let dest_name = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "file".to_string());
+                    let task_id = uuid::Uuid::new_v4();
+
+                    // Announce start
+                    let _ = event_tx.try_send(AppEvent::TaskProgress(task_id, 0.0, format!("Copying {}...", src_name)));
+
                     tokio::spawn(async move {
                         let remote = {
                             let app_guard = app_clone.lock();
@@ -748,11 +755,24 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                 .current_file_state()
                                 .and_then(|fs| fs.remote_session.clone())
                         };
+
+                        // Progress-aware copy for local files
                         let copied = if let Some(remote) = &remote {
                             crate::modules::remote::copy_recursive(remote, &src, &dest).is_ok()
                         } else {
-                            dracon_terminal_engine::utils::copy_recursive(&src, &dest).is_ok()
+                            // Count files first for progress
+                            let file_count = count_files(&src);
+                            if file_count > 1 {
+                                let mut copied_count = 0usize;
+                                let result = copy_recursive_with_progress(&src, &dest, file_count, &mut copied_count, |pct| {
+                                    let _ = tx.try_send(AppEvent::TaskProgress(task_id, pct, format!("Copying {}... ({}%)", src_name, (pct * 100.0) as u32)));
+                                });
+                                result.is_ok()
+                            } else {
+                                dracon_terminal_engine::utils::copy_recursive(&src, &dest).is_ok()
+                            }
                         };
+
                         if copied {
                             let mut app_guard = app_clone.lock();
                             app_guard
@@ -760,6 +780,10 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                 .push(crate::app::UndoAction::Copy(src.clone(), dest.clone()));
                             app_guard.redo_stack.clear();
                         }
+
+                        // Finish task
+                        let _ = tx.send(AppEvent::TaskFinished(task_id)).await;
+
                         let mut panes_to_refresh = std::collections::HashSet::new();
                         if let Some(parent) = dest.parent() {
                             let app_guard = app_clone.lock();
@@ -1492,6 +1516,55 @@ fn prime_local_file_state(fs: &mut crate::state::FileState) {
     if fs.selection.selected.is_none() && !fs.files.is_empty() {
         fs.selection.selected = Some(0);
         fs.table_state.select(Some(0));
+    }
+}
+
+fn count_files(path: &PathBuf) -> usize {
+    if path.is_file() {
+        return 1;
+    }
+    std::fs::read_dir(path).map(|entries| {
+        entries.filter_map(|e| e.ok()).filter(|e| {
+            let name = e.file_name();
+            let s = name.to_string_lossy();
+            if s.starts_with('.') {
+                return false;
+            }
+            if e.path().is_dir() {
+                return true;
+            }
+            true
+        }).count()
+    }).unwrap_or(1)
+}
+
+fn copy_recursive_with_progress<F>(src: &PathBuf, dst: &PathBuf, total: usize, copied: &mut usize, mut on_progress: F) -> std::io::Result<u64>
+where
+    F: FnMut(f32),
+{
+    use std::fs;
+    if src.is_dir() {
+        fs::create_dir_all(dst)?;
+        let entries = fs::read_dir(src)?;
+        for entry in entries {
+            let entry = entry?;
+            let ty = entry.file_type()?;
+            let new_dst = dst.join(entry.file_name());
+            if ty.is_dir() {
+                copy_recursive_with_progress(&entry.path(), &new_dst, total, copied, &mut on_progress)?;
+            } else {
+                copy_recursive_with_progress(&entry.path(), &new_dst, total, copied, &mut on_progress)?;
+            }
+            count += 1;
+*copied += 1;
+            on_progress(*copied as f32 / total as f32);
+        }
+        Ok(0)
+    } else {
+        let size = fs::copy(src, dst)?;
+        *copied += 1;
+        on_progress(*copied as f32 / total as f32);
+        Ok(size)
     }
 }
 
