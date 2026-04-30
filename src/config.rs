@@ -48,6 +48,10 @@ pub struct PersistentState {
     #[serde(default)]
     pub sidebar_scope: crate::state::SidebarScope,
     #[serde(default)]
+    pub expanded_folders: Vec<PathBuf>,
+    #[serde(default)]
+    pub sidebar_width_percent: u16,
+    #[serde(default)]
     pub recent_folders: Vec<PathBuf>,
 }
 

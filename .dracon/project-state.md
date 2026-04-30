@@ -1,9 +1,8 @@
 # Project State
 
 ## Current Focus
-Refactor file copy progress tracking by eliminating the redundant count_files and copy_recursive_with_progress functions
+Add support for persistent sidebar expansion state and width percentage configuration
 
 ## Completed
-- [x] Remove count_files helper function
-- [x] Remove copy_recursive_with_progress helper function
-- [x] Update Cargo.lock to resolve dependency version conflicts
+- [x] Add expanded_folders configuration field to track folders that should remain expanded in the sidebar tree view
+- [x] Add sidebar_width_percent configuration to save user's preferred sidebar width as a percentage value
