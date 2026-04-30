@@ -1,12 +1,10 @@
 # Project State
 
 ## Current Focus
-Improve bulk rename modal UI: clarify regex usage, simplify layout, and add apply instruction
+Enhance bulk rename modal UI by clarifying the label and simplifying file name handling, improving readability and preventing borrow errors.
 
 ## Completed
-- [x] UI: rename "Find" label to "Find (regex)" to clarify pattern matching type
-- [x] UI: add "Enter to apply" instruction to file count display
-- [x] UI: simplify bulk rename modal by consolidating pattern input display and removing separate replacement field
-- [x] UI: style "Preview (first 5):" header with label_style
-- [x] Fix: correct string borrowing in preview rendering (`&*name` instead of `&name`)
-- [x] deps: update Cargo.lock (dependency resolution)
+- [x] Update bulk rename modal label from “Find (regex): ” to “Pattern: ” to better reflect user input.
+- [x] Simplify file name extraction by converting to an owned `String` (`name_str`) and using it consistently for display and comparison.
+- [x] Refactor regex replacement logic to use the owned string, eliminating borrow‑checker conflicts.
+- [x] Adjust UI rendering for bulk rename preview to use the new `name_str` variable, improving clarity without changing functionality.

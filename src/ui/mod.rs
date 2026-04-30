@@ -3534,8 +3534,8 @@ fn draw_bulk_rename_modal(f: &mut Frame, app: &App) {
         String::new()
     };
 
-    let pattern_line = Line::from(vec![
-        Span::styled("Find (regex): ", label_style),
+let pattern_line = Line::from(vec![
+        Span::styled("Pattern: ", label_style),
         Span::styled(&app.input.value, input_style),
     ]);
 
@@ -3556,16 +3556,16 @@ fn draw_bulk_rename_modal(f: &mut Frame, app: &App) {
     if let AppMode::BulkRename { ref files, ref pattern, ref replacement, .. } = app.mode {
         let re = regex::Regex::new(pattern);
         for (i, f) in files.iter().take(5).enumerate() {
-            let name = f.file_name().unwrap_or_default().to_string_lossy();
+            let name_str = f.file_name().unwrap_or_default().to_string_lossy().into_owned();
             let new_name = if let Ok(ref re) = re {
-                re.replace_all(&name, replacement.as_str()).to_string()
+                re.replace_all(&name_str, replacement.as_str()).to_string()
             } else {
-                name.to_string()
+                name_str.clone()
             };
-            let changed = if new_name != name { " → " } else { "   " };
+            let changed = if new_name != name_str { " → " } else { "   " };
             content.push(Line::from(vec![
                 Span::styled(format!("  {} ", i + 1), Style::default().fg(Color::DarkGray)),
-                Span::raw(&*name),
+                Span::raw(&name_str),
                 Span::styled(format!("{}{}", changed, new_name), Style::default().fg(Color::Cyan)),
             ]));
         }
