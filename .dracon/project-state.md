@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-Sanitize search text before updating filter and add debounce to delay refresh
+Introduce search debounce refresh handling and fix sidebar index updates
 
 ## Completed
-- [x] Filter text is filtered through `is_valid_search_char` to remove invalid characters
-- [x] Search debounce timer is set to delay `RefreshFiles` event by `SEARCH_DEBOUNCE_MS`
+- [x] Added `needs_refresh` flag to track when a file search requires a refresh
+- [x] Modified refresh event sending to occur only when `needs_refresh` is true
+- [x] Reset `app.sidebar_index` to 0 appropriately when handling sidebar navigation and after refresh events

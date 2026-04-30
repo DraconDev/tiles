@@ -620,6 +620,7 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     }
 
                     let is_sidebar = app.sidebar_focus;
+                    let mut needs_refresh = false;
                     if let Some(fs) = app.current_file_state_mut() {
                         let now = std::time::Instant::now();
                         let should_refresh = fs.search_debounce_until
@@ -631,14 +632,18 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                             fs.selection.selected = Some(0);
                             fs.selection.anchor = Some(0);
                             *fs.table_state.offset_mut() = 0;
-                        } else {
-                            app.sidebar_index = 0;
+                            needs_refresh = should_refresh;
                         }
 
                         if should_refresh {
                             fs.search_debounce_until = Some(now + Duration::from_millis(SEARCH_DEBOUNCE_MS));
-                            let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                         }
+                    }
+                    if is_sidebar {
+                        app.sidebar_index = 0;
+                    }
+                    if needs_refresh {
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                     return true;
                 }
@@ -652,17 +657,18 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                                 fs.selection.selected = Some(0);
                                 fs.selection.anchor = Some(0);
                                 *fs.table_state.offset_mut() = 0;
-                            } else {
-                                app.sidebar_index = 0;
                             }
                             fs.search_debounce_until = Some(std::time::Instant::now() + Duration::from_millis(SEARCH_DEBOUNCE_MS));
-                            let _ =
-                                event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                             handled_search = true;
                         }
                     }
+                    if is_sidebar && handled_search {
+                        app.sidebar_index = 0;
+                    }
 
-                    if !handled_search {
+                    if handled_search {
+                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
+                    } else {
                         crate::event_helpers::navigate_up(app);
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
@@ -678,12 +684,13 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         if !is_sidebar {
                             fs.selection.selected = Some(0);
                             *fs.table_state.offset_mut() = 0;
-                        } else {
-                            app.sidebar_index = 0;
                         }
                         fs.search_debounce_until = Some(std::time::Instant::now() + Duration::from_millis(SEARCH_DEBOUNCE_MS));
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
+                    if is_sidebar {
+                        app.sidebar_index = 0;
+                    }
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     return true;
                 }
                 KeyCode::Char('w') if has_control => {
@@ -693,12 +700,13 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                         if !is_sidebar {
                             fs.selection.selected = Some(0);
                             *fs.table_state.offset_mut() = 0;
-                        } else {
-                            app.sidebar_index = 0;
                         }
                         fs.search_debounce_until = Some(std::time::Instant::now() + Duration::from_millis(SEARCH_DEBOUNCE_MS));
-                        let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
+                    if is_sidebar {
+                        app.sidebar_index = 0;
+                    }
+                    let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     return true;
                 }
                 KeyCode::Char('u') if has_control => {
