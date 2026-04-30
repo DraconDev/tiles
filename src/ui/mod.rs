@@ -181,25 +181,28 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                 // Image preview
                 let (rgba, w, h) = preview.image_data.as_ref().unwrap();
                 let max_w = inner_area.width as usize;
-                let max_h = (inner_area.height - footer_height - 3) as usize;
-                let scale = (w as usize).min(max_w).max(1) as f32 / *w as f32;
-                let scale = scale.min(*h as f32 / *h as f32).min(max_h as f32 / *h as f32).max(0.1);
-                let new_w = (*w as f32 * scale) as u16;
-                let new_h = (*h as f32 * scale) as u16;
+                let max_h = (inner_area.height.saturating_sub(footer_height + 3)) as usize;
+                let w_val = *w as usize;
+                let h_val = *h as usize;
+                let scale_x = if w_val > 0 { max_w as f32 / w_val as f32 } else { 1.0 };
+                let scale_y = if h_val > 0 { max_h as f32 / h_val as f32 } else { 1.0 };
+                let scale = scale_x.min(scale_y).max(0.1);
+                let new_w = ((w_val as f32 * scale) as u16).max(1);
+                let new_h = ((h_val as f32 * scale) as u16).max(1);
                 let img_area = Rect::new(
-                    inner_area.x + (inner_area.width.saturating_sub(new_w)) / 2,
-                    inner_area.y + (inner_area.height.saturating_sub(new_h + footer_height)) / 2,
+                    inner_area.x.saturating_add((inner_area.width.saturating_sub(new_w)) / 2),
+                    inner_area.y.saturating_add((inner_area.height.saturating_sub(new_h + footer_height)) / 2),
                     new_w,
                     new_h,
                 );
-                // Draw image as colored blocks (ASCII art style)
+                // Draw image as ASCII block characters
                 let chars = ["░", "▒", "▓", "█"];
-                let step_x = (*w as usize).max(1) / new_w as usize.max(1);
-                let step_y = (*h as usize).max(1) / new_h as usize.max(1);
+                let step_x = (w_val / new_w as usize).max(1);
+                let step_y = (h_val / new_h as usize).max(1);
                 let mut img_text = String::new();
-                for y in (0..*h as usize).step_by(step_y.max(1)).take(new_h as usize) {
-                    for x in (0..*w as usize).step_by(step_x.max(1)) {
-                        let idx = (y * *w as usize + x) * 4;
+                for y in (0..h_val).step_by(step_y).take(new_h as usize) {
+                    for x in (0..w_val).step_by(step_x) {
+                        let idx = (y * w_val + x) * 4;
                         if idx + 2 < rgba.len() {
                             let r = rgba[idx] as usize;
                             let g = rgba[idx + 1] as usize;
@@ -217,7 +220,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
                     .title(format!(" Image {}x{} ", w, h))
                     .borders(Borders::ALL)
                     .border_style(Style::default().fg(crate::ui::theme::border_active()));
-                f.render_widget(block, img_area);
+                f.render_widget(&block, img_area);
                 let inner_img = block.inner(img_area);
                 f.render_widget(Paragraph::new(img_text), inner_img);
             } else if let Some(editor) = &preview.editor {
