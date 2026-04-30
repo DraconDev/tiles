@@ -1,9 +1,7 @@
 # Project State
 
 ## Current Focus
-Adds a new sidebar view mode for displaying a file‑system tree and cycles sidebar scopes with Ctrl + b.
+Consolidate sidebar rendering to ensure the tree view is drawn only in the Files view and remove redundant match arms.
 
 ## Completed
-- [x] feat(sidebar): introduce `SidebarScope::Tree` and UI rendering for a navigable file‑tree view.
-- [x] feat(sidebar): enable cycling through sidebar scopes (All → Favorites → Remotes → Tree) via Ctrl + b while the sidebar is visible.
-- [x] fix(sidebar-toggle): preserve sidebar visibility toggle when Ctrl + b is not pressed.
+- [x] Refactor: moved tree‑sidebar drawing into the Files view branch and eliminated the duplicated `CurrentView::Files` match arm, streamlining the sidebar rendering logic.
