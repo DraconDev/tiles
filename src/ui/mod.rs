@@ -3535,7 +3535,7 @@ fn draw_bulk_rename_modal(f: &mut Frame, app: &App) {
     };
 
     let pattern_line = Line::from(vec![
-        Span::styled("Find: ", label_style),
+        Span::styled("Find (regex): ", label_style),
         Span::styled(&app.input.value, input_style),
     ]);
 
@@ -3546,14 +3546,12 @@ fn draw_bulk_rename_modal(f: &mut Frame, app: &App) {
     };
 
     let mut content = Vec::new();
-    content.push(Line::from(vec![Span::styled(format!("{} files selected", file_count), Style::default().fg(Color::Cyan))]));
+    content.push(Line::from(vec![Span::styled(format!("{} files selected - Enter to apply", file_count), Style::default().fg(Color::Cyan))]));
     content.push(Line::from(vec![Span::raw("")]));
-    content.push(pattern_line);
+    content.push(Line::from(vec![Span::styled("Pattern: ", label_style)]));
+    content.push(Line::from(vec![Span::styled(&app.input.value, input_style)]));
     content.push(Line::from(vec![Span::raw("")]));
-    content.push(Line::from(vec![Span::styled("Replace with: ", label_style)]));
-    content.push(Line::from(vec![Span::styled(&replace_text, input_style)]));
-    content.push(Line::from(vec![Span::raw("")]));
-    content.push(Line::from(vec![Span::raw("Preview (first 5):")]));
+    content.push(Line::from(vec![Span::styled("Preview (first 5):", label_style)]));
 
     if let AppMode::BulkRename { ref files, ref pattern, ref replacement, .. } = app.mode {
         let re = regex::Regex::new(pattern);
@@ -3567,7 +3565,7 @@ fn draw_bulk_rename_modal(f: &mut Frame, app: &App) {
             let changed = if new_name != name { " → " } else { "   " };
             content.push(Line::from(vec![
                 Span::styled(format!("  {} ", i + 1), Style::default().fg(Color::DarkGray)),
-                Span::raw(&name),
+                Span::raw(&*name),
                 Span::styled(format!("{}{}", changed, new_name), Style::default().fg(Color::Cyan)),
             ]));
         }
