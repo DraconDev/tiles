@@ -1,8 +1,9 @@
 # Project State
 
 ## Current Focus
-refactor(local-copy): remove redundant progress tracking and file count checks for local copies, use utility copy_recursive directly
+Refactor file copy progress tracking by eliminating the redundant count_files and copy_recursive_with_progress functions
 
 ## Completed
-- [x] Eliminate local file copy progress handling including file count calculations, progress callbacks, and copy_recursive_with_progress usage
-- [x] Simplify non-remote file copy path to directly invoke dracon_terminal_engine::utils::copy_recursive
+- [x] Remove count_files helper function
+- [x] Remove copy_recursive_with_progress helper function
+- [x] Update Cargo.lock to resolve dependency version conflicts

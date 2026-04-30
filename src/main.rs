@@ -1507,57 +1507,6 @@ fn prime_local_file_state(fs: &mut crate::state::FileState) {
     }
 }
 
-fn count_files(path: &PathBuf) -> usize {
-    if path.is_file() {
-        return 1;
-    }
-    std::fs::read_dir(path).map(|entries| {
-        entries.filter_map(|e| e.ok()).filter(|e| {
-            let name = e.file_name();
-            let s = name.to_string_lossy();
-            if s.starts_with('.') {
-                return false;
-            }
-            if e.path().is_dir() {
-                return true;
-            }
-            true
-        }).count()
-    }).unwrap_or(1)
-}
-
-fn copy_recursive_with_progress<F>(
-    src: &PathBuf,
-    dst: &PathBuf,
-    total: usize,
-    copied: &std::sync::atomic::AtomicUsize,
-    on_progress: F,
-) -> std::io::Result<u64>
-where
-    F: Fn(usize, usize) + Send + Sync,
-{
-    use std::fs;
-    if src.is_dir() {
-        fs::create_dir_all(dst)?;
-        for entry in fs::read_dir(src)? {
-            let entry = entry?;
-            let ty = entry.file_type()?;
-            let new_dst = dst.join(entry.file_name());
-            if ty.is_dir() {
-                copy_recursive_with_progress(&entry.path(), &new_dst, total, copied, &on_progress)?;
-            } else {
-                copy_recursive_with_progress(&entry.path(), &new_dst, total, copied, &on_progress)?;
-            }
-        }
-        Ok(0)
-    } else {
-        let size = fs::copy(src, dst)?;
-        let prev = copied.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        on_progress(prev + 1, total);
-        Ok(size)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
