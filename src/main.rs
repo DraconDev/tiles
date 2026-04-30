@@ -17,6 +17,7 @@ const FILE_WATCH_DEBOUNCE_MS: u64 = 200;
 const MPSC_CHANNEL_CAPACITY: usize = 1000;
 
 use crate::app::{App, AppEvent, CurrentView, PreviewState};
+use image::{DynamicImage, GenericImageView};
 mod app;
 mod config;
 mod event;
@@ -478,10 +479,28 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                                     &path,
                                     preview_limit_mb as u64 * 1024 * 1024,
                                 );
-                            if is_binary {
-                                format!("<Binary file: {} MB>", size_mb)
-                            } else if is_too_large {
+                            if is_too_large {
                                 format!("<File too large: {} MB>", size_mb)
+                            } else if is_binary {
+                                // Check if it's an image file
+                                let ext = path.extension()
+                                    .and_then(|s| s.to_str())
+                                    .unwrap_or("")
+                                    .to_lowercase();
+                                let image_exts = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "ico", "tiff"];
+                                if image_exts.contains(&ext.as_str()) {
+                                    // Try to load as image
+                                    match image::open(&path) {
+                                        Ok(img) => {
+                                            let (w, h) = img.dimensions();
+                                            let rgba = img.to_rgba8().into_raw();
+                                            format!("<Image: {}x{} {} KB - preview below>", w, h, size_mb)
+                                        }
+                                        Err(_) => format!("<Binary file: {} MB>", size_mb),
+                                    }
+                                } else {
+                                    format!("<Binary file: {} MB>", size_mb)
+                                }
                             } else {
                                 std::fs::read_to_string(&path)
                                     .unwrap_or_else(|e| format!("Error reading file: {}", e))

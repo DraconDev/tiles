@@ -1,10 +1,10 @@
 # Project State
 
 ## Current Focus
-Add support for persistent sidebar expansion state and width percentage
+feat(image-preview): Add image file detection and dimension display in file preview handler
 
 ## Completed
-- [x] Resolved dependency conflicts in `Cargo.lock` (during cleanup and dependency version updates)
-- [x] Added `expanded_folders` and `sidebar_width_percent` state persistence in `config.rs` (saves/restores UI layout)
-- [x] Updated `main.rs` to load `expanded_folders` and `sidebar_width_percent` from saved state during app initialization
-- [x] Implemented migration for users with the old "Cool" theme default transitioning to new `theme_style` system
+- [x] Added image crate import for DynamicImage and GenericImageView types
+- [x] Implemented image file extension detection (png, jpg, jpeg, gif, bmp, webp, ico, tiff)
+- [x] Added image loading and dimension extraction for binary image files
+- [x] Reordered binary file check to prioritize large file detection before image handling
