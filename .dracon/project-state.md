@@ -1,10 +1,8 @@
 # Project State
 
 ## Current Focus
-Implement search debounce to prevent immediate refresh on each keystroke
+Sanitize search text before updating filter and add debounce to delay refresh
 
 ## Completed
-- [x] Added `SEARCH_DEBOUNCE_MS` constant (300 ms) and `is_valid_search_char` helper function
-- [x] Replaced raw character validation with `is_valid_search_char` check
-- [x] Introduced `search_debounce_until` field and logic to delay `RefreshFiles` events
-- [x] Updated multiple event‑handling branches to set debounce timer and conditionally send refresh
+- [x] Filter text is filtered through `is_valid_search_char` to remove invalid characters
+- [x] Search debounce timer is set to delay `RefreshFiles` event by `SEARCH_DEBOUNCE_MS`

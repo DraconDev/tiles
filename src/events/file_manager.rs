@@ -974,7 +974,9 @@ pub fn handle_file_mouse(
             if button == MouseButton::Middle {
                 if let Some(text) = dracon_terminal_engine::utils::get_primary_selection_text() {
                     if let Some(fs) = app.current_file_state_mut() {
-                        fs.search_filter.push_str(&text);
+                        let sanitized: String = text.chars().filter(|&c| is_valid_search_char(c)).collect();
+                        fs.search_filter.push_str(&sanitized);
+                        fs.search_debounce_until = Some(std::time::Instant::now() + Duration::from_millis(SEARCH_DEBOUNCE_MS));
                         let _ = event_tx.try_send(AppEvent::RefreshFiles(app.focused_pane_index));
                     }
                 }
