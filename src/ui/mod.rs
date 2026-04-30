@@ -177,7 +177,50 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         );
 
         if let Some(preview) = &app.editor_state {
-            if let Some(editor) = &preview.editor {
+            if preview.image_data.is_some() {
+                // Image preview
+                let (rgba, w, h) = preview.image_data.as_ref().unwrap();
+                let max_w = inner_area.width as usize;
+                let max_h = (inner_area.height - footer_height - 3) as usize;
+                let scale = (w as usize).min(max_w).max(1) as f32 / *w as f32;
+                let scale = scale.min(*h as f32 / *h as f32).min(max_h as f32 / *h as f32).max(0.1);
+                let new_w = (*w as f32 * scale) as u16;
+                let new_h = (*h as f32 * scale) as u16;
+                let img_area = Rect::new(
+                    inner_area.x + (inner_area.width.saturating_sub(new_w)) / 2,
+                    inner_area.y + (inner_area.height.saturating_sub(new_h + footer_height)) / 2,
+                    new_w,
+                    new_h,
+                );
+                // Draw image as colored blocks (ASCII art style)
+                let chars = ["░", "▒", "▓", "█"];
+                let step_x = (*w as usize).max(1) / new_w as usize.max(1);
+                let step_y = (*h as usize).max(1) / new_h as usize.max(1);
+                let mut img_text = String::new();
+                for y in (0..*h as usize).step_by(step_y.max(1)).take(new_h as usize) {
+                    for x in (0..*w as usize).step_by(step_x.max(1)) {
+                        let idx = (y * *w as usize + x) * 4;
+                        if idx + 2 < rgba.len() {
+                            let r = rgba[idx] as usize;
+                            let g = rgba[idx + 1] as usize;
+                            let b = rgba[idx + 2] as usize;
+                            let bright = (r + g + b) / 3;
+                            let c = if bright > 200 { chars[3] } else if bright > 150 { chars[2] } else if bright > 100 { chars[1] } else { chars[0] };
+                            img_text.push_str(c);
+                        } else {
+                            img_text.push(' ');
+                        }
+                    }
+                    img_text.push('\n');
+                }
+                let block = Block::default()
+                    .title(format!(" Image {}x{} ", w, h))
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(crate::ui::theme::border_active()));
+                f.render_widget(block, img_area);
+                let inner_img = block.inner(img_area);
+                f.render_widget(Paragraph::new(img_text), inner_img);
+            } else if let Some(editor) = &preview.editor {
                 let mut editor_clone = editor.clone();
                 editor_clone.wrap = app.is_split_mode;
                 f.render_widget(&editor_clone, editor_area);
