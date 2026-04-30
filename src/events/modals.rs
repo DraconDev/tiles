@@ -251,7 +251,7 @@ fn handle_modal_keys(
         AppMode::NewFile
         | AppMode::NewFolder
         | AppMode::Rename
-        | AppMode::Delete
+        | AppMode::Delete(_)
         | AppMode::DeleteFile(_) => handle_input_modals_keys(key, app, event_tx),
         AppMode::PathInput => handle_path_input_keys(key, app, event_tx),
         AppMode::SaveAs(_) => handle_save_as_keys(key, app, event_tx),
@@ -558,7 +558,7 @@ fn handle_context_menu_keys(
                             event_tx.clone(),
                         );
                         if matches!(prev_mode, AppMode::ContextMenu { .. }) {
-                            if !matches!(app.mode, AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete | AppMode::DeleteFile(_)) {
+                            if !matches!(app.mode, AppMode::NewFile | AppMode::NewFolder | AppMode::Rename | AppMode::Delete(_) | AppMode::DeleteFile(_)) {
                                 app.mode = AppMode::Normal;
                             }
                         }
@@ -1129,7 +1129,7 @@ fn handle_input_modals_keys(
                             }
                         }
                     }
-                    AppMode::Delete => {
+                    AppMode::Delete(ref mode) => {
                         if input.trim().to_lowercase() == "y" || input.is_empty() {
                             // Collect paths to delete
                             let mut paths = Vec::new();
@@ -1144,8 +1144,14 @@ fn handle_input_modals_keys(
                                     paths.push(p.clone());
                                 }
                             }
-                            for p in paths {
-                                let _ = event_tx.try_send(AppEvent::Delete(p));
+                            if mode == "trash" {
+                                for p in paths {
+                                    let _ = event_tx.try_send(AppEvent::TrashFile(p));
+                                }
+                            } else {
+                                for p in paths {
+                                    let _ = event_tx.try_send(AppEvent::Delete(p));
+                                }
                             }
                         }
                     }
@@ -1625,7 +1631,7 @@ pub fn handle_modal_mouse(
                 return true;
             }
         }
-        AppMode::Delete | AppMode::DeleteFile(_) => {
+        AppMode::Delete(_) | AppMode::DeleteFile(_) => {
             if let MouseEventKind::Down(MouseButton::Left) = me.kind {
                 let area_w = 40;
                 let area_h = 10;

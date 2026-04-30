@@ -265,7 +265,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     if matches!(app.mode, AppMode::Rename) {
         draw_rename_modal(f, app);
     }
-    if matches!(app.mode, AppMode::Delete | AppMode::DeleteFile(_)) {
+    if matches!(app.mode, AppMode::Delete(_) | AppMode::DeleteFile(_)) {
         draw_delete_modal(f, app);
     }
     if matches!(app.mode, AppMode::Properties) {
@@ -3425,29 +3425,38 @@ fn draw_delete_modal(f: &mut Frame, app: &App) {
     let area = centered_rect(40, 10, f.area());
     f.render_widget(Clear, area);
 
-    let title = if let AppMode::DeleteFile(ref path) = app.mode {
-        format!(
-            " Delete {}? ",
-            path.file_name().unwrap_or_default().to_string_lossy()
-        )
-    } else {
-        " Delete selected items? ".to_string()
+    let (title, message) = match &app.mode {
+        AppMode::DeleteFile(ref path) => {
+            let name = path.file_name().unwrap_or_default().to_string_lossy();
+            (format!(" Delete {}? ", name), "Confirm deletion? [Y/n]: ".to_string())
+        }
+        AppMode::Delete(ref mode) if mode == "trash" => {
+            (" Trash selected items? ".to_string(), "Move to trash? [Y/n]: ".to_string())
+        }
+        _ => {
+            (" Delete selected items? ".to_string(), "Permanently delete? [Y/n]: ".to_string())
+        }
+    };
+
+    let border_color = match &app.mode {
+        AppMode::Delete(ref mode) if mode == "trash" => Color::Yellow,
+        _ => Color::Red,
     };
 
     let block = Block::default()
         .title(title)
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Red));
+        .border_style(Style::default().fg(border_color));
 
     let inner = block.inner(area);
     f.render_widget(block, area);
 
     // Message
     f.render_widget(
-        Paragraph::new(format!("Confirm deletion? [Y/n]: {}", app.input.value))
+        Paragraph::new(format!("{}{}", message, app.input.value))
             .alignment(Alignment::Center),
-        inner, // Use inner area, maybe offset y? Defaults to top.
+        inner,
     );
 
     // Buttons

@@ -1299,7 +1299,7 @@ fn handle_trash_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>) {
     if let Some(fs) = app.current_file_state() {
         if fs.selection.selected.is_some() {
             if app.confirm_delete {
-                app.mode = AppMode::DeleteFile("trash".to_string());
+                app.mode = AppMode::Delete("trash".to_string());
             } else {
                 let mut paths = Vec::new();
                 if !fs.selection.is_empty() {
@@ -1325,7 +1325,7 @@ fn handle_permanent_delete_key(app: &mut App, event_tx: &mpsc::Sender<AppEvent>)
     if let Some(fs) = app.current_file_state() {
         if fs.selection.selected.is_some() {
             if app.confirm_delete {
-                app.mode = AppMode::DeleteFile("permanent".to_string());
+                app.mode = AppMode::Delete("permanent".to_string());
             } else {
                 let mut paths = Vec::new();
                 if !fs.selection.is_empty() {

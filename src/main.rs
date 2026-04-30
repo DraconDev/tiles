@@ -251,10 +251,8 @@ async fn run_tty(shutdown: Arc<AtomicBool>) -> color_eyre::Result<()> {
                     }
                 }
                 AppEvent::Raw(raw) => {
-                    let view_mode_before;
                     {
                         let mut app_guard = app.lock();
-                        view_mode_before = (app_guard.current_view.clone(), app_guard.mode.clone());
                         if handle_event(
                             raw,
                             &mut app_guard,

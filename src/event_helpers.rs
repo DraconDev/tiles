@@ -126,6 +126,9 @@ pub fn get_context_menu_actions(target: &ContextMenuTarget, app: &App) -> Vec<Co
             }
 
             actions.extend(vec![
+                ContextMenuAction::Rename,
+                ContextMenuAction::Delete,
+                ContextMenuAction::Separator,
                 ContextMenuAction::SetColor(None),
                 ContextMenuAction::Separator,
                 ContextMenuAction::Properties,
@@ -368,7 +371,11 @@ pub fn handle_context_menu_action(
                     .current_file_state()
                     .and_then(|fs| fs.files.get(*idx).cloned());
                 if let Some(path) = path_opt {
-                    let _ = event_tx.try_send(AppEvent::Delete(path.clone()));
+                    if matches!(target, ContextMenuTarget::File(_)) {
+                        let _ = event_tx.try_send(AppEvent::TrashFile(path.clone()));
+                    } else {
+                        let _ = event_tx.try_send(AppEvent::Delete(path.clone()));
+                    }
                 }
             }
         }
