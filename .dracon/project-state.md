@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-chore(deps): resolve dependency version conflicts and update Cargo.lock to address `dracon-files` manifest loading failure
+Add bulk rename mode to the application and update modal key handling to support it.
 
 ## Completed
-- [x] Resolve dependency version conflicts in Cargo.lock
-- [x] Update Cargo.lock to fix failed manifest loading for `dracon-files` dependency
+- [x] Add `BulkRename` application mode with file list, pattern, replacement, matched indices, and selected index fields.
+- [x] Extend modal key handling to route bulk rename mode keys to the appropriate input handler.

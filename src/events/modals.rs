@@ -252,7 +252,8 @@ fn handle_modal_keys(
         | AppMode::NewFolder
         | AppMode::Rename
         | AppMode::Delete(_)
-        | AppMode::DeleteFile(_) => handle_input_modals_keys(key, app, event_tx),
+        | AppMode::DeleteFile(_)
+        | AppMode::BulkRename { .. } => handle_input_modals_keys(key, app, event_tx),
         AppMode::PathInput => handle_path_input_keys(key, app, event_tx),
         AppMode::SaveAs(_) => handle_save_as_keys(key, app, event_tx),
         AppMode::Header(idx) => handle_header_keys(key, app, event_tx, idx),
