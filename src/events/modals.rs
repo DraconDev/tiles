@@ -1156,6 +1156,30 @@ fn handle_input_modals_keys(
                             }
                         }
                     }
+                    AppMode::BulkRename { ref files, ref pattern, ref replacement, .. } => {
+                        if !input.is_empty() {
+                            // input contains the pattern, replacement is stored in replacement field
+                            let re = regex::Regex::new(&input);
+                            if let Ok(re) = re {
+                                for f in files {
+                                    if let Some(parent) = f.parent() {
+                                        let old_name = f.file_name().unwrap_or_default().to_string_lossy();
+                                        let new_name = re.replace_all(&old_name, replacement.as_str()).to_string();
+                                        if new_name != old_name {
+                                            let _ = event_tx.try_send(AppEvent::Rename(f.clone(), parent.join(&new_name)));
+                                        }
+                                    }
+                                }
+                                let _ = event_tx.try_send(AppEvent::StatusMsg(format!(
+                                    "Bulk renamed {} files", files.len()
+                                )));
+                            } else {
+                                let _ = event_tx.try_send(AppEvent::StatusMsg(
+                                    "Invalid regex pattern".to_string()
+                                ));
+                            }
+                        }
+                    }
                     _ => {}
                 }
             }
