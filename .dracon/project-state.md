@@ -1,8 +1,8 @@
 # Project State
 
 ## Current Focus
-Add bulk rename mode to the application and update modal key handling to support it.
+Implement bulk rename mode triggered by F2 when multiple files are selected.
 
 ## Completed
-- [x] Add `BulkRename` application mode with file list, pattern, replacement, matched indices, and selected index fields.
-- [x] Extend modal key handling to route bulk rename mode keys to the appropriate input handler.
+- [x] Add bulk rename mode support: detect multi‑selection on F2 and switch to `BulkRename` state with selected files list.
+- [x] Update key handling logic to differentiate between single and bulk rename operations.

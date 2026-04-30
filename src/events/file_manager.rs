@@ -578,7 +578,41 @@ pub fn handle_file_events(evt: &Event, app: &mut App, event_tx: &mpsc::Sender<Ap
                     return true;
                 }
                 KeyCode::F(2) => {
-                    handle_rename_shortcut(app);
+                    let selected_count = app.current_file_state()
+                        .map(|fs| {
+                            if !fs.selection.is_empty() {
+                                fs.selection.multi_selected_indices().len()
+                            } else if fs.selection.selected.is_some() { 1 } else { 0 }
+                        })
+                        .unwrap_or(0);
+                    if selected_count > 1 {
+                        // Bulk rename - collect selected files
+                        let files: Vec<PathBuf> = app.current_file_state()
+                            .map(|fs| {
+                                let mut paths = Vec::new();
+                                if !fs.selection.is_empty() {
+                                    for &idx in fs.selection.multi_selected_indices() {
+                                        if let Some(p) = fs.files.get(idx) {
+                                            paths.push(p.clone());
+                                        }
+                                    }
+                                }
+                                paths
+                            })
+                            .unwrap_or_default();
+                        if !files.is_empty() {
+                            app.mode = AppMode::BulkRename {
+                                files,
+                                pattern: String::new(),
+                                replacement: String::new(),
+                                matched_indices: Vec::new(),
+                                selected_index: None,
+                            };
+                            app.input.clear();
+                        }
+                    } else {
+                        handle_rename_shortcut(app);
+                    }
                     return true;
                 }
                 KeyCode::F(3) => {
